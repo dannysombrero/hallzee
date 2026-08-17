@@ -1,5 +1,11 @@
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.IO;
 using System.IO.Ports;
+using System.Linq;
 using System.Text;
+using System.Windows.Forms;
 
 class SyncForm : Form {
   ComboBox ports=new(){DropDownStyle=ComboBoxStyle.DropDownList}; Button sync=new(){Text="Sync Now"}; Label status=new(){AutoSize=true}; TextBox log=new(){Multiline=true,ReadOnly=true,ScrollBars=ScrollBars.Vertical,Dock=DockStyle.Fill}; SerialPort? port; StringBuilder input=new(); HashSet<string> ids=new(); string csv; bool full; int saved;

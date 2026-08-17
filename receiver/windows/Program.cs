@@ -8,7 +8,7 @@ class SyncForm : Form {
     var folder=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),"Bathroom Terminal"); Directory.CreateDirectory(folder); csv=Path.Combine(folder,"bathroom_trips.csv");
     if(!File.Exists(csv)) File.WriteAllText(csv,"trip_id,student_id,date,time_out,time_in,duration_seconds,status\n");
     foreach(var line in File.ReadLines(csv).Skip(1)){var id=line.Split(',')[0];if(long.TryParse(id,out _))ids.Add(id);}
-    var top=new FlowLayoutPanel{Dock=DockStyle.Top,AutoSize=true,Padding=new Padding(12)}; top.Controls.AddRange(new Control[]{new Label{Text="Bluetooth COM port:",AutoSize=true,Padding=new Padding(0,6,0,0)},ports,new Button{Text="Refresh Ports"},sync,new Button{Text="Open CSV"}); Controls.Add(top);
+    var top=new FlowLayoutPanel{Dock=DockStyle.Top,AutoSize=true,Padding=new Padding(12)}; top.Controls.AddRange(new Control[]{new Label{Text="Bluetooth COM port:",AutoSize=true,Padding=new Padding(0,6,0,0)},ports,new Button{Text="Refresh Ports"},sync,new Button{Text="Open CSV"}}); Controls.Add(top);
     var refresh=(Button)top.Controls[2]; refresh.Click+=(_,_)=>Refresh(); sync.Click+=(_,_)=>Toggle(); ((Button)top.Controls[4]).Click+=(_,_)=>System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(csv){UseShellExecute=true});
     var panel=new Panel{Dock=DockStyle.Top,Height=55,Padding=new Padding(12)}; status.Text="Pair Bathroom-Terminal in Windows, select its outgoing COM port, then sync."; panel.Controls.Add(status); Controls.Add(panel); Controls.Add(log); FormClosing+=(_,_)=>Stop(); Refresh();
   }

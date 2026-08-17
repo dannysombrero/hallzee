@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "author": "Bathroom Signin",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "board-esp32-devkit-v1",
+      "id": "esp",
+      "top": 0,
+      "left": 0,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-membrane-keypad",
+      "id": "keypad",
+      "top": -18,
+      "left": 310,
+      "attrs": {
+        "columns": "3"
+      }
+    }
+  ],
+  "connections": [
+    [ "keypad:R1", "esp:32", "green", [ "v0" ] ],
+    [ "keypad:R2", "esp:33", "green", [ "v0" ] ],
+    [ "keypad:R3", "esp:25", "green", [ "v0" ] ],
+    [ "keypad:R4", "esp:26", "green", [ "v0" ] ],
+    [ "keypad:C1", "esp:27", "blue", [ "v0" ] ],
+    [ "keypad:C2", "esp:14", "blue", [ "v0" ] ],
+    [ "keypad:C3", "esp:13", "blue", [ "v0" ] ],
+    [ "esp:TX0", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX0", "$serialMonitor:TX", "", [] ]
+  ],
+  "dependencies": {}
+}

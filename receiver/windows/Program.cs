@@ -16,7 +16,7 @@ class SyncForm : Form {
     foreach(var line in File.ReadLines(csv).Skip(1)){var id=line.Split(',')[0];if(long.TryParse(id,out _))ids.Add(id);}
     var top=new FlowLayoutPanel{Dock=DockStyle.Top,AutoSize=true,AutoSizeMode=AutoSizeMode.GrowAndShrink,WrapContents=true,Padding=new Padding(12)}; top.Controls.AddRange(new Control[]{new Label{Text="Bluetooth COM port:",AutoSize=true,Padding=new Padding(0,6,0,0)},ports,new Button{Text="Refresh Ports"},sync,new Button{Text="Open CSV"}}); Controls.Add(top);
     var refresh=(Button)top.Controls[2]; refresh.Click+=(_,_)=>Refresh(); sync.Click+=(_,_)=>Toggle(); ((Button)top.Controls[4]).Click+=(_,_)=>System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(csv){UseShellExecute=true});
-    var panel=new Panel{Dock=DockStyle.Top,Height=55,Padding=new Padding(12)}; status.Text="Pair Bathroom-Terminal in Windows, select its outgoing COM port, then sync."; panel.Controls.Add(status); Controls.Add(panel); Controls.Add(log); FormClosing+=(_,_)=>Stop(); Refresh();
+    var panel=new Panel{Dock=DockStyle.Top,Height=55,Padding=new Padding(12)}; status.Text="Pair Bathroom-Terminal in Windows, select its outgoing COM port, then sync."; panel.Controls.Add(status); Controls.Add(log); Controls.Add(panel); Controls.Add(top); FormClosing+=(_,_)=>Stop(); Refresh();
   }
   void Refresh(){var selected=ports.Text;ports.Items.Clear();ports.Items.AddRange(SerialPort.GetPortNames().Order().Cast<object>().ToArray());ports.SelectedItem=selected;if(ports.SelectedIndex<0&&ports.Items.Count>0)ports.SelectedIndex=0;}
   void Toggle(){if(port?.IsOpen==true)Stop();else Start();}

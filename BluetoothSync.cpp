@@ -7,9 +7,10 @@ BluetoothSync::BluetoothSync(
   BluetoothSerialPort &serial,
   ClockSetter clockSetter,
   ClockSetHandler clockSetHandler
-) : tripStorage(tripStorage), serial(serial),
+) : tripStorage(tripStorage),
     clockSetter(clockSetter),
-    clockSetHandler(clockSetHandler) {}
+    clockSetHandler(clockSetHandler),
+    serial(serial) {}
 
 void BluetoothSync::begin() {
   ready = serial.begin(BLUETOOTH_DEVICE_NAME);

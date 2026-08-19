@@ -1,6 +1,7 @@
 #pragma once
 
-#include <Keypad.h>
+#include "KeypadPort.h"
+#include "MonotonicClock.h"
 
 class KeypadController {
 public:
@@ -10,7 +11,8 @@ public:
   using ActionHandler = void (*)();
 
   KeypadController(
-    Keypad &keypad,
+    KeypadPort &keypad,
+    const MonotonicClock &clock,
     IsSetupMode isSetupMode,
     IsResetAllowed isResetAllowed,
     KeyHandler onSetupKey,
@@ -24,7 +26,8 @@ public:
   void poll();
 
 private:
-  Keypad &keypad;
+  KeypadPort &keypad;
+  const MonotonicClock &clock;
   IsSetupMode isSetupMode;
   IsResetAllowed isResetAllowed;
   KeyHandler onSetupKey;

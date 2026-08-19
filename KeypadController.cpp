@@ -3,7 +3,8 @@
 #include "Config.h"
 
 KeypadController::KeypadController(
-  Keypad &keypad,
+  KeypadPort &keypad,
+  const MonotonicClock &clock,
   IsSetupMode isSetupMode,
   IsResetAllowed isResetAllowed,
   KeyHandler onSetupKey,
@@ -12,6 +13,7 @@ KeypadController::KeypadController(
   ActionHandler onSubmit,
   ActionHandler onReset
 ) : keypad(keypad),
+    clock(clock),
     isSetupMode(isSetupMode),
     isResetAllowed(isResetAllowed),
     onSetupKey(onSetupKey),
@@ -21,8 +23,7 @@ KeypadController::KeypadController(
     onReset(onReset) {}
 
 void KeypadController::begin() {
-  keypad.setDebounceTime(20);
-  keypad.setHoldTime(500);
+  keypad.configure(20, 500);
 }
 
 void KeypadController::poll() {
@@ -31,37 +32,29 @@ void KeypadController::poll() {
 }
 
 void KeypadController::processEvents() {
-  if (!keypad.getKeys()) {
-    return;
-  }
-
-  for (int i = 0; i < LIST_MAX; i++) {
-    if (!keypad.key[i].stateChanged) {
-      continue;
-    }
-
-    const char key = keypad.key[i].kchar;
-    const KeyState state = keypad.key[i].kstate;
+  TerminalKeypadEvent events[10];
+  const size_t eventCount = keypad.readEvents(events, 10);
+  for (size_t index = 0; index < eventCount; index++) {
+    const char key = events[index].key;
+    const KeypadEventState state = events[index].state;
     if (isSetupMode()) {
-      if (state == PRESSED) {
+      if (state == KeypadEventState::Pressed) {
         onSetupKey(key);
       }
       continue;
     }
 
     if (key >= '0' && key <= '9') {
-      if (state == PRESSED) {
-        Serial.print("Key pressed: ");
-        Serial.println(key);
+      if (state == KeypadEventState::Pressed) {
         onNumberKey(key);
       }
       continue;
     }
 
     if (key == '*') {
-      if (state == PRESSED) {
+      if (state == KeypadEventState::Pressed) {
         starPressed = true;
-      } else if (state == RELEASED) {
+      } else if (state == KeypadEventState::Released) {
         starPressed = false;
         if (!suppressStarHash) {
           onClear();
@@ -70,9 +63,9 @@ void KeypadController::processEvents() {
     }
 
     if (key == '#') {
-      if (state == PRESSED) {
+      if (state == KeypadEventState::Pressed) {
         hashPressed = true;
-      } else if (state == RELEASED) {
+      } else if (state == KeypadEventState::Released) {
         hashPressed = false;
         if (!suppressStarHash) {
           onSubmit();
@@ -96,11 +89,10 @@ void KeypadController::checkResetCombo() {
 
     if (!resetHoldActive) {
       resetHoldActive = true;
-      resetHoldStarted = millis();
-      Serial.println("* + # detected. Hold to reset...");
+      resetHoldStarted = clock.milliseconds();
     }
 
-    if (millis() - resetHoldStarted >= RESET_HOLD_MS) {
+    if (clock.milliseconds() - resetHoldStarted >= RESET_HOLD_MS) {
       suppressStarHash = true;
       resetHoldActive = false;
       resetHoldStarted = 0;

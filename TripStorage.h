@@ -4,13 +4,15 @@
 #include <Preferences.h>
 #include <time.h>
 
-class TripStorage {
+#include "TripStoragePort.h"
+
+class TripStorage : public TripStoragePort {
 public:
   bool begin();
 
-  void loadActiveCheckout(String &studentID, time_t &checkoutTime);
-  bool saveActiveCheckout(const String &studentID, time_t checkoutTime);
-  void clearActiveCheckout();
+  void loadActiveCheckout(String &studentID, time_t &checkoutTime) override;
+  bool saveActiveCheckout(const String &studentID, time_t checkoutTime) override;
+  void clearActiveCheckout() override;
 
   bool appendTripRecord(
     const String &studentID,
@@ -18,7 +20,7 @@ public:
     time_t inTime,
     long durationSeconds,
     const char *status
-  );
+  ) override;
 
   bool isLogReady() const;
   uint32_t getTripRecordCount();

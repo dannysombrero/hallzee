@@ -43,8 +43,10 @@ Documents/Bathroom Terminal folder.
 
 The Windows WinForms app is in `windows/`. Its Bluetooth serial transport and
 UI stay in the app project, while `windows/BathroomSync.Core` contains the
-deterministic line protocol and CSV persistence logic. Run its tests from the
-repository root on a machine with .NET 8 installed:
+deterministic line protocol and SQLite persistence logic. The live trip store
+is `%LOCALAPPDATA%\\Bathroom Terminal\\bathroom-trips.db`; CSV files are sorted
+exports, not the live sync database. Run its tests from the repository root on
+a machine with .NET 8 installed:
 
 ```sh
 dotnet test receiver/windows/BathroomSync.Tests/BathroomSync.Tests.csproj
@@ -59,3 +61,9 @@ When downloading a Windows build artifact, extract the entire ZIP to a normal
 folder before running `BathroomSync.Windows.exe`. If the app cannot start, it
 shows the error and saves diagnostics to
 `%LOCALAPPDATA%\\Bathroom Terminal\\startup-errors.log`.
+
+Excel or OneDrive can keep an exported CSV open without interrupting sync,
+because sync writes only to the local SQLite database. **Open CSV** creates a
+new timestamped export under `Documents/Bathroom Terminal/exports`; use
+**Save CSV As...** to save a copy in another location. Exports are ordered by
+numeric trip ID, so trip `10` follows trip `9`.

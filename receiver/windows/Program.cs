@@ -9,20 +9,26 @@ class SyncForm : Form {
   readonly ComboBox terminals = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 250 };
   readonly Button refresh = new() { Text = "Find Terminal" };
   readonly Button sync = new() { Text = "Sync Now", Enabled = false };
+  readonly Button openCsv = new() { Text = "Open CSV" };
+  readonly Button saveCsv = new() { Text = "Save CSV As..." };
   readonly Label status = new() { AutoSize = true };
   readonly TextBox log = new() { Multiline = true, ReadOnly = true, ScrollBars = ScrollBars.Vertical, Dock = DockStyle.Fill };
   readonly BluetoothConnectionManager connection = new();
+  readonly TripSqliteRepository tripStorage;
   readonly SyncSession session;
-  readonly string csv;
+  readonly string exportFolder;
 
   public SyncForm() {
     Text = "Bathroom Sync";
     Width = 700;
     Height = 500;
 
-    var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Bathroom Terminal");
-    csv = Path.Combine(folder, "bathroom_trips.csv");
-    session = new SyncSession(new TripCsvRepository(csv));
+    var documentsFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Bathroom Terminal");
+    exportFolder = Path.Combine(documentsFolder, "exports");
+    var databaseFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Bathroom Terminal");
+    var legacyCsv = Path.Combine(documentsFolder, "bathroom_trips.csv");
+    tripStorage = new TripSqliteRepository(Path.Combine(databaseFolder, "bathroom-trips.db"), legacyCsv);
+    session = new SyncSession(tripStorage);
     connection.TextReceived += (_, text) => BeginInvoke(() => Process(text));
     connection.ConnectionLost += (_, message) => BeginInvoke(() => SetStatus($"Connection lost: {message} Find the terminal and try again.", Color.Firebrick));
 
@@ -32,13 +38,15 @@ class SyncForm : Form {
       terminals,
       refresh,
       sync,
-      new Button { Text = "Open CSV" }
+      openCsv,
+      saveCsv
     });
     Controls.Add(top);
 
     refresh.Click += async (_, _) => await DiscoverAsync();
     sync.Click += async (_, _) => await ConnectAndSyncAsync();
-    ((Button)top.Controls[4]).Click += (_, _) => System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(csv) { UseShellExecute = true });
+    openCsv.Click += (_, _) => OpenCsv();
+    saveCsv.Click += (_, _) => SaveCsvAs();
 
     var panel = new Panel { Dock = DockStyle.Top, Height = 55, Padding = new Padding(12) };
     status.Text = "Turn on Bathroom-Terminal, then choose Find Terminal.";
@@ -110,6 +118,41 @@ class SyncForm : Form {
     if (update.Status == SyncStatus.Complete) {
       SetStatus($"Sync complete. New trips: {update.SavedTripCount}", Color.ForestGreen);
       sync.Enabled = true;
+    }
+
+    if (update.StorageUnavailable) {
+      SetStatus("CSV is open in another app. Close it, then choose Sync Now again.", Color.Firebrick);
+      sync.Enabled = true;
+    }
+  }
+
+  void SaveCsvAs() {
+    using var dialog = new SaveFileDialog {
+      Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
+      FileName = "bathroom_trips.csv",
+      OverwritePrompt = true
+    };
+    if (dialog.ShowDialog(this) != DialogResult.OK) return;
+
+    try {
+      tripStorage.ExportCsv(dialog.FileName);
+      Log($"Saved CSV copy to {dialog.FileName}\n");
+      SetStatus("CSV copy saved in numeric trip ID order.", Color.ForestGreen);
+    } catch (Exception exception) {
+      Log(exception.Message + "\n");
+      SetStatus("Could not save the CSV copy. Choose another location and try again.", Color.Firebrick);
+    }
+  }
+
+  void OpenCsv() {
+    try {
+      Directory.CreateDirectory(exportFolder);
+      var exportPath = Path.Combine(exportFolder, $"bathroom_trips_{DateTime.Now:yyyyMMdd_HHmmss}.csv");
+      tripStorage.ExportCsv(exportPath);
+      System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(exportPath) { UseShellExecute = true });
+    } catch (Exception exception) {
+      Log(exception.Message + "\n");
+      SetStatus("Could not create a CSV export. Choose Save CSV As... and try another location.", Color.Firebrick);
     }
   }
 

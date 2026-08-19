@@ -13,6 +13,7 @@ public sealed class SyncUpdate {
   public List<string> OutboundCommands { get; } = new();
   public SyncStatus? Status { get; set; }
   public int? SavedTripCount { get; set; }
+  public bool StorageUnavailable { get; set; }
 }
 
 public sealed class SyncSession {
@@ -79,6 +80,11 @@ public sealed class SyncSession {
     var result = repository.Store(payload);
     if (result == TripStoreResult.Invalid) {
       update.Logs.Add("Ignored malformed trip record.");
+      return;
+    }
+    if (result == TripStoreResult.Unavailable) {
+      update.StorageUnavailable = true;
+      update.Logs.Add("Trip was not acknowledged because the CSV could not be saved.");
       return;
     }
 

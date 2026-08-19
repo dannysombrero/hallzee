@@ -10,8 +10,9 @@ public sealed class SyncSessionTests {
     var csv = Path.Combine(folder, "trips.csv");
 
     try {
-      _ = new TripCsvRepository(csv);
-      Assert.Equal(new[] { TripCsvRepository.Header }, File.ReadAllLines(csv));
+      var repository = new TripSqliteRepository(Path.Combine(folder, "trips.db"));
+      repository.ExportCsv(csv);
+      Assert.Equal(new[] { TripSqliteRepository.CsvHeader }, File.ReadAllLines(csv));
     } finally {
       if (Directory.Exists(folder)) Directory.Delete(folder, true);
     }
@@ -60,22 +61,64 @@ public sealed class SyncSessionTests {
   }
 
   [Fact]
-  public void RepositoryCreatesHeaderImportsExistingIdsAndWritesOnlyNewRecords() {
+  public void DoesNotAcknowledgeATripWhenStorageIsUnavailable() {
+    var session = new SyncSession(new UnavailableRepository());
+    session.Start();
+
+    var update = session.ProcessReceivedData("TRIP,7,ID1,2026-01-01,08:00:00,08:10:00,600,COMPLETE,0\n");
+
+    Assert.True(update.StorageUnavailable);
+    Assert.Empty(update.OutboundCommands);
+    Assert.Contains("Trip was not acknowledged because the CSV could not be saved.", update.Logs);
+  }
+
+  [Fact]
+  public void RepositoryImportsLegacyCsvAndExportsSortedRecords() {
     var folder = Path.Combine(Path.GetTempPath(), "BathroomSyncTests", Guid.NewGuid().ToString("N"));
     var csv = Path.Combine(folder, "trips.csv");
 
     try {
       Directory.CreateDirectory(folder);
-      File.WriteAllText(csv, TripCsvRepository.Header + "\n4,OLD,2026-01-01,08:00:00,08:10:00,600,COMPLETE\n");
-      var repository = new TripCsvRepository(csv);
+      File.WriteAllText(csv, TripSqliteRepository.CsvHeader + "\n4,OLD,2026-01-01,08:00:00,08:10:00,600,COMPLETE\n");
+      var repository = new TripSqliteRepository(Path.Combine(folder, "trips.db"), csv);
 
       Assert.Equal(TripStoreResult.Duplicate, repository.Store("4,OLD,2026-01-01,08:00:00,08:10:00,600,COMPLETE,0"));
-      Assert.Equal(TripStoreResult.Saved, repository.Store("5,NEW,2026-01-01,09:00:00,09:10:00,600,COMPLETE,0"));
+      Assert.Equal(TripStoreResult.Saved, repository.Store("10,TEN,2026-01-01,10:00:00,10:10:00,600,COMPLETE,0"));
+      Assert.Equal(TripStoreResult.Saved, repository.Store("9,NINE,2026-01-01,09:00:00,09:10:00,600,COMPLETE,0"));
       Assert.Equal(TripStoreResult.Invalid, repository.Store("0,INVALID"));
+      var exported = Path.Combine(folder, "exported.csv");
+      repository.ExportCsv(exported);
       Assert.Equal(new[] {
-        TripCsvRepository.Header,
+        TripSqliteRepository.CsvHeader,
         "4,OLD,2026-01-01,08:00:00,08:10:00,600,COMPLETE",
-        "5,NEW,2026-01-01,09:00:00,09:10:00,600,COMPLETE"
+        "9,NINE,2026-01-01,09:00:00,09:10:00,600,COMPLETE",
+        "10,TEN,2026-01-01,10:00:00,10:10:00,600,COMPLETE"
+      }, File.ReadAllLines(exported));
+
+      var savedCopy = Path.Combine(folder, "saved-copy.csv");
+      repository.ExportCsv(savedCopy);
+      Assert.Equal(File.ReadAllLines(exported), File.ReadAllLines(savedCopy));
+    } finally {
+      if (Directory.Exists(folder)) Directory.Delete(folder, true);
+    }
+  }
+
+  [Fact]
+  public void RepositoryExportsRecordsInNumericTripIdOrder() {
+    var folder = Path.Combine(Path.GetTempPath(), "BathroomSyncTests", Guid.NewGuid().ToString("N"));
+    var csv = Path.Combine(folder, "trips.csv");
+
+    try {
+      Directory.CreateDirectory(folder);
+      File.WriteAllText(csv, TripSqliteRepository.CsvHeader + "\n10,TEN,2026-01-01,10:00:00,10:10:00,600,COMPLETE\n9,NINE,2026-01-01,09:00:00,09:10:00,600,COMPLETE\n");
+      var repository = new TripSqliteRepository(Path.Combine(folder, "trips.db"), csv);
+
+      repository.ExportCsv(csv);
+
+      Assert.Equal(new[] {
+        TripSqliteRepository.CsvHeader,
+        "9,NINE,2026-01-01,09:00:00,09:10:00,600,COMPLETE",
+        "10,TEN,2026-01-01,10:00:00,10:10:00,600,COMPLETE"
       }, File.ReadAllLines(csv));
     } finally {
       if (Directory.Exists(folder)) Directory.Delete(folder, true);
@@ -95,5 +138,9 @@ public sealed class SyncSessionTests {
       StoredPayloads.Add(payload);
       return TripStoreResult.Saved;
     }
+  }
+
+  sealed class UnavailableRepository : ITripRepository {
+    public TripStoreResult Store(string payload) => TripStoreResult.Unavailable;
   }
 }

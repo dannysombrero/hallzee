@@ -1,0 +1,350 @@
+#include <algorithm>
+#include <cstdlib>
+#include <iostream>
+#include <string>
+#include <vector>
+
+#include "Config.h"
+#include "DisplayColors.h"
+#include "TerminalController.h"
+#include "TerminalDisplay.h"
+#include "support/RecordingDisplay.h"
+
+namespace {
+
+int failures = 0;
+
+void expectEqual(
+  const std::vector<std::string> &actual,
+  const std::vector<std::string> &expected,
+  const char *testName
+) {
+  if (actual == expected) {
+    return;
+  }
+
+  std::cerr << "FAIL: " << testName << "\nExpected:\n";
+  for (const auto &command : expected) std::cerr << "  " << command << "\n";
+  std::cerr << "Actual:\n";
+  for (const auto &command : actual) std::cerr << "  " << command << "\n";
+  failures++;
+}
+
+void expectTrue(bool condition, const char *testName) {
+  if (!condition) {
+    std::cerr << "FAIL: " << testName << "\n";
+    failures++;
+  }
+}
+
+bool contains(const std::vector<std::string> &commands, const std::string &command) {
+  return std::find(commands.begin(), commands.end(), command) != commands.end();
+}
+
+class FakeTimeProvider : public TimeProvider {
+public:
+  time_t currentTime = 0;
+  time_t now() const override { return currentTime; }
+};
+
+class FakeTripStorage : public TripStoragePort {
+public:
+  struct Record {
+    String id;
+    time_t outTime;
+    time_t inTime;
+    long duration;
+    std::string status;
+  };
+
+  String restoredId;
+  time_t restoredTime = 0;
+  bool saveSucceeds = true;
+  bool appendSucceeds = true;
+  bool cleared = false;
+  String savedId;
+  time_t savedTime = 0;
+  std::vector<Record> records;
+
+  void loadActiveCheckout(String &studentID, time_t &checkoutTime) override {
+    studentID = restoredId;
+    checkoutTime = restoredTime;
+  }
+  bool saveActiveCheckout(const String &studentID, time_t checkoutTime) override {
+    savedId = studentID;
+    savedTime = checkoutTime;
+    return saveSucceeds;
+  }
+  void clearActiveCheckout() override { cleared = true; }
+  bool appendTripRecord(const String &studentID, time_t outTime, time_t inTime,
+                        long durationSeconds, const char *status) override {
+    records.push_back({studentID, outTime, inTime, durationSeconds, status});
+    return appendSucceeds;
+  }
+};
+
+void expectAction(TerminalAction actual, TerminalAction expected, const char *testName) {
+  expectTrue(actual == expected, testName);
+}
+
+void testEmptyIdEntryGoldenInstructions() {
+  RecordingDisplay display;
+  TerminalDisplay terminal(display);
+  terminal.drawIdEntry("");
+
+  expectEqual(display.commands, {
+    "fillRect:13:79:134:17:59196",
+    "setTextColor:8484",
+    "setTextSize:2",
+    "setCursor:16:79",
+    "print:_"
+  }, "empty ID field golden instructions");
+}
+
+void testOccupiedIdleScreenGoldenInstructions() {
+  RecordingDisplay display;
+  TerminalDisplay terminal(display);
+  terminal.drawIdleScreen("42", "123");
+
+  expectEqual(display.commands, {
+    "fillScreen:48631",
+    "setTextWrap:0",
+    "fillRect:0:0:160:24:6733",
+    "setTextColor:65535",
+    "setTextSize:1",
+    "setCursor:9:3",
+    "println:BATHROOM",
+    "setTextColor:48631",
+    "setCursor:9:14",
+    "println:TERMINAL",
+    "fillRoundRect:8:28:144:31:6:65535",
+    "fillRoundRect:8:28:5:31:3:59782",
+    "setTextColor:59782",
+    "setTextSize:2",
+    "setCursor:20:34",
+    "println:OCCUPIED",
+    "setTextColor:27501",
+    "setTextSize:1",
+    "setCursor:21:50",
+    "print:OUT WITH ID ",
+    "println:42",
+    "setTextColor:27501",
+    "setTextSize:1",
+    "setCursor:10:66",
+    "println:STUDENT ID",
+    "drawRoundRect:9:75:142:25:5:27501",
+    "fillRoundRect:10:76:140:23:4:59196",
+    "setCursor:10:114",
+    "print:* CLEAR",
+    "setCursor:103:114",
+    "print:# SUBMIT",
+    "fillRect:13:79:134:17:59196",
+    "setTextColor:8484",
+    "setTextSize:2",
+    "setCursor:16:79",
+    "print:123"
+  }, "occupied idle screen golden instructions");
+}
+
+void testClockSetupStepUsesCorrectPromptAndHint() {
+  RecordingDisplay display;
+  TerminalDisplay terminal(display);
+  terminal.drawClockSetupScreen(SET_YEAR, "2026");
+
+  const auto &commands = display.commands;
+  expectTrue(contains(commands, "println:YEAR"), "clock setup year prompt");
+  expectTrue(contains(commands, "println:YYYY"), "clock setup year hint");
+  expectTrue(contains(commands, "print:2026"), "clock setup entered value");
+}
+
+void testEveryStatusViewEmitsItsContentAndExpectedPause() {
+  struct StatusCase {
+    const char *name;
+    void (*render)(TerminalDisplay &);
+    const char *requiredCommand;
+    const char *pauseCommand;
+  };
+
+  const StatusCase cases[] = {
+    {"bluetooth clock", [](TerminalDisplay &terminal) { terminal.showBluetoothClockSynced("01/02/2026", "9:05 AM"); }, "println:CLOCK SYNCED", "pause:1200"},
+    {"checked in", [](TerminalDisplay &terminal) { terminal.showCheckedIn(65); }, "print:1", "pause:3000"},
+    {"checked in hours", [](TerminalDisplay &terminal) { terminal.showCheckedIn(3670); }, "print:1", "pause:3000"},
+    {"pass occupied", [](TerminalDisplay &terminal) { terminal.showPassOccupied(); }, "println:OCCUPIED", "pause:2000"},
+    {"empty ID", [](TerminalDisplay &terminal) { terminal.showEnterId(); }, "println:ENTER ID", "pause:1500"},
+    {"storage error", [](TerminalDisplay &terminal) { terminal.showStorageError(); }, "println:NOT SAVED", "pause:2200"},
+    {"trip log unavailable", [](TerminalDisplay &terminal) { terminal.showTripLogSummary(false, 0, 0); }, "println:Storage unavailable", "pause:2500"},
+    {"trip log empty", [](TerminalDisplay &terminal) { terminal.showTripLogSummary(true, 0, 0); }, "println:No trips recorded yet.", "pause:2500"},
+    {"trip log latest ID", [](TerminalDisplay &terminal) { terminal.showTripLogSummary(true, 7, 42); }, "println:42", "pause:2500"},
+    {"manual reset", [](TerminalDisplay &terminal) { terminal.showManualReset("AB12"); }, "println:RESET", "pause:1800"},
+    {"invalid clock value", [](TerminalDisplay &terminal) { terminal.showInvalidClockValue("Invalid day"); }, "println:Invalid day", "pause:1200"},
+    {"clock set", [](TerminalDisplay &terminal) { terminal.showClockSet("01/02/2026", "9:05 AM"); }, "println:CLOCK SET", "pause:1800"}
+  };
+
+  for (const auto &testCase : cases) {
+    RecordingDisplay display;
+    TerminalDisplay terminal(display);
+    testCase.render(terminal);
+    expectTrue(contains(display.commands, testCase.requiredCommand), testCase.name);
+    expectTrue(contains(display.commands, testCase.pauseCommand), testCase.name);
+  }
+}
+
+void testPartialRedrawsAndAllClockSetupPrompts() {
+  RecordingDisplay display;
+  TerminalDisplay terminal(display);
+
+  terminal.drawIdEntry("123");
+  expectTrue(contains(display.commands, "print:123"), "populated ID redraw");
+  terminal.drawClock("9:05 AM");
+  expectTrue(contains(display.commands, "print:9:05 AM"), "clock redraw");
+  terminal.drawClockSetupEntry("");
+  expectTrue(contains(display.commands, "print:_"), "empty clock setup entry redraw");
+
+  RecordingDisplay idleDisplay;
+  TerminalDisplay idleTerminal(idleDisplay);
+  idleTerminal.drawIdleScreen("", "");
+  expectTrue(contains(idleDisplay.commands, "println:OPEN"), "open idle screen state");
+
+  const ClockSetupStep steps[] = {
+    SET_MONTH, SET_DAY, SET_YEAR, SET_HOUR, SET_MINUTE, SET_AMPM
+  };
+  const char *prompts[] = {"MONTH", "DAY", "YEAR", "HOUR", "MINUTE", "AM / PM"};
+  const char *hints[] = {"1-12", "1-31", "YYYY", "1-12", "0-59", "1 or 2"};
+
+  for (size_t index = 0; index < 6; index++) {
+    RecordingDisplay setupDisplay;
+    TerminalDisplay setupTerminal(setupDisplay);
+    setupTerminal.drawClockSetupScreen(steps[index], "7");
+    expectTrue(contains(setupDisplay.commands, std::string("println:") + prompts[index]), "clock setup prompt");
+    expectTrue(contains(setupDisplay.commands, std::string("println:") + hints[index]), "clock setup hint");
+    expectTrue(contains(setupDisplay.commands, "print:7"), "clock setup entry redraw");
+  }
+}
+
+void testTerminalCheckoutAndCheckinAreDeterministic() {
+  FakeTripStorage storage;
+  FakeTimeProvider time;
+  time.currentTime = 1000;
+  TerminalController terminal(storage, time);
+
+  const auto checkout = terminal.submit("STUDENT-1");
+  expectAction(checkout.action, TerminalAction::CheckedOut, "checkout action");
+  expectTrue(storage.savedId == "STUDENT-1" && storage.savedTime == 1000, "checkout persistence");
+  expectTrue(terminal.hasActivePass(), "checkout creates active pass");
+
+  time.currentTime = 1365;
+  const auto checkin = terminal.submit("STUDENT-1");
+  expectAction(checkin.action, TerminalAction::CheckedIn, "checkin action");
+  expectTrue(checkin.elapsedSeconds == 365, "checkin duration uses injected time");
+  expectTrue(storage.records.size() == 1 && storage.records[0].status == "COMPLETE", "checkin record");
+  expectTrue(storage.cleared && !terminal.hasActivePass(), "checkin clears persisted active pass");
+}
+
+void testTerminalStorageFailuresDoNotLosePassState() {
+  FakeTripStorage storage;
+  FakeTimeProvider time;
+  time.currentTime = 100;
+  TerminalController terminal(storage, time);
+
+  storage.saveSucceeds = false;
+  expectAction(terminal.submit("A").action, TerminalAction::StorageError, "checkout save failure");
+  expectTrue(!terminal.hasActivePass(), "failed checkout does not become active");
+
+  storage.saveSucceeds = true;
+  expectAction(terminal.submit("A").action, TerminalAction::CheckedOut, "checkout after storage recovery");
+  storage.appendSucceeds = false;
+  time.currentTime = 200;
+  expectAction(terminal.submit("A").action, TerminalAction::StorageError, "checkin append failure");
+  expectTrue(terminal.hasActivePass(), "failed checkin keeps active pass");
+
+  String resetId;
+  expectTrue(!terminal.resetActivePass(resetId), "failed reset keeps active pass");
+  expectTrue(terminal.hasActivePass(), "reset failure preserves active pass");
+}
+
+void testTerminalRestorationAndSubmissionClassification() {
+  FakeTripStorage storage;
+  FakeTimeProvider time;
+  storage.restoredId = "RESTORED";
+  storage.restoredTime = 20;
+  TerminalController terminal(storage, time);
+  terminal.restoreActivePass();
+
+  expectTrue(terminal.hasActivePass() && terminal.activeId() == "RESTORED", "restored pass");
+  expectAction(terminal.submit("").action, TerminalAction::EmptyId, "empty ID");
+  expectAction(terminal.submit(CLOCK_CODE).action, TerminalAction::StartClockSetup, "clock admin code");
+  expectAction(terminal.submit(LOG_SUMMARY_CODE).action, TerminalAction::ShowTripLog, "log admin code");
+  expectAction(terminal.submit("OTHER").action, TerminalAction::PassOccupied, "different ID rejected");
+}
+
+void testTerminalClampsBackwardTimeAndPersistsManualReset() {
+  FakeTripStorage storage;
+  FakeTimeProvider time;
+  TerminalController terminal(storage, time);
+
+  String resetId;
+  expectTrue(!terminal.resetActivePass(resetId), "cannot reset without an active pass");
+
+  time.currentTime = 100;
+  expectAction(terminal.submit("A").action, TerminalAction::CheckedOut, "checkout before backward time");
+  time.currentTime = 50;
+  const auto checkin = terminal.submit("A");
+  expectAction(checkin.action, TerminalAction::CheckedIn, "checkin after backward time");
+  expectTrue(checkin.elapsedSeconds == 0, "backward time is clamped to zero");
+
+  time.currentTime = 200;
+  expectAction(terminal.submit("B").action, TerminalAction::CheckedOut, "checkout before reset");
+  expectTrue(terminal.resetActivePass(resetId), "manual reset succeeds");
+  expectTrue(resetId == "B", "manual reset returns active ID");
+  expectTrue(
+    storage.records.back().status == "MANUAL_RESET" && !terminal.hasActivePass(),
+    "manual reset records and clears active pass"
+  );
+}
+
+void testCheckedOutScreenIncludesDurationInstruction() {
+  RecordingDisplay display;
+  TerminalDisplay terminal(display);
+  terminal.showCheckedOut("AB12", "9:05 AM");
+
+  expectEqual(display.commands, {
+    "fillScreen:2016",
+    "setTextColor:0",
+    "setTextSize:2",
+    "setCursor:10:20",
+    "println:CHECKED",
+    "setCursor:10:44",
+    "println:OUT",
+    "setTextSize:1",
+    "setCursor:10:75",
+    "print:ID: ",
+    "println:AB12",
+    "setCursor:10:95",
+    "print:Time: ",
+    "println:9:05 AM",
+    "pause:2000"
+  }, "checked out screen golden instructions");
+}
+
+}  // namespace
+
+int main() {
+  testEmptyIdEntryGoldenInstructions();
+  testOccupiedIdleScreenGoldenInstructions();
+  testClockSetupStepUsesCorrectPromptAndHint();
+  testCheckedOutScreenIncludesDurationInstruction();
+  testEveryStatusViewEmitsItsContentAndExpectedPause();
+  testPartialRedrawsAndAllClockSetupPrompts();
+  testTerminalCheckoutAndCheckinAreDeterministic();
+  testTerminalStorageFailuresDoNotLosePassState();
+  testTerminalRestorationAndSubmissionClassification();
+  testTerminalClampsBackwardTimeAndPersistsManualReset();
+
+  if (failures != 0) {
+    std::cerr << failures << " test assertion group(s) failed.\n";
+    return EXIT_FAILURE;
+  }
+
+  std::cout << "All native tests passed.\n";
+  return EXIT_SUCCESS;
+}

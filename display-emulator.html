@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bathroom Sign-in Display Emulator</title>
+  <style>
+    :root { color-scheme: dark; font-family: system-ui, sans-serif; }
+    body { align-items: center; background: #192022; color: #e9f3f0; display: flex; flex-direction: column; gap: 18px; margin: 0; min-height: 100vh; padding: 28px 16px; }
+    h1 { font-size: 1.1rem; font-weight: 650; margin: 0; }
+    p { color: #aac0bb; font-size: .88rem; margin: -10px 0 0; text-align: center; }
+    .terminal { background: #303b3a; border-radius: 20px; box-shadow: 0 18px 50px #0008; padding: 22px; }
+    canvas { background: #000; border: 9px solid #141918; border-radius: 4px; display: block; image-rendering: pixelated; width: min(640px, calc(100vw - 76px)); }
+    .keypad { display: grid; gap: 8px; grid-template-columns: repeat(3, 1fr); margin: 18px auto 0; max-width: 300px; }
+    button { background: #e8eeeb; border: 0; border-radius: 9px; color: #17201d; cursor: pointer; font: 700 1.1rem/1 system-ui; min-height: 48px; }
+    button:hover { background: #fff; } button:active { transform: translateY(1px); }
+    .tools { display: flex; gap: 8px; justify-content: center; margin-top: 12px; }
+    .tools button { background: #66847a; color: white; font-size: .8rem; min-height: 34px; padding: 0 12px; }
+    .hint { max-width: 540px; text-align: center; }
+    kbd { background: #44504e; border-radius: 4px; color: white; padding: 1px 5px; }
+  </style>
+</head>
+<body>
+  <h1>Bathroom Sign-in — Display Emulator</h1>
+  <p>Manual UI testing for the 160 × 128 ST7735 screen.</p>
+  <main class="terminal">
+    <canvas id="screen" width="160" height="128" aria-label="Emulated bathroom sign-in display"></canvas>
+    <div class="keypad" id="keypad" aria-label="Keypad"></div>
+    <div class="tools"><button id="reset">Reset emulator</button><button id="log">View trip log</button></div>
+  </main>
+  <p class="hint">Click the keypad or use <kbd>0</kbd>–<kbd>9</kbd>, <kbd>*</kbd>, and <kbd>#</kbd>. Set the clock first with <kbd>1234#</kbd>.</p>
+
+  <script>
+    const canvas = document.querySelector('#screen');
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    const colors = { black: '#000', white: '#fff', green: '#3ad273', red: '#ef3131', blue: '#1578e8', yellow: '#ffa500', cyan: '#00e5ff', navy: '#18506a', background: '#bdbebd', panel: '#fff', panelDark: '#e6e7e6', text: '#212421', muted: '#6b6d6b' };
+    const clockCode = '1234', logCode = '9999', maxIdLength = 10;
+    let enteredID = '', currentOutID = '', checkoutTime = 0, trips = [];
+    let screen = 'clock', setupStep = 0, setupEntry = '', setup = {};
+
+    function fill(color) { ctx.fillStyle = colors[color]; ctx.fillRect(0, 0, 160, 128); }
+    function text(value, x, y, color = 'white', size = 1) {
+      ctx.fillStyle = colors[color]; ctx.font = `${size * 8}px monospace`; ctx.textBaseline = 'top';
+      String(value).split('\n').forEach((line, index) => ctx.fillText(line, x, y + index * size * 9));
+    }
+    function formatTime(date = new Date()) { let h = date.getHours(), ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12; return `${h}:${String(date.getMinutes()).padStart(2, '0')} ${ap}`; }
+    function formatDate(date = new Date()) { return `${String(date.getMonth()+1).padStart(2,'0')}/${String(date.getDate()).padStart(2,'0')}/${date.getFullYear()}`; }
+    function rounded(x, y, width, height, radius, color, stroke = false) { ctx.strokeStyle = ctx.fillStyle = colors[color]; ctx.beginPath(); ctx.roundRect(x, y, width, height, radius); stroke ? ctx.stroke() : ctx.fill(); }
+    function drawIdle() {
+      fill('background'); ctx.fillStyle = colors.navy; ctx.fillRect(0, 0, 160, 24);
+      text('BATHROOM', 9, 3); text('TERMINAL', 9, 14, 'background'); text(formatTime(), 104, 8);
+      const stateColor = currentOutID ? 'red' : 'green'; rounded(8, 28, 144, 31, 6, 'panel'); rounded(8, 28, 5, 31, 3, stateColor);
+      if (!currentOutID) { text('OPEN', 20, 34, 'green', 2); text('Bathroom is open', 21, 50, 'muted'); }
+      else { text('OCCUPIED', 20, 34, 'red', 2); text(`OUT WITH ID ${currentOutID}`, 21, 50, 'muted'); }
+      text('STUDENT ID', 10, 66, 'muted'); rounded(9, 75, 142, 25, 5, 'muted', true); rounded(10, 76, 140, 23, 4, 'panelDark');
+      text(enteredID || '_', 16, 79, 'text', 2); text('* CLEAR', 10, 114, 'text'); text('# SUBMIT', 103, 114, 'text');
+    }
+    function drawClockSetup() {
+      fill('background'); ctx.fillStyle = colors.navy; ctx.fillRect(0, 0, 160, 26); text('SET TIME', 9, 7); text(`STEP ${setupStep + 1}/6`, 112, 8, 'background');
+      const prompts = ['Enter MONTH (1-12)', 'Enter DAY', 'Enter YEAR (YYYY)', 'Enter HOUR (1-12)', 'Enter MINUTE (0-59)', '1 = AM     2 = PM'];
+      const names = ['MONTH', 'DAY', 'YEAR', 'HOUR', 'MINUTE', 'AM / PM'];
+      const hints = ['1-12', '1-31', 'YYYY', '1-12', '0-59', '1 or 2'];
+      rounded(8, 34, 144, 40, 7, 'panel'); text('SET DATE & TIME', 19, 43, 'muted'); text(names[setupStep], 19, 59, 'text', 2); text(hints[setupStep], 112, 58, 'muted');
+      text('ENTER VALUE', 10, 83, 'muted'); rounded(9, 88, 142, 25, 5, 'muted', true); rounded(10, 89, 140, 23, 4, 'panelDark'); text(setupEntry || '_', 17, 96, 'text', 2); text('* CLEAR', 10, 118, 'text'); text('# NEXT', 106, 118, 'text');
+    }
+    function message(bg, title, lines = [], duration = 0, returnScreen = 'idle') {
+      screen = 'message';
+      fill(bg); text(title, 10, 20, bg === 'green' || bg === 'yellow' ? 'black' : 'white', 2); lines.forEach((line, i) => text(line, 10, 70 + i * 15, bg === 'green' || bg === 'yellow' ? 'black' : 'white'));
+      if (duration) setTimeout(() => { screen = returnScreen; draw(); }, duration);
+    }
+    function drawSummary() {
+      fill('black'); text('TRIP LOG', 10, 12, 'yellow', 2); text(`Saved records: ${trips.length}`, 10, 52); text(trips.length ? `Latest trip ID: ${trips.at(-1).id}` : 'No trips recorded yet.', 10, 70); text('Returning...', 10, 110);
+      setTimeout(() => { screen = 'idle'; draw(); }, 2500);
+    }
+    function draw() { if (screen === 'message') return; if (screen === 'clock') drawClockSetup(); else if (screen === 'summary') drawSummary(); else drawIdle(); }
+    function validDate(month, day, year) { return new Date(year, month - 1, day).getMonth() === month - 1; }
+    function finishClock() { message('green', 'CLOCK SET', [formatDate(), formatTime()], 1800); }
+    function processClock() {
+      const value = Number(setupEntry);
+      const invalid = (label) => { setupEntry = ''; message('red', 'INVALID', [label], 1200, 'clock'); };
+      if (!setupEntry) return;
+      if (setupStep === 0 && (value < 1 || value > 12)) return invalid('Month must be 1-12');
+      if (setupStep === 1 && (value < 1 || value > 31 || (setup.month === 2 && value > 29) || ([4,6,9,11].includes(setup.month) && value > 30))) return invalid('Invalid day');
+      if (setupStep === 2 && (value < 2024 || value > 2099 || !validDate(setup.month, setup.day, value))) return invalid(value >= 2024 && value <= 2099 ? 'Date does not exist' : 'Use YYYY: 2024-2099');
+      if (setupStep === 3 && (value < 1 || value > 12)) return invalid('Hour must be 1-12');
+      if (setupStep === 4 && (value < 0 || value > 59)) return invalid('Minute must be 0-59');
+      if (setupStep === 5 && value !== 1 && value !== 2) return invalid('1 = AM, 2 = PM');
+      ['month','day','year','hour','minute','pm'][setupStep] = setupStep === 5 ? value === 2 : value;
+      setupEntry = ''; setupStep++;
+      if (setupStep === 6) finishClock(); else draw();
+    }
+    function submit() {
+      if (!enteredID) { message('red', 'ENTER ID', ['Type your student ID', 'before submitting.'], 1500); return; }
+      if (enteredID === clockCode) { enteredID = ''; screen = 'clock'; setupStep = 0; setup = {}; draw(); return; }
+      if (enteredID === logCode) { enteredID = ''; screen = 'summary'; draw(); return; }
+      if (!currentOutID) { currentOutID = enteredID; checkoutTime = Date.now(); enteredID = ''; message('green', 'CHECKED\nOUT', [`ID: ${currentOutID}`, `Time: ${formatTime()}`], 2000); return; }
+      if (enteredID !== currentOutID) { enteredID = ''; message('red', 'PASS\nOCCUPIED', ['Waiting for current', 'student to return.'], 2000); return; }
+      const seconds = Math.max(0, Math.floor((Date.now() - checkoutTime) / 1000));
+      trips.push({ id: trips.length + 1, studentID: currentOutID, out: checkoutTime, in: Date.now(), duration: seconds });
+      const m = Math.floor(seconds / 60), s = String(seconds % 60).padStart(2, '0'); currentOutID = ''; enteredID = ''; message('blue', 'CHECKED\nIN', ['Time away:', `${m}m ${s}s`], 3000);
+    }
+    function press(key) {
+      if (screen === 'summary') return;
+      if (screen === 'clock') {
+        if (/\d/.test(key)) { const max = setupStep === 2 ? 4 : setupStep === 5 ? 1 : 2; if (setupEntry.length < max) setupEntry += key; }
+        else if (key === '*') setupEntry = ''; else if (key === '#') processClock(); draw(); return;
+      }
+      if (/\d/.test(key) && enteredID.length < maxIdLength) enteredID += key;
+      if (key === '*') enteredID = '';
+      if (key === '#') submit();
+      draw();
+    }
+    ['1','2','3','4','5','6','7','8','9','*','0','#'].forEach(key => { const button = document.createElement('button'); button.textContent = key; button.addEventListener('click', () => press(key)); document.querySelector('#keypad').append(button); });
+    document.addEventListener('keydown', event => { if ('0123456789*#'.includes(event.key)) { event.preventDefault(); press(event.key); } });
+    document.querySelector('#reset').addEventListener('click', () => { enteredID = ''; currentOutID = ''; checkoutTime = 0; trips = []; setup = {}; setupStep = 0; screen = 'clock'; draw(); });
+    document.querySelector('#log').addEventListener('click', () => { screen = 'summary'; draw(); });
+    draw();
+  </script>
+</body>
+</html>

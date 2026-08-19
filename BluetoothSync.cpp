@@ -3,10 +3,11 @@
 #include "Config.h"
 
 BluetoothSync::BluetoothSync(
-  TripStorage &tripStorage,
+  TripStoragePort &tripStorage,
+  BluetoothSerialPort &serial,
   ClockSetter clockSetter,
   ClockSetHandler clockSetHandler
-) : tripStorage(tripStorage),
+) : tripStorage(tripStorage), serial(serial),
     clockSetter(clockSetter),
     clockSetHandler(clockSetHandler) {}
 

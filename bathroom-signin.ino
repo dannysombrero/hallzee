@@ -3,6 +3,7 @@
 #include <SPI.h>
 #include <Keypad.h>
 #include "ArduinoKeypadPort.h"
+#include "ArduinoBluetoothSerialPort.h"
 #include "AppTypes.h"
 #include "BluetoothSync.h"
 #include "ClockService.h"
@@ -55,6 +56,7 @@ ArduinoMonotonicClock monotonicClock;
 // ======================================================
 
 TripStorage tripStorage;
+ArduinoBluetoothSerialPort bluetoothSerial;
 SystemTimeProvider systemTime;
 TerminalController terminal(tripStorage, systemTime);
 ClockService terminalClock;
@@ -71,6 +73,7 @@ void handleBluetoothClockSet();
 
 BluetoothSync bluetoothSync(
   tripStorage,
+  bluetoothSerial,
   setSystemClock24,
   handleBluetoothClockSet
 );

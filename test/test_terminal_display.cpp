@@ -83,6 +83,9 @@ public:
     records.push_back({studentID, outTime, inTime, durationSeconds, status});
     return appendSucceeds;
   }
+  bool getNextUnsyncedRecord(String &, uint32_t &) override { return false; }
+  bool getNextRecordAfter(uint32_t, String &, uint32_t &) override { return false; }
+  bool markTripSynced(uint32_t) override { return true; }
 };
 
 class FakeMonotonicClock : public MonotonicClock {

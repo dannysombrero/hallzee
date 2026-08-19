@@ -2,11 +2,13 @@
 #include <Adafruit_ST7735.h>
 #include <SPI.h>
 #include <Keypad.h>
+#include "ArduinoKeypadPort.h"
 #include "AppTypes.h"
 #include "BluetoothSync.h"
 #include "ClockService.h"
 #include "Config.h"
 #include "KeypadController.h"
+#include "MonotonicClock.h"
 #include "St7735DisplayPort.h"
 #include "TerminalDisplay.h"
 #include "TerminalController.h"
@@ -45,6 +47,8 @@ Keypad keypad = Keypad(
   KEYPAD_ROWS,
   KEYPAD_COLS
 );
+ArduinoKeypadPort arduinoKeypad(keypad);
+ArduinoMonotonicClock monotonicClock;
 
 // ======================================================
 // BATHROOM STATE
@@ -109,7 +113,8 @@ bool isResetAllowed() {
 }
 
 KeypadController keypadController(
-  keypad,
+  arduinoKeypad,
+  monotonicClock,
   isSetupMode,
   isResetAllowed,
   handleSetupKey,
@@ -634,6 +639,8 @@ void submitID() {
 void handleNormalNumber(char key) {
 
   if (enteredID.length() < MAX_ID_LENGTH) {
+    Serial.print("Key pressed: ");
+    Serial.println(key);
 
     enteredID += key;
 

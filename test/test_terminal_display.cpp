@@ -1,11 +1,13 @@
 #include <algorithm>
 #include <cstdlib>
+#include <deque>
 #include <iostream>
 #include <string>
 #include <vector>
 
 #include "Config.h"
 #include "DisplayColors.h"
+#include "KeypadController.h"
 #include "TerminalController.h"
 #include "TerminalDisplay.h"
 #include "support/RecordingDisplay.h"
@@ -82,6 +84,58 @@ public:
     return appendSucceeds;
   }
 };
+
+class FakeMonotonicClock : public MonotonicClock {
+public:
+  unsigned long currentMilliseconds = 0;
+  unsigned long milliseconds() const override { return currentMilliseconds; }
+};
+
+class FakeKeypad : public KeypadPort {
+public:
+  unsigned int debounceMilliseconds = 0;
+  unsigned int holdMilliseconds = 0;
+  std::deque<std::vector<TerminalKeypadEvent>> batches;
+
+  void configure(unsigned int debounce, unsigned int hold) override {
+    debounceMilliseconds = debounce;
+    holdMilliseconds = hold;
+  }
+  size_t readEvents(TerminalKeypadEvent *events, size_t capacity) override {
+    if (batches.empty()) return 0;
+    const auto batch = batches.front();
+    batches.pop_front();
+    const size_t count = std::min(batch.size(), capacity);
+    for (size_t index = 0; index < count; index++) events[index] = batch[index];
+    return count;
+  }
+};
+
+bool keypadSetupMode = false;
+bool keypadResetAllowed = false;
+std::vector<char> setupKeys;
+std::vector<char> numberKeys;
+int clearCount = 0;
+int submitCount = 0;
+int resetCount = 0;
+
+bool isKeypadSetupMode() { return keypadSetupMode; }
+bool isKeypadResetAllowed() { return keypadResetAllowed; }
+void onSetupKey(char key) { setupKeys.push_back(key); }
+void onNumberKey(char key) { numberKeys.push_back(key); }
+void onClear() { clearCount++; }
+void onSubmit() { submitCount++; }
+void onReset() { resetCount++; }
+
+void resetKeypadCallbacks() {
+  keypadSetupMode = false;
+  keypadResetAllowed = false;
+  setupKeys.clear();
+  numberKeys.clear();
+  clearCount = 0;
+  submitCount = 0;
+  resetCount = 0;
+}
 
 void expectAction(TerminalAction actual, TerminalAction expected, const char *testName) {
   expectTrue(actual == expected, testName);
@@ -302,6 +356,68 @@ void testTerminalClampsBackwardTimeAndPersistsManualReset() {
   );
 }
 
+void testKeypadControllerInterpretsKeysAndResetGesture() {
+  resetKeypadCallbacks();
+  FakeKeypad keypad;
+  FakeMonotonicClock clock;
+  KeypadController controller(
+    keypad, clock, isKeypadSetupMode, isKeypadResetAllowed, onSetupKey,
+    onNumberKey, onClear, onSubmit, onReset
+  );
+  controller.begin();
+  expectTrue(
+    keypad.debounceMilliseconds == 20 && keypad.holdMilliseconds == 500,
+    "keypad hardware configuration"
+  );
+
+  keypad.batches.push_back({{'4', KeypadEventState::Pressed}});
+  controller.poll();
+  expectTrue(numberKeys == std::vector<char>{'4'}, "number key press");
+
+  keypad.batches.push_back({{'*', KeypadEventState::Pressed}});
+  controller.poll();
+  keypad.batches.push_back({{'*', KeypadEventState::Released}});
+  controller.poll();
+  expectTrue(clearCount == 1, "star release clears entry");
+
+  keypad.batches.push_back({{'#', KeypadEventState::Pressed}});
+  controller.poll();
+  keypad.batches.push_back({{'#', KeypadEventState::Released}});
+  controller.poll();
+  expectTrue(submitCount == 1, "hash release submits entry");
+
+  keypadSetupMode = true;
+  keypad.batches.push_back({{'#', KeypadEventState::Pressed}});
+  controller.poll();
+  expectTrue(setupKeys == std::vector<char>{'#'}, "setup mode delegates every key");
+  keypadSetupMode = false;
+
+  keypadResetAllowed = true;
+  clock.currentMilliseconds = 100;
+  keypad.batches.push_back({
+    {'*', KeypadEventState::Pressed}, {'#', KeypadEventState::Pressed}
+  });
+  controller.poll();
+  clock.currentMilliseconds = 2099;
+  controller.poll();
+  expectTrue(resetCount == 0, "reset waits for full hold duration");
+  clock.currentMilliseconds = 2100;
+  controller.poll();
+  expectTrue(resetCount == 1, "reset triggers at configured duration");
+
+  keypad.batches.push_back({
+    {'*', KeypadEventState::Released}, {'#', KeypadEventState::Released}
+  });
+  controller.poll();
+  expectTrue(clearCount == 1 && submitCount == 1, "reset suppresses release actions");
+
+  keypad.batches.push_back({{'*', KeypadEventState::Pressed}});
+  controller.poll();
+  keypad.batches.push_back({{'*', KeypadEventState::Released}});
+  controller.poll();
+  expectTrue(clearCount == 2, "clear resumes after reset keys release");
+}
+
 void testCheckedOutScreenIncludesDurationInstruction() {
   RecordingDisplay display;
   TerminalDisplay terminal(display);
@@ -339,6 +455,7 @@ int main() {
   testTerminalStorageFailuresDoNotLosePassState();
   testTerminalRestorationAndSubmissionClassification();
   testTerminalClampsBackwardTimeAndPersistsManualReset();
+  testKeypadControllerInterpretsKeysAndResetGesture();
 
   if (failures != 0) {
     std::cerr << failures << " test assertion group(s) failed.\n";

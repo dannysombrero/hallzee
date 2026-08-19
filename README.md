@@ -90,5 +90,16 @@ not require a connected ESP32. Rendering tests record the exact display
 instructions sent by `TerminalDisplay`, including coordinates, colors, text,
 and pause durations.
 
+The Windows receiver's protocol and CSV persistence tests are in
+`receiver/windows/BathroomSync.Tests`. On a machine with .NET 8 installed,
+run them with:
+
+```sh
+dotnet test receiver/windows/BathroomSync.Tests/BathroomSync.Tests.csproj
+```
+
+The Windows CI workflow enforces at least 80% line coverage for that
+hardware-independent core before publishing the app.
+
 Use the Wokwi setup for keypad-flow checks and perform a physical-board test
 for TFT rendering, Bluetooth pairing/reconnection, and flash persistence.

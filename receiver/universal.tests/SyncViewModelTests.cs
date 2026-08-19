@@ -42,4 +42,22 @@ public sealed class SyncViewModelTests {
       if (Directory.Exists(folder)) Directory.Delete(folder, true);
     }
   }
+
+  [Fact]
+  public void ConnectionLossIsShownWithoutCrashingTheClient() {
+    var folder = Path.Combine(Path.GetTempPath(), "BathroomSyncUniversalTests", Guid.NewGuid().ToString("N"));
+    Directory.CreateDirectory(folder);
+
+    try {
+      var connection = new PreviewTerminalConnection();
+      using var viewModel = new SyncViewModel(connection, folder);
+
+      connection.SimulateConnectionLoss("The test terminal disconnected.");
+
+      Assert.Equal("Connection lost", viewModel.StatusTitle);
+      Assert.Equal("The test terminal disconnected.", viewModel.StatusDetail);
+    } finally {
+      if (Directory.Exists(folder)) Directory.Delete(folder, true);
+    }
+  }
 }

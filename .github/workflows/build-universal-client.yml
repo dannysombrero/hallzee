@@ -2,7 +2,7 @@ name: Build Universal Sync Client
 on:
   workflow_dispatch:
   push:
-    paths: [receiver/universal/**, receiver/universal.tests/**, receiver/windows/BathroomSync.Core/**, .github/workflows/build-universal-client.yml]
+    paths: [receiver/universal/**, receiver/universal.tests/**, receiver/windows/BathroomSync.Core/**, receiver/windows/BluetoothConnectionManager.cs, .github/workflows/build-universal-client.yml]
 jobs:
   validate:
     strategy:
@@ -16,7 +16,7 @@ jobs:
         with: { dotnet-version: 8.0.x }
       - run: dotnet test receiver/universal.tests/BathroomSync.Universal.Tests.csproj --configuration Release
       - run: dotnet build receiver/universal/BathroomSync.Universal.csproj --configuration Release
-  publish_windows_preview:
+  publish_windows_client:
     needs: validate
     runs-on: windows-latest
     steps:
@@ -26,6 +26,6 @@ jobs:
       - run: dotnet publish receiver/universal/BathroomSync.Universal.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -o publish
       - uses: actions/upload-artifact@v4
         with:
-          name: BathroomSync-Universal-Windows-Preview
+          name: BathroomSync-Universal-Windows
           path: publish/
           if-no-files-found: error

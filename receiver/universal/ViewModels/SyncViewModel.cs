@@ -11,6 +11,7 @@ public sealed class SyncViewModel : INotifyPropertyChanged, IDisposable {
   readonly TripSqliteRepository storage;
   readonly SyncSession session;
   readonly string exportFolder;
+  readonly SynchronizationContext? uiContext;
   TerminalDevice? selectedDevice;
   string statusTitle = "Ready to find a terminal";
   string statusDetail = "Choose Find terminal to start the preview discovery flow.";
@@ -19,19 +20,26 @@ public sealed class SyncViewModel : INotifyPropertyChanged, IDisposable {
   bool canFind = true;
   bool canSync;
 
-  public SyncViewModel(ITerminalConnection connection, string? appDataPath = null) {
+  public SyncViewModel(ITerminalConnection connection, string? appDataPath = null, bool isPreviewMode = true) {
     this.connection = connection;
+    uiContext = SynchronizationContext.Current;
     var appData = appDataPath ?? Path.Combine(
       Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
       "Bathroom Terminal",
-      "universal-preview"
+      isPreviewMode ? "universal-preview" : "universal"
     );
     exportFolder = Path.Combine(appData, "exports");
     storage = new TripSqliteRepository(Path.Combine(appData, "bathroom-trips.db"));
     session = new SyncSession(storage);
     connection.TextReceived += HandleTerminalText;
     connection.ConnectionLost += HandleConnectionLost;
-    LogEntries.Add("Preview ready. No Bluetooth hardware is used in this shell.");
+    IsPreviewMode = isPreviewMode;
+    ModeDescription = isPreviewMode
+      ? "Desktop sync client · Preview mode"
+      : "Desktop sync client · Windows Bluetooth";
+    LogEntries.Add(isPreviewMode
+      ? "Preview ready. No Bluetooth hardware is used in this shell."
+      : "Windows Bluetooth transport ready.");
   }
 
   public event PropertyChangedEventHandler? PropertyChanged;
@@ -48,6 +56,12 @@ public sealed class SyncViewModel : INotifyPropertyChanged, IDisposable {
   public int SavedTrips { get => savedTrips; private set { savedTrips = value; OnPropertyChanged(); } }
   public bool CanFind { get => canFind; private set { canFind = value; OnPropertyChanged(); } }
   public bool CanSync { get => canSync; private set { canSync = value; OnPropertyChanged(); } }
+  public bool IsPreviewMode { get; }
+  public string ModeDescription { get; }
+  public string WindowTitle => IsPreviewMode ? "Bathroom Sync Preview" : "Bathroom Sync";
+  public string FooterDescription => IsPreviewMode
+    ? "The preview uses a simulated terminal. The Windows build uses this same UI with Bluetooth."
+    : "Find, pair, and sync Bathroom-Terminal directly from this Windows app.";
 
   public async Task FindAsync() {
     CanFind = false;
@@ -104,7 +118,9 @@ public sealed class SyncViewModel : INotifyPropertyChanged, IDisposable {
     return Task.CompletedTask;
   }
 
-  async void HandleTerminalText(object? sender, string text) {
+  void HandleTerminalText(object? sender, string text) => RunOnUiContext(() => _ = ProcessTerminalTextAsync(text));
+
+  async Task ProcessTerminalTextAsync(string text) {
     var update = session.ProcessReceivedData(text);
     foreach (var log in update.Logs) LogEntries.Add(log);
     try {
@@ -122,11 +138,21 @@ public sealed class SyncViewModel : INotifyPropertyChanged, IDisposable {
       SetStatus("Sync complete", $"{SavedTrips} new trip(s) saved this session.", "#2C8A50");
       CanSync = true;
     }
+
+    if (update.StorageUnavailable) {
+      SetStatus("Local storage unavailable", "The terminal retained this trip. Try syncing again.", "#B3443C");
+      CanSync = true;
+    }
   }
 
-  void HandleConnectionLost(object? sender, string detail) {
+  void HandleConnectionLost(object? sender, string detail) => RunOnUiContext(() => {
     SetStatus("Connection lost", detail, "#B3443C");
     CanSync = true;
+  });
+
+  void RunOnUiContext(Action action) {
+    if (uiContext is null || SynchronizationContext.Current == uiContext) action();
+    else uiContext.Post(_ => action(), null);
   }
 
   void SetStatus(string title, string detail, string color) {

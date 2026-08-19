@@ -39,6 +39,11 @@ public sealed class PreviewTerminalConnection : ITerminalConnection {
     return Task.CompletedTask;
   }
 
+  public void SimulateConnectionLoss(string detail = "Preview terminal disconnected.") {
+    connected = false;
+    ConnectionLost?.Invoke(this, detail);
+  }
+
   public void Dispose() {
     _ = DisconnectAsync();
   }

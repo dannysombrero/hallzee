@@ -49,3 +49,13 @@ repository root on a machine with .NET 8 installed:
 ```sh
 dotnet test receiver/windows/BathroomSync.Tests/BathroomSync.Tests.csproj
 ```
+
+For normal use, turn on the terminal, choose **Find Terminal**, select
+`Bathroom-Terminal`, and choose **Sync Now**. The app handles pairing (PIN
+`1234` when requested) and connects directly to the Bluetooth SPP service;
+there is no COM-port selection step.
+
+When downloading a Windows build artifact, extract the entire ZIP to a normal
+folder before running `BathroomSync.Windows.exe`. If the app cannot start, it
+shows the error and saves diagnostics to
+`%LOCALAPPDATA%\\Bathroom Terminal\\startup-errors.log`.

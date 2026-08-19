@@ -1,16 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
     <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="System.IO.Ports" Version="8.0.0" />
-  </ItemGroup>
-  <ItemGroup>
     <Compile Include="Program.cs" />
+    <Compile Include="BluetoothConnectionManager.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="BathroomSync.Core/BathroomSync.Core.csproj" />

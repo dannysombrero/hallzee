@@ -5,6 +5,10 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(OS)' == 'Windows_NT'">
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <DefineConstants>$(DefineConstants);WINDOWS_BLUETOOTH</DefineConstants>
+  </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="11.3.18" />
     <PackageReference Include="Avalonia.Desktop" Version="11.3.18" />
@@ -13,5 +17,8 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../windows/BathroomSync.Core/BathroomSync.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(OS)' == 'Windows_NT'">
+    <Compile Include="../windows/BluetoothConnectionManager.cs" Link="Platforms/BluetoothConnectionManager.cs" />
   </ItemGroup>
 </Project>

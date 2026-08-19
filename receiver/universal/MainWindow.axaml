@@ -2,24 +2,31 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="BathroomSync.Universal.MainWindow"
         Width="920" Height="620" MinWidth="760" MinHeight="540"
-        Title="Bathroom Sync Preview">
+        Title="{Binding WindowTitle}">
   <Grid RowDefinitions="Auto,*,Auto" Background="#F5F8FB">
     <Border Padding="32,26" Background="#103A5B">
       <Grid>
         <StackPanel Spacing="4">
           <TextBlock Text="Bathroom Terminal" FontSize="28" FontWeight="Bold" Foreground="White" />
-          <TextBlock Text="Desktop sync client · Preview mode" FontSize="14" Foreground="#CFE6F7" />
+          <TextBlock Text="{Binding ModeDescription}" FontSize="14" Foreground="#CFE6F7" />
         </StackPanel>
       </Grid>
     </Border>
 
-    <Grid Grid.Row="1" Margin="32,28" ColumnDefinitions="1.15*,0.85*" ColumnSpacing="22">
+    <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+    <Grid Margin="32,28" MinWidth="696" ColumnDefinitions="1.15*,0.85*" ColumnSpacing="22">
       <StackPanel Spacing="18">
         <Border Background="White" CornerRadius="14" Padding="22">
           <StackPanel Spacing="16">
             <TextBlock Text="Connect a terminal" FontSize="20" FontWeight="SemiBold" Foreground="#16324A" />
             <TextBlock Text="Find the nearby Bathroom-Terminal, then start a secure sync." TextWrapping="Wrap" Foreground="#5B6B7A" />
-            <ComboBox ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedDevice}" />
+            <ComboBox ItemsSource="{Binding Devices}" SelectedItem="{Binding SelectedDevice}">
+              <ComboBox.ItemTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{Binding Name}" />
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
             <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
               <Button Grid.Column="0" Classes="secondary" Content="Find terminal" Click="FindTerminal" IsEnabled="{Binding CanFind}" />
               <Button Grid.Column="1" Classes="primary" Content="Sync now" Click="SyncNow" IsEnabled="{Binding CanSync}" />
@@ -48,7 +55,7 @@
         </Border>
       </StackPanel>
 
-      <Border Grid.Column="1" Background="#102B40" CornerRadius="14" Padding="20">
+      <Border Grid.Column="1" Background="#102B40" CornerRadius="14" Padding="20" MaxHeight="430">
         <Grid RowDefinitions="Auto,*" RowSpacing="12">
           <TextBlock Text="Sync activity" FontSize="18" FontWeight="SemiBold" Foreground="White" />
           <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
@@ -63,10 +70,11 @@
         </Grid>
       </Border>
     </Grid>
+    </ScrollViewer>
 
     <Border Grid.Row="2" Padding="22,16" Background="White" BorderBrush="#DCE5EC" BorderThickness="0,1,0,0">
       <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
-        <TextBlock Text="The preview uses a simulated terminal. The production Windows transport will use the same UI." VerticalAlignment="Center" Foreground="#5B6B7A" />
+        <TextBlock Text="{Binding FooterDescription}" VerticalAlignment="Center" Foreground="#5B6B7A" />
         <Button Grid.Column="1" Classes="secondary" Content="Open export folder" Click="OpenExportFolder" />
         <Button Grid.Column="2" Classes="secondary" Content="Save CSV as…" Click="SaveCsvAs" />
       </Grid>

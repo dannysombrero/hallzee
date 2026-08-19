@@ -31,6 +31,15 @@ public:
   const char *c_str() const { return value.c_str(); }
   bool startsWith(const char *prefix) const { return value.rfind(prefix, 0) == 0; }
   String substring(size_t start) const { return value.substr(start); }
+  String substring(size_t start, size_t end) const { return value.substr(start, end - start); }
+  int indexOf(char character) const {
+    const auto index = value.find(character);
+    return index == std::string::npos ? -1 : static_cast<int>(index);
+  }
+  int lastIndexOf(char character) const {
+    const auto index = value.rfind(character);
+    return index == std::string::npos ? -1 : static_cast<int>(index);
+  }
   char charAt(size_t index) const { return value.at(index); }
   long toInt() const { return std::strtol(value.c_str(), nullptr, 10); }
   void trim() {
@@ -39,6 +48,9 @@ public:
     value = first == std::string::npos ? "" : value.substr(first, last - first + 1);
   }
   String &operator+=(char character) { value += character; return *this; }
+  friend String operator+(const String &left, const char *right) {
+    return String(static_cast<std::string>(left) + (right == nullptr ? "" : right));
+  }
   operator std::string() const { return value; }
 
   bool operator==(const char *other) const { return value == (other == nullptr ? "" : other); }

@@ -10,6 +10,7 @@
 #include "DisplayColors.h"
 #include "KeypadController.h"
 #include "TerminalController.h"
+#include "TripRecordCodec.h"
 #include "TerminalDisplay.h"
 #include "support/RecordingDisplay.h"
 
@@ -64,6 +65,7 @@ public:
   time_t restoredTime = 0;
   bool saveSucceeds = true;
   bool appendSucceeds = true;
+  bool markSucceeds = true;
   bool cleared = false;
   String savedId;
   time_t savedTime = 0;
@@ -108,7 +110,7 @@ public:
   }
   bool markTripSynced(uint32_t tripID) override {
     markedSynced.push_back(tripID);
-    return true;
+    return markSucceeds;
   }
 };
 
@@ -516,6 +518,68 @@ void testBluetoothProtocolAndRecovery() {
   expectTrue(contains(serial.output, "TRIP,7,ID1,2026-01-01,08:00:00,08:10:00,600,COMPLETE,0"), "disconnect resets full history sync state");
 }
 
+void testBluetoothFailureAndValidationPaths() {
+  FakeTripStorage storage;
+  storage.syncRecords = {{9, "9,ID,2026-01-01,08:00:00,08:10:00,600,COMPLETE,0"}};
+  FakeBluetoothSerial serial;
+  BluetoothSync sync(storage, serial, setBluetoothClock, onBluetoothClockSet);
+  sync.begin();
+  serial.connected = true;
+  sync.poll();
+
+  serial.input = "ACK,\nACK,not-a-number\nACK,9\n";
+  sync.poll();
+  expectTrue(contains(serial.output, "ACK_ERROR,INVALID_ID"), "invalid ACK rejected");
+  expectTrue(contains(serial.output, "ACK_ERROR,UNEXPECTED_ID"), "ACK without sync rejected");
+
+  serial.input = std::string(MAX_BLUETOOTH_COMMAND_LENGTH + 1, 'X') + "\n";
+  sync.poll();
+  expectTrue(contains(serial.output, "ERROR,COMMAND_TOO_LONG"), "overlong command rejected");
+
+  serial.input = "SYNC_START\n";
+  sync.poll();
+  storage.markSucceeds = false;
+  serial.input = "ACK,9\n";
+  sync.poll();
+  expectTrue(contains(serial.output, "ACK_ERROR,MARK_FAILED"), "sync mark failure reported");
+
+  FakeBluetoothSerial unavailableSerial;
+  unavailableSerial.beginSucceeds = false;
+  BluetoothSync unavailableSync(storage, unavailableSerial, setBluetoothClock, onBluetoothClockSet);
+  unavailableSync.begin();
+  unavailableSerial.connected = true;
+  unavailableSerial.input = "SYNC_START\n";
+  unavailableSync.poll();
+  expectTrue(unavailableSerial.output.empty() && unavailableSerial.pin.empty(), "unavailable transport remains inactive");
+}
+
+void testTripRecordCodecPreservesAndRewritesRecords() {
+  const String unsynced = "7,ID1,2026-01-01,08:00:00,08:10:00,600,COMPLETE,0";
+  uint32_t tripID = 0;
+  bool isSynced = true;
+  expectTrue(TripRecordCodec::parse(unsynced, tripID, isSynced), "parse valid unsynced record");
+  expectTrue(tripID == 7 && !isSynced, "parsed unsynced record values");
+
+  String updated;
+  expectTrue(TripRecordCodec::markSynced(unsynced, updated), "rewrite sync flag");
+  expectTrue(updated == "7,ID1,2026-01-01,08:00:00,08:10:00,600,COMPLETE,1", "only sync flag changes");
+
+  const String syncedWithWhitespace = " 4294967295,ID,with,commas,1 ";
+  expectTrue(TripRecordCodec::parse(syncedWithWhitespace, tripID, isSynced), "whitespace around fields accepted");
+  expectTrue(tripID == UINT32_MAX && isSynced, "maximum ID and synced flag parsed");
+  expectTrue(TripRecordCodec::markSynced(syncedWithWhitespace, updated), "already synced record can be rewritten");
+  expectTrue(updated == " 4294967295,ID,with,commas,1", "rewrite preserves record body and removes trailing whitespace");
+
+  expectTrue(!TripRecordCodec::parse("not,a,record", tripID, isSynced), "malformed record rejected");
+  expectTrue(!TripRecordCodec::parse("7", tripID, isSynced), "record without commas rejected");
+  expectTrue(!TripRecordCodec::parse(",ID,0", tripID, isSynced), "empty trip ID rejected");
+  expectTrue(!TripRecordCodec::parse("0,ID,0", tripID, isSynced), "zero trip ID rejected");
+  expectTrue(!TripRecordCodec::parse("7abc,ID,0", tripID, isSynced), "partial numeric trip ID rejected");
+  expectTrue(!TripRecordCodec::parse("4294967296,ID,0", tripID, isSynced), "overflowing trip ID rejected");
+  expectTrue(!TripRecordCodec::parse("7,ID,2", tripID, isSynced), "invalid sync flag rejected");
+  expectTrue(!TripRecordCodec::markSynced("7,ID,2", updated), "invalid record is never rewritten");
+}
+
 void testCheckedOutScreenIncludesDurationInstruction() {
   RecordingDisplay display;
   TerminalDisplay terminal(display);
@@ -555,6 +619,8 @@ int main() {
   testTerminalClampsBackwardTimeAndPersistsManualReset();
   testKeypadControllerInterpretsKeysAndResetGesture();
   testBluetoothProtocolAndRecovery();
+  testBluetoothFailureAndValidationPaths();
+  testTripRecordCodecPreservesAndRewritesRecords();
 
   if (failures != 0) {
     std::cerr << failures << " test assertion group(s) failed.\n";

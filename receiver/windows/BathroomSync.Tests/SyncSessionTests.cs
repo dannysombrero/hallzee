@@ -42,7 +42,7 @@ public sealed class SyncSessionTests {
 
     Assert.Equal(new[] { "ACK,7" }, first.OutboundCommands);
     Assert.Equal(new[] { "ACK,7" }, duplicate.OutboundCommands);
-    Assert.Equal(1, repository.StoredPayloads.Count);
+    Assert.Single(repository.StoredPayloads);
     Assert.Equal(new[] { "SYNC_ALL" }, requestFullHistory.OutboundCommands);
     Assert.Equal(SyncStatus.Complete, complete.Status);
     Assert.Equal(1, complete.SavedTripCount);

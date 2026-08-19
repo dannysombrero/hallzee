@@ -4,9 +4,13 @@
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="System.IO.Ports" Version="8.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="BathroomSync.Core/BathroomSync.Core.csproj" />

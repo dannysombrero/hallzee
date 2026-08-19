@@ -25,7 +25,8 @@ public sealed class TripSqliteRepository : ITripRepository {
     connectionString = new SqliteConnectionStringBuilder {
       DataSource = databasePath,
       Mode = SqliteOpenMode.ReadWriteCreate,
-      Cache = SqliteCacheMode.Shared
+      Cache = SqliteCacheMode.Shared,
+      Pooling = false
     }.ToString();
 
     using var connection = OpenConnection();

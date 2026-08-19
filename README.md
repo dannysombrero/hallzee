@@ -18,6 +18,7 @@ Classic Serial Port Profile (SPP).
 | `TerminalDisplay.*` | TFT rendering only |
 | `TripStorage.*` | ESP32 Preferences and LittleFS trip-log persistence |
 | `receiver/windows/` | Current Windows sync application |
+| `receiver/universal/` | Shared Avalonia desktop UI preview for the next Windows/macOS client |
 | `receiver/` | Legacy/native macOS receiver |
 | `docs/` | Architecture and Bluetooth protocol references |
 

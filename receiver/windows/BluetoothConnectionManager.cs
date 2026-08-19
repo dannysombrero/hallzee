@@ -10,11 +10,7 @@ using Windows.Foundation;
 using Windows.Networking.Sockets;
 using Windows.Storage.Streams;
 
-sealed record TerminalDevice(string Id, string Name, bool IsPaired) {
-  public override string ToString() => IsPaired ? $"{Name} (paired)" : Name;
-}
-
-sealed class BluetoothConnectionManager : IDisposable {
+sealed class BluetoothConnectionManager : ITerminalConnection {
   const string TerminalName = "Bathroom-Terminal";
   const string PairingPin = "1234";
 

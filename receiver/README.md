@@ -67,3 +67,10 @@ because sync writes only to the local SQLite database. **Open CSV** creates a
 new timestamped export under `Documents/Bathroom Terminal/exports`; use
 **Save CSV As...** to save a copy in another location. Exports are ordered by
 numeric trip ID, so trip `10` follows trip `9`.
+
+## Universal client preview
+
+`universal/` is the next shared Avalonia UI. It currently uses a simulated
+terminal so the UI can be built and tested on macOS before the production
+Windows RFCOMM transport is attached. The `build-universal-client` workflow
+builds it on both macOS and Windows.

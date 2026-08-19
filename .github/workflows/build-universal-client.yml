@@ -1,0 +1,31 @@
+name: Build Universal Sync Client
+on:
+  workflow_dispatch:
+  push:
+    paths: [receiver/universal/**, receiver/universal.tests/**, receiver/windows/BathroomSync.Core/**, .github/workflows/build-universal-client.yml]
+jobs:
+  validate:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: 8.0.x }
+      - run: dotnet test receiver/universal.tests/BathroomSync.Universal.Tests.csproj --configuration Release
+      - run: dotnet build receiver/universal/BathroomSync.Universal.csproj --configuration Release
+  publish_windows_preview:
+    needs: validate
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: 8.0.x }
+      - run: dotnet publish receiver/universal/BathroomSync.Universal.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -o publish
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BathroomSync-Universal-Windows-Preview
+          path: publish/
+          if-no-files-found: error

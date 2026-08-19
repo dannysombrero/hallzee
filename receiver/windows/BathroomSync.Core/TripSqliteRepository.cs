@@ -71,28 +71,30 @@ public sealed class TripSqliteRepository : ITripRepository {
 
     var temporaryPath = destinationPath + ".tmp";
     try {
-      using var writer = new StreamWriter(temporaryPath, false);
-      writer.WriteLine(CsvHeader);
-      using var connection = OpenConnection();
-      using var command = connection.CreateCommand();
-      command.CommandText = """
-        SELECT trip_id, student_id, trip_date, time_out, time_in, duration_seconds, status
-        FROM trips
-        ORDER BY trip_id ASC;
-        """;
-      using var reader = command.ExecuteReader();
-      while (reader.Read()) {
-        writer.WriteLine(string.Join(',', new[] {
-          reader.GetInt64(0).ToString(),
-          reader.GetString(1),
-          reader.GetString(2),
-          reader.GetString(3),
-          reader.GetString(4),
-          reader.GetString(5),
-          reader.GetString(6)
-        }));
+      {
+        using var writer = new StreamWriter(temporaryPath, false);
+        writer.WriteLine(CsvHeader);
+        using var connection = OpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+          SELECT trip_id, student_id, trip_date, time_out, time_in, duration_seconds, status
+          FROM trips
+          ORDER BY trip_id ASC;
+          """;
+        using var reader = command.ExecuteReader();
+        while (reader.Read()) {
+          writer.WriteLine(string.Join(',', new[] {
+            reader.GetInt64(0).ToString(),
+            reader.GetString(1),
+            reader.GetString(2),
+            reader.GetString(3),
+            reader.GetString(4),
+            reader.GetString(5),
+            reader.GetString(6)
+          }));
+        }
+        writer.Flush();
       }
-      writer.Flush();
       File.Move(temporaryPath, destinationPath, true);
     } finally {
       if (File.Exists(temporaryPath)) File.Delete(temporaryPath);

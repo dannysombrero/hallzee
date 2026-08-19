@@ -1,9 +1,8 @@
 #pragma once
 
 #include <Arduino.h>
-#include <BluetoothSerial.h>
-
-#include "TripStorage.h"
+#include "BluetoothSerialPort.h"
+#include "TripStoragePort.h"
 
 class BluetoothSync {
 public:
@@ -12,7 +11,8 @@ public:
   using ClockSetHandler = void (*)();
 
   BluetoothSync(
-    TripStorage &tripStorage,
+    TripStoragePort &tripStorage,
+    BluetoothSerialPort &serial,
     ClockSetter clockSetter,
     ClockSetHandler clockSetHandler
   );
@@ -21,10 +21,10 @@ public:
   void poll();
 
 private:
-  TripStorage &tripStorage;
+  TripStoragePort &tripStorage;
   ClockSetter clockSetter;
   ClockSetHandler clockSetHandler;
-  BluetoothSerial serial;
+  BluetoothSerialPort &serial;
 
   bool ready = false;
   bool wasConnected = false;

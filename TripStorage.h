@@ -25,13 +25,13 @@ public:
   bool isLogReady() const;
   uint32_t getTripRecordCount();
   uint32_t getLatestTripID();
-  bool getNextUnsyncedRecord(String &record, uint32_t &tripID);
+  bool getNextUnsyncedRecord(String &record, uint32_t &tripID) override;
   bool getNextRecordAfter(
     uint32_t afterTripID,
     String &record,
     uint32_t &tripID
-  );
-  bool markTripSynced(uint32_t tripID);
+  ) override;
+  bool markTripSynced(uint32_t tripID) override;
   void printTripLog();
 
 private:

@@ -17,4 +17,8 @@ public:
     long durationSeconds,
     const char *status
   ) = 0;
+  virtual bool getNextUnsyncedRecord(String &record, uint32_t &tripID) = 0;
+  virtual bool getNextRecordAfter(uint32_t afterTripID, String &record,
+                                  uint32_t &tripID) = 0;
+  virtual bool markTripSynced(uint32_t tripID) = 0;
 };

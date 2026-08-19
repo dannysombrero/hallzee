@@ -62,13 +62,13 @@ also set automatically when the receiver sends a valid `TIME` command.
 ## Desktop sync
 
 The current desktop transport is Bluetooth Classic SPP/RFCOMM. On Windows, the
-existing receiver is a .NET 8 WinForms application that expects the terminal
-to be paired in Windows and exposes the available Bluetooth COM ports.
+.NET 8 WinForms receiver finds nearby `Bathroom-Terminal` devices, pairs when
+needed, and opens the ESP32's standard Serial Port service directly. The user
+does not need to find or select a Bluetooth COM port. If Windows shows its
+pairing confirmation, accept it; the app supplies the terminal's configured
+PIN (`1234`) when Windows requests one.
 
-The planned Windows improvement is to keep the same ESP32 SPP protocol while
-replacing the manual pairing/COM-port flow with in-app discovery, pairing,
-direct RFCOMM connection, remembered-terminal reconnect, and clear recovery
-actions. See [Bluetooth protocol](docs/bluetooth-protocol.md) and
+See [Bluetooth protocol](docs/bluetooth-protocol.md) and
 [architecture](docs/architecture.md).
 
 ## Validation

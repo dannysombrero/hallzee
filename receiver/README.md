@@ -38,3 +38,14 @@ For everyday use, build and open the native Mac app:
 It provides a **Sync Now** button, live connection/sync status, a session trip
 count, a diagnostic log, and **Open CSV**. Its CSV is stored in the user's
 Documents/Bathroom Terminal folder.
+
+## Windows receiver development
+
+The Windows WinForms app is in `windows/`. Its Bluetooth serial transport and
+UI stay in the app project, while `windows/BathroomSync.Core` contains the
+deterministic line protocol and CSV persistence logic. Run its tests from the
+repository root on a machine with .NET 8 installed:
+
+```sh
+dotnet test receiver/windows/BathroomSync.Tests/BathroomSync.Tests.csproj
+```

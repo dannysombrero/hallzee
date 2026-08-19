@@ -1,4 +1,5 @@
 #include "TripStorage.h"
+#include "TripRecordCodec.h"
 
 #include <LittleFS.h>
 
@@ -331,26 +332,7 @@ bool TripStorage::parseTripRecord(
   bool &isSynced
 ) {
 
-  int firstComma = record.indexOf(',');
-  int lastComma = record.lastIndexOf(',');
-
-  if (firstComma <= 0 || lastComma <= firstComma) {
-    return false;
-  }
-
-  String idText = record.substring(0, firstComma);
-  String syncedText = record.substring(lastComma + 1);
-  idText.trim();
-  syncedText.trim();
-
-  tripID = (uint32_t)idText.toInt();
-
-  if (tripID == 0 || (syncedText != "0" && syncedText != "1")) {
-    return false;
-  }
-
-  isSynced = (syncedText == "1");
-  return true;
+  return TripRecordCodec::parse(record, tripID, isSynced);
 }
 
 bool TripStorage::getNextUnsyncedRecord(
@@ -474,8 +456,14 @@ bool TripStorage::markTripSynced(uint32_t tripID) {
       recordID == tripID
     ) {
 
-      int lastComma = record.lastIndexOf(',');
-      record = record.substring(0, lastComma + 1) + "1";
+      String updatedRecord;
+      if (!TripRecordCodec::markSynced(record, updatedRecord)) {
+        source.close();
+        replacement.close();
+        LittleFS.remove(TRIP_LOG_TEMP_PATH);
+        return false;
+      }
+      record = updatedRecord;
       found = true;
     }
 

@@ -12,9 +12,11 @@ uses the same GPIO assignments as the physical terminal:
 ## Run it in Wokwi
 
 1. Create a new **ESP32 Arduino** project at [Wokwi](https://wokwi.com/).
-2. Copy these files into that project without changing their names:
-   `bathroom-signin.ino`, `TripStorage.h`, `TripStorage.cpp`, `diagram.json`,
-   and `libraries.txt`.
+2. Copy the firmware source files into that project without changing their
+   names: `bathroom-signin.ino`, `AppTypes.h`, `Config.h`, `TripStorage.*`,
+   `ClockService.*`, `TerminalController.*`, `TerminalDisplay.*`,
+   `KeypadController.*`, `BluetoothSync.*`, `diagram.json`, and
+   `libraries.txt`.
 3. Start the simulation and open its Serial Monitor (115200 baud).
 4. Click the keypad, then use your physical keyboard's number, `*`, and `#`
    keys to operate it. The first interaction must set the clock:

@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "Config.h"
+#include "BluetoothSync.h"
 #include "DisplayColors.h"
 #include "KeypadController.h"
 #include "TerminalController.h"
@@ -67,6 +68,8 @@ public:
   String savedId;
   time_t savedTime = 0;
   std::vector<Record> records;
+  std::vector<std::pair<uint32_t, String>> syncRecords;
+  std::vector<uint32_t> markedSynced;
 
   void loadActiveCheckout(String &studentID, time_t &checkoutTime) override {
     studentID = restoredId;
@@ -83,10 +86,60 @@ public:
     records.push_back({studentID, outTime, inTime, durationSeconds, status});
     return appendSucceeds;
   }
-  bool getNextUnsyncedRecord(String &, uint32_t &) override { return false; }
-  bool getNextRecordAfter(uint32_t, String &, uint32_t &) override { return false; }
-  bool markTripSynced(uint32_t) override { return true; }
+  bool getNextUnsyncedRecord(String &record, uint32_t &tripID) override {
+    for (const auto &candidate : syncRecords) {
+      if (std::find(markedSynced.begin(), markedSynced.end(), candidate.first) == markedSynced.end()) {
+        tripID = candidate.first;
+        record = candidate.second;
+        return true;
+      }
+    }
+    return false;
+  }
+  bool getNextRecordAfter(uint32_t afterTripID, String &record, uint32_t &tripID) override {
+    for (const auto &candidate : syncRecords) {
+      if (candidate.first > afterTripID) {
+        tripID = candidate.first;
+        record = candidate.second;
+        return true;
+      }
+    }
+    return false;
+  }
+  bool markTripSynced(uint32_t tripID) override {
+    markedSynced.push_back(tripID);
+    return true;
+  }
 };
+
+class FakeBluetoothSerial : public BluetoothSerialPort {
+public:
+  bool beginSucceeds = true;
+  bool connected = false;
+  std::string input;
+  std::vector<std::string> output;
+  std::string deviceName;
+  std::string pin;
+  std::string partialLine;
+
+  bool begin(const char *name) override { deviceName = name; return beginSucceeds; }
+  void setPin(const char *value, size_t) override { pin = value; }
+  bool hasClient() override { return connected; }
+  int available() override { return static_cast<int>(input.size()); }
+  int read() override { const char value = input.front(); input.erase(0, 1); return value; }
+  void print(const char *text) override { partialLine += text; }
+  void print(const String &text) override { partialLine += std::string(text); }
+  void println(const char *text) override { output.push_back(partialLine + text); partialLine = ""; }
+  void println(const String &text) override { output.push_back(partialLine + std::string(text)); partialLine = ""; }
+};
+
+int bluetoothClockSetCount = 0;
+int bluetoothClockYear = 0;
+void setBluetoothClock(int year, int, int, int, int, int) {
+  bluetoothClockSetCount++;
+  bluetoothClockYear = year;
+}
+void onBluetoothClockSet() {}
 
 class FakeMonotonicClock : public MonotonicClock {
 public:
@@ -421,6 +474,48 @@ void testKeypadControllerInterpretsKeysAndResetGesture() {
   expectTrue(clearCount == 2, "clear resumes after reset keys release");
 }
 
+void testBluetoothProtocolAndRecovery() {
+  FakeTripStorage storage;
+  storage.syncRecords = {
+    {7, "7,ID1,2026-01-01,08:00:00,08:10:00,600,COMPLETE,0"},
+    {8, "8,ID2,2026-01-01,09:00:00,09:10:00,600,COMPLETE,0"}
+  };
+  FakeBluetoothSerial serial;
+  BluetoothSync sync(storage, serial, setBluetoothClock, onBluetoothClockSet);
+  sync.begin();
+  expectTrue(serial.deviceName == "Bathroom-Terminal" && serial.pin == "1234", "Bluetooth setup");
+
+  serial.connected = true;
+  sync.poll();
+  expectTrue(contains(serial.output, "BATHROOM_TERMINAL_READY"), "Bluetooth readiness handshake");
+
+  bluetoothClockSetCount = 0;
+  serial.input = "TIME,2026-02-28,08:30:00\n";
+  sync.poll();
+  expectTrue(bluetoothClockSetCount == 1 && bluetoothClockYear == 2026, "valid time command");
+  expectTrue(contains(serial.output, "TIME_ACK,OK") && contains(serial.output, "TRIP,7,ID1,2026-01-01,08:00:00,08:10:00,600,COMPLETE,0"), "time starts sync");
+
+  serial.input = "ACK,7\n";
+  sync.poll();
+  expectTrue(storage.markedSynced == std::vector<uint32_t>{7}, "matching ACK marks record synced");
+  expectTrue(contains(serial.output, "TRIP,8,ID2,2026-01-01,09:00:00,09:10:00,600,COMPLETE,0"), "ACK advances one record at a time");
+
+  serial.input = "ACK,999\n";
+  sync.poll();
+  expectTrue(contains(serial.output, "ACK_ERROR,UNEXPECTED_ID"), "unexpected ACK rejected");
+
+  serial.input = "TIME,2025-02-29,08:30:00\nWHAT\n";
+  sync.poll();
+  expectTrue(contains(serial.output, "TIME_ACK,ERROR") && contains(serial.output, "ERROR,UNKNOWN_COMMAND"), "invalid commands rejected");
+
+  serial.connected = false;
+  sync.poll();
+  serial.connected = true;
+  serial.input = "SYNC_ALL\n";
+  sync.poll();
+  expectTrue(contains(serial.output, "TRIP,7,ID1,2026-01-01,08:00:00,08:10:00,600,COMPLETE,0"), "disconnect resets full history sync state");
+}
+
 void testCheckedOutScreenIncludesDurationInstruction() {
   RecordingDisplay display;
   TerminalDisplay terminal(display);
@@ -459,6 +554,7 @@ int main() {
   testTerminalRestorationAndSubmissionClassification();
   testTerminalClampsBackwardTimeAndPersistsManualReset();
   testKeypadControllerInterpretsKeysAndResetGesture();
+  testBluetoothProtocolAndRecovery();
 
   if (failures != 0) {
     std::cerr << failures << " test assertion group(s) failed.\n";

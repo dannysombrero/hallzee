@@ -16,15 +16,11 @@ void BluetoothSync::begin() {
   ready = serial.begin(BLUETOOTH_DEVICE_NAME);
 
   if (!ready) {
-    Serial.println("ERROR: Bluetooth Classic could not start.");
+    Serial.println("ERROR: Bluetooth LE could not start.");
     return;
   }
 
-  // Use a conventional legacy PIN so computers that require pairing can
-  // authenticate this headless terminal. Android serial clients also support it.
-  serial.setPin("1234", 4);
-
-  Serial.print("Bluetooth ready as: ");
+  Serial.print("Bluetooth LE ready as: ");
   Serial.println(BLUETOOTH_DEVICE_NAME);
 }
 
@@ -34,24 +30,19 @@ void BluetoothSync::poll() {
 }
 
 void BluetoothSync::updateConnection() {
-  if (!ready) {
-    return;
-  }
-
+  if (!ready) return;
   const bool isConnected = serial.hasClient();
-  if (isConnected == wasConnected) {
-    return;
-  }
+  if (isConnected == wasConnected) return;
 
   wasConnected = isConnected;
   if (isConnected) {
-    Serial.println("Bluetooth client connected.");
+    Serial.println("Bluetooth LE client connected.");
     serial.println("BATHROOM_TERMINAL_READY");
-    serial.println("Phase 3 Bluetooth transport connected.");
+    serial.println("BLE transport connected.");
     return;
   }
 
-  Serial.println("Bluetooth client disconnected.");
+  Serial.println("Bluetooth LE client disconnected.");
   resetSyncState();
 }
 
@@ -87,10 +78,7 @@ void BluetoothSync::sendNextTrip() {
 }
 
 void BluetoothSync::beginSync(bool includeSyncedRecords) {
-  if (!ready || !serial.hasClient()) {
-    return;
-  }
-
+  if (!ready || !serial.hasClient()) return;
   syncInProgress = true;
   syncAllRecords = includeSyncedRecords;
   pendingTripID = 0;
@@ -100,9 +88,7 @@ void BluetoothSync::beginSync(bool includeSyncedRecords) {
 }
 
 bool BluetoothSync::processAcknowledgement(const String &command) {
-  if (!command.startsWith("ACK,")) {
-    return false;
-  }
+  if (!command.startsWith("ACK,")) return false;
 
   String idText = command.substring(4);
   idText.trim();
@@ -110,7 +96,6 @@ bool BluetoothSync::processAcknowledgement(const String &command) {
     serial.println("ACK_ERROR,INVALID_ID");
     return true;
   }
-
   for (unsigned int i = 0; i < idText.length(); i++) {
     if (idText.charAt(i) < '0' || idText.charAt(i) > '9') {
       serial.println("ACK_ERROR,INVALID_ID");
@@ -123,7 +108,6 @@ bool BluetoothSync::processAcknowledgement(const String &command) {
     serial.println("ACK_ERROR,UNEXPECTED_ID");
     return true;
   }
-
   if (!tripStorage.markTripSynced(acknowledgedID)) {
     serial.println("ACK_ERROR,MARK_FAILED");
     syncInProgress = false;
@@ -133,23 +117,14 @@ bool BluetoothSync::processAcknowledgement(const String &command) {
 
   Serial.print("Trip synced: ");
   Serial.println(acknowledgedID);
-  if (syncAllRecords) {
-    lastStreamedTripID = acknowledgedID;
-  }
-
+  if (syncAllRecords) lastStreamedTripID = acknowledgedID;
   sendNextTrip();
   return true;
 }
 
 bool BluetoothSync::processTimeCommand(const String &command) {
-  int year;
-  int month;
-  int day;
-  int hour;
-  int minute;
-  int second;
+  int year, month, day, hour, minute, second;
   char extraCharacter;
-
   const int parsedValues = sscanf(
     command.c_str(), "TIME,%d-%d-%d,%d:%d:%d%c", &year, &month, &day,
     &hour, &minute, &second, &extraCharacter
@@ -169,25 +144,18 @@ bool BluetoothSync::processTimeCommand(const String &command) {
 }
 
 void BluetoothSync::processCommands() {
-  if (!ready) {
-    return;
-  }
+  if (!ready) return;
 
   while (serial.available()) {
     const char received = static_cast<char>(serial.read());
-    if (received == '\r') {
-      continue;
-    }
+    if (received == '\r') continue;
 
     if (received == '\n') {
       if (!discardingInput && commandBuffer.length() > 0) {
         Serial.print("Bluetooth command: ");
         Serial.println(commandBuffer);
-
         if (commandBuffer.startsWith("TIME,")) {
-          if (processTimeCommand(commandBuffer)) {
-            beginSync();
-          }
+          if (processTimeCommand(commandBuffer)) beginSync();
         } else if (commandBuffer == "SYNC_START") {
           beginSync();
         } else if (commandBuffer == "SYNC_ALL") {
@@ -196,23 +164,18 @@ void BluetoothSync::processCommands() {
           serial.println("ERROR,UNKNOWN_COMMAND");
         }
       }
-
       commandBuffer = "";
       discardingInput = false;
       continue;
     }
 
-    if (discardingInput) {
-      continue;
-    }
-
+    if (discardingInput) continue;
     if (commandBuffer.length() >= MAX_BLUETOOTH_COMMAND_LENGTH) {
       commandBuffer = "";
       discardingInput = true;
       serial.println("ERROR,COMMAND_TOO_LONG");
       continue;
     }
-
     commandBuffer += received;
   }
 }
@@ -225,14 +188,8 @@ bool BluetoothSync::isLeapYear(int year) {
 
 int BluetoothSync::daysInMonth(int month, int year) {
   switch (month) {
-    case 4:
-    case 6:
-    case 9:
-    case 11:
-      return 30;
-    case 2:
-      return isLeapYear(year) ? 29 : 28;
-    default:
-      return 31;
+    case 4: case 6: case 9: case 11: return 30;
+    case 2: return isLeapYear(year) ? 29 : 28;
+    default: return 31;
   }
 }

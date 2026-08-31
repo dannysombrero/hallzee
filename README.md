@@ -22,6 +22,14 @@ Classic Serial Port Profile (SPP).
 | `receiver/` | Legacy/native macOS receiver |
 | `docs/` | Architecture and Bluetooth protocol references |
 
+## Contributor guides
+
+- [Installation and testing guide](docs/testing-and-installation.md) — which
+  checks can be done on a Mac, when a Windows PC is required, and how to run
+  the supported test workflows.
+- [Architecture](docs/architecture.md)
+- [Bluetooth protocol](docs/bluetooth-protocol.md)
+
 ## Hardware
 
 - ESP32 with Bluetooth Classic support

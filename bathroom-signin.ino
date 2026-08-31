@@ -19,11 +19,7 @@
 #include <sys/time.h>
 
 #if !defined(CONFIG_BT_ENABLED) || !defined(CONFIG_BLUEDROID_ENABLED)
-#error Bluetooth Classic is not enabled for this ESP32 board configuration.
-#endif
-
-#if !defined(CONFIG_BT_SPP_ENABLED)
-#error Bluetooth Serial Port Profile is not available for this ESP32 board configuration.
+#error Bluetooth BLE is not enabled for this ESP32 board configuration.
 #endif
 
 Adafruit_ST7735 tft =

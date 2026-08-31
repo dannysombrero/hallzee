@@ -60,29 +60,53 @@ sealed class BluetoothConnectionManager : ITerminalConnection {
     if (!ulong.TryParse(terminal.Id, System.Globalization.NumberStyles.HexNumber, null, out var address))
       throw new InvalidOperationException("The saved kiosk Bluetooth address is invalid.");
 
-    bluetoothDevice = await BluetoothLEDevice.FromBluetoothAddressAsync(address)
-      ?? throw new InvalidOperationException("Windows could not open Bathroom-Terminal over BLE.");
-    bluetoothDevice.ConnectionStatusChanged += HandleConnectionStatusChanged;
+    try {
+      bluetoothDevice = await BluetoothLEDevice.FromBluetoothAddressAsync(address)
+        ?? throw new InvalidOperationException("Windows could not open Bathroom-Terminal over BLE.");
+      bluetoothDevice.ConnectionStatusChanged += HandleConnectionStatusChanged;
 
-    var services = await bluetoothDevice.GetGattServicesForUuidAsync(ServiceUuid, BluetoothCacheMode.Cached);
-    if (services.Status != GattCommunicationStatus.Success || services.Services.Count == 0)
-      throw new InvalidOperationException("Bathroom-Terminal did not expose the Hallzee BLE sync service.");
-    service = services.Services[0];
+      // The advertisement is available before Windows has populated its GATT cache.
+      // Reading uncached here both establishes the link and avoids a stale/missing
+      // service result on a first-time BLE connection.
+      var services = await bluetoothDevice.GetGattServicesForUuidAsync(ServiceUuid, BluetoothCacheMode.Uncached);
+      if (services.Status != GattCommunicationStatus.Success || services.Services.Count == 0)
+        throw ConnectionFailure("reading the Hallzee BLE sync service", services.Status, services.ProtocolError);
+      service = services.Services[0];
 
-    var txResult = await service.GetCharacteristicsForUuidAsync(TxUuid, BluetoothCacheMode.Cached);
-    var rxResult = await service.GetCharacteristicsForUuidAsync(RxUuid, BluetoothCacheMode.Cached);
-    if (txResult.Status != GattCommunicationStatus.Success || txResult.Characteristics.Count == 0 ||
-        rxResult.Status != GattCommunicationStatus.Success || rxResult.Characteristics.Count == 0)
-      throw new InvalidOperationException("Bathroom-Terminal BLE characteristics are unavailable.");
+      var access = await service.RequestAccessAsync();
+      if (access != Windows.Devices.Enumeration.DeviceAccessStatus.Allowed)
+        throw new InvalidOperationException($"Windows denied access to Bathroom-Terminal's BLE service ({access}).");
 
-    txCharacteristic = txResult.Characteristics[0];
-    rxCharacteristic = rxResult.Characteristics[0];
-    txCharacteristic.ValueChanged += HandleValueChanged;
-    var notifyStatus = await txCharacteristic.WriteClientCharacteristicConfigurationDescriptorAsync(
-      GattClientCharacteristicConfigurationDescriptorValue.Notify
-    );
-    if (notifyStatus != GattCommunicationStatus.Success)
-      throw new InvalidOperationException("Windows could not subscribe to Bathroom-Terminal updates.");
+      var txResult = await service.GetCharacteristicsForUuidAsync(TxUuid, BluetoothCacheMode.Uncached);
+      if (txResult.Status != GattCommunicationStatus.Success || txResult.Characteristics.Count == 0)
+        throw ConnectionFailure("reading the terminal-to-PC characteristic", txResult.Status, txResult.ProtocolError);
+
+      var rxResult = await service.GetCharacteristicsForUuidAsync(RxUuid, BluetoothCacheMode.Uncached);
+      if (rxResult.Status != GattCommunicationStatus.Success || rxResult.Characteristics.Count == 0)
+        throw ConnectionFailure("reading the PC-to-terminal characteristic", rxResult.Status, rxResult.ProtocolError);
+
+      txCharacteristic = txResult.Characteristics[0];
+      rxCharacteristic = rxResult.Characteristics[0];
+      txCharacteristic.ValueChanged += HandleValueChanged;
+      var notifyStatus = await txCharacteristic.WriteClientCharacteristicConfigurationDescriptorAsync(
+        GattClientCharacteristicConfigurationDescriptorValue.Notify
+      );
+      if (notifyStatus != GattCommunicationStatus.Success)
+        throw new InvalidOperationException($"Windows could not subscribe to Bathroom-Terminal updates ({notifyStatus}). Check that the terminal firmware includes the BLE notification descriptor.");
+    } catch (Exception exception) {
+      await DisconnectAsync();
+      throw new InvalidOperationException($"BLE connection failed: {DescribeException(exception)}", exception);
+    }
+  }
+
+  static InvalidOperationException ConnectionFailure(string action, GattCommunicationStatus status, byte? protocolError) {
+    var protocolDetail = protocolError is null ? string.Empty : $", protocol error 0x{protocolError:X2}";
+    return new InvalidOperationException($"BLE connection failed while {action} ({status}{protocolDetail}).");
+  }
+
+  static string DescribeException(Exception exception) {
+    var message = string.IsNullOrWhiteSpace(exception.Message) ? exception.GetType().Name : exception.Message;
+    return exception.HResult == 0 ? message : $"{message} (0x{exception.HResult:X8})";
   }
 
   public async Task SendAsync(string command) {

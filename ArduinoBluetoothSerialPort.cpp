@@ -1,5 +1,9 @@
 #include "ArduinoBluetoothSerialPort.h"
 
+#if __has_include(<esp_arduino_version.h>)
+#include <esp_arduino_version.h>
+#endif
+
 namespace {
 constexpr char SERVICE_UUID[] = "005924a2-c6e5-4340-9bb8-22d9dd37a283";
 constexpr char TX_UUID[] = "44a359f3-9215-4189-a3cb-e7ce18ad40d6";
@@ -22,8 +26,13 @@ class ArduinoBluetoothSerialPort::RxCallbacks : public BLECharacteristicCallback
 public:
   explicit RxCallbacks(ArduinoBluetoothSerialPort &owner) : owner(owner) {}
   void onWrite(BLECharacteristic *characteristic) override {
+#if defined(ESP_ARDUINO_VERSION_MAJOR) && ESP_ARDUINO_VERSION_MAJOR >= 3
     const String value = characteristic->getValue();
     owner.enqueue(reinterpret_cast<const uint8_t *>(value.c_str()), value.length());
+#else
+    const std::string value = characteristic->getValue();
+    owner.enqueue(reinterpret_cast<const uint8_t *>(value.data()), value.size());
+#endif
   }
 private:
   ArduinoBluetoothSerialPort &owner;
@@ -47,6 +56,9 @@ bool ArduinoBluetoothSerialPort::begin(const char *deviceName) {
     BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_WRITE_NR
   );
   if (!txCharacteristic || !rxCharacteristic) return false;
+  // Windows enables notifications by writing the standard Client Characteristic
+  // Configuration Descriptor (CCCD). The ESP32 library does not add it for us.
+  txCharacteristic->addDescriptor(new BLE2902());
   rxCharacteristic->setCallbacks(new RxCallbacks(*this));
 
   service->start();

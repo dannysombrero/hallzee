@@ -22,8 +22,8 @@ class ArduinoBluetoothSerialPort::RxCallbacks : public BLECharacteristicCallback
 public:
   explicit RxCallbacks(ArduinoBluetoothSerialPort &owner) : owner(owner) {}
   void onWrite(BLECharacteristic *characteristic) override {
-    const std::string value = characteristic->getValue();
-    owner.enqueue(reinterpret_cast<const uint8_t *>(value.data()), value.size());
+    const String value = characteristic->getValue();
+    owner.enqueue(reinterpret_cast<const uint8_t *>(value.c_str()), value.length());
   }
 private:
   ArduinoBluetoothSerialPort &owner;

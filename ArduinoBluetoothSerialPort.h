@@ -1,6 +1,7 @@
 #pragma once
 
 #include <BLEDevice.h>
+#include <BLE2902.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <deque>

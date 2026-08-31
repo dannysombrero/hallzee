@@ -40,6 +40,13 @@
             <StackPanel Grid.Column="1" Spacing="3">
               <TextBlock Text="{Binding StatusTitle}" FontSize="16" FontWeight="SemiBold" Foreground="#16324A" />
               <TextBlock Text="{Binding StatusDetail}" TextWrapping="Wrap" Foreground="#5B6B7A" />
+              <StackPanel IsVisible="{Binding HasTransferProgress}" Spacing="6" Margin="0,10,0,0">
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock Text="Transfer progress" FontWeight="SemiBold" Foreground="#16324A" />
+                  <TextBlock Grid.Column="1" Text="{Binding TransferProgressText}" Foreground="#326346" />
+                </Grid>
+                <ProgressBar Minimum="0" Maximum="100" Value="{Binding TransferProgressPercent}" Height="10" />
+              </StackPanel>
             </StackPanel>
           </Grid>
         </Border>

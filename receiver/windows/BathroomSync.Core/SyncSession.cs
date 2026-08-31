@@ -13,6 +13,8 @@ public sealed class SyncUpdate {
   public List<string> OutboundCommands { get; } = new();
   public SyncStatus? Status { get; set; }
   public int? SavedTripCount { get; set; }
+  public int? TransferTotal { get; set; }
+  public int? TransferredTripCount { get; set; }
   public bool StorageUnavailable { get; set; }
 }
 
@@ -21,6 +23,7 @@ public sealed class SyncSession {
   private readonly StringBuilder input = new();
   private bool requestedFullHistory;
   private int savedTripCount;
+  private int transferredTripCount;
 
   public SyncSession(ITripRepository repository) {
     this.repository = repository;
@@ -30,6 +33,7 @@ public sealed class SyncSession {
     input.Clear();
     requestedFullHistory = false;
     savedTripCount = 0;
+    transferredTripCount = 0;
   }
 
   public SyncUpdate ProcessReceivedData(string text) {
@@ -52,6 +56,13 @@ public sealed class SyncSession {
     update.Logs.Add($"ESP32: {line}");
 
     if (line == "BATHROOM_TERMINAL_READY") {
+      update.Status = SyncStatus.Synchronizing;
+      return;
+    }
+    if (line.StartsWith("SYNC_BEGIN,", StringComparison.Ordinal) && int.TryParse(line[11..], out var transferTotal) && transferTotal >= 0) {
+      transferredTripCount = 0;
+      update.TransferTotal = transferTotal;
+      update.TransferredTripCount = transferredTripCount;
       update.Status = SyncStatus.Synchronizing;
       return;
     }
@@ -90,6 +101,8 @@ public sealed class SyncSession {
 
     var tripId = payload[..payload.IndexOf(',')];
     update.OutboundCommands.Add($"ACK,{tripId}");
+    transferredTripCount++;
+    update.TransferredTripCount = transferredTripCount;
     if (result == TripStoreResult.Saved) {
       savedTripCount++;
       update.Logs.Add($"Saved trip {tripId}");

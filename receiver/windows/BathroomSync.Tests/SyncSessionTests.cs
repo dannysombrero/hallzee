@@ -50,6 +50,17 @@ public sealed class SyncSessionTests {
   }
 
   [Fact]
+  public void ReportsTransferProgressFromTheTerminalRecordTotal() {
+    var session = new SyncSession(new RecordingRepository());
+    session.Start();
+    var started = session.ProcessReceivedData("SYNC_BEGIN,62\n");
+    var progress = session.ProcessReceivedData("TRIP,7,ID1,2026-01-01,08:00:00,08:10:00,600,COMPLETE,0\n");
+    Assert.Equal(62, started.TransferTotal);
+    Assert.Equal(0, started.TransferredTripCount);
+    Assert.Equal(1, progress.TransferredTripCount);
+  }
+
+  [Fact]
   public void RejectsMalformedTripsWithoutAcknowledgingThem() {
     var session = new SyncSession(new RecordingRepository());
     session.Start();

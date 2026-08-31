@@ -74,7 +74,7 @@ class SyncForm : Form {
         SetStatus("Bathroom-Terminal was not found. Confirm it is powered on and nearby, then try again.", Color.Firebrick);
       }
     } catch (Exception exception) {
-      Log(exception.Message + "\n");
+      Log(DescribeException(exception) + "\n");
       SetStatus("Bluetooth discovery failed. Confirm Bluetooth is turned on and try again.", Color.Firebrick);
     } finally {
       refresh.Enabled = true;
@@ -94,13 +94,18 @@ class SyncForm : Form {
       Log("Connected directly to Bathroom-Terminal; waiting for sync response.\n");
       SetStatus("Connected to Bathroom-Terminal. Synchronizing...", Color.ForestGreen);
     } catch (Exception exception) {
-      Log(exception.Message + "\n");
+      Log(DescribeException(exception) + "\n");
       SetStatus("Could not connect. Find the terminal and try again.", Color.Firebrick);
       await connection.DisconnectAsync();
       sync.Enabled = true;
     } finally {
       refresh.Enabled = true;
     }
+  }
+
+  static string DescribeException(Exception exception) {
+    var message = string.IsNullOrWhiteSpace(exception.Message) ? exception.GetType().Name : exception.Message;
+    return exception.HResult == 0 ? message : $"{message} (0x{exception.HResult:X8})";
   }
 
   async void Process(string text) {

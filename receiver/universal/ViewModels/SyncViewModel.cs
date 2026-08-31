@@ -17,6 +17,8 @@ public sealed class SyncViewModel : INotifyPropertyChanged, IDisposable {
   string statusDetail = "Choose Find terminal to start the preview discovery flow.";
   string statusColor = "#2C8A50";
   int savedTrips;
+  int? transferTotal;
+  int transferredTrips;
   bool canFind = true;
   bool canSync;
 
@@ -54,6 +56,11 @@ public sealed class SyncViewModel : INotifyPropertyChanged, IDisposable {
   public string StatusDetail { get => statusDetail; private set { statusDetail = value; OnPropertyChanged(); } }
   public string StatusColor { get => statusColor; private set { statusColor = value; OnPropertyChanged(); } }
   public int SavedTrips { get => savedTrips; private set { savedTrips = value; OnPropertyChanged(); } }
+  public int? TransferTotal { get => transferTotal; private set { transferTotal = value; OnPropertyChanged(); OnPropertyChanged(nameof(HasTransferProgress)); OnPropertyChanged(nameof(TransferProgressText)); OnPropertyChanged(nameof(TransferProgressPercent)); } }
+  public int TransferredTrips { get => transferredTrips; private set { transferredTrips = value; OnPropertyChanged(); OnPropertyChanged(nameof(TransferProgressText)); OnPropertyChanged(nameof(TransferProgressPercent)); } }
+  public bool HasTransferProgress => TransferTotal is not null;
+  public string TransferProgressText => TransferTotal is null ? "Preparing transfer…" : $"{TransferredTrips} / {TransferTotal} records";
+  public double TransferProgressPercent => TransferTotal is > 0 ? Math.Min(100, TransferredTrips * 100.0 / TransferTotal.Value) : 100;
   public bool CanFind { get => canFind; private set { canFind = value; OnPropertyChanged(); } }
   public bool CanSync { get => canSync; private set { canSync = value; OnPropertyChanged(); } }
   public bool IsPreviewMode { get; }
@@ -95,6 +102,8 @@ public sealed class SyncViewModel : INotifyPropertyChanged, IDisposable {
     try {
       session.Start();
       SavedTrips = 0;
+      TransferTotal = null;
+      TransferredTrips = 0;
       await connection.ConnectAsync(SelectedDevice);
       await connection.SendAsync($"TIME,{DateTime.Now:yyyy-MM-dd,HH:mm:ss}");
       LogEntries.Add("Connected; time synchronization requested.");
@@ -129,6 +138,8 @@ public sealed class SyncViewModel : INotifyPropertyChanged, IDisposable {
 
   async Task ProcessTerminalTextAsync(string text) {
     var update = session.ProcessReceivedData(text);
+    if (update.TransferTotal is not null) TransferTotal = update.TransferTotal;
+    if (update.TransferredTripCount is not null) TransferredTrips = update.TransferredTripCount.Value;
     foreach (var log in update.Logs) LogEntries.Add(log);
     try {
       foreach (var command in update.OutboundCommands) await connection.SendAsync(command);

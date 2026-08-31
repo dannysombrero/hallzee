@@ -79,8 +79,9 @@ public sealed class SyncViewModel : INotifyPropertyChanged, IDisposable {
       );
       LogEntries.Add($"Discovery completed: {Devices.Count} matching terminal(s).");
     } catch (Exception exception) {
-      SetStatus("Discovery failed", exception.Message, "#B3443C");
-      LogEntries.Add($"Discovery error: {exception.Message}");
+      var detail = DescribeException(exception);
+      SetStatus("Discovery failed", detail, "#B3443C");
+      LogEntries.Add($"Discovery error: {detail}");
     } finally {
       CanFind = true;
     }
@@ -98,10 +99,16 @@ public sealed class SyncViewModel : INotifyPropertyChanged, IDisposable {
       await connection.SendAsync($"TIME,{DateTime.Now:yyyy-MM-dd,HH:mm:ss}");
       LogEntries.Add("Connected; time synchronization requested.");
     } catch (Exception exception) {
-      SetStatus("Connection failed", exception.Message, "#B3443C");
-      LogEntries.Add($"Connection error: {exception.Message}");
+      var detail = DescribeException(exception);
+      SetStatus("Connection failed", detail, "#B3443C");
+      LogEntries.Add($"Connection error: {detail}");
       CanSync = true;
     }
+  }
+
+  static string DescribeException(Exception exception) {
+    var message = string.IsNullOrWhiteSpace(exception.Message) ? exception.GetType().Name : exception.Message;
+    return exception.HResult == 0 ? message : $"{message} (0x{exception.HResult:X8})";
   }
 
   public Task OpenExportFolderAsync() {

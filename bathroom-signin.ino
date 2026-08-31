@@ -19,7 +19,7 @@
 #include <sys/time.h>
 
 #if !defined(CONFIG_BT_ENABLED) || !defined(CONFIG_BLUEDROID_ENABLED)
-#error Bluetooth LE is not enabled for this ESP32 board configuration.
+#error Bluetooth BLE is not enabled for this ESP32 board configuration.
 #endif
 
 Adafruit_ST7735 tft =

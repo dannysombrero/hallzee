@@ -1,9 +1,14 @@
 #pragma once
 
-#include <BluetoothSerial.h>
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include <BLEUtils.h>
+#include <deque>
 
 #include "BluetoothSerialPort.h"
 
+// BLE UART-style transport. The higher-level sync protocol remains newline-delimited
+// text, so BluetoothSync does not need to know whether the radio is Classic or BLE.
 class ArduinoBluetoothSerialPort : public BluetoothSerialPort {
 public:
   bool begin(const char *deviceName) override;
@@ -17,5 +22,18 @@ public:
   void println(const String &text) override;
 
 private:
-  BluetoothSerial serial;
+  class ServerCallbacks;
+  class RxCallbacks;
+  friend class ServerCallbacks;
+  friend class RxCallbacks;
+
+  void enqueue(const uint8_t *data, size_t length);
+  void send(const String &text);
+  void restartAdvertising();
+
+  BLEServer *server = nullptr;
+  BLECharacteristic *txCharacteristic = nullptr;
+  BLECharacteristic *rxCharacteristic = nullptr;
+  std::deque<uint8_t> receiveBuffer;
+  bool connected = false;
 };

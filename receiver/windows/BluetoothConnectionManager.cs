@@ -1,132 +1,133 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using BathroomSync.Core;
 using Windows.Devices.Bluetooth;
-using Windows.Devices.Bluetooth.Rfcomm;
-using Windows.Devices.Enumeration;
-using Windows.Foundation;
-using Windows.Networking.Sockets;
+using Windows.Devices.Bluetooth.Advertisement;
+using Windows.Devices.Bluetooth.GenericAttributeProfile;
 using Windows.Storage.Streams;
 
 sealed class BluetoothConnectionManager : ITerminalConnection {
   const string TerminalName = "Bathroom-Terminal";
-  const string PairingPin = "1234";
+  static readonly Guid ServiceUuid = Guid.Parse("005924a2-c6e5-4340-9bb8-22d9dd37a283");
+  static readonly Guid TxUuid = Guid.Parse("44a359f3-9215-4189-a3cb-e7ce18ad40d6");
+  static readonly Guid RxUuid = Guid.Parse("e80f9559-49eb-47bc-af04-8e92e98ced56");
+  static readonly TimeSpan DiscoveryWindow = TimeSpan.FromSeconds(4);
 
   readonly SemaphoreSlim writeLock = new(1, 1);
-  BluetoothDevice? bluetoothDevice;
-  RfcommDeviceService? service;
-  StreamSocket? socket;
-  DataReader? reader;
-  DataWriter? writer;
-  CancellationTokenSource? readCancellation;
+  BluetoothLEDevice? bluetoothDevice;
+  GattDeviceService? service;
+  GattCharacteristic? txCharacteristic;
+  GattCharacteristic? rxCharacteristic;
   bool isDisconnecting;
 
   public event EventHandler<string>? TextReceived;
   public event EventHandler<string>? ConnectionLost;
-  public bool IsConnected => socket is not null;
+  public bool IsConnected => bluetoothDevice?.ConnectionStatus == BluetoothConnectionStatus.Connected;
 
   public async Task<IReadOnlyList<TerminalDevice>> DiscoverAsync() {
-    var devices = new Dictionary<string, TerminalDevice>();
-    foreach (var isPaired in new[] { true, false }) {
-      var selector = BluetoothDevice.GetDeviceSelectorFromPairingState(isPaired);
-      var discovered = await DeviceInformation.FindAllAsync(selector);
-      foreach (var device in discovered.Where(device => device.Name == TerminalName)) {
-        devices[device.Id] = new TerminalDevice(device.Id, device.Name, device.Pairing.IsPaired);
+    var found = new Dictionary<ulong, TerminalDevice>();
+    var watcher = new BluetoothLEAdvertisementWatcher {
+      ScanningMode = BluetoothLEScanningMode.Active
+    };
+    watcher.AdvertisementFilter.Advertisement.ServiceUuids.Add(ServiceUuid);
+    watcher.Received += (_, args) => {
+      var name = string.IsNullOrWhiteSpace(args.Advertisement.LocalName)
+        ? TerminalName
+        : args.Advertisement.LocalName;
+      lock (found) {
+        found[args.BluetoothAddress] = new TerminalDevice(
+          args.BluetoothAddress.ToString("X12"), name, false
+        );
       }
+    };
+
+    watcher.Start();
+    try {
+      await Task.Delay(DiscoveryWindow);
+    } finally {
+      watcher.Stop();
     }
-    return devices.Values.OrderByDescending(device => device.IsPaired).ToList();
+
+    lock (found) return found.Values.ToList();
   }
 
   public async Task ConnectAsync(TerminalDevice terminal) {
     await DisconnectAsync();
-    await PairIfNeededAsync(terminal);
+    if (!ulong.TryParse(terminal.Id, System.Globalization.NumberStyles.HexNumber, null, out var address))
+      throw new InvalidOperationException("The saved kiosk Bluetooth address is invalid.");
 
-    bluetoothDevice = await BluetoothDevice.FromIdAsync(terminal.Id)
-      ?? throw new InvalidOperationException("Windows could not open Bathroom-Terminal.");
-    var services = await bluetoothDevice.GetRfcommServicesAsync(BluetoothCacheMode.Uncached);
-    service = services.Services.FirstOrDefault(candidate => candidate.ServiceId.Uuid == RfcommServiceId.SerialPort.Uuid)
-      ?? throw new InvalidOperationException("Bathroom-Terminal did not expose its Serial Port service.");
+    bluetoothDevice = await BluetoothLEDevice.FromBluetoothAddressAsync(address)
+      ?? throw new InvalidOperationException("Windows could not open Bathroom-Terminal over BLE.");
+    bluetoothDevice.ConnectionStatusChanged += HandleConnectionStatusChanged;
 
-    var access = await service.RequestAccessAsync();
-    if (access != DeviceAccessStatus.Allowed) {
-      throw new InvalidOperationException($"Windows denied access to Bathroom-Terminal ({access}).");
-    }
+    var services = await bluetoothDevice.GetGattServicesForUuidAsync(ServiceUuid, BluetoothCacheMode.Cached);
+    if (services.Status != GattCommunicationStatus.Success || services.Services.Count == 0)
+      throw new InvalidOperationException("Bathroom-Terminal did not expose the Hallzee BLE sync service.");
+    service = services.Services[0];
 
-    socket = new StreamSocket();
-    await socket.ConnectAsync(
-      service.ConnectionHostName,
-      service.ConnectionServiceName,
-      SocketProtectionLevel.BluetoothEncryptionAllowNullAuthentication
+    var txResult = await service.GetCharacteristicsForUuidAsync(TxUuid, BluetoothCacheMode.Cached);
+    var rxResult = await service.GetCharacteristicsForUuidAsync(RxUuid, BluetoothCacheMode.Cached);
+    if (txResult.Status != GattCommunicationStatus.Success || txResult.Characteristics.Count == 0 ||
+        rxResult.Status != GattCommunicationStatus.Success || rxResult.Characteristics.Count == 0)
+      throw new InvalidOperationException("Bathroom-Terminal BLE characteristics are unavailable.");
+
+    txCharacteristic = txResult.Characteristics[0];
+    rxCharacteristic = rxResult.Characteristics[0];
+    txCharacteristic.ValueChanged += HandleValueChanged;
+    var notifyStatus = await txCharacteristic.WriteClientCharacteristicConfigurationDescriptorAsync(
+      GattClientCharacteristicConfigurationDescriptorValue.Notify
     );
-
-    reader = new DataReader(socket.InputStream) { UnicodeEncoding = UnicodeEncoding.Utf8, InputStreamOptions = InputStreamOptions.Partial };
-    writer = new DataWriter(socket.OutputStream) { UnicodeEncoding = UnicodeEncoding.Utf8 };
-    readCancellation = new CancellationTokenSource();
-    _ = ReadLoopAsync(readCancellation.Token);
+    if (notifyStatus != GattCommunicationStatus.Success)
+      throw new InvalidOperationException("Windows could not subscribe to Bathroom-Terminal updates.");
   }
 
   public async Task SendAsync(string command) {
-    if (writer is null) throw new InvalidOperationException("Bathroom-Terminal is not connected.");
+    if (rxCharacteristic is null) throw new InvalidOperationException("Bathroom-Terminal is not connected.");
+    var bytes = Encoding.UTF8.GetBytes(command + "\n");
 
     await writeLock.WaitAsync();
     try {
-      writer.WriteString(command + "\n");
-      await writer.StoreAsync();
+      // Default BLE ATT payload is 20 bytes. Chunk commands so time sync and
+      // future settings commands work before/without MTU negotiation.
+      for (var offset = 0; offset < bytes.Length; offset += 20) {
+        var length = Math.Min(20, bytes.Length - offset);
+        using var writer = new DataWriter();
+        writer.WriteBytes(bytes.Skip(offset).Take(length).ToArray());
+        var result = await rxCharacteristic.WriteValueWithResultAsync(
+          writer.DetachBuffer(), GattWriteOption.WriteWithoutResponse
+        );
+        if (result.Status != GattCommunicationStatus.Success)
+          throw new InvalidOperationException($"BLE write failed ({result.Status}).");
+      }
     } finally {
       writeLock.Release();
     }
   }
 
-  async Task PairIfNeededAsync(TerminalDevice terminal) {
-    var device = await DeviceInformation.CreateFromIdAsync(terminal.Id);
-    if (device.Pairing.IsPaired) return;
-    if (!device.Pairing.CanPair) throw new InvalidOperationException("Bathroom-Terminal cannot be paired right now.");
-
-    var customPairing = device.Pairing.Custom;
-    TypedEventHandler<DeviceInformationCustomPairing, DevicePairingRequestedEventArgs> requestHandler = (_, request) => {
-      if (request.PairingKind == DevicePairingKinds.ProvidePin) request.Accept(PairingPin);
-      else request.Accept();
-    };
-
-    customPairing.PairingRequested += requestHandler;
-    try {
-      var result = await customPairing.PairAsync(DevicePairingKinds.ConfirmOnly | DevicePairingKinds.ProvidePin);
-      if (result.Status is not DevicePairingResultStatus.Paired and not DevicePairingResultStatus.AlreadyPaired) {
-        throw new InvalidOperationException($"Pairing failed ({result.Status}).");
-      }
-    } finally {
-      customPairing.PairingRequested -= requestHandler;
-    }
+  void HandleValueChanged(GattCharacteristic _, GattValueChangedEventArgs args) {
+    var reader = DataReader.FromBuffer(args.CharacteristicValue);
+    var bytes = new byte[args.CharacteristicValue.Length];
+    reader.ReadBytes(bytes);
+    TextReceived?.Invoke(this, Encoding.UTF8.GetString(bytes));
   }
 
-  async Task ReadLoopAsync(CancellationToken cancellationToken) {
-    try {
-      while (!cancellationToken.IsCancellationRequested && reader is not null) {
-        var length = await reader.LoadAsync(256);
-        if (length == 0) throw new InvalidOperationException("Bathroom-Terminal disconnected.");
-        TextReceived?.Invoke(this, reader.ReadString(length));
-      }
-    } catch (Exception exception) when (!isDisconnecting && !cancellationToken.IsCancellationRequested) {
-      ConnectionLost?.Invoke(this, exception.Message);
-    }
+  void HandleConnectionStatusChanged(BluetoothLEDevice sender, object args) {
+    if (!isDisconnecting && sender.ConnectionStatus == BluetoothConnectionStatus.Disconnected)
+      ConnectionLost?.Invoke(this, "Bathroom-Terminal disconnected.");
   }
 
   public Task DisconnectAsync() {
     isDisconnecting = true;
-    readCancellation?.Cancel();
-    readCancellation?.Dispose();
-    readCancellation = null;
-    reader?.Dispose();
-    writer?.Dispose();
-    socket?.Dispose();
+    if (txCharacteristic is not null) txCharacteristic.ValueChanged -= HandleValueChanged;
+    if (bluetoothDevice is not null) bluetoothDevice.ConnectionStatusChanged -= HandleConnectionStatusChanged;
+    txCharacteristic = null;
+    rxCharacteristic = null;
     service?.Dispose();
     bluetoothDevice?.Dispose();
-    reader = null;
-    writer = null;
-    socket = null;
     service = null;
     bluetoothDevice = null;
     isDisconnecting = false;

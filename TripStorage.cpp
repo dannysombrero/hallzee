@@ -296,6 +296,22 @@ uint32_t TripStorage::getTripRecordCount() {
   return recordCount;
 }
 
+uint32_t TripStorage::getUnsyncedTripRecordCount() {
+  if (!littleFSReady) return 0;
+  File tripLog = LittleFS.open(TRIP_LOG_PATH, FILE_READ);
+  if (!tripLog) return 0;
+  uint32_t recordCount = 0;
+  while (tripLog.available()) {
+    String record = tripLog.readStringUntil('\n');
+    record.trim();
+    uint32_t tripID;
+    bool isSynced;
+    if (record.length() > 0 && parseTripRecord(record, tripID, isSynced) && !isSynced) recordCount++;
+  }
+  tripLog.close();
+  return recordCount;
+}
+
 uint32_t TripStorage::getLatestTripID() {
 
   if (!littleFSReady) {

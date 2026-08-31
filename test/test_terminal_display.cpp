@@ -88,6 +88,12 @@ public:
     records.push_back({studentID, outTime, inTime, durationSeconds, status});
     return appendSucceeds;
   }
+  uint32_t getTripRecordCount() override { return static_cast<uint32_t>(syncRecords.size()); }
+  uint32_t getUnsyncedTripRecordCount() override {
+    return static_cast<uint32_t>(std::count_if(syncRecords.begin(), syncRecords.end(), [&](const auto &record) {
+      return std::find(markedSynced.begin(), markedSynced.end(), record.first) == markedSynced.end();
+    }));
+  }
   bool getNextUnsyncedRecord(String &record, uint32_t &tripID) override {
     for (const auto &candidate : syncRecords) {
       if (std::find(markedSynced.begin(), markedSynced.end(), candidate.first) == markedSynced.end()) {
@@ -485,7 +491,7 @@ void testBluetoothProtocolAndRecovery() {
   FakeBluetoothSerial serial;
   BluetoothSync sync(storage, serial, setBluetoothClock, onBluetoothClockSet);
   sync.begin();
-  expectTrue(serial.deviceName == "Bathroom-Terminal" && serial.pin == "1234", "Bluetooth setup");
+  expectTrue(serial.deviceName == "Bathroom-Terminal" && serial.pin.empty(), "Bluetooth LE setup");
 
   serial.connected = true;
   sync.poll();
@@ -495,7 +501,7 @@ void testBluetoothProtocolAndRecovery() {
   serial.input = "TIME,2026-02-28,08:30:00\n";
   sync.poll();
   expectTrue(bluetoothClockSetCount == 1 && bluetoothClockYear == 2026, "valid time command");
-  expectTrue(contains(serial.output, "TIME_ACK,OK") && contains(serial.output, "TRIP,7,ID1,2026-01-01,08:00:00,08:10:00,600,COMPLETE,0"), "time starts sync");
+  expectTrue(contains(serial.output, "TIME_ACK,OK") && contains(serial.output, "SYNC_BEGIN,2") && contains(serial.output, "TRIP,7,ID1,2026-01-01,08:00:00,08:10:00,600,COMPLETE,0"), "time starts sync with a record total");
 
   serial.input = "ACK,7\n";
   sync.poll();

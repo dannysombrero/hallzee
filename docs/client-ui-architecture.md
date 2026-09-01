@@ -4,10 +4,9 @@
 **Scope:** Hallzee desktop client UI, uploaded React prototype, and integration boundaries  
 **Non-goal:** This document does not authorize product-feature implementation or intentional visual redesign.
 
-
 ## Phase 1 implementation status
 
-The React prototype is now consolidated under `preview-site` with a thin route/application entry, typed domain models, a shared mock provider, reusable shell/dialog/demo components, and separate Dashboard, Trips, Roster, Policies, Terminal, and Settings pages. Characterization tests preserve the current simulated workflows. Real BLE, SQLite, firmware, and active-pass protocol integration remain outside this phase.
+The canonical React prototype is consolidated under `preview-site` with a thin route/application entry, typed domain models, a shared mock provider (`HallzeeProvider`), reusable shell (`AppShell`), SVG icon set (`Icons.tsx`), modal dialogs (`TripsModal`, `RosterModal`, `PoliciesModal`, `TerminalSettingsModal`, `SettingsModal`, `TerminalSearchDialog`), and central `DashboardPage`. Sub-pages open as modal pop-ups over the dashboard with backdrop blur, preserving the dashboard context and canonical UI styling.
 
 ## 1. Outcome
 

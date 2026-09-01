@@ -1,12 +1,35 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type PropsWithChildren,
+} from "react";
 import { discoverableTerminals, initialTrips } from "./mockData";
-import type { ActiveTrip, TerminalDevice, TerminalSettings, TerminalState, Trip, View } from "./types";
+import type {
+  ActiveTrip,
+  ModalView,
+  TerminalDevice,
+  TerminalSettings,
+  TerminalState,
+  Trip,
+  View,
+} from "./types";
 
-interface HallzeeContextValue {
+const nowLabel = () =>
+  new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+
+export interface HallzeeContextValue {
   view: View;
   setView: (view: View) => void;
+  activeModal: ModalView | null;
+  openModal: (modal: ModalView) => void;
+  closeModal: () => void;
   terminalState: TerminalState;
   connectedTerminalName: string;
   terminalId: string;
@@ -34,10 +57,8 @@ interface HallzeeContextValue {
 
 const HallzeeContext = createContext<HallzeeContextValue | null>(null);
 
-const nowLabel = () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-
-export function HallzeeProvider({ children }: { children: React.ReactNode }) {
-  const [view, setView] = useState<View>("dashboard");
+export function HallzeeProvider({ children }: PropsWithChildren) {
+  const [activeModal, setActiveModal] = useState<ModalView | null>(null);
   const [terminalState, setTerminalState] = useState<TerminalState>("connected");
   const [connectedTerminalName, setConnectedTerminalName] = useState("Room 204 Door Kiosk (East-204)");
   const [terminalId, setTerminalId] = useState("ESP32-HALLZEE-204");
@@ -52,25 +73,50 @@ export function HallzeeProvider({ children }: { children: React.ReactNode }) {
   const [lastSyncTime, setLastSyncTime] = useState("Today, 9:22 AM (4 mins ago)");
   const [trips, setTrips] = useState<Trip[]>(initialTrips);
   const [rosterFileName, setRosterFileName] = useState("Chemistry_Period3_Students.csv");
-  const [terminalSettings, setTerminalSettings] = useState<TerminalSettings>({ name: "ESP32-HALLZEE-204", maxStudentIdLength: 8 });
+  const [terminalSettings, setTerminalSettings] = useState<TerminalSettings>({
+    name: "ESP32-HALLZEE-204",
+    maxStudentIdLength: 8,
+  });
   const [toast, setToast] = useState<string | null>(null);
-  const [searchOpen, setSearchOpen] = useState(false);
   const [discoveredTerminals, setDiscoveredTerminals] = useState<TerminalDevice[]>([]);
   const [connectingTerminalId, setConnectingTerminalId] = useState<string | null>(null);
 
-  // Refs to manage discovery timers and previous state so that cancelling discovery
-  // does not drop an existing connection when a pending timeout completes.
   const discoveryTimerRef = useRef<number | null>(null);
   const prevTerminalStateRef = useRef<TerminalState | null>(null);
-  const searchOpenRef = useRef<boolean>(searchOpen);
 
-  useEffect(() => {
-    searchOpenRef.current = searchOpen;
-  }, [searchOpen]);
+  const view: View = activeModal ?? "dashboard";
+
+  const openModal = useCallback((modal: ModalView) => {
+    setActiveModal(modal);
+  }, []);
+
+  const closeModal = useCallback(() => {
+    setActiveModal(null);
+  }, []);
+
+  const setView = useCallback((targetView: View) => {
+    if (targetView === "dashboard") {
+      setActiveModal(null);
+    } else {
+      setActiveModal(targetView);
+    }
+  }, []);
+
+  const searchOpen = activeModal === "search";
+  const setSearchOpen = useCallback((open: boolean) => {
+    if (open) {
+      setActiveModal("search");
+    } else {
+      setActiveModal((current) => (current === "search" ? null : current));
+    }
+  }, []);
 
   useEffect(() => {
     if (!isOccupied || terminalState !== "connected") return;
-    const timer = window.setInterval(() => setActiveTrip((trip) => ({ ...trip, elapsedSeconds: trip.elapsedSeconds + 1 })), 1000);
+    const timer = window.setInterval(
+      () => setActiveTrip((trip) => ({ ...trip, elapsedSeconds: trip.elapsedSeconds + 1 })),
+      1000,
+    );
     return () => window.clearInterval(timer);
   }, [isOccupied, terminalState]);
 
@@ -80,9 +126,8 @@ export function HallzeeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const findTerminals = useCallback(() => {
-    // Remember the previous connection state so discovery can be cancelled safely.
     prevTerminalStateRef.current = terminalState;
-    setSearchOpen(true);
+    setActiveModal("search");
     setTerminalState("discovering");
     setDiscoveredTerminals([]);
 
@@ -92,43 +137,39 @@ export function HallzeeProvider({ children }: { children: React.ReactNode }) {
     }
 
     discoveryTimerRef.current = window.setTimeout(() => {
-      // Only apply discovery results if the search is still open. This prevents
-      // a late timeout from unconditionally dropping an existing connection.
-      if (!searchOpenRef.current) return;
       setDiscoveredTerminals(discoverableTerminals);
-      // Restore to connected if we were connected before opening discovery,
-      // otherwise indicate a disconnected post-discovery state.
       setTerminalState(prevTerminalStateRef.current === "connected" ? "connected" : "disconnected");
       discoveryTimerRef.current = null;
     }, 900);
   }, [terminalState]);
 
-  // Keep timers and refs consistent when the user explicitly closes the search.
   useEffect(() => {
-    if (!searchOpen) {
+    if (activeModal !== "search") {
       if (discoveryTimerRef.current) {
         window.clearTimeout(discoveryTimerRef.current);
         discoveryTimerRef.current = null;
       }
-      // If discovery was opened from a connected state, ensure we remain connected.
       if (prevTerminalStateRef.current === "connected") setTerminalState("connected");
     }
-  }, [searchOpen]);
+  }, [activeModal]);
 
-  const connectTerminal = useCallback((terminal: TerminalDevice) => {
-    setConnectingTerminalId(terminal.id);
-    setTerminalState("connecting");
-    window.setTimeout(() => {
-      setConnectedTerminalName(terminal.name);
-      setTerminalId(terminal.id);
-      setTerminalSettings((settings) => ({ ...settings, name: terminal.id }));
-      setConnectingTerminalId(null);
-      setSearchOpen(false);
-      setTerminalState("connected");
-      setLastSyncTime(`Today, ${nowLabel()} (Just now)`);
-      showToast(`Connected to ${terminal.name}!`);
-    }, 900);
-  }, [showToast]);
+  const connectTerminal = useCallback(
+    (terminal: TerminalDevice) => {
+      setConnectingTerminalId(terminal.id);
+      setTerminalState("connecting");
+      window.setTimeout(() => {
+        setConnectedTerminalName(terminal.name);
+        setTerminalId(terminal.id);
+        setTerminalSettings((settings) => ({ ...settings, name: terminal.id }));
+        setConnectingTerminalId(null);
+        setActiveModal(null);
+        setTerminalState("connected");
+        setLastSyncTime(`Today, ${nowLabel()} (Just now)`);
+        showToast(`Connected to ${terminal.name}!`);
+      }, 900);
+    },
+    [showToast],
+  );
 
   const syncNow = useCallback(() => {
     if (terminalState !== "connected") return;
@@ -159,10 +200,14 @@ export function HallzeeProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // When marking occupied, create an activeTrip and insert an OCCUPIED record
-    // into the trip history so the recent activity and filters reflect the state.
     const depart = nowLabel();
-    const newActive: ActiveTrip = { studentId: "8821", studentName: "Elena Rostova", destination: "Hallway Restroom (East)", departTime: depart, elapsedSeconds: 0 };
+    const newActive: ActiveTrip = {
+      studentId: "8821",
+      studentName: "Elena Rostova",
+      destination: "Hallway Restroom (East)",
+      departTime: depart,
+      elapsedSeconds: 0,
+    };
     const occupiedTrip: Trip = {
       id: `TRIP-${Date.now().toString().slice(-4)}`,
       studentId: newActive.studentId,
@@ -191,25 +236,89 @@ export function HallzeeProvider({ children }: { children: React.ReactNode }) {
     showToast("Terminal disconnected.");
   }, [showToast]);
 
-  const exportCsv = useCallback(() => showToast("Exported hallzee_trips_room204.csv with student logs."), [showToast]);
-  const importRoster = useCallback((fileName = "Chemistry_Period3_Students.csv") => {
-    setRosterFileName(fileName);
-    showToast("Roster updated: Attached student names to IDs.");
-  }, [showToast]);
-  const applyTerminalSettings = useCallback((settings: TerminalSettings) => {
-    setTerminalSettings(settings);
-    showToast(`Terminal settings applied. Student IDs allow ${settings.maxStudentIdLength} digits.`);
-  }, [showToast]);
+  const exportCsv = useCallback(
+    () => showToast("Exported hallzee_trips_room204.csv with student logs."),
+    [showToast],
+  );
 
-  const value = useMemo<HallzeeContextValue>(() => ({
-    view, setView, terminalState, connectedTerminalName, terminalId, isOccupied, activeTrip, lastSyncTime,
-    trips, rosterFileName, terminalSettings, toast, searchOpen, setSearchOpen, discoveredTerminals,
-    connectingTerminalId, findTerminals, connectTerminal, syncNow, toggleOccupancy, toggleStudentName,
-    disconnect, exportCsv, importRoster, applyTerminalSettings,
-  }), [view, terminalState, connectedTerminalName, terminalId, isOccupied, activeTrip, lastSyncTime, trips,
-    rosterFileName, terminalSettings, toast, searchOpen, discoveredTerminals, connectingTerminalId,
-    findTerminals, connectTerminal, syncNow, toggleOccupancy, toggleStudentName, disconnect, exportCsv,
-    importRoster, applyTerminalSettings]);
+  const importRoster = useCallback(
+    (fileName = "Chemistry_Period3_Students.csv") => {
+      setRosterFileName(fileName);
+      showToast("Roster updated: Attached student names to IDs.");
+    },
+    [showToast],
+  );
+
+  const applyTerminalSettings = useCallback(
+    (settings: TerminalSettings) => {
+      setTerminalSettings(settings);
+      showToast(`Terminal settings applied. Student IDs allow ${settings.maxStudentIdLength} digits.`);
+    },
+    [showToast],
+  );
+
+  const value = useMemo<HallzeeContextValue>(
+    () => ({
+      view,
+      setView,
+      activeModal,
+      openModal,
+      closeModal,
+      terminalState,
+      connectedTerminalName,
+      terminalId,
+      isOccupied,
+      activeTrip,
+      lastSyncTime,
+      trips,
+      rosterFileName,
+      terminalSettings,
+      toast,
+      searchOpen,
+      setSearchOpen,
+      discoveredTerminals,
+      connectingTerminalId,
+      findTerminals,
+      connectTerminal,
+      syncNow,
+      toggleOccupancy,
+      toggleStudentName,
+      disconnect,
+      exportCsv,
+      importRoster,
+      applyTerminalSettings,
+    }),
+    [
+      view,
+      setView,
+      activeModal,
+      openModal,
+      closeModal,
+      terminalState,
+      connectedTerminalName,
+      terminalId,
+      isOccupied,
+      activeTrip,
+      lastSyncTime,
+      trips,
+      rosterFileName,
+      terminalSettings,
+      toast,
+      searchOpen,
+      setSearchOpen,
+      discoveredTerminals,
+      connectingTerminalId,
+      findTerminals,
+      connectTerminal,
+      syncNow,
+      toggleOccupancy,
+      toggleStudentName,
+      disconnect,
+      exportCsv,
+      importRoster,
+      applyTerminalSettings,
+    ],
+  );
 
   return <HallzeeContext.Provider value={value}>{children}</HallzeeContext.Provider>;
 }

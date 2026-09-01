@@ -1,6 +1,25 @@
 "use client";
-import { FileSpreadsheet, Upload, Users } from "../components/Icons";
-import { useRef } from "react";
-import { useHallzee } from "../HallzeeProvider";
 
-export default function RosterPage() { const { rosterFileName, importRoster } = useHallzee(); const input = useRef<HTMLInputElement>(null); return <div className="grid lg:grid-cols-[1fr_360px] gap-6 pb-24"><section className="bg-white rounded-3xl border border-sky-200 p-6 shadow-lg"><div className="flex gap-3 border-b border-sky-100 pb-4"><div className="p-3 rounded-2xl bg-sky-500 text-white"><FileSpreadsheet/></div><div><h1 className="text-xl font-black">Student Roster Import</h1><p className="text-sm text-slate-500">Associate student IDs with names, classes, and periods.</p></div></div><button onClick={() => input.current?.click()} className="mt-5 w-full border-2 border-dashed border-sky-300 hover:border-sky-500 bg-sky-50 p-12 rounded-3xl text-center"><Upload className="w-10 h-10 text-sky-500 mx-auto"/><strong className="block mt-3">Click to choose a student CSV roster</strong><span className="text-sm text-slate-500">Required: student_id, student_name, class_name, period</span></button><input ref={input} type="file" accept=".csv,text/csv" className="hidden" onChange={(event) => event.target.files?.[0] && importRoster(event.target.files[0].name)}/></section><aside className="bg-white rounded-3xl border border-sky-200 p-6 shadow-lg h-fit"><Users className="text-sky-600"/><h2 className="font-extrabold mt-3">Active roster</h2><p className="mt-3 font-mono-hardware text-sm bg-sky-50 rounded-2xl p-3 break-all">{rosterFileName}</p><p className="text-sm text-slate-500 mt-3">This prototype keeps roster data in memory and demonstrates the import flow. Production storage is planned.</p></aside></div>; }
+import { RosterContent } from "../components/RosterModal";
+import { Users } from "../components/Icons";
+
+export default function RosterPage() {
+  return (
+    <div className="space-y-6 pb-24">
+      <section className="bg-white/95 border border-sky-200/80 rounded-3xl p-6 shadow-lg">
+        <div className="flex items-center gap-3 border-b border-sky-100 pb-4 mb-4">
+          <div className="h-10 w-10 rounded-2xl bg-gradient-to-tr from-sky-500 to-cyan-400 text-white flex items-center justify-center shadow-md shadow-sky-500/20 shrink-0">
+            <Users className="w-5 h-5" />
+          </div>
+          <div>
+            <h1 className="text-xl font-black text-slate-900">Student Roster Import</h1>
+            <p className="text-xs text-slate-500 font-medium mt-0.5">
+              Associate student IDs with names, classes, and periods
+            </p>
+          </div>
+        </div>
+        <RosterContent />
+      </section>
+    </div>
+  );
+}

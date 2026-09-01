@@ -15,14 +15,17 @@ async function render() {
   );
 }
 
-test("server-renders the Hallzee dashboard baseline", async () => {
+test("server-renders the Hallzee dashboard baseline with canonical UI elements", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /Hallzee Client Preview/i);
   assert.match(html, /Dashboard Overview/);
   assert.match(html, /Recent Hall Pass Activity/);
-  assert.match(html, /Sync Now/);
+  assert.match(html, /Sync[\s\S]*?Now/);
+  assert.match(html, /Configure Node/);
+  assert.match(html, /Export CSV/);
+  assert.match(html, /Roster (&amp;|&) Pass Policy/);
   assert.match(html, /Room 204/);
   assert.match(html, /Sandbox:/);
 });
@@ -37,7 +40,11 @@ test("preserves the current demo behaviors behind the application provider", asy
     "exportCsv",
     "importRoster",
     "applyTerminalSettings",
-  ]) assert.match(source, new RegExp(`\\b${behavior}\\b`));
+    "openModal",
+    "closeModal",
+  ]) {
+    assert.match(source, new RegExp(`\\b${behavior}\\b`));
+  }
 });
 
 test("keeps the route and application entry points thin", async () => {
@@ -48,4 +55,19 @@ test("keeps the route and application entry points thin", async () => {
   assert.match(page, /<HallzeeApp \/>/);
   assert.match(app, /<HallzeeProvider>/);
   assert.match(app, /<AppShell \/>/);
+});
+
+test("provides dedicated modal dialog components for left nav actions", async () => {
+  const [tripsModal, rosterModal, policiesModal, terminalModal, settingsModal] = await Promise.all([
+    readFile(new URL("app/hallzee/components/TripsModal.tsx", root), "utf8"),
+    readFile(new URL("app/hallzee/components/RosterModal.tsx", root), "utf8"),
+    readFile(new URL("app/hallzee/components/PoliciesModal.tsx", root), "utf8"),
+    readFile(new URL("app/hallzee/components/TerminalSettingsModal.tsx", root), "utf8"),
+    readFile(new URL("app/hallzee/components/SettingsModal.tsx", root), "utf8"),
+  ]);
+  assert.match(tripsModal, /ModalDialog/);
+  assert.match(rosterModal, /ModalDialog/);
+  assert.match(policiesModal, /ModalDialog/);
+  assert.match(terminalModal, /ModalDialog/);
+  assert.match(settingsModal, /ModalDialog/);
 });

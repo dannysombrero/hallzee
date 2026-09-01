@@ -27,6 +27,26 @@ terminal. Use it to check the screens, device-discovery journey, sync activity,
 trip count, and export interactions. Its Windows-testing notice identifies the
 features that cannot be verified in a browser.
 
+Install [Node.js 22.13 or later](https://nodejs.org/) once. From the repository
+root, run this single command to install the preview's locked dependencies and
+start it:
+
+```sh
+npm --prefix preview-site start
+```
+
+Then open <http://localhost:3000> in a browser. Leave the terminal window open
+while using the preview; press `Ctrl+C` in that window when you are done.
+
+After the first run, you can start the preview more quickly with:
+
+```sh
+npm --prefix preview-site run dev
+```
+
+Mac testing is sufficient for the simulated browser flow. A Windows PC is only
+required to test Bluetooth pairing or a transfer with a physical terminal.
+
 ### Shared Avalonia desktop client
 
 Install the .NET 8 SDK, then run:

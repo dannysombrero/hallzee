@@ -11,6 +11,7 @@
 #include "KeypadController.h"
 #include "MonotonicClock.h"
 #include "St7735DisplayPort.h"
+#include "StudentIdPolicy.h"
 #include "TerminalDisplay.h"
 #include "TerminalController.h"
 #include "TimeProvider.h"
@@ -572,6 +573,14 @@ void handleSetupKey(char key) {
 
 void submitID() {
   const String submittedID = enteredID;
+  const uint8_t currentIdLimit = tripStorage.getMaxStudentIdLength();
+  if (!isStudentIdWithinLimit(submittedID, currentIdLimit)) {
+    enteredID = "";
+    terminalDisplay.showStudentIdTooLong(currentIdLimit);
+    drawIdleScreen();
+    return;
+  }
+
   const TerminalActionResult result = terminal.submit(submittedID);
 
   switch (result.action) {

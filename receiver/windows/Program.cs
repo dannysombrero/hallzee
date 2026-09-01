@@ -114,6 +114,7 @@ class SyncForm : Form {
     if (terminals.SelectedItem is not TerminalDevice terminal) return;
 
     sync.Enabled = false;
+    applyIdLimit.Enabled = false;
     refresh.Enabled = false;
     SetStatus("Connecting to Hallzee...", Color.RoyalBlue);
     try {
@@ -130,6 +131,7 @@ class SyncForm : Form {
       SetStatus("Could not connect. Find the terminal and try again.", Color.Firebrick);
       await connection.DisconnectAsync();
       sync.Enabled = true;
+      applyIdLimit.Enabled = true;
     } finally {
       refresh.Enabled = true;
     }
@@ -232,6 +234,7 @@ class SyncForm : Form {
       SetStatus("Connection was interrupted. Find the terminal and sync again.", Color.Firebrick);
       await connection.DisconnectAsync();
       sync.Enabled = true;
+      applyIdLimit.Enabled = true;
       return;
     }
 
@@ -239,12 +242,14 @@ class SyncForm : Form {
       SetStatus($"Sync complete. New trips: {update.SavedTripCount}", Color.ForestGreen);
       await connection.DisconnectAsync();
       sync.Enabled = true;
+      applyIdLimit.Enabled = true;
     }
 
     if (update.StorageUnavailable) {
       SetStatus("Local trip storage is unavailable. Try Sync Now again.", Color.Firebrick);
       await connection.DisconnectAsync();
       sync.Enabled = true;
+      applyIdLimit.Enabled = true;
     }
   }
 

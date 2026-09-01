@@ -29,6 +29,7 @@ sealed class BluetoothConnectionManager : ITerminalConnection {
   public bool IsConnected => bluetoothDevice?.ConnectionStatus == BluetoothConnectionStatus.Connected;
 
   public async Task<IReadOnlyList<TerminalDevice>> DiscoverAsync() {
+    await DisconnectAsync();
     var found = new Dictionary<ulong, TerminalDevice>();
     var watcher = new BluetoothLEAdvertisementWatcher {
       ScanningMode = BluetoothLEScanningMode.Active
@@ -132,7 +133,8 @@ sealed class BluetoothConnectionManager : ITerminalConnection {
     }
   }
 
-  void HandleValueChanged(GattCharacteristic _, GattValueChangedEventArgs args) {
+  void HandleValueChanged(GattCharacteristic sender, GattValueChangedEventArgs args) {
+    if (!ReferenceEquals(sender, txCharacteristic)) return;
     var reader = DataReader.FromBuffer(args.CharacteristicValue);
     var bytes = new byte[args.CharacteristicValue.Length];
     reader.ReadBytes(bytes);
@@ -140,8 +142,12 @@ sealed class BluetoothConnectionManager : ITerminalConnection {
   }
 
   void HandleConnectionStatusChanged(BluetoothLEDevice sender, object args) {
-    if (!isDisconnecting && sender.ConnectionStatus == BluetoothConnectionStatus.Disconnected)
-      ConnectionLost?.Invoke(this, "Hallzee disconnected.");
+    if (isDisconnecting ||
+        !ReferenceEquals(sender, bluetoothDevice) ||
+        sender.ConnectionStatus != BluetoothConnectionStatus.Disconnected) return;
+
+    ConnectionLost?.Invoke(this, "Hallzee disconnected.");
+    _ = DisconnectAsync();
   }
 
   public Task DisconnectAsync() {

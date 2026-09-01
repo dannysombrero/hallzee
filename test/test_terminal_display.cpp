@@ -89,6 +89,11 @@ public:
     return appendSucceeds;
   }
   uint32_t getTripRecordCount() override { return static_cast<uint32_t>(syncRecords.size()); }
+  uint32_t getTripRecordCountAfter(uint32_t afterTripID) override {
+    return static_cast<uint32_t>(std::count_if(syncRecords.begin(), syncRecords.end(), [&](const auto &record) {
+      return record.first > afterTripID;
+    }));
+  }
   uint32_t getUnsyncedTripRecordCount() override {
     return static_cast<uint32_t>(std::count_if(syncRecords.begin(), syncRecords.end(), [&](const auto &record) {
       return std::find(markedSynced.begin(), markedSynced.end(), record.first) == markedSynced.end();
@@ -495,17 +500,45 @@ void testBluetoothProtocolAndRecovery() {
 
   serial.connected = true;
   sync.poll();
-  expectTrue(contains(serial.output, "HALLZEE_READY"), "Bluetooth readiness handshake");
+  expectTrue(contains(serial.output, "HALLZEE_READY,1"), "Bluetooth readiness handshake");
+
+  // HELLO makes readiness deterministic even when the connect-time notification
+  // happened before Windows finished enabling notifications.
+  serial.output.clear();
+  serial.input = "HEL";
+  sync.poll();
+  expectTrue(serial.output.empty(), "fragmented command waits for newline");
+  serial.input = "LO,1\n";
+  sync.poll();
+  expectTrue(contains(serial.output, "HALLZEE_READY,1"), "HELLO repeats readiness");
 
   bluetoothClockSetCount = 0;
+  serial.output.clear();
+  const std::string cursorCommand = "TIME_CURSOR,2026-02-28,08:30:00,7\n";
+  serial.input = cursorCommand.substr(0, 20);
+  sync.poll();
+  expectTrue(serial.output.empty(), "20-byte BLE command fragment is buffered");
+  serial.input = cursorCommand.substr(20);
+  sync.poll();
+  expectTrue(bluetoothClockSetCount == 1 && bluetoothClockYear == 2026, "cursor command sets time");
+  expectTrue(contains(serial.output, "TIME_ACK,OK") && contains(serial.output, "SYNC_BEGIN,1") &&
+    contains(serial.output, "TRIP,8,ID2,2026-01-01,09:00:00,09:10:00,600,COMPLETE,0"),
+    "cursor sync sends only newer records");
+
+  serial.input = "ACK,8\n";
+  sync.poll();
+  expectTrue(storage.markedSynced.empty(), "cursor ACK avoids full flash-log rewrite");
+  expectTrue(contains(serial.output, "SYNC_END"), "cursor ACK completes transfer");
+
   serial.input = "TIME,2026-02-28,08:30:00\n";
   sync.poll();
-  expectTrue(bluetoothClockSetCount == 1 && bluetoothClockYear == 2026, "valid time command");
-  expectTrue(contains(serial.output, "TIME_ACK,OK") && contains(serial.output, "SYNC_BEGIN,2") && contains(serial.output, "TRIP,7,ID1,2026-01-01,08:00:00,08:10:00,600,COMPLETE,0"), "time starts sync with a record total");
+  expectTrue(contains(serial.output, "SYNC_BEGIN,2") &&
+    contains(serial.output, "TRIP,7,ID1,2026-01-01,08:00:00,08:10:00,600,COMPLETE,0"),
+    "legacy time command keeps unsynced compatibility");
 
   serial.input = "ACK,7\n";
   sync.poll();
-  expectTrue(storage.markedSynced == std::vector<uint32_t>{7}, "matching ACK marks record synced");
+  expectTrue(storage.markedSynced == std::vector<uint32_t>{7}, "legacy ACK marks record synced");
   expectTrue(contains(serial.output, "TRIP,8,ID2,2026-01-01,09:00:00,09:10:00,600,COMPLETE,0"), "ACK advances one record at a time");
 
   serial.input = "ACK,999\n";
@@ -516,9 +549,18 @@ void testBluetoothProtocolAndRecovery() {
   sync.poll();
   expectTrue(contains(serial.output, "TIME_ACK,ERROR") && contains(serial.output, "ERROR,UNKNOWN_COMMAND"), "invalid commands rejected");
 
+  serial.input = "SYNC_";
+  sync.poll();
   serial.connected = false;
   sync.poll();
   serial.connected = true;
+  serial.output.clear();
+  sync.poll();
+  serial.input = "ALL\n";
+  sync.poll();
+  expectTrue(contains(serial.output, "ERROR,UNKNOWN_COMMAND"),
+    "disconnect discards a fragmented command");
+
   serial.input = "SYNC_ALL\n";
   sync.poll();
   expectTrue(contains(serial.output, "TRIP,7,ID1,2026-01-01,08:00:00,08:10:00,600,COMPLETE,0"), "disconnect resets full history sync state");

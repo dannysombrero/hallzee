@@ -31,20 +31,19 @@ public sealed class SyncSessionTests {
   }
 
   [Fact]
-  public void SavesNewTripsAcknowledgesDuplicatesAndCompletesFullSync() {
+  public void SavesNewTripsAcknowledgesDuplicatesAndCompletesIncrementalSync() {
     var repository = new RecordingRepository();
     var session = new SyncSession(repository);
     session.Start();
 
     var first = session.ProcessReceivedData("TRIP,7,ID1,2026-01-01,08:00:00,08:10:00,600,COMPLETE,0\n");
     var duplicate = session.ProcessReceivedData("TRIP,7,ID1,2026-01-01,08:00:00,08:10:00,600,COMPLETE,0\n");
-    var requestFullHistory = session.ProcessReceivedData("SYNC_END\n");
     var complete = session.ProcessReceivedData("SYNC_END\n");
 
     Assert.Equal(new[] { "ACK,7" }, first.OutboundCommands);
     Assert.Equal(new[] { "ACK,7" }, duplicate.OutboundCommands);
     Assert.Single(repository.StoredPayloads);
-    Assert.Equal(new[] { "SYNC_ALL" }, requestFullHistory.OutboundCommands);
+    Assert.Empty(complete.OutboundCommands);
     Assert.Equal(SyncStatus.Complete, complete.Status);
     Assert.Equal(1, complete.SavedTripCount);
   }
@@ -97,6 +96,7 @@ public sealed class SyncSessionTests {
       Assert.Equal(TripStoreResult.Saved, repository.Store("10,TEN,2026-01-01,10:00:00,10:10:00,600,COMPLETE,0"));
       Assert.Equal(TripStoreResult.Saved, repository.Store("9,NINE,2026-01-01,09:00:00,09:10:00,600,COMPLETE,0"));
       Assert.Equal(TripStoreResult.Invalid, repository.Store("0,INVALID"));
+      Assert.Equal(10, repository.GetLatestTripId());
       var exported = Path.Combine(folder, "exported.csv");
       repository.ExportCsv(exported);
       Assert.Equal(new[] {

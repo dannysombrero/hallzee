@@ -1,9 +1,17 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=Nunito:wght@700;800;900&family=Space+Mono:wght@700&display=swap");
 @import "tailwindcss";
 
 :root { --navy: #103a5b; --ink: #16324a; --muted: #5b6b7a; --canvas: #eef3f7; --line: #dce5ec; --green: #2c8a50; --blue: #1261a0; }
 * { box-sizing: border-box; }
-body { margin: 0; min-width: 320px; background: var(--canvas); color: var(--ink); font-family: Arial, Helvetica, sans-serif; }
-button, select { font: inherit; }
+body { margin: 0; min-width: 320px; background: var(--canvas); color: var(--ink); font-family: "DM Sans", sans-serif; font-feature-settings: "cv05" 1; }
+button, select, input { font: inherit; }
+
+/* Preserve the typography roles from the original Hallzee UI shell. */
+h1, h2, h3, button, nav { font-family: "Nunito", sans-serif; }
+.font-heading { font-family: "Nunito", sans-serif; }
+.font-numeric-data { font-family: "DM Sans", sans-serif; font-feature-settings: "tnum" 1, "lnum" 1, "cv05" 1; }
+.font-timer-display { font-family: "Nunito", sans-serif; font-feature-settings: "tnum" 1, "lnum" 1; }
+.font-mono-hardware { font-family: "Space Mono", monospace; }
 main { max-width: 1120px; margin: 0 auto; padding: 48px 24px; }
 .app-shell { overflow: hidden; background: #f5f8fb; border: 1px solid #d6e0e8; border-radius: 20px; box-shadow: 0 20px 60px #12334d1a; }
 .app-header { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; padding: 30px 34px; background: var(--navy); color: white; }

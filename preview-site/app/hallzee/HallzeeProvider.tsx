@@ -126,7 +126,9 @@ export function HallzeeProvider({ children }: PropsWithChildren) {
   }, []);
 
   const findTerminals = useCallback(() => {
-    prevTerminalStateRef.current = terminalState;
+    // Capture only stable prior connection state (not transient states like syncing)
+    prevTerminalStateRef.current =
+      terminalState === "connected" || terminalState === "syncing" ? "connected" : "disconnected";
     setActiveModal("search");
     setTerminalState("discovering");
     setDiscoveredTerminals([]);
@@ -138,7 +140,13 @@ export function HallzeeProvider({ children }: PropsWithChildren) {
 
     discoveryTimerRef.current = window.setTimeout(() => {
       setDiscoveredTerminals(discoverableTerminals);
-      setTerminalState(prevTerminalStateRef.current === "connected" ? "connected" : "disconnected");
+      setTerminalState((current) => {
+        // Only restore prior connection state if still in discovering state
+        if (current === "discovering") {
+          return prevTerminalStateRef.current === "connected" ? "connected" : "disconnected";
+        }
+        return current;
+      });
       discoveryTimerRef.current = null;
     }, 900);
   }, [terminalState]);
@@ -149,7 +157,12 @@ export function HallzeeProvider({ children }: PropsWithChildren) {
         window.clearTimeout(discoveryTimerRef.current);
         discoveryTimerRef.current = null;
       }
-      if (prevTerminalStateRef.current === "connected") setTerminalState("connected");
+      setTerminalState((current) => {
+        if (current === "discovering") {
+          return prevTerminalStateRef.current === "connected" ? "connected" : "disconnected";
+        }
+        return current;
+      });
     }
   }, [activeModal]);
 

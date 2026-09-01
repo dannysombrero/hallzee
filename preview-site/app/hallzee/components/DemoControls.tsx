@@ -6,16 +6,19 @@ export default function DemoControls() {
   const { terminalState, isOccupied, disconnect, findTerminals, toggleOccupancy, toggleStudentName } =
     useHallzee();
 
+  const isConnected = terminalState === "connected" || terminalState === "syncing";
+
   return (
     <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 bg-slate-950/90 backdrop-blur-md text-white px-4 py-2 rounded-full shadow-[0_10px_25px_-5px_rgba(0,0,0,0.5)] border border-slate-800/80 flex items-center gap-2.5 text-xs font-semibold select-none">
       <span className="text-[11px] font-extrabold uppercase tracking-wider text-sky-400 pl-1">
         Sandbox:
       </span>
       <button
-        onClick={terminalState === "connected" ? disconnect : findTerminals}
-        className="px-3 py-1 rounded-full bg-slate-800/90 hover:bg-slate-700 text-slate-200 transition cursor-pointer shadow-xs"
+        onClick={isConnected ? disconnect : findTerminals}
+        disabled={terminalState === "syncing" || terminalState === "connecting"}
+        className="px-3 py-1 rounded-full bg-slate-800/90 hover:bg-slate-700 text-slate-200 transition cursor-pointer disabled:opacity-40 shadow-xs"
       >
-        {terminalState === "connected" ? "⚡ Disconnect" : "🔍 Find Terminal"}
+        {isConnected ? "⚡ Disconnect" : "🔍 Find Terminal"}
       </button>
       <button
         onClick={toggleOccupancy}

@@ -26,9 +26,7 @@ This browser preview is the canonical UX prototype for Hallzee's desktop client.
 From the repository root, install dependencies and start the preview server:
 
 ```bash
-npm ci
-npm test
-npm run lint
+npm --prefix preview-site start
 ```
 
 Open <http://localhost:3000> in a browser. Press `Ctrl+C` in the terminal when finished.

@@ -25,7 +25,7 @@ The uploaded React shell must not become an independent fourth source of busines
 
 ### Current technical debt relevant to the UI work
 
-- `docs/architecture.md` still describes Bluetooth Classic SPP even though the current README, firmware, and desktop flow use BLE GATT. Correct this in the documentation branch before using that page as an implementation reference.
+- The architecture page and its Wiki mirror were corrected in the Phase 0 documentation branch to describe BLE GATT and `TIME_CURSOR`; future implementation work should use those updated versions as its protocol baseline.
 - The published WinForms UI still constructs controls and coordinates application behavior in one form class. Its protocol/storage classes are reusable, but the form itself should not become the new dashboard architecture.
 - The Avalonia preview already separates a ViewModel from XAML, but it covers only discovery, manual sync, activity, and export—not the new dashboard information architecture.
 - The current browser preview and uploaded React shell use different simulated experiences. Consolidate them instead of maintaining both indefinitely.
@@ -181,6 +181,7 @@ src/
       TerminalConnectionService.ts
       TripRepository.ts
       TripSyncService.ts
+      ActivePassService.ts
       RosterRepository.ts
       CsvExportService.ts
       ProfileRepository.ts
@@ -219,6 +220,7 @@ The exact framework router can be chosen during implementation. The route model 
 | Connection state | Connection service/state machine | Never inferred from label text |
 | Sync state/progress | Sync orchestrator | Exclusive operation; no overlapping sync/settings writes |
 | Last successful sync | Sync service/repository | Persist successful completion time |
+| Live active-pass state | Active-pass service | Not available from `TIME_CURSOR`; requires a planned terminal query/event |
 | Maximum student-ID length | Terminal settings service | Terminal is authoritative |
 | Terminal name | Terminal settings service | Planned; terminal is authoritative |
 
@@ -227,7 +229,7 @@ The exact framework router can be chosen during implementation. The route model 
 | Data | Owner | Authority |
 | --- | --- | --- |
 | Trip records | SQLite repository | Terminal is origin; client is durable local copy |
-| Active trip displayed by client | Derived terminal/sync state | Must be labeled stale/unknown if not live |
+| Active trip displayed by client | Active-pass query/event when implemented | Demo-only until the terminal can explicitly report occupied/available state and checkout time |
 | Roster | Local roster repository | Active profile |
 | Name/class/period enrichment | Query layer | Derived by joining trips with roster |
 | Policies and bell schedule | Profile repository | Client configuration; offline enforcement decision pending |
@@ -295,6 +297,7 @@ Hooks coordinate UI-facing state; they do not contain protocol parsing or persis
 | --- | --- | --- |
 | Terminal connection | `BluetoothConnectionManager.cs`; `TerminalConnectionPort.cs` | Implemented on Windows |
 | Sync session | `SyncSession.cs` | Implemented and tested |
+| Active-pass state | No production protocol command/event exists | Planned; required before a live occupied/available dashboard |
 | Trip persistence/query | `TripSqliteRepository.cs` | Persistence implemented; UI query API needs expansion |
 | Terminal settings | `KioskSettingsProtocol.cs` plus WinForms flow | Maximum ID length implemented |
 | CSV export | `TripSqliteRepository.ExportCsv` and WinForms actions | Implemented with open issues #7 and #8 |
@@ -321,6 +324,7 @@ Every contract must have:
 | Sync Now | Real feature | Existing cursor-based `TIME_CURSOR` sync |
 | Automatic clock alignment | Real feature | Existing connection/sync command flow |
 | Last successful sync | Partially represented | Persist on successful sync completion |
+| Live occupied/available state and timer | Demo only today | Requires an active-pass query/event; `TIME_CURSOR` exposes completed/reset records only |
 | Recent trips | Planned UI | SQLite query; issue #18 |
 | Full trip history | Planned UI | SQLite query/filter/sort; issue #18 |
 | Export CSV | Real feature | Existing export service; issue #7 |
@@ -373,6 +377,18 @@ Only one of these may use the terminal command channel at a time:
 - future policy transfer.
 
 An operation coordinator queues or rejects a second request with a clear UI message. Components must not disable unrelated navigation merely because a terminal operation is active.
+
+### Active-pass state gap
+
+The current terminal persists an in-progress checkout in Preferences, but it does not expose that checkout through `TIME_CURSOR`. A numbered, syncable trip is created only after check-in or manual reset. Therefore a production client cannot currently infer whether the pass is occupied, which student is out, or when the active checkout began—even while BLE is connected.
+
+Until an explicit protocol feature is implemented:
+
+- occupied/available status and the running timer remain part of the demo adapter only;
+- the production dashboard must show active-pass state as unavailable/unknown rather than infer it from completed trip history;
+- a connected badge must not imply that active-pass information is live.
+
+The future feature should define a versioned query and/or event such as an active-pass snapshot with `NONE` or the active student ID and checkout timestamp. Exact command names and payloads require a focused protocol design, fragmentation tests, reconnect behavior, and student-data review before implementation.
 
 ## 14. Privacy and safety boundaries
 
@@ -447,6 +463,7 @@ Windows behavior must be reported as unverified until tested on a Windows PC. UI
 ### Phase 2 — Establish UI-facing application contracts
 
 - Define service interfaces and operation/result models.
+- Define the `ActivePassService` contract and explicit unavailable/unknown state without inventing production data.
 - Add structured connection and activity events.
 - Expand repository query interfaces for recent trips and full history.
 - Add mock contract tests.
@@ -466,10 +483,11 @@ Windows behavior must be reported as unverified until tested on a Windows PC. UI
 Order:
 
 1. BLE discovery, selected terminal, connection states, and manual incremental sync.
-2. Maximum student-ID length query/apply.
-3. SQLite recent trips and full history.
-4. CSV save and open-folder corrections.
-5. Human-readable activity events.
+2. Active-pass query/event protocol and live occupied/available state.
+3. Maximum student-ID length query/apply.
+4. SQLite recent trips and full history.
+5. CSV save and open-folder corrections.
+6. Human-readable activity events.
 
 Each feature gets mock tests, core tests, native ViewModel tests, and the required Windows hardware check.
 
@@ -511,7 +529,7 @@ These require individual feature designs before implementation.
 | React prototype repository location | Replace/expand `preview-site` rather than create another top-level client | Before Phase 1 |
 | Full history presentation | Dedicated Trips page; dashboard stays compact | Approved direction, formalize in Phase 1 |
 | Desktop-driven check-in/out | Demo only | Before production Dashboard port |
-| Active trip freshness | Show live only during an active connection; otherwise label last-known/unknown | Before real dashboard binding |
+| Active trip freshness | Demo-only until an explicit active-pass query/event exists; later show live only from that source and label unavailable/stale states | Before real dashboard binding |
 | Policy enforcement location | Offline-essential limits should be terminal-enforced; client configures | Before policy feature design |
 | Continuous Bluetooth connection | Only when future live auto-sync is enabled | Before issue #23 implementation |
 | Trip edit/delete behavior | Require audit trail and clear terminal/client ownership | Before issue #15 design |
@@ -532,4 +550,4 @@ The first componentization is complete when:
 
 ## 20. Immediate next action after approval
 
-Create a documentation/refactor branch from current `main`. Add this specification to project documentation, mirror the required Wiki source, then make the first implementation PR solely for Phase 1 characterization tests and behavior-preserving React componentization.
+After this documentation PR merges, create a fresh Phase 1 branch from updated `main`. First add characterization tests for the existing React shell, then move it into `preview-site` and componentize it behind mock services without intentional visual or behavioral changes. Do not add real BLE, SQLite, firmware, active-pass, or other product features in that refactor PR.

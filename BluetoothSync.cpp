@@ -83,7 +83,11 @@ void BluetoothSync::beginSync(bool includeSyncedRecords) {
   syncAllRecords = includeSyncedRecords;
   pendingTripID = 0;
   lastStreamedTripID = 0;
-  serial.println("SYNC_BEGIN");
+  const uint32_t recordCount = includeSyncedRecords
+    ? tripStorage.getTripRecordCount()
+    : tripStorage.getUnsyncedTripRecordCount();
+  serial.print("SYNC_BEGIN,");
+  serial.println(String(recordCount));
   sendNextTrip();
 }
 

@@ -26,11 +26,11 @@ public sealed class PreviewTerminalConnection : ITerminalConnection {
 
     if (command.StartsWith("TIME,")) {
       await Task.Delay(250);
-      TextReceived?.Invoke(this, "TIME_ACK,OK\nSYNC_END\n");
+      TextReceived?.Invoke(this, "TIME_ACK,OK\nSYNC_BEGIN,0\nSYNC_END\n");
     } else if (command == "SYNC_ALL" && !fullHistoryRequested) {
       fullHistoryRequested = true;
       await Task.Delay(250);
-      TextReceived?.Invoke(this, "SYNC_END\n");
+      TextReceived?.Invoke(this, "SYNC_BEGIN,0\nSYNC_END\n");
     }
   }
 

@@ -9,6 +9,7 @@
 #include "BluetoothSync.h"
 #include "DisplayColors.h"
 #include "KeypadController.h"
+#include "StudentIdPolicy.h"
 #include "TerminalController.h"
 #include "TripRecordCodec.h"
 #include "TerminalDisplay.h"
@@ -243,6 +244,35 @@ void testLongIdEntryUsesCompactText() {
     "setCursor:16:83",
     "print:1234567890123456"
   }, "long ID entry compact instructions");
+}
+
+void testStudentIdLimitIsRecheckedAtSubmission() {
+  expectTrue(isStudentIdWithinLimit("12345678", 8),
+    "ID at configured limit is accepted");
+  expectTrue(!isStudentIdWithinLimit("123456789", 8),
+    "ID typed before a limit change is rejected at submission");
+}
+
+void testLongOccupiedIdUsesCompactLabel() {
+  RecordingDisplay display;
+  TerminalDisplay terminal(display);
+  terminal.drawIdleScreen("1234567890123456", "");
+
+  expectTrue(contains(display.commands, "print:OUT ID "),
+    "long occupied ID uses compact label");
+  expectTrue(contains(display.commands, "println:1234567890123456"),
+    "long occupied ID remains fully visible");
+}
+
+void testStudentIdTooLongMessage() {
+  RecordingDisplay display;
+  TerminalDisplay terminal(display);
+  terminal.showStudentIdTooLong(8);
+
+  expectTrue(contains(display.commands, "println:ID TOO LONG"),
+    "over-limit submission explains the rejection");
+  expectTrue(contains(display.commands, "println:8"),
+    "over-limit submission shows the current limit");
 }
 
 void testOccupiedIdleScreenGoldenInstructions() {
@@ -707,6 +737,9 @@ void testCheckedOutScreenIncludesDurationInstruction() {
 int main() {
   testEmptyIdEntryGoldenInstructions();
   testLongIdEntryUsesCompactText();
+  testStudentIdLimitIsRecheckedAtSubmission();
+  testLongOccupiedIdUsesCompactLabel();
+  testStudentIdTooLongMessage();
   testOccupiedIdleScreenGoldenInstructions();
   testClockSetupStepUsesCorrectPromptAndHint();
   testCheckedOutScreenIncludesDurationInstruction();

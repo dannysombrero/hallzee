@@ -65,6 +65,13 @@ public sealed class TripSqliteRepository : ITripRepository {
     }
   }
 
+  public long GetLatestTripId() {
+    using var connection = OpenConnection();
+    using var command = connection.CreateCommand();
+    command.CommandText = "SELECT COALESCE(MAX(trip_id), 0) FROM trips;";
+    return (long)(command.ExecuteScalar() ?? 0L);
+  }
+
   public void ExportCsv(string destinationPath) {
     var directory = Path.GetDirectoryName(destinationPath);
     if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);

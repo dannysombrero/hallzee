@@ -19,6 +19,8 @@ jobs:
       - run: dotnet test receiver/windows/BathroomSync.Tests/BathroomSync.Tests.csproj --configuration Release
       - run: dotnet test receiver/universal.tests/BathroomSync.Universal.Tests.csproj --configuration Release
       - run: dotnet build receiver/universal/BathroomSync.Universal.csproj --configuration Release
+      - if: matrix.os == 'windows-latest'
+        run: dotnet build receiver/windows/BathroomSync.Windows.csproj --configuration Release
   publish_windows_client:
     needs: validate
     runs-on: windows-latest

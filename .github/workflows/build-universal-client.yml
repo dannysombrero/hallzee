@@ -2,7 +2,9 @@ name: Build Universal Sync Client
 on:
   workflow_dispatch:
   push:
-    paths: [receiver/universal/**, receiver/universal.tests/**, receiver/windows/BathroomSync.Core/**, receiver/windows/BluetoothConnectionManager.cs, .github/workflows/build-universal-client.yml]
+    paths: &client_paths [receiver/universal/**, receiver/universal.tests/**, receiver/windows/BathroomSync.Core/**, receiver/windows/BathroomSync.Tests/**, receiver/windows/BluetoothConnectionManager.cs, .github/workflows/build-universal-client.yml]
+  pull_request:
+    paths: *client_paths
 jobs:
   validate:
     strategy:
@@ -14,6 +16,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with: { dotnet-version: 8.0.x }
+      - run: dotnet test receiver/windows/BathroomSync.Tests/BathroomSync.Tests.csproj --configuration Release
       - run: dotnet test receiver/universal.tests/BathroomSync.Universal.Tests.csproj --configuration Release
       - run: dotnet build receiver/universal/BathroomSync.Universal.csproj --configuration Release
   publish_windows_client:

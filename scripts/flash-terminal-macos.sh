@@ -47,7 +47,7 @@ echo "Installing the ESP32 board support and required libraries if needed…"
 "$cli" core install esp32:esp32 --additional-urls "$esp32_index"
 "$cli" lib install "Adafruit GFX Library" "Adafruit ST7735 and ST7789 Library" Keypad
 
-echo "Building and flashing Hallzee to $port…"
+echo "Building and flashing Hallzee to ${port}…"
 "$cli" compile --fqbn esp32:esp32:esp32 "$project_root"
 "$cli" upload --fqbn esp32:esp32:esp32 --port "$port" "$project_root"
 echo "Done. The Hallzee firmware is now on the ESP32."

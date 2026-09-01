@@ -15,9 +15,21 @@ public partial class DashboardView : UserControl {
     }
   }
 
-  void OnViewPassClick(object? sender, RoutedEventArgs e) {
+  void OnConfigureNodeClick(object? sender, RoutedEventArgs e) {
     if (DataContext is MainViewModel vm) {
-      vm.OpenModal("Trips");
+      vm.OpenModal("TerminalSettings");
+    }
+  }
+
+  void OnToggleOccupancyClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) {
+      vm.ToggleSandboxOccupancy();
+    }
+  }
+
+  void OnManageRosterClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) {
+      vm.OpenModal("Roster");
     }
   }
 

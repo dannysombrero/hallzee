@@ -31,7 +31,7 @@ public sealed class MainViewModelTests : IDisposable {
     Assert.False(viewModel.IsModalOpen);
     Assert.Equal("None", viewModel.ActiveModal);
     Assert.False(viewModel.IsConnected);
-    Assert.Equal("Disconnected", viewModel.ConnectionStatusText);
+    Assert.Equal("OFFLINE", viewModel.ConnectionStatusText);
   }
 
   [Fact]
@@ -67,13 +67,13 @@ public sealed class MainViewModelTests : IDisposable {
     await viewModel.ConnectAndSyncAsync();
 
     Assert.True(viewModel.IsConnected);
-    Assert.Equal("Connected", viewModel.ConnectionStatusText);
+    Assert.Equal("BLE CONNECTED", viewModel.ConnectionStatusText);
     Assert.Contains("HELLO,1", connection.SentCommands);
     Assert.Contains("GET_ACTIVE_PASS\n", connection.SentCommands);
     Assert.Contains("GET_SETTINGS\n", connection.SentCommands);
 
     await viewModel.DisconnectAsync();
     Assert.False(viewModel.IsConnected);
-    Assert.Equal("Disconnected", viewModel.ConnectionStatusText);
+    Assert.Equal("OFFLINE", viewModel.ConnectionStatusText);
   }
 }

@@ -40,4 +40,16 @@ public partial class MainWindow : Window {
   async void OnDisconnectClick(object? sender, RoutedEventArgs e) {
     if (DataContext is MainViewModel vm) await vm.DisconnectAsync();
   }
+
+  void OnSandboxDisconnectClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) vm.ToggleSandboxConnection();
+  }
+
+  void OnSandboxStudentOutClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) vm.ToggleSandboxOccupancy();
+  }
+
+  void OnSandboxToggleNameClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) vm.ToggleSandboxName();
+  }
 }

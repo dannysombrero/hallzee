@@ -28,6 +28,7 @@ records locally and can synchronize them to a desktop receiver over Bluetooth Lo
   the supported test workflows. Includes one-command setup for flashing the
   terminal or building the Windows app on a clean computer.
 - [Architecture](docs/architecture.md)
+- [Client UI architecture and refactor plan](docs/client-ui-architecture.md)
 - [Bluetooth protocol](docs/bluetooth-protocol.md)
 
 ## Hardware

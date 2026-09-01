@@ -29,6 +29,7 @@ public:
   void restoreActivePass();
   bool hasActivePass() const;
   const String &activeId() const;
+  time_t activeCheckoutTime() const { return checkoutTime; }
   TerminalActionResult submit(const String &enteredId);
   bool resetActivePass(String &resetId);
 

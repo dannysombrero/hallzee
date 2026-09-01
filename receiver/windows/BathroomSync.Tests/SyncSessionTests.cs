@@ -83,6 +83,31 @@ public sealed class SyncSessionTests {
   }
 
   [Fact]
+  public void ParsesActivePassAndLiveEventsDuringSession() {
+    var session = new SyncSession(new RecordingRepository());
+    session.Start();
+
+    var activeNone = session.ProcessReceivedData("ACTIVE_PASS,NONE\n");
+    Assert.NotNull(activeNone.ActivePass);
+    Assert.Equal(ActivePassStatus.Available, activeNone.ActivePass.Status);
+
+    var activeOccupied = session.ProcessReceivedData("ACTIVE_PASS,10482,1725204120\n");
+    Assert.NotNull(activeOccupied.ActivePass);
+    Assert.Equal(ActivePassStatus.Occupied, activeOccupied.ActivePass.Status);
+    Assert.Equal("10482", activeOccupied.ActivePass.StudentId);
+
+    var liveCheckout = session.ProcessReceivedData("EVENT,CHECKOUT,10482,1725204120\n");
+    Assert.NotNull(liveCheckout.LiveEvent);
+    Assert.Equal(LivePassEventType.Checkout, liveCheckout.LiveEvent.EventType);
+    Assert.Equal("10482", liveCheckout.LiveEvent.StudentId);
+
+    var liveCheckin = session.ProcessReceivedData("EVENT,CHECKIN,10482,450\n");
+    Assert.NotNull(liveCheckin.LiveEvent);
+    Assert.Equal(LivePassEventType.Checkin, liveCheckin.LiveEvent.EventType);
+    Assert.Equal(450, liveCheckin.LiveEvent.DurationSeconds);
+  }
+
+  [Fact]
   public void RepositoryImportsLegacyCsvAndExportsSortedRecords() {
     var folder = Path.Combine(Path.GetTempPath(), "BathroomSyncTests", Guid.NewGuid().ToString("N"));
     var csv = Path.Combine(folder, "trips.csv");

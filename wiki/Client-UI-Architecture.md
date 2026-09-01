@@ -8,6 +8,15 @@
 
 The canonical React prototype is consolidated under `preview-site` with a thin route/application entry, typed domain models, a shared mock provider (`HallzeeProvider`), reusable shell (`AppShell`), SVG icon set (`Icons.tsx`), modal dialogs (`TripsModal`, `RosterModal`, `PoliciesModal`, `TerminalSettingsModal`, `SettingsModal`, `TerminalSearchDialog`), and central `DashboardPage`. Sub-pages open as modal pop-ups over the dashboard with backdrop blur, preserving the dashboard context and canonical UI styling.
 
+## Phase 3 implementation status
+
+The native desktop presentation host is implemented in `receiver/universal/` (.NET 8 + Avalonia 11) using the MVVM architecture:
+- **`MainWindow.axaml`**: Native AppShell with brand sidebar rail, profile selector, header connection status badge, live sync triggers, and modal overlays.
+- **`DashboardView.axaml`**: Real-time ticking hero active pass timer card, metric statistic summary cards, and search-filtered recent activity table with student display names and `#<id>` safe fallback.
+- **Modal Dialog Views**: Native modal controls for `TripsModalView`, `RosterModalView` (with two-phase CSV import and column mapping verification), `PoliciesModalView`, `TerminalSettingsModalView`, and `FindTerminalsModalView`.
+- **ViewModels**: `MainViewModel`, `ActivePassViewModel`, `DashboardViewModel`, `TripsViewModel`, `RosterViewModel`, `PolicyViewModel`, `TerminalSettingsViewModel`, and `FindTerminalsViewModel`.
+- **Unit Testing**: 15 / 15 unit tests passing in `BathroomSync.Universal.Tests`.
+
 ## 1. Outcome
 
 Refactor the uploaded 1,107-line React shell into understandable pages, components, hooks, and service adapters while preserving its current appearance and demonstrations. Then connect those presentation contracts to Hallzee's existing C# BLE, SQLite, settings, and export capabilities one feature at a time.

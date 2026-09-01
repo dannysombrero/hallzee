@@ -1,34 +1,43 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
-using Avalonia.Platform.Storage;
 using BathroomSync.Universal.ViewModels;
 
 namespace BathroomSync.Universal;
 
 public partial class MainWindow : Window {
-  public MainWindow() => InitializeComponent();
-
-  async void FindTerminal(object? sender, RoutedEventArgs eventArgs) {
-    if (DataContext is SyncViewModel viewModel) await viewModel.FindAsync();
+  public MainWindow() {
+    InitializeComponent();
   }
 
-  async void SyncNow(object? sender, RoutedEventArgs eventArgs) {
-    if (DataContext is SyncViewModel viewModel) await viewModel.SyncAsync();
+  void OnDashboardClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) vm.CloseModal();
   }
 
-  async void OpenExportFolder(object? sender, RoutedEventArgs eventArgs) {
-    if (DataContext is not SyncViewModel viewModel) return;
-    await viewModel.OpenExportFolderAsync();
+  void OnTripsClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) vm.OpenModal("Trips");
   }
 
-  async void SaveCsvAs(object? sender, RoutedEventArgs eventArgs) {
-    if (DataContext is not SyncViewModel viewModel) return;
-    var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions {
-      Title = "Save bathroom trip export",
-      SuggestedFileName = "hallzee_trips.csv",
-      DefaultExtension = "csv",
-      FileTypeChoices = [new FilePickerFileType("CSV files") { Patterns = ["*.csv"] }]
-    });
-    if (file is not null) await viewModel.SaveCsvAsAsync(file.Path.LocalPath);
+  void OnRosterClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) vm.OpenModal("Roster");
+  }
+
+  void OnPoliciesClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) vm.OpenModal("Policies");
+  }
+
+  void OnTerminalSettingsClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) vm.OpenModal("TerminalSettings");
+  }
+
+  void OnFindTerminalsClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) vm.OpenModal("FindTerminals");
+  }
+
+  async void OnSyncNowClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) await vm.SyncNowAsync();
+  }
+
+  async void OnDisconnectClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) await vm.DisconnectAsync();
   }
 }

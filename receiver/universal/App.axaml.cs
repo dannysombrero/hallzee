@@ -9,7 +9,7 @@ public partial class App : Application {
   public override void OnFrameworkInitializationCompleted() {
     if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop) {
       var connection = CreateConnection();
-      var viewModel = new SyncViewModel(connection, isPreviewMode: connection is PreviewTerminalConnection);
+      var viewModel = new MainViewModel(connection, isPreviewMode: connection is PreviewTerminalConnection);
       desktop.MainWindow = new MainWindow {
         DataContext = viewModel
       };

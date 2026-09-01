@@ -10,6 +10,7 @@ const char *PREF_OUT_ID = "out_id";
 const char *PREF_OUT_TIME = "out_time";
 const char *PREF_NEXT_TRIP_ID = "next_trip";
 const char *PREF_LOG_READY = "log_ready";
+const char *PREF_MAX_STUDENT_ID_LENGTH = "max_id_len";
 const char *TRIP_LOG_PATH = "/trips.csv";
 const char *TRIP_LOG_TEMP_PATH = "/trips.tmp";
 const char *TRIP_LOG_BACKUP_PATH = "/trips.bak";
@@ -24,6 +25,16 @@ bool TripStorage::begin() {
   }
 
   preferencesReady = true;
+
+  maxStudentIdLength = preferences.getUChar(
+    PREF_MAX_STUDENT_ID_LENGTH,
+    DEFAULT_STUDENT_ID_LENGTH
+  );
+  if (maxStudentIdLength < MIN_STUDENT_ID_LENGTH ||
+      maxStudentIdLength > MAX_STUDENT_ID_LENGTH) {
+    maxStudentIdLength = DEFAULT_STUDENT_ID_LENGTH;
+    preferences.putUChar(PREF_MAX_STUDENT_ID_LENGTH, maxStudentIdLength);
+  }
 
   if (!preferences.isKey(PREF_NEXT_TRIP_ID)) {
     preferences.putULong(PREF_NEXT_TRIP_ID, nextTripID);
@@ -97,6 +108,31 @@ void TripStorage::clearActiveCheckout() {
 
   preferences.remove(PREF_OUT_ID);
   preferences.remove(PREF_OUT_TIME);
+}
+
+uint8_t TripStorage::getMaxStudentIdLength() const {
+  return maxStudentIdLength;
+}
+
+SettingWriteResult TripStorage::setMaxStudentIdLength(uint8_t value) {
+  if (value < MIN_STUDENT_ID_LENGTH || value > MAX_STUDENT_ID_LENGTH) {
+    return SettingWriteResult::InvalidValue;
+  }
+  if (!preferencesReady) {
+    return SettingWriteResult::Unavailable;
+  }
+
+  const String activeStudentId = preferences.getString(PREF_OUT_ID, "");
+  if (activeStudentId.length() > value) {
+    return SettingWriteResult::ActiveCheckoutTooLong;
+  }
+
+  if (preferences.putUChar(PREF_MAX_STUDENT_ID_LENGTH, value) != sizeof(uint8_t)) {
+    return SettingWriteResult::Unavailable;
+  }
+
+  maxStudentIdLength = value;
+  return SettingWriteResult::Saved;
 }
 
 void TripStorage::initializeTripLogStorage() {

@@ -1,10 +1,13 @@
 name: Build Universal Sync Client
 on:
   workflow_dispatch:
-  push:
-    paths: &client_paths [receiver/universal/**, receiver/universal.tests/**, receiver/windows/**, .github/workflows/build-universal-client.yml]
   pull_request:
-    paths: *client_paths
+    paths: &client_paths [receiver/universal/**, receiver/universal.tests/**, receiver/windows/**, .github/workflows/build-universal-client.yml]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate:
     strategy:
@@ -22,6 +25,7 @@ jobs:
       - if: matrix.os == 'windows-latest'
         run: dotnet build receiver/windows/BathroomSync.Windows.csproj --configuration Release
   publish_windows_client:
+    if: github.event_name == 'workflow_dispatch'
     needs: validate
     runs-on: windows-latest
     steps:

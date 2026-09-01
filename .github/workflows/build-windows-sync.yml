@@ -1,9 +1,6 @@
 name: Build Windows Sync App
 on:
   workflow_dispatch:
-  push:
-    branches: [windows-sync-client]
-    paths: [receiver/windows/**, .github/workflows/build-windows-sync.yml]
 jobs:
   build:
     runs-on: windows-latest

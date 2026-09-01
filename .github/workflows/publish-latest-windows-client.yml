@@ -1,0 +1,42 @@
+name: Publish Latest Windows Sync App
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - receiver/windows/**
+      - .github/workflows/publish-latest-windows-client.yml
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - run: dotnet test receiver/windows/BathroomSync.Tests/BathroomSync.Tests.csproj --configuration Release
+      - run: dotnet publish receiver/windows/BathroomSync.Windows.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -o publish
+      - name: Package the app
+        shell: pwsh
+        run: Compress-Archive -Path publish\* -DestinationPath BathroomSync-Windows.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BathroomSync-Windows-Latest
+          path: BathroomSync-Windows.zip
+          if-no-files-found: error
+      - name: Publish the latest download
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "windows-client-latest"
+          gh release view $tag --repo $env:GITHUB_REPOSITORY 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag --repo $env:GITHUB_REPOSITORY --title "Latest Windows Sync App" --notes "Automatically built from the latest validated Windows client."
+          }
+          gh release upload $tag BathroomSync-Windows.zip --repo $env:GITHUB_REPOSITORY --clobber

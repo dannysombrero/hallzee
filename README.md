@@ -26,7 +26,8 @@ Classic Serial Port Profile (SPP).
 
 - [Installation and testing guide](docs/testing-and-installation.md) — which
   checks can be done on a Mac, when a Windows PC is required, and how to run
-  the supported test workflows.
+  the supported test workflows. Includes one-command setup for flashing the
+  terminal or building the Windows app on a clean computer.
 - [Architecture](docs/architecture.md)
 - [Bluetooth protocol](docs/bluetooth-protocol.md)
 

@@ -40,7 +40,8 @@ The configured pins are documented in `Config.h` and in [WOKWI.md](WOKWI.md).
 
 ## Firmware build
 
-The firmware targets the original ESP32 family with Bluetooth Low Energy\navailable. Install the ESP32 Arduino core and these libraries:
+The firmware targets the original ESP32 family with Bluetooth Low Energy
+available. Install the ESP32 Arduino core and these libraries:
 
 - Adafruit GFX Library
 - Adafruit ST7735 and ST7789 Library
@@ -109,4 +110,4 @@ The Windows CI workflow enforces at least 80% line coverage for that
 hardware-independent core before publishing the app.
 
 Use the Wokwi setup for keypad-flow checks and perform a physical-board test
-for TFT rendering, Bluetooth pairing/reconnection, and flash persistence.
+for TFT rendering, Bluetooth discovery/reconnection, and flash persistence.

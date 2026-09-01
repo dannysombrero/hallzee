@@ -1,5 +1,5 @@
 "use client";
-import { FileSpreadsheet, Upload, Users } from "lucide-react";
+import { FileSpreadsheet, Upload, Users } from "../components/Icons";
 import { useRef } from "react";
 import { useHallzee } from "../HallzeeProvider";
 

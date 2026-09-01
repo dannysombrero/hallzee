@@ -1,5 +1,5 @@
 "use client";
-import { Clock, RefreshCw, Settings } from "lucide-react";
+import { Clock, RefreshCw, Settings } from "../components/Icons";
 import { useState } from "react";
 
 function Toggle({ label, description, value, onChange, planned = false }: { label:string; description:string; value:boolean; onChange:(value:boolean)=>void; planned?:boolean }) { return <div className="flex justify-between gap-4 p-4 rounded-2xl bg-sky-50"><div><div className="font-bold flex gap-2">{label}{planned && <span className="text-xs rounded-full bg-sky-100 text-sky-800 px-2 py-1">Planned</span>}</div><p className="text-sm text-slate-500 mt-1">{description}</p></div><button role="switch" aria-checked={value} onClick={() => onChange(!value)} className={`w-12 h-7 p-1 rounded-full transition ${value ? "bg-sky-600" : "bg-slate-300"}`}><span className={`block h-5 w-5 bg-white rounded-full transition ${value ? "translate-x-5" : ""}`}/></button></div>; }

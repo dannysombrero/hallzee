@@ -8,6 +8,18 @@ cli="$cli_dir/bin/arduino-cli"
 esp32_index="https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json"
 port="${1:-}"
 
+cat <<'REQUIREMENTS'
+Bathroom Terminal firmware flasher
+
+Before continuing, make sure:
+  • An original ESP32 terminal is connected with a USB data cable.
+  • The terminal is powered on.
+  • No other USB serial device is connected, unless you provide its port.
+  • You are ready to replace the firmware currently on that ESP32.
+
+No Arduino software needs to be installed first; this script installs what it needs.
+REQUIREMENTS
+
 if [[ -z "$port" ]]; then
   candidates=()
   while IFS= read -r candidate; do candidates+=("$candidate"); done < <(find /dev -maxdepth 1 -type c \( -name 'cu.usb*' -o -name 'cu.wch*' -o -name 'cu.SLAB*' \) 2>/dev/null | sort)

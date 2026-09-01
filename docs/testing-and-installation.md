@@ -24,6 +24,19 @@ then builds and flashes the terminal. It automatically selects the ESP32 when
 it is the only USB serial device connected. If more than one is connected,
 unplug the others and run the same command again.
 
+### Flash the terminal from Windows
+
+After downloading and unzipping the project, plug in the ESP32, open
+**PowerShell**, and run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File "$HOME\Downloads\bathroom-signin-codex-web-preview-site\scripts\flash-terminal-windows.ps1"
+```
+
+The same requirements apply: use a USB **data** cable, connect only one USB
+serial device, and expect the script to replace the firmware on that ESP32.
+It installs the Arduino tools, board support, and libraries automatically.
+
 ### Build the Windows desktop app from a Windows PC
 
 Open **PowerShell**, paste this one command, and press Enter:

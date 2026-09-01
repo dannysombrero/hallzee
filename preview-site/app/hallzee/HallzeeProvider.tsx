@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { discoverableTerminals, initialTrips } from "./mockData";
 import type { ActiveTrip, TerminalDevice, TerminalSettings, TerminalState, Trip, View } from "./types";
 
@@ -58,6 +58,16 @@ export function HallzeeProvider({ children }: { children: React.ReactNode }) {
   const [discoveredTerminals, setDiscoveredTerminals] = useState<TerminalDevice[]>([]);
   const [connectingTerminalId, setConnectingTerminalId] = useState<string | null>(null);
 
+  // Refs to manage discovery timers and previous state so that cancelling discovery
+  // does not drop an existing connection when a pending timeout completes.
+  const discoveryTimerRef = useRef<number | null>(null);
+  const prevTerminalStateRef = useRef<TerminalState | null>(null);
+  const searchOpenRef = useRef<boolean>(searchOpen);
+
+  useEffect(() => {
+    searchOpenRef.current = searchOpen;
+  }, [searchOpen]);
+
   useEffect(() => {
     if (!isOccupied || terminalState !== "connected") return;
     const timer = window.setInterval(() => setActiveTrip((trip) => ({ ...trip, elapsedSeconds: trip.elapsedSeconds + 1 })), 1000);
@@ -70,14 +80,40 @@ export function HallzeeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const findTerminals = useCallback(() => {
+    // Remember the previous connection state so discovery can be cancelled safely.
+    prevTerminalStateRef.current = terminalState;
     setSearchOpen(true);
     setTerminalState("discovering");
     setDiscoveredTerminals([]);
-    window.setTimeout(() => {
+
+    if (discoveryTimerRef.current) {
+      window.clearTimeout(discoveryTimerRef.current);
+      discoveryTimerRef.current = null;
+    }
+
+    discoveryTimerRef.current = window.setTimeout(() => {
+      // Only apply discovery results if the search is still open. This prevents
+      // a late timeout from unconditionally dropping an existing connection.
+      if (!searchOpenRef.current) return;
       setDiscoveredTerminals(discoverableTerminals);
-      setTerminalState("disconnected");
+      // Restore to connected if we were connected before opening discovery,
+      // otherwise indicate a disconnected post-discovery state.
+      setTerminalState(prevTerminalStateRef.current === "connected" ? "connected" : "disconnected");
+      discoveryTimerRef.current = null;
     }, 900);
-  }, []);
+  }, [terminalState]);
+
+  // Keep timers and refs consistent when the user explicitly closes the search.
+  useEffect(() => {
+    if (!searchOpen) {
+      if (discoveryTimerRef.current) {
+        window.clearTimeout(discoveryTimerRef.current);
+        discoveryTimerRef.current = null;
+      }
+      // If discovery was opened from a connected state, ensure we remain connected.
+      if (prevTerminalStateRef.current === "connected") setTerminalState("connected");
+    }
+  }, [searchOpen]);
 
   const connectTerminal = useCallback((terminal: TerminalDevice) => {
     setConnectingTerminalId(terminal.id);
@@ -122,7 +158,25 @@ export function HallzeeProvider({ children }: { children: React.ReactNode }) {
       showToast(`${activeTrip.studentName || `Student #${activeTrip.studentId}`} returned to classroom.`);
       return;
     }
-    setActiveTrip({ studentId: "8821", studentName: "Elena Rostova", destination: "Hallway Restroom (East)", departTime: nowLabel(), elapsedSeconds: 0 });
+
+    // When marking occupied, create an activeTrip and insert an OCCUPIED record
+    // into the trip history so the recent activity and filters reflect the state.
+    const depart = nowLabel();
+    const newActive: ActiveTrip = { studentId: "8821", studentName: "Elena Rostova", destination: "Hallway Restroom (East)", departTime: depart, elapsedSeconds: 0 };
+    const occupiedTrip: Trip = {
+      id: `TRIP-${Date.now().toString().slice(-4)}`,
+      studentId: newActive.studentId,
+      studentName: newActive.studentName,
+      destination: newActive.destination,
+      departTime: newActive.departTime,
+      returnTime: "--:--",
+      durationSeconds: 0,
+      status: "OCCUPIED",
+      date: "Today",
+    };
+
+    setActiveTrip(newActive);
+    setTrips((items) => [occupiedTrip, ...items.filter((t) => t.status !== "OCCUPIED")]);
     setIsOccupied(true);
     showToast("Hall pass activated: Student marked out of class.");
   }, [activeTrip, isOccupied, showToast]);

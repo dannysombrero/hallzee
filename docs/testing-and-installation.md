@@ -3,6 +3,41 @@
 This guide explains which checks can be done on a Mac and which require a
 Windows PC.
 
+## First day: start from nothing
+
+You do not need Git, Arduino, .NET, or any project libraries installed in
+advance. Plug the ESP32 terminal into your computer before using the Mac
+command below. Each command downloads the project and required build tools into
+its own `Bathroom-Terminal` folder in your home directory.
+
+### Flash the terminal from a Mac
+
+Open **Terminal**, paste this one command, and press Return:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/dannysombrero/bathroom-signin/codex/web-preview-site/scripts/get-started-mac.sh | bash
+```
+
+The script downloads the source, Arduino CLI, ESP32 board support, and required
+libraries, then builds and flashes the terminal. It automatically selects the
+ESP32 when it is the only USB serial device connected. If more than one is
+connected, unplug the others and run the same command again.
+
+### Build the Windows desktop app from a Windows PC
+
+Open **PowerShell**, paste this one command, and press Enter:
+
+```powershell
+irm https://raw.githubusercontent.com/dannysombrero/bathroom-signin/codex/web-preview-site/scripts/get-started-windows.ps1 | iex
+```
+
+The script downloads the source and the .NET 8 build tools, then creates the
+Windows app in `Bathroom-Terminal\artifacts\BathroomSync-Windows` inside your
+home folder. Open that folder and run `BathroomSync.Windows.exe`.
+
+> The Windows build and physical Bluetooth sync require a Windows PC. The Mac
+> command flashes the terminal, but does not verify Windows Bluetooth pairing.
+
 ## Choose the right way to check a change
 
 | What changed? | Best place to check it | Windows PC needed? |

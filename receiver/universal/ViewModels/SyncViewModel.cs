@@ -77,6 +77,9 @@ public sealed class SyncViewModel : INotifyPropertyChanged, IDisposable {
     Devices.Clear();
     SetStatus("Finding Hallzee", "Scanning nearby devices…", "#1261A0");
     try {
+      // A stale Windows GATT object can keep reporting Connected after the
+      // kiosk has powered off. Always discard it before a fresh scan.
+      await connection.DisconnectAsync();
       var devices = await connection.DiscoverAsync();
       foreach (var device in devices) Devices.Add(device);
       SelectedDevice = Devices.FirstOrDefault();
@@ -106,12 +109,15 @@ public sealed class SyncViewModel : INotifyPropertyChanged, IDisposable {
       TransferTotal = null;
       TransferredTrips = 0;
       await connection.ConnectAsync(SelectedDevice);
-      await connection.SendAsync($"TIME,{DateTime.Now:yyyy-MM-dd,HH:mm:ss}");
-      LogEntries.Add("Connected; time synchronization requested.");
+      await connection.SendAsync("HELLO,1");
+      var latestTripId = Math.Clamp(storage.GetLatestTripId(), 0L, uint.MaxValue);
+      await connection.SendAsync($"TIME_CURSOR,{DateTime.Now:yyyy-MM-dd,HH:mm:ss},{latestTripId}");
+      LogEntries.Add($"Connected; requesting trips after durable ID {latestTripId}.");
     } catch (Exception exception) {
       var detail = DescribeException(exception);
       SetStatus("Connection failed", detail, "#B3443C");
       LogEntries.Add($"Connection error: {detail}");
+      await connection.DisconnectAsync();
       CanSync = true;
     }
   }
@@ -162,6 +168,7 @@ public sealed class SyncViewModel : INotifyPropertyChanged, IDisposable {
       foreach (var command in update.OutboundCommands) await connection.SendAsync(command);
     } catch (Exception exception) {
       SetStatus("Sync interrupted", exception.Message, "#B3443C");
+      await connection.DisconnectAsync();
       CanSync = true;
       return;
     }
@@ -171,6 +178,7 @@ public sealed class SyncViewModel : INotifyPropertyChanged, IDisposable {
     } else if (update.Status == SyncStatus.Complete) {
       SavedTrips = update.SavedTripCount ?? 0;
       SetStatus("Sync complete", $"{SavedTrips} new trip(s) saved this session.", "#2C8A50");
+      await connection.DisconnectAsync();
       CanSync = true;
     }
 
@@ -180,10 +188,15 @@ public sealed class SyncViewModel : INotifyPropertyChanged, IDisposable {
     }
   }
 
-  void HandleConnectionLost(object? sender, string detail) => RunOnUiContext(() => {
+  void HandleConnectionLost(object? sender, string detail) =>
+    RunOnUiContext(() => _ = HandleConnectionLostAsync(detail));
+
+  async Task HandleConnectionLostAsync(string detail) {
+    await connection.DisconnectAsync();
     SetStatus("Connection lost", detail, "#B3443C");
+    LogEntries.Add(detail);
     CanSync = true;
-  });
+  }
 
   void RunOnUiContext(Action action) {
     if (uiContext is null || SynchronizationContext.Current == uiContext) action();

@@ -9,6 +9,13 @@ class SyncForm : Form {
   readonly ComboBox terminals = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 250 };
   readonly Button refresh = new() { Text = "Find Terminal" };
   readonly Button sync = new() { Text = "Sync Now", Enabled = false };
+  readonly NumericUpDown maxStudentIdLength = new() {
+    Minimum = KioskSettingsProtocol.MinimumStudentIdLength,
+    Maximum = KioskSettingsProtocol.MaximumStudentIdLength,
+    Value = KioskSettingsProtocol.DefaultStudentIdLength,
+    Width = 55
+  };
+  readonly Button applyIdLimit = new() { Text = "Apply ID Limit", Enabled = false };
   readonly Button openCsv = new() { Text = "Open CSV" };
   readonly Button saveCsv = new() { Text = "Save CSV As..." };
   readonly Label status = new() { AutoSize = true };
@@ -17,6 +24,7 @@ class SyncForm : Form {
   readonly TripSqliteRepository tripStorage;
   readonly SyncSession session;
   readonly string exportFolder;
+  TaskCompletionSource<bool>? settingsCompletion;
 
   public SyncForm() {
     Text = "Hallzee Sync";
@@ -42,7 +50,9 @@ class SyncForm : Form {
     connection.ConnectionLost += (_, message) => BeginInvoke(() => {
       SetStatus($"Connection lost: {message} Find the terminal and try again.", Color.Firebrick);
       sync.Enabled = terminals.SelectedItem is TerminalDevice;
+      applyIdLimit.Enabled = terminals.SelectedItem is TerminalDevice;
       refresh.Enabled = true;
+      settingsCompletion?.TrySetResult(false);
     });
 
     var top = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, WrapContents = true, Padding = new Padding(12) };
@@ -51,6 +61,9 @@ class SyncForm : Form {
       terminals,
       refresh,
       sync,
+      new Label { Text = "Max student ID digits:", AutoSize = true, Padding = new Padding(8, 6, 0, 0) },
+      maxStudentIdLength,
+      applyIdLimit,
       openCsv,
       saveCsv
     });
@@ -58,6 +71,7 @@ class SyncForm : Form {
 
     refresh.Click += async (_, _) => await DiscoverAsync();
     sync.Click += async (_, _) => await ConnectAndSyncAsync();
+    applyIdLimit.Click += async (_, _) => await ApplyIdLimitAsync();
     openCsv.Click += (_, _) => OpenCsv();
     saveCsv.Click += (_, _) => SaveCsvAs();
 
@@ -74,6 +88,7 @@ class SyncForm : Form {
   async Task DiscoverAsync() {
     refresh.Enabled = false;
     sync.Enabled = false;
+    applyIdLimit.Enabled = false;
     terminals.Items.Clear();
     SetStatus("Looking for Hallzee nearby...", Color.RoyalBlue);
     try {
@@ -82,6 +97,7 @@ class SyncForm : Form {
       if (terminals.Items.Count > 0) {
         terminals.SelectedIndex = 0;
         sync.Enabled = true;
+        applyIdLimit.Enabled = true;
         SetStatus("Select Hallzee and choose Sync Now.", Color.ForestGreen);
       } else {
         SetStatus("Hallzee was not found. Confirm it is powered on and nearby, then try again.", Color.Firebrick);
@@ -104,6 +120,7 @@ class SyncForm : Form {
       session.Start();
       await connection.ConnectAsync(terminal);
       await connection.SendAsync("HELLO,1");
+      await connection.SendAsync(KioskSettingsProtocol.QueryCommand);
       var latestTripId = Math.Clamp(tripStorage.GetLatestTripId(), 0L, (long)uint.MaxValue);
       await connection.SendAsync($"TIME_CURSOR,{DateTime.Now:yyyy-MM-dd,HH:mm:ss},{latestTripId}");
       Log($"Connected directly to Hallzee; requesting trips after durable ID {latestTripId}.\n");
@@ -114,6 +131,48 @@ class SyncForm : Form {
       await connection.DisconnectAsync();
       sync.Enabled = true;
     } finally {
+      refresh.Enabled = true;
+    }
+  }
+
+  async Task ApplyIdLimitAsync() {
+    if (terminals.SelectedItem is not TerminalDevice terminal) return;
+
+    sync.Enabled = false;
+    refresh.Enabled = false;
+    applyIdLimit.Enabled = false;
+    settingsCompletion = new TaskCompletionSource<bool>(
+      TaskCreationOptions.RunContinuationsAsynchronously
+    );
+    SetStatus("Connecting to update Hallzee settings...", Color.RoyalBlue);
+
+    try {
+      session.Start();
+      await connection.ConnectAsync(terminal);
+      await connection.SendAsync("HELLO,1");
+      await connection.SendAsync(
+        KioskSettingsProtocol.BuildStudentIdLengthCommand(
+          Decimal.ToInt32(maxStudentIdLength.Value)
+        )
+      );
+
+      var applied = await settingsCompletion.Task.WaitAsync(TimeSpan.FromSeconds(8));
+      if (!applied && settingsCompletion.Task.IsCompletedSuccessfully) {
+        // Process() already displayed the terminal's specific rejection.
+      }
+    } catch (TimeoutException) {
+      SetStatus(
+        "Hallzee did not confirm the setting. Update its firmware and try again.",
+        Color.Firebrick
+      );
+    } catch (Exception exception) {
+      Log(DescribeException(exception) + "\n");
+      SetStatus("Could not update Hallzee settings.", Color.Firebrick);
+    } finally {
+      settingsCompletion = null;
+      await connection.DisconnectAsync();
+      sync.Enabled = terminals.SelectedItem is TerminalDevice;
+      applyIdLimit.Enabled = terminals.SelectedItem is TerminalDevice;
       refresh.Enabled = true;
     }
   }
@@ -140,6 +199,31 @@ class SyncForm : Form {
   async void Process(string text) {
     var update = session.ProcessReceivedData(text);
     foreach (var line in update.Logs) Log(line + "\n");
+
+    if (update.MaxStudentIdLength is int configuredLength) {
+      maxStudentIdLength.Value = Math.Clamp(
+        configuredLength,
+        KioskSettingsProtocol.MinimumStudentIdLength,
+        KioskSettingsProtocol.MaximumStudentIdLength
+      );
+    }
+
+    if (update.SettingsApplied) {
+      SetStatus(
+        $"Hallzee ID limit updated to {update.MaxStudentIdLength} digits.",
+        Color.ForestGreen
+      );
+      settingsCompletion?.TrySetResult(true);
+    } else if (update.SettingsError is not null) {
+      var detail = update.SettingsError switch {
+        "ACTIVE_ID_TOO_LONG" => "Check in or reset the current student before lowering the ID limit.",
+        "INVALID_VALUE" => "Choose an ID limit from 4 through 16.",
+        "STORAGE_UNAVAILABLE" => "Hallzee could not save the setting.",
+        _ => "Hallzee rejected the setting."
+      };
+      SetStatus(detail, Color.Firebrick);
+      settingsCompletion?.TrySetResult(false);
+    }
 
     try {
       foreach (var command in update.OutboundCommands) await connection.SendAsync(command);

@@ -110,7 +110,7 @@ public sealed class SyncViewModel : INotifyPropertyChanged, IDisposable {
       TransferredTrips = 0;
       await connection.ConnectAsync(SelectedDevice);
       await connection.SendAsync("HELLO,1");
-      var latestTripId = Math.Clamp(storage.GetLatestTripId(), 0L, uint.MaxValue);
+      var latestTripId = Math.Clamp(storage.GetLatestTripId(), 0L, (long)uint.MaxValue);
       await connection.SendAsync($"TIME_CURSOR,{DateTime.Now:yyyy-MM-dd,HH:mm:ss},{latestTripId}");
       LogEntries.Add($"Connected; requesting trips after durable ID {latestTripId}.");
     } catch (Exception exception) {

@@ -49,6 +49,21 @@ The script downloads the .NET 8 build tools, then creates the Windows app in
 the downloaded project’s `artifacts\BathroomSync-Windows` folder. Open that
 folder and run `BathroomSync.Windows.exe`.
 
+### Easier: download the latest ready-to-run Windows app
+
+Once the **Publish Latest Windows Sync App** GitHub Action has run, download
+the latest ready-to-run ZIP here:
+
+```text
+https://github.com/dannysombrero/bathroom-signin/releases/download/windows-client-latest/BathroomSync-Windows.zip
+```
+
+Extract the entire ZIP to a normal folder, then run `BathroomSync.Windows.exe`.
+No software installation or local build is needed. If the link has not been
+published yet, open the repository’s **Actions** tab, run **Publish Latest
+Windows Sync App**, then refresh this link when the run completes. The same ZIP
+is also available from that workflow run’s **Artifacts** section.
+
 > The Windows build and physical Bluetooth sync require a Windows PC. The Mac
 > command flashes the terminal, but does not verify Windows Bluetooth pairing.
 

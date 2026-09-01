@@ -13,17 +13,19 @@ When students use the Hallzee kiosk, they enter only their numeric student ID (e
 
 Teachers will import class rosters directly from standard Student Information System (SIS) CSV exports (PowerSchool, Infinite Campus, Canvas, Google Classroom).
 
-### User Flow
+### User Flow & Two-Phase Import Architecture
 1. Teacher opens **Roster Management** from the desktop sidebar or settings.
 2. Clicks **Import Roster (CSV)** and selects a CSV file.
-3. The client previews the parsed records, auto-detects column headers, and allows manual column mapping:
-   - Student ID (Required)
-   - First Name / Last Name (or Full Name) (Required)
-   - Class Period / Section (Optional)
-   - Grade Level (Optional)
-4. Teacher confirms import for the selected **Classroom Profile**.
-5. The local SQLite database inserts or updates student records for that profile.
-6. The dashboard and trip tables immediately enrich matching student IDs with full names and periods.
+3. **Phase 1: Preview & Column Auto-Detection (`AnalyzeRosterCsv`)**:
+   - The engine tokenizes the CSV according to RFC-4180.
+   - Extracts sample preview rows (e.g. first 3–5 rows) and total row count.
+   - Auto-detects suggested column mappings for `Student ID`, `First Name`, `Last Name`, `Full Name`, `Grade`, and `Period` using SIS synonyms (PowerSchool, Infinite Campus, Skyward, Google Classroom, Canvas).
+   - Displays a preview table showing sample values under each header so the teacher can verify the suggested mapping.
+4. **Phase 2: Confirmed Import (`ImportRosterWithMapping`)**:
+   - Teacher reviews the sample data, adjusts any column dropdowns if needed, and confirms the import.
+   - The engine validates rows, splits names if full name format is selected (`"Last, First"` or `"First Last"`), and batch upserts valid students into `roster_students` scoped to the profile.
+   - Surfaces an import report summary with total rows, imported count, skipped count, and row-level error diagnostics.
+5. The dashboard and trip tables immediately enrich matching student IDs with full names and periods.
 
 ---
 

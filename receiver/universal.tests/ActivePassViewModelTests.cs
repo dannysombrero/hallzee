@@ -1,0 +1,68 @@
+using BathroomSync.Universal.ViewModels;
+using Xunit;
+
+namespace BathroomSync.Universal.Tests;
+
+public sealed class ActivePassViewModelTests {
+  [Fact]
+  public void InitialStateIsAvailableAndEmpty() {
+    var vm = new ActivePassViewModel();
+    Assert.False(vm.IsOccupied);
+    Assert.Null(vm.StudentId);
+    Assert.Null(vm.StudentName);
+    Assert.Equal("No active pass", vm.DisplayName);
+    Assert.Equal("00:00", vm.ElapsedFormatted);
+    Assert.Equal("Hall Pass Available", vm.StatusText);
+    Assert.Equal("AVAILABLE", vm.BadgeText);
+    Assert.Equal("#10B981", vm.StatusColor);
+  }
+
+  [Fact]
+  public void SetOccupiedSetsStateAndCalculatesElapsed() {
+    var vm = new ActivePassViewModel();
+    var checkout = DateTime.Now.AddMinutes(-3).AddSeconds(-15);
+    vm.SetOccupied("10482", "Elena Rostova", checkout);
+
+    Assert.True(vm.IsOccupied);
+    Assert.Equal("10482", vm.StudentId);
+    Assert.Equal("Elena Rostova", vm.StudentName);
+    Assert.Equal("Elena Rostova", vm.DisplayName);
+    Assert.Equal("Student Out of Class", vm.StatusText);
+    Assert.Equal("OCCUPIED", vm.BadgeText);
+    Assert.Equal("#F43F5E", vm.StatusColor);
+    Assert.True(vm.ElapsedSeconds >= 195);
+    Assert.StartsWith("03:", vm.ElapsedFormatted);
+  }
+
+  [Fact]
+  public void SetOccupiedWithoutNameFallsBackToHashId() {
+    var vm = new ActivePassViewModel();
+    vm.SetOccupied("99281", null, DateTime.Now);
+
+    Assert.True(vm.IsOccupied);
+    Assert.Equal("#99281", vm.DisplayName);
+  }
+
+  [Fact]
+  public void SetAvailableClearsOccupiedState() {
+    var vm = new ActivePassViewModel();
+    vm.SetOccupied("10482", "Elena Rostova", DateTime.Now);
+    Assert.True(vm.IsOccupied);
+
+    vm.SetAvailable();
+    Assert.False(vm.IsOccupied);
+    Assert.Null(vm.StudentId);
+    Assert.Equal("00:00", vm.ElapsedFormatted);
+    Assert.Equal("No active pass", vm.DisplayName);
+  }
+
+  [Fact]
+  public void TickIncrementsElapsedTimeWhenOccupied() {
+    var vm = new ActivePassViewModel();
+    vm.SetOccupied("10482", "Elena Rostova", DateTime.Now.AddSeconds(-5));
+    var initial = vm.ElapsedSeconds;
+
+    vm.Tick();
+    Assert.True(vm.ElapsedSeconds >= initial);
+  }
+}

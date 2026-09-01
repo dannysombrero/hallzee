@@ -4,6 +4,9 @@ namespace BathroomSync.Universal.Services;
 
 public sealed class PreviewTerminalConnection : ITerminalConnection {
   bool connected;
+  int maxStudentIdLength = 10;
+  string? activeStudentId;
+  long activeEpoch;
 
   public event EventHandler<string>? TextReceived;
   public event EventHandler<string>? ConnectionLost;
@@ -11,7 +14,9 @@ public sealed class PreviewTerminalConnection : ITerminalConnection {
 
   public async Task<IReadOnlyList<TerminalDevice>> DiscoverAsync() {
     await Task.Delay(50);
-    return [new TerminalDevice("preview-hallzee", "Hallzee", true)];
+    return [
+      new TerminalDevice("preview-hallzee", "Hallzee", true)
+    ];
   }
 
   public async Task ConnectAsync(TerminalDevice terminal) {
@@ -25,6 +30,21 @@ public sealed class PreviewTerminalConnection : ITerminalConnection {
 
     if (command == "HELLO,1") {
       TextReceived?.Invoke(this, "HALLZEE_READY,1\n");
+    } else if (command == "GET_SETTINGS") {
+      TextReceived?.Invoke(this, $"SETTINGS,MAX_ID_LENGTH,{maxStudentIdLength}\n");
+    } else if (command.StartsWith("SET,MAX_ID_LENGTH,", StringComparison.Ordinal)) {
+      if (int.TryParse(command.Substring(18).Trim(), out var val) && val >= 4 && val <= 16) {
+        maxStudentIdLength = val;
+        TextReceived?.Invoke(this, $"SETTINGS_ACK,MAX_ID_LENGTH,{maxStudentIdLength}\n");
+      } else {
+        TextReceived?.Invoke(this, "SETTINGS_ERROR,MAX_ID_LENGTH,INVALID_VALUE\n");
+      }
+    } else if (command == "GET_ACTIVE_PASS") {
+      if (!string.IsNullOrEmpty(activeStudentId) && activeEpoch > 0) {
+        TextReceived?.Invoke(this, $"ACTIVE_PASS,{activeStudentId},{activeEpoch}\n");
+      } else {
+        TextReceived?.Invoke(this, "ACTIVE_PASS,NONE\n");
+      }
     } else if (command.StartsWith("TIME_CURSOR,", StringComparison.Ordinal)) {
       await Task.Delay(25);
       TextReceived?.Invoke(this, "TIME_ACK,OK\nSYNC_BEGIN,0\nSYNC_END\n");
@@ -35,6 +55,27 @@ public sealed class PreviewTerminalConnection : ITerminalConnection {
       await Task.Delay(25);
       TextReceived?.Invoke(this, "SYNC_BEGIN,0\nSYNC_END\n");
     }
+  }
+
+  public void SetActivePass(string? studentId, long epoch = 0) {
+    activeStudentId = studentId;
+    activeEpoch = epoch > 0 ? epoch : DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+  }
+
+  public void SimulateCheckout(string studentId, long? epoch = null) {
+    var ts = epoch ?? DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+    SetActivePass(studentId, ts);
+    TextReceived?.Invoke(this, $"EVENT,CHECKOUT,{studentId},{ts}\n");
+  }
+
+  public void SimulateCheckin(string studentId, long durationSeconds = 300) {
+    SetActivePass(null, 0);
+    TextReceived?.Invoke(this, $"EVENT,CHECKIN,{studentId},{durationSeconds}\n");
+  }
+
+  public void SimulateReset(string studentId, long durationSeconds = 0) {
+    SetActivePass(null, 0);
+    TextReceived?.Invoke(this, $"EVENT,RESET,{studentId},{durationSeconds}\n");
   }
 
   public Task DisconnectAsync() {

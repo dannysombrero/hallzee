@@ -14,7 +14,7 @@ CXXFLAGS := -std=c++17 -Wall -Wextra -Werror -I../test/support -I.. \
 test: $(TEST_BINARY)
 	LLVM_PROFILE_FILE=$(PROFILE_RAW) $(TEST_BINARY)
 
-$(TEST_BINARY): test_terminal_display.cpp ../TerminalDisplay.cpp ../TerminalDisplay.h ../TerminalController.cpp ../TerminalController.h ../KeypadController.cpp ../KeypadController.h ../BluetoothSync.cpp ../BluetoothSync.h ../BluetoothSerialPort.h ../TripRecordCodec.cpp ../TripRecordCodec.h ../KeypadPort.h ../MonotonicClock.h ../TripStoragePort.h ../TimeProvider.h ../DisplayPort.h ../DisplayColors.h ../Config.h ../AppTypes.h
+$(TEST_BINARY): test_terminal_display.cpp ../TerminalDisplay.cpp ../TerminalDisplay.h ../TerminalController.cpp ../TerminalController.h ../KeypadController.cpp ../KeypadController.h ../BluetoothSync.cpp ../BluetoothSync.h ../BluetoothSerialPort.h ../TripRecordCodec.cpp ../TripRecordCodec.h ../KeypadPort.h ../MonotonicClock.h ../TripStoragePort.h ../StudentIdPolicy.h ../TimeProvider.h ../DisplayPort.h ../DisplayColors.h ../Config.h ../AppTypes.h
 	mkdir -p $(BUILD_DIR)
 	$(CLANG) $(CXXFLAGS) test_terminal_display.cpp ../TerminalDisplay.cpp ../TerminalController.cpp ../KeypadController.cpp ../BluetoothSync.cpp ../TripRecordCodec.cpp -o $(TEST_BINARY)
 

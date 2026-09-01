@@ -99,6 +99,21 @@ void TerminalDisplay::showEnterId() {
   display.pause(1500);
 }
 
+void TerminalDisplay::showStudentIdTooLong(uint8_t maximumLength) {
+  display.fillScreen(DISPLAY_RED);
+  display.setTextColor(DISPLAY_WHITE);
+  display.setTextSize(2);
+  display.setCursor(10, 22);
+  display.println("ID TOO LONG");
+  display.setTextSize(1);
+  display.setCursor(10, 68);
+  display.print("Current limit: ");
+  display.println(String(maximumLength));
+  display.setCursor(10, 84);
+  display.println("Enter the ID again.");
+  display.pause(1800);
+}
+
 void TerminalDisplay::showStorageError() {
   display.fillScreen(DISPLAY_RED);
   display.setTextColor(DISPLAY_WHITE);
@@ -165,8 +180,9 @@ void TerminalDisplay::showManualReset(const String &id) {
 void TerminalDisplay::drawIdEntry(const String &entry) {
   display.fillRect(13, 79, 134, 17, UI_PANEL_DARK);
   display.setTextColor(UI_TEXT);
-  display.setTextSize(2);
-  display.setCursor(16, 79);
+  const bool useCompactText = entry.length() > 10;
+  display.setTextSize(useCompactText ? 1 : 2);
+  display.setCursor(16, useCompactText ? 83 : 79);
   display.print(entry.length() == 0 ? "_" : entry);
 }
 
@@ -210,7 +226,7 @@ void TerminalDisplay::drawIdleScreen(const String &currentOutId, const String &e
     display.setTextColor(UI_MUTED);
     display.setTextSize(1);
     display.setCursor(21, 50);
-    display.print("OUT WITH ID ");
+    display.print(currentOutId.length() > 10 ? "OUT ID " : "OUT WITH ID ");
     display.println(currentOutId);
   }
 

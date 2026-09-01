@@ -9,6 +9,7 @@
 #include "BluetoothSync.h"
 #include "DisplayColors.h"
 #include "KeypadController.h"
+#include "StudentIdPolicy.h"
 #include "TerminalController.h"
 #include "TripRecordCodec.h"
 #include "TerminalDisplay.h"
@@ -66,6 +67,8 @@ public:
   bool saveSucceeds = true;
   bool appendSucceeds = true;
   bool markSucceeds = true;
+  SettingWriteResult settingWriteResult = SettingWriteResult::Saved;
+  uint8_t maxStudentIdLength = DEFAULT_STUDENT_ID_LENGTH;
   bool cleared = false;
   String savedId;
   time_t savedTime = 0;
@@ -83,6 +86,11 @@ public:
     return saveSucceeds;
   }
   void clearActiveCheckout() override { cleared = true; }
+  uint8_t getMaxStudentIdLength() const override { return maxStudentIdLength; }
+  SettingWriteResult setMaxStudentIdLength(uint8_t value) override {
+    if (settingWriteResult == SettingWriteResult::Saved) maxStudentIdLength = value;
+    return settingWriteResult;
+  }
   bool appendTripRecord(const String &studentID, time_t outTime, time_t inTime,
                         long durationSeconds, const char *status) override {
     records.push_back({studentID, outTime, inTime, durationSeconds, status});
@@ -222,6 +230,49 @@ void testEmptyIdEntryGoldenInstructions() {
     "setCursor:16:79",
     "print:_"
   }, "empty ID field golden instructions");
+}
+
+void testLongIdEntryUsesCompactText() {
+  RecordingDisplay display;
+  TerminalDisplay terminal(display);
+  terminal.drawIdEntry("1234567890123456");
+
+  expectEqual(display.commands, {
+    "fillRect:13:79:134:17:59196",
+    "setTextColor:8484",
+    "setTextSize:1",
+    "setCursor:16:83",
+    "print:1234567890123456"
+  }, "long ID entry compact instructions");
+}
+
+void testStudentIdLimitIsRecheckedAtSubmission() {
+  expectTrue(isStudentIdWithinLimit("12345678", 8),
+    "ID at configured limit is accepted");
+  expectTrue(!isStudentIdWithinLimit("123456789", 8),
+    "ID typed before a limit change is rejected at submission");
+}
+
+void testLongOccupiedIdUsesCompactLabel() {
+  RecordingDisplay display;
+  TerminalDisplay terminal(display);
+  terminal.drawIdleScreen("1234567890123456", "");
+
+  expectTrue(contains(display.commands, "print:OUT ID "),
+    "long occupied ID uses compact label");
+  expectTrue(contains(display.commands, "println:1234567890123456"),
+    "long occupied ID remains fully visible");
+}
+
+void testStudentIdTooLongMessage() {
+  RecordingDisplay display;
+  TerminalDisplay terminal(display);
+  terminal.showStudentIdTooLong(8);
+
+  expectTrue(contains(display.commands, "println:ID TOO LONG"),
+    "over-limit submission explains the rejection");
+  expectTrue(contains(display.commands, "println:8"),
+    "over-limit submission shows the current limit");
 }
 
 void testOccupiedIdleScreenGoldenInstructions() {
@@ -512,6 +563,35 @@ void testBluetoothProtocolAndRecovery() {
   sync.poll();
   expectTrue(contains(serial.output, "HALLZEE_READY,1"), "HELLO repeats readiness");
 
+  serial.output.clear();
+  serial.input = "GET_SETTINGS\n";
+  sync.poll();
+  expectTrue(contains(serial.output, "SETTINGS,MAX_ID_LENGTH,10"),
+    "current kiosk settings can be queried");
+
+  serial.output.clear();
+  const std::string settingsCommand = "SET,MAX_ID_LENGTH,16\n";
+  serial.input = settingsCommand.substr(0, 20);
+  sync.poll();
+  expectTrue(serial.output.empty(), "long settings command waits for final BLE chunk");
+  serial.input = settingsCommand.substr(20);
+  sync.poll();
+  expectTrue(storage.maxStudentIdLength == 16 &&
+    contains(serial.output, "SETTINGS_ACK,MAX_ID_LENGTH,16"),
+    "valid settings command persists and acknowledges the ID limit");
+
+  serial.input = "SET,MAX_ID_LENGTH,3\n";
+  sync.poll();
+  expectTrue(contains(serial.output, "SETTINGS_ERROR,MAX_ID_LENGTH,INVALID_VALUE") &&
+    storage.maxStudentIdLength == 16, "out-of-range ID limit is rejected");
+
+  storage.settingWriteResult = SettingWriteResult::ActiveCheckoutTooLong;
+  serial.input = "SET,MAX_ID_LENGTH,8\n";
+  sync.poll();
+  expectTrue(contains(serial.output, "SETTINGS_ERROR,MAX_ID_LENGTH,ACTIVE_ID_TOO_LONG") &&
+    storage.maxStudentIdLength == 16, "active checkout prevents an unsafe shorter limit");
+  storage.settingWriteResult = SettingWriteResult::Saved;
+
   bluetoothClockSetCount = 0;
   serial.output.clear();
   const std::string cursorCommand = "TIME_CURSOR,2026-02-28,08:30:00,7\n";
@@ -656,6 +736,10 @@ void testCheckedOutScreenIncludesDurationInstruction() {
 
 int main() {
   testEmptyIdEntryGoldenInstructions();
+  testLongIdEntryUsesCompactText();
+  testStudentIdLimitIsRecheckedAtSubmission();
+  testLongOccupiedIdUsesCompactLabel();
+  testStudentIdTooLongMessage();
   testOccupiedIdleScreenGoldenInstructions();
   testClockSetupStepUsesCorrectPromptAndHint();
   testCheckedOutScreenIncludesDurationInstruction();

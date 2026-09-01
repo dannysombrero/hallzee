@@ -43,6 +43,8 @@ private:
   bool processAcknowledgement(const String &command);
   bool processTimeCommand(const String &command);
   bool processTimeCursorCommand(const String &command, uint32_t &afterTripID);
+  bool processSettingsCommand(const String &command);
+  void sendMaxStudentIdLength();
   void resetSyncState();
 
   static bool isLeapYear(int year);

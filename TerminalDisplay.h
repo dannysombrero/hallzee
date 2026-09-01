@@ -12,6 +12,7 @@ public:
   void showCheckedIn(unsigned long elapsedSeconds);
   void showPassOccupied();
   void showEnterId();
+  void showStudentIdTooLong(uint8_t maximumLength);
   void showStorageError();
   void showTripLogSummary(bool logReady, uint32_t recordCount, uint32_t latestTripID);
   void showManualReset(const String &id);

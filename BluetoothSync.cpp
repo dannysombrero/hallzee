@@ -192,6 +192,55 @@ bool BluetoothSync::processTimeCursorCommand(
   return true;
 }
 
+void BluetoothSync::sendMaxStudentIdLength() {
+  serial.print("SETTINGS,MAX_ID_LENGTH,");
+  serial.println(String(tripStorage.getMaxStudentIdLength()));
+}
+
+bool BluetoothSync::processSettingsCommand(const String &command) {
+  if (command == "GET_SETTINGS") {
+    sendMaxStudentIdLength();
+    return true;
+  }
+
+  if (!command.startsWith("SET,MAX_ID_LENGTH,")) return false;
+
+  String valueText = command.substring(18);
+  valueText.trim();
+  if (valueText.length() == 0) {
+    serial.println("SETTINGS_ERROR,MAX_ID_LENGTH,INVALID_VALUE");
+    return true;
+  }
+  for (unsigned int i = 0; i < valueText.length(); i++) {
+    if (valueText.charAt(i) < '0' || valueText.charAt(i) > '9') {
+      serial.println("SETTINGS_ERROR,MAX_ID_LENGTH,INVALID_VALUE");
+      return true;
+    }
+  }
+
+  const long requestedValue = valueText.toInt();
+  if (requestedValue < MIN_STUDENT_ID_LENGTH ||
+      requestedValue > MAX_STUDENT_ID_LENGTH) {
+    serial.println("SETTINGS_ERROR,MAX_ID_LENGTH,INVALID_VALUE");
+    return true;
+  }
+
+  const SettingWriteResult result = tripStorage.setMaxStudentIdLength(
+    static_cast<uint8_t>(requestedValue)
+  );
+  if (result == SettingWriteResult::Saved) {
+    serial.print("SETTINGS_ACK,MAX_ID_LENGTH,");
+    serial.println(String(tripStorage.getMaxStudentIdLength()));
+  } else if (result == SettingWriteResult::ActiveCheckoutTooLong) {
+    serial.println("SETTINGS_ERROR,MAX_ID_LENGTH,ACTIVE_ID_TOO_LONG");
+  } else if (result == SettingWriteResult::InvalidValue) {
+    serial.println("SETTINGS_ERROR,MAX_ID_LENGTH,INVALID_VALUE");
+  } else {
+    serial.println("SETTINGS_ERROR,MAX_ID_LENGTH,STORAGE_UNAVAILABLE");
+  }
+  return true;
+}
+
 void BluetoothSync::processCommands() {
   if (!ready) return;
 
@@ -205,6 +254,8 @@ void BluetoothSync::processCommands() {
         Serial.println(commandBuffer);
         if (commandBuffer == "HELLO,1") {
           serial.println("HALLZEE_READY,1");
+        } else if (processSettingsCommand(commandBuffer)) {
+          // Settings command handled.
         } else if (commandBuffer.startsWith("TIME_CURSOR,")) {
           uint32_t afterTripID = 0;
           if (processTimeCursorCommand(commandBuffer, afterTripID)) {

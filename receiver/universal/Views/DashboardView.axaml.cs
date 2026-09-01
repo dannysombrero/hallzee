@@ -15,6 +15,12 @@ public partial class DashboardView : UserControl {
     }
   }
 
+  void OnScanForDevicesClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) {
+      vm.OpenModal("FindTerminals");
+    }
+  }
+
   void OnConfigureNodeClick(object? sender, RoutedEventArgs e) {
     if (DataContext is MainViewModel vm) {
       vm.OpenModal("TerminalSettings");

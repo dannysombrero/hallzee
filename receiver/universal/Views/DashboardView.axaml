@@ -31,7 +31,8 @@
 
           <!-- ACTION BUTTONS -->
           <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-            <Button Classes="hallzee-pill-btn" Click="OnSyncClick" IsEnabled="{Binding !IsSyncing}">
+            <!-- Connected Actions -->
+            <Button Classes="hallzee-pill-btn" Click="OnSyncClick" IsEnabled="{Binding !IsSyncing}" IsVisible="{Binding IsConnected}">
               <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                 <PathIcon Data="{StaticResource IconSync}" Width="16" Height="16" VerticalAlignment="Center" Foreground="White" />
                 <StackPanel VerticalAlignment="Center" Spacing="0">
@@ -40,8 +41,15 @@
                 </StackPanel>
               </StackPanel>
             </Button>
-            
-            <Button Classes="card-outline" Content="Configure Node" Click="OnConfigureNodeClick" />
+            <Button Classes="card-outline" Content="Configure Node" Click="OnConfigureNodeClick" IsVisible="{Binding IsConnected}" />
+
+            <!-- Disconnected Action: Scan for devices -->
+            <Button Classes="hallzee-pill-btn" Click="OnScanForDevicesClick" IsVisible="{Binding !IsConnected}">
+              <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                <PathIcon Data="{StaticResource IconSearch}" Width="16" Height="16" VerticalAlignment="Center" Foreground="White" />
+                <TextBlock Text="Scan for devices" FontSize="13" FontWeight="Bold" VerticalAlignment="Center" />
+              </StackPanel>
+            </Button>
           </StackPanel>
         </Grid>
       </Border>

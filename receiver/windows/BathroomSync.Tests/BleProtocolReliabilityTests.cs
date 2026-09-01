@@ -22,6 +22,40 @@ public sealed class BleProtocolReliabilityTests {
   }
 
   [Fact]
+  public void ReassemblesSettingsResponsesAndReportsApplyErrors() {
+    var session = new SyncSession(new DurableRepository());
+    session.Start();
+
+    var partial = session.ProcessReceivedData("SETTINGS,MAX_ID_LENG");
+    var current = session.ProcessReceivedData("TH,10\n");
+    var applied = session.ProcessReceivedData("SETTINGS_ACK,MAX_ID_LENGTH,8\n");
+    var rejected = session.ProcessReceivedData(
+      "SETTINGS_ERROR,MAX_ID_LENGTH,ACTIVE_ID_TOO_LONG\n"
+    );
+
+    Assert.Null(partial.MaxStudentIdLength);
+    Assert.Equal(10, current.MaxStudentIdLength);
+    Assert.False(current.SettingsApplied);
+    Assert.Equal(8, applied.MaxStudentIdLength);
+    Assert.True(applied.SettingsApplied);
+    Assert.Equal("ACTIVE_ID_TOO_LONG", rejected.SettingsError);
+  }
+
+  [Fact]
+  public void BuildsOnlyValidStudentIdSettingCommands() {
+    Assert.Equal(
+      "SET,MAX_ID_LENGTH,8",
+      KioskSettingsProtocol.BuildStudentIdLengthCommand(8)
+    );
+    Assert.Throws<ArgumentOutOfRangeException>(
+      () => KioskSettingsProtocol.BuildStudentIdLengthCommand(3)
+    );
+    Assert.Throws<ArgumentOutOfRangeException>(
+      () => KioskSettingsProtocol.BuildStudentIdLengthCommand(17)
+    );
+  }
+
+  [Fact]
   public void ReassemblesLargeHistoryDeliveredInTwentyByteChunks() {
     var repository = new DurableRepository();
     var session = new SyncSession(repository);

@@ -159,7 +159,7 @@ int daysInMonth(int month, int year) {
   return ClockService::daysInMonth(month, year);
 }
 
-// Bluetooth Classic SPP transport lives in BluetoothSync.cpp.
+// BLE transport lives in BluetoothSync.cpp.
 void showBluetoothClockSync() {
   terminalDisplay.showBluetoothClockSynced(getDateString(), getTimeString());
 }
@@ -637,7 +637,7 @@ void submitID() {
 }
 void handleNormalNumber(char key) {
 
-  if (enteredID.length() < MAX_ID_LENGTH) {
+  if (enteredID.length() < tripStorage.getMaxStudentIdLength()) {
     Serial.print("Key pressed: ");
     Serial.println(key);
 

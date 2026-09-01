@@ -1,22 +1,34 @@
-# vinext-starter
+# Bathroom Terminal browser preview
 
-A clean full-stack starter running on
-[vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and
-Drizzle support.
+This is a browser-based simulation of the Bathroom Terminal desktop sync
+client. It is useful for checking the interface and simulated sync flow on a
+Mac without a physical terminal or a Windows PC.
 
 ## Prerequisites
 
 - Node.js `>=22.13.0`
 
-## Quick Start
+## Start the preview
+
+Install [Node.js 22.13 or later](https://nodejs.org/) once. From the repository
+root, run:
 
 ```bash
-npm install
-npm run dev
-npm run build
+npm --prefix preview-site start
 ```
 
-This starter does not use `wrangler.jsonc`.
+The command installs the exact locked dependencies and starts the preview. Open
+<http://localhost:3000> in a browser, keep the terminal window open while using
+it, and press `Ctrl+C` when you are done.
+
+After the first run, start it more quickly with:
+
+```bash
+npm --prefix preview-site run dev
+```
+
+Mac testing is sufficient for this simulated browser flow. A Windows PC is
+required only for actual Bluetooth pairing or transfer with a physical terminal.
 
 ## Included Shape
 

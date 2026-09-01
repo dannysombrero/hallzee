@@ -4,6 +4,11 @@
 **Scope:** Hallzee desktop client UI, uploaded React prototype, and integration boundaries  
 **Non-goal:** This document does not authorize product-feature implementation or intentional visual redesign.
 
+
+## Phase 1 implementation status
+
+The React prototype is now consolidated under `preview-site` with a thin route/application entry, typed domain models, a shared mock provider, reusable shell/dialog/demo components, and separate Dashboard, Trips, Roster, Policies, Terminal, and Settings pages. Characterization tests preserve the current simulated workflows. Real BLE, SQLite, firmware, and active-pass protocol integration remain outside this phase.
+
 ## 1. Outcome
 
 Refactor the uploaded 1,107-line React shell into understandable pages, components, hooks, and service adapters while preserving its current appearance and demonstrations. Then connect those presentation contracts to Hallzee's existing C# BLE, SQLite, settings, and export capabilities one feature at a time.

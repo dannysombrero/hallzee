@@ -2,7 +2,7 @@ name: Build Universal Sync Client
 on:
   workflow_dispatch:
   push:
-    paths: &client_paths [receiver/universal/**, receiver/universal.tests/**, receiver/windows/BathroomSync.Core/**, receiver/windows/BathroomSync.Tests/**, receiver/windows/BluetoothConnectionManager.cs, .github/workflows/build-universal-client.yml]
+    paths: &client_paths [receiver/universal/**, receiver/universal.tests/**, receiver/windows/**, .github/workflows/build-universal-client.yml]
   pull_request:
     paths: *client_paths
 jobs:

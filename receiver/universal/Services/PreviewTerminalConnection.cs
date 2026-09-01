@@ -4,32 +4,35 @@ namespace BathroomSync.Universal.Services;
 
 public sealed class PreviewTerminalConnection : ITerminalConnection {
   bool connected;
-  bool fullHistoryRequested;
 
   public event EventHandler<string>? TextReceived;
   public event EventHandler<string>? ConnectionLost;
+  public List<string> SentCommands { get; } = new();
 
   public async Task<IReadOnlyList<TerminalDevice>> DiscoverAsync() {
-    await Task.Delay(500);
+    await Task.Delay(50);
     return [new TerminalDevice("preview-hallzee", "Hallzee", true)];
   }
 
   public async Task ConnectAsync(TerminalDevice terminal) {
-    await Task.Delay(350);
+    await Task.Delay(35);
     connected = true;
-    fullHistoryRequested = false;
-    TextReceived?.Invoke(this, "HALLZEE_READY\n");
   }
 
   public async Task SendAsync(string command) {
     if (!connected) throw new InvalidOperationException("Preview terminal is not connected.");
+    SentCommands.Add(command);
 
-    if (command.StartsWith("TIME,")) {
-      await Task.Delay(250);
+    if (command == "HELLO,1") {
+      TextReceived?.Invoke(this, "HALLZEE_READY,1\n");
+    } else if (command.StartsWith("TIME_CURSOR,", StringComparison.Ordinal)) {
+      await Task.Delay(25);
       TextReceived?.Invoke(this, "TIME_ACK,OK\nSYNC_BEGIN,0\nSYNC_END\n");
-    } else if (command == "SYNC_ALL" && !fullHistoryRequested) {
-      fullHistoryRequested = true;
-      await Task.Delay(250);
+    } else if (command.StartsWith("TIME,", StringComparison.Ordinal)) {
+      await Task.Delay(25);
+      TextReceived?.Invoke(this, "TIME_ACK,OK\nSYNC_BEGIN,0\nSYNC_END\n");
+    } else if (command == "SYNC_ALL") {
+      await Task.Delay(25);
       TextReceived?.Invoke(this, "SYNC_BEGIN,0\nSYNC_END\n");
     }
   }

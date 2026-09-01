@@ -6,34 +6,35 @@ Windows PC.
 ## First day: start from nothing
 
 You do not need Git, Arduino, .NET, or any project libraries installed in
-advance. Plug the ESP32 terminal into your computer before using the Mac
-command below. Each command downloads the project and required build tools into
-its own `Bathroom-Terminal` folder in your home directory.
+advance. First open the project on GitHub, choose **Code → Download ZIP**, and
+unzip it in your Downloads folder. Plug the ESP32 terminal into your computer
+before using the Mac command below. The commands download the required build
+tools automatically.
 
 ### Flash the terminal from a Mac
 
 Open **Terminal**, paste this one command, and press Return:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/dannysombrero/bathroom-signin/codex/web-preview-site/scripts/get-started-mac.sh | bash
+bash "$HOME/Downloads/bathroom-signin-codex-web-preview-site/scripts/flash-terminal-macos.sh"
 ```
 
-The script downloads the source, Arduino CLI, ESP32 board support, and required
-libraries, then builds and flashes the terminal. It automatically selects the
-ESP32 when it is the only USB serial device connected. If more than one is
-connected, unplug the others and run the same command again.
+The script downloads Arduino CLI, ESP32 board support, and required libraries,
+then builds and flashes the terminal. It automatically selects the ESP32 when
+it is the only USB serial device connected. If more than one is connected,
+unplug the others and run the same command again.
 
 ### Build the Windows desktop app from a Windows PC
 
 Open **PowerShell**, paste this one command, and press Enter:
 
 ```powershell
-irm https://raw.githubusercontent.com/dannysombrero/bathroom-signin/codex/web-preview-site/scripts/get-started-windows.ps1 | iex
+powershell -ExecutionPolicy Bypass -File "$HOME\Downloads\bathroom-signin-codex-web-preview-site\scripts\build-windows-client.ps1"
 ```
 
-The script downloads the source and the .NET 8 build tools, then creates the
-Windows app in `Bathroom-Terminal\artifacts\BathroomSync-Windows` inside your
-home folder. Open that folder and run `BathroomSync.Windows.exe`.
+The script downloads the .NET 8 build tools, then creates the Windows app in
+the downloaded project’s `artifacts\BathroomSync-Windows` folder. Open that
+folder and run `BathroomSync.Windows.exe`.
 
 > The Windows build and physical Bluetooth sync require a Windows PC. The Mac
 > command flashes the terminal, but does not verify Windows Bluetooth pairing.

@@ -1,15 +1,17 @@
 name: Validate Firmware and BLE Protocol
 on:
   workflow_dispatch:
-  push:
+  pull_request:
     paths: &firmware_paths
       - "*.ino"
       - "*.cpp"
       - "*.h"
       - "test/**"
       - ".github/workflows/validate-firmware.yml"
-  pull_request:
-    paths: *firmware_paths
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   native_tests:

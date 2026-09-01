@@ -3,6 +3,70 @@
 This guide explains which checks can be done on a Mac and which require a
 Windows PC.
 
+## First day: start from nothing
+
+You do not need Git, Arduino, .NET, or any project libraries installed in
+advance. First open the project on GitHub, choose **Code → Download ZIP**, and
+unzip it in your Downloads folder. Plug the ESP32 terminal into your computer
+before using the Mac command below. The commands download the required build
+tools automatically.
+
+### Flash the terminal from a Mac
+
+Open **Terminal**, paste this one command, and press Return:
+
+```sh
+bash "$HOME/Downloads/bathroom-signin-codex-web-preview-site/scripts/flash-terminal-macos.sh"
+```
+
+The script downloads Arduino CLI, ESP32 board support, and required libraries,
+then builds and flashes the terminal. It automatically selects the ESP32 when
+it is the only USB serial device connected. If more than one is connected,
+unplug the others and run the same command again.
+
+### Flash the terminal from Windows
+
+After downloading and unzipping the project, plug in the ESP32, open
+**PowerShell**, and run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File "$HOME\Downloads\bathroom-signin-codex-web-preview-site\scripts\flash-terminal-windows.ps1"
+```
+
+The same requirements apply: use a USB **data** cable, connect only one USB
+serial device, and expect the script to replace the firmware on that ESP32.
+It installs the Arduino tools, board support, and libraries automatically.
+
+### Build the Windows desktop app from a Windows PC
+
+Open **PowerShell**, paste this one command, and press Enter:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File "$HOME\Downloads\bathroom-signin-codex-web-preview-site\scripts\build-windows-client.ps1"
+```
+
+The script downloads the .NET 8 build tools, then creates the Windows app in
+the downloaded project’s `artifacts\BathroomSync-Windows` folder. Open that
+folder and run `BathroomSync.Windows.exe`.
+
+### Easier: download the latest ready-to-run Windows app
+
+Once the **Publish Latest Windows Sync App** GitHub Action has run, download
+the latest ready-to-run ZIP here:
+
+```text
+https://github.com/dannysombrero/bathroom-signin/releases/download/windows-client-latest/BathroomSync-Windows.zip
+```
+
+Extract the entire ZIP to a normal folder, then run `BathroomSync.Windows.exe`.
+No software installation or local build is needed. If the link has not been
+published yet, open the repository’s **Actions** tab, run **Publish Latest
+Windows Sync App**, then refresh this link when the run completes. The same ZIP
+is also available from that workflow run’s **Artifacts** section.
+
+> The Windows build and physical Bluetooth sync require a Windows PC. The Mac
+> command flashes the terminal, but does not verify Windows Bluetooth pairing.
+
 ## Choose the right way to check a change
 
 | What changed? | Best place to check it | Windows PC needed? |

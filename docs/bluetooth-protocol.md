@@ -1,72 +1,81 @@
 # Bluetooth sync protocol
 
-## Current transport
+## BLE transport
 
-The terminal advertises Bluetooth Classic Serial Port Profile (SPP) under the
-name `Hallzee`. It uses RFCOMM and a legacy pairing PIN of `1234`.
-The device accepts one connected serial client at a time.
+Hallzee advertises a Bluetooth Low Energy GATT service under the local name
+`Hallzee`. Pairing is not required and there is no PIN.
 
-Bluetooth pairing establishes a trusted relationship; it does not guarantee an
-active RFCOMM session. A receiver must open the serial service and wait for the
-terminal readiness message before declaring a connection successful.
+| Role | UUID |
+| --- | --- |
+| Sync service | `005924a2-c6e5-4340-9bb8-22d9dd37a283` |
+| Terminal → client notifications | `44a359f3-9215-4189-a3cb-e7ce18ad40d6` |
+| Client → terminal writes | `e80f9559-49eb-47bc-af04-8e92e98ced56` |
 
-## Session flow
+The client enables notifications before sending commands. Commands and messages
+remain UTF-8, newline-delimited text. The Windows client divides writes into
+20-byte chunks; the firmware buffers fragments until a newline arrives.
+
+## Normal incremental session
 
 ```text
-Receiver opens RFCOMM stream
-Terminal -> HALLZEE_READY
-Receiver -> TIME,YYYY-MM-DD,HH:MM:SS
+Client enables notifications
+Client -> HELLO,1
+Terminal -> HALLZEE_READY,1
+Client -> TIME_CURSOR,YYYY-MM-DD,HH:MM:SS,<last_durable_trip_id>
 Terminal -> TIME_ACK,OK
-Terminal -> SYNC_BEGIN
-Terminal -> TRIP,...             (one at a time)
-Receiver -> ACK,<trip_id>
+Terminal -> SYNC_BEGIN,<count_after_cursor>
+Terminal -> TRIP,...                 (one at a time)
+Client -> ACK,<trip_id>              (only after SQLite commit)
 ... repeat ...
 Terminal -> SYNC_END
 ```
 
-The receiver can send `SYNC_ALL` after a normal sync to request the full
-history. The receiver must de-duplicate CSV writes by `trip_id` because a
-record can be retransmitted after a connection interruption.
+`HELLO,1` makes readiness deterministic if the connect-time ready notification
+was sent before Windows completed its notification subscription. The client
+cursor is the largest trip ID durably stored in SQLite. A normal sync therefore
+transfers only newer records and does not replay the full history.
+
+The terminal advances a cursor stream only after the matching ACK. Cursor ACKs
+do not rewrite the terminal's complete flash log. If the connection drops
+before an ACK arrives, that record is sent again; the client primary key makes
+the retry a safe duplicate and ACKs it again.
 
 ## Commands sent to the terminal
 
 | Command | Meaning |
 | --- | --- |
-| `TIME,YYYY-MM-DD,HH:MM:SS` | Set local terminal time, then begin normal sync |
-| `SYNC_START` | Send unsynced records |
-| `SYNC_ALL` | Send all records in ascending trip-ID order |
-| `ACK,<trip_id>` | Confirm durable receipt of the most recently sent trip |
+| `HELLO,1` | Request a versioned readiness response |
+| `TIME_CURSOR,...,<id>` | Set local time and send records with trip ID greater than `id` |
+| `TIME,...` | Legacy compatibility: set time and send records whose terminal sync flag is unset |
+| `SYNC_START` | Legacy compatibility: send records whose terminal sync flag is unset |
+| `SYNC_ALL` | Explicit recovery: send all records from trip ID zero |
+| `ACK,<trip_id>` | Confirm durable receipt of the pending trip |
 
-Commands are newline-delimited. Carriage returns are ignored. Maximum command
-length is 48 characters; longer commands receive `ERROR,COMMAND_TOO_LONG`.
+Commands longer than 48 characters receive `ERROR,COMMAND_TOO_LONG`.
+Carriage returns are ignored.
 
 ## Messages sent by the terminal
 
 | Message | Meaning |
 | --- | --- |
-| `HALLZEE_READY` | RFCOMM connection is established and usable |
-| `TIME_ACK,OK` / `TIME_ACK,ERROR` | Result of a `TIME` command |
-| `SYNC_BEGIN` | A sync sequence has started |
-| `TRIP,<record>` | The next record; its first CSV field is the trip ID |
+| `HALLZEE_READY,1` | BLE notifications and protocol version 1 are usable |
+| `TIME_ACK,OK` / `TIME_ACK,ERROR` | Result of a time or cursor command |
+| `SYNC_BEGIN,<count>` | A sequence started with the expected record count |
+| `TRIP,<record>` | Next record; the first CSV field is the trip ID |
 | `SYNC_END` | No more records in the requested sequence |
 | `ACK_ERROR,INVALID_ID` | ACK did not contain a numeric ID |
-| `ACK_ERROR,UNEXPECTED_ID` | ACK did not match the currently pending trip |
-| `ACK_ERROR,MARK_FAILED` | Terminal could not persist the synced state |
-| `ERROR,UNKNOWN_COMMAND` | Unrecognized command |
+| `ACK_ERROR,UNEXPECTED_ID` | ACK did not match the pending trip |
+| `ACK_ERROR,MARK_FAILED` | Legacy unsynced mode could not persist its sync flag |
+| `ERROR,UNKNOWN_COMMAND` | Command was not recognized |
 
-## Windows client requirements
+## Recovery and compatibility
 
-The next Windows client should use native Windows Bluetooth/RFCOMM APIs rather
-than ask users to select a COM port. Its expected flow is:
+`SYNC_ALL` is a deliberate repair operation, not part of each normal sync.
+The desktop must still de-duplicate by trip ID. A restored or replaced client
+database should run a full recovery once before returning to cursor mode.
 
-1. Discover nearby SPP devices and identify the selected terminal.
-2. Initiate Windows pairing from the app; Windows may display the required PIN
-   prompt.
-3. Open the terminal's RFCOMM service directly.
-4. Wait for `HALLZEE_READY` before enabling sync.
-5. Send `TIME`, process one `TRIP` at a time, write the CSV row durably, and
-   only then send its `ACK`.
-6. Remember the chosen Windows device identity for future one-click syncs.
-7. On a temporary failure, retry the RFCOMM session briefly; offer explicit
-   reconnect and forget/re-pair actions rather than exposing generic Windows
-   Bluetooth connection states.
+On disconnect, both sides clear partial session state. The kiosk resumes BLE
+advertising; Find terminal discards any stale Windows GATT object before its
+five-second discovery attempt. If a terminal is replaced or factory-reset and
+trip IDs restart, perform a full recovery into a new database rather than
+assuming the old cursor belongs to the new device.

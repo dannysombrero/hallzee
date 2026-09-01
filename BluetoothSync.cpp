@@ -203,10 +203,9 @@ bool BluetoothSync::processSettingsCommand(const String &command) {
     return true;
   }
 
-  const String prefix = "SET,MAX_ID_LENGTH,";
-  if (!command.startsWith(prefix)) return false;
+  if (!command.startsWith("SET,MAX_ID_LENGTH,")) return false;
 
-  String valueText = command.substring(prefix.length());
+  String valueText = command.substring(18);
   valueText.trim();
   if (valueText.length() == 0) {
     serial.println("SETTINGS_ERROR,MAX_ID_LENGTH,INVALID_VALUE");

@@ -39,7 +39,11 @@ class SyncForm : Form {
     tripStorage = new TripSqliteRepository(databasePath, legacyCsv);
     session = new SyncSession(tripStorage);
     connection.TextReceived += (_, text) => BeginInvoke(() => Process(text));
-    connection.ConnectionLost += (_, message) => BeginInvoke(() => SetStatus($"Connection lost: {message} Find the terminal and try again.", Color.Firebrick));
+    connection.ConnectionLost += (_, message) => BeginInvoke(() => {
+      SetStatus($"Connection lost: {message} Find the terminal and try again.", Color.Firebrick);
+      sync.Enabled = terminals.SelectedItem is TerminalDevice;
+      refresh.Enabled = true;
+    });
 
     var top = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, WrapContents = true, Padding = new Padding(12) };
     top.Controls.AddRange(new Control[] {
@@ -95,12 +99,14 @@ class SyncForm : Form {
 
     sync.Enabled = false;
     refresh.Enabled = false;
-    SetStatus(terminal.IsPaired ? "Connecting to Hallzee..." : "Pairing with Hallzee...", Color.RoyalBlue);
+    SetStatus("Connecting to Hallzee...", Color.RoyalBlue);
     try {
-      await connection.ConnectAsync(terminal);
       session.Start();
-      await connection.SendAsync($"TIME,{DateTime.Now:yyyy-MM-dd,HH:mm:ss}");
-      Log("Connected directly to Hallzee; waiting for sync response.\n");
+      await connection.ConnectAsync(terminal);
+      await connection.SendAsync("HELLO,1");
+      var latestTripId = Math.Clamp(tripStorage.GetLatestTripId(), 0L, (long)uint.MaxValue);
+      await connection.SendAsync($"TIME_CURSOR,{DateTime.Now:yyyy-MM-dd,HH:mm:ss},{latestTripId}");
+      Log($"Connected directly to Hallzee; requesting trips after durable ID {latestTripId}.\n");
       SetStatus("Connected to Hallzee. Synchronizing...", Color.ForestGreen);
     } catch (Exception exception) {
       Log(DescribeException(exception) + "\n");
@@ -140,16 +146,20 @@ class SyncForm : Form {
     } catch (Exception exception) {
       Log(exception.Message + "\n");
       SetStatus("Connection was interrupted. Find the terminal and sync again.", Color.Firebrick);
+      await connection.DisconnectAsync();
+      sync.Enabled = true;
       return;
     }
 
     if (update.Status == SyncStatus.Complete) {
       SetStatus($"Sync complete. New trips: {update.SavedTripCount}", Color.ForestGreen);
+      await connection.DisconnectAsync();
       sync.Enabled = true;
     }
 
     if (update.StorageUnavailable) {
-      SetStatus("CSV is open in another app. Close it, then choose Sync Now again.", Color.Firebrick);
+      SetStatus("Local trip storage is unavailable. Try Sync Now again.", Color.Firebrick);
+      await connection.DisconnectAsync();
       sync.Enabled = true;
     }
   }

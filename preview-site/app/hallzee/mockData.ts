@@ -1,0 +1,83 @@
+import type { TerminalDevice, Trip } from "./types";
+
+export const initialTrips: Trip[] = [
+  {
+    id: "TRIP-8041",
+    studentId: "9042",
+    studentName: "Marcus Sterling",
+    destination: "Hallway Restroom (East)",
+    departTime: "9:20 AM",
+    returnTime: "--:--",
+    durationSeconds: 380,
+    status: "OCCUPIED",
+    date: "Today",
+  },
+  {
+    id: "TRIP-8040",
+    studentId: "4019",
+    studentName: "Chloe Vance",
+    destination: "Hallway Restroom (East)",
+    departTime: "9:02 AM",
+    returnTime: "9:07 AM",
+    durationSeconds: 300,
+    status: "COMPLETED",
+    date: "Today",
+  },
+  {
+    id: "TRIP-8039",
+    studentId: "7731",
+    studentName: "Lucas Chen",
+    destination: "Hallway Restroom (East)",
+    departTime: "8:44 AM",
+    returnTime: "8:51 AM",
+    durationSeconds: 420,
+    status: "COMPLETED",
+    date: "Today",
+  },
+  {
+    id: "TRIP-8038",
+    studentId: "2910",
+    studentName: "Amara Diallo",
+    destination: "Hallway Restroom (East)",
+    departTime: "8:25 AM",
+    returnTime: "8:31 AM",
+    durationSeconds: 360,
+    status: "COMPLETED",
+    date: "Today",
+  },
+  {
+    id: "TRIP-8037",
+    studentId: "5104",
+    studentName: "",
+    destination: "Hallway Restroom (East)",
+    departTime: "8:10 AM",
+    returnTime: "8:15 AM",
+    durationSeconds: 300,
+    status: "COMPLETED",
+    date: "Today",
+  },
+];
+
+export const discoverableTerminals: TerminalDevice[] = [
+  {
+    id: "ESP32-HALLZEE-204",
+    name: "Room 204 Door Kiosk (East-204)",
+    rssi: -48,
+    signal: "Strong",
+    status: "Ready",
+  },
+  {
+    id: "ESP32-HALLZEE-208",
+    name: "Room 208 Biology Kiosk",
+    rssi: -72,
+    signal: "Moderate",
+    status: "Ready",
+  },
+  {
+    id: "ESP32-HALLZEE-GYM",
+    name: "Gym Corridor Kiosk",
+    rssi: -84,
+    signal: "Weak",
+    status: "Ready",
+  },
+];

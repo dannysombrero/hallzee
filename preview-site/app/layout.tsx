@@ -13,17 +13,17 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Hallzee Preview",
-  description: "A browser simulation of the Hallzee desktop sync client.",
+  title: "Hallzee Client Preview",
+  description: "A browser simulation of the Hallzee classroom terminal client.",
   openGraph: {
-    title: "Hallzee Preview",
-    description: "A browser simulation of the Hallzee desktop sync client.",
+    title: "Hallzee Client Preview",
+    description: "A browser simulation of the Hallzee classroom terminal client.",
     images: ["/og.png"],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Hallzee Preview",
-    description: "A browser simulation of the Hallzee desktop sync client.",
+    title: "Hallzee Client Preview",
+    description: "A browser simulation of the Hallzee classroom terminal client.",
     images: ["/og.png"],
   },
   icons: {
@@ -39,9 +39,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {children}
       </body>
     </html>

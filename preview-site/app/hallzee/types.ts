@@ -1,6 +1,16 @@
-export type View = "dashboard" | "trips" | "roster" | "policies" | "terminal" | "settings";
-export type TerminalState = "disconnected" | "discovering" | "connecting" | "connected" | "syncing" | "recoverableError";
+export type TerminalState =
+  | "disconnected"
+  | "discovering"
+  | "connecting"
+  | "connected"
+  | "syncing"
+  | "recoverableError";
+
 export type TripStatus = "OCCUPIED" | "COMPLETED";
+
+export type ModalView = "trips" | "roster" | "policies" | "terminal" | "settings" | "search";
+
+export type View = "dashboard" | ModalView;
 
 export interface Trip {
   id: string;

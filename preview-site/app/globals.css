@@ -1,31 +1,83 @@
 @import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=Nunito:wght@700;800;900&family=Space+Mono:wght@700&display=swap");
 @import "tailwindcss";
 
-:root { --navy: #103a5b; --ink: #16324a; --muted: #5b6b7a; --canvas: #eef3f7; --line: #dce5ec; --green: #2c8a50; --blue: #1261a0; }
-* { box-sizing: border-box; }
-body { margin: 0; min-width: 320px; background: var(--canvas); color: var(--ink); font-family: "DM Sans", sans-serif; font-feature-settings: "cv05" 1; }
-button, select, input { font: inherit; }
+:root {
+  --navy: #103a5b;
+  --ink: #16324a;
+  --muted: #5b6b7a;
+  --canvas: #eef3f7;
+  --line: #dce5ec;
+  --green: #2c8a50;
+  --blue: #1261a0;
+}
 
-/* Preserve the typography roles from the original Hallzee UI shell. */
-h1, h2, h3, button, nav { font-family: "Nunito", sans-serif; }
-.font-heading { font-family: "Nunito", sans-serif; }
-.font-numeric-data { font-family: "DM Sans", sans-serif; font-feature-settings: "tnum" 1, "lnum" 1, "cv05" 1; }
-.font-timer-display { font-family: "Nunito", sans-serif; font-feature-settings: "tnum" 1, "lnum" 1; }
-.font-mono-hardware { font-family: "Space Mono", monospace; }
-main { max-width: 1120px; margin: 0 auto; padding: 48px 24px; }
-.app-shell { overflow: hidden; background: #f5f8fb; border: 1px solid #d6e0e8; border-radius: 20px; box-shadow: 0 20px 60px #12334d1a; }
-.app-header { display: flex; justify-content: space-between; gap: 24px; align-items: flex-start; padding: 30px 34px; background: var(--navy); color: white; }
-h1, h2, p { margin: 0; } h1 { margin-top: 2px; font-size: 29px; } h2 { font-size: 19px; line-height: 1.25; } .subtitle { margin-top: 6px; color: #cfe6f7; font-size: 14px; }
-.eyebrow, .section-label { color: #6f99b8; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; } .app-header .eyebrow { color: #cfe6f7; }
-.simulation-badge { padding: 9px 12px; border: 1px solid #78a0be; border-radius: 99px; color: #d8edf9; font-size: 13px; white-space: nowrap; }
-.content-grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: 22px; padding: 30px 34px; } .main-column { display: grid; gap: 18px; }
-.card, .trip-card { background: white; border-radius: 14px; padding: 22px; } .connect-card { display: grid; gap: 15px; } .connect-card h2, .status-card h2 { margin: 3px 0 6px; } .connect-card p, .status-card p { color: var(--muted); line-height: 1.45; } label { color: var(--muted); font-size: 13px; font-weight: 700; }
-select { width: 100%; padding: 11px; color: var(--ink); background: white; border: 1px solid #b9c8d4; border-radius: 8px; } select:disabled { background: #f1f5f7; color: #768695; }
-.actions, .footer-actions { display: flex; gap: 10px; } .button, .text-button { cursor: pointer; border-radius: 8px; font-weight: 700; } .button { flex: 1; padding: 12px 14px; border: 1px solid transparent; } .button:disabled { cursor: not-allowed; opacity: .5; } .primary { color: white; background: var(--navy); } .secondary { color: var(--navy); background: #e9f0f5; border-color: #d4e0e7; }
-.status-card { display: flex; align-items: flex-start; gap: 14px; } .status-dot { display: block; width: 12px; height: 12px; flex: 0 0 auto; margin-top: 5px; border-radius: 50%; } .status-dot.green { background: var(--green); } .status-dot.blue { background: var(--blue); }
-.trip-card { display: flex; align-items: center; justify-content: space-between; color: #326346; background: #e7f3ec; } .trip-card p { font-size: 14px; } .trip-card strong { display: block; margin-top: 3px; color: #1a6b3c; font-size: 34px; } .trip-card span { color: var(--green); font-size: 40px; }
-.activity-card { padding: 22px; min-height: 370px; border-radius: 14px; background: #102b40; color: white; } .activity-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; padding-bottom: 16px; border-bottom: 1px solid #28506a; } .activity-heading .section-label { color: #8db7d3; margin-bottom: 3px; } .live-dot { padding: 5px 8px; border-radius: 99px; color: #ccefd8; background: #1b6242; font-size: 11px; font-weight: 700; }
-ol { display: grid; gap: 11px; margin: 18px 0 0; padding: 0; list-style: none; } li { padding-left: 14px; color: #cfe6f7; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; line-height: 1.4; border-left: 2px solid #49728f; }
-.app-footer { display: flex; justify-content: space-between; gap: 20px; align-items: center; padding: 17px 34px; background: white; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; } .text-button { padding: 8px 0; color: var(--navy); background: transparent; border: 0; }
-.testing-note { display: flex; gap: 15px; margin: 22px auto 0; max-width: 980px; padding: 21px 24px; border: 1px solid #e7c77d; border-radius: 14px; background: #fff8e7; color: #593b00; } .testing-note .section-label { color: #936c16; } .testing-note h2 { margin: 3px 0 6px; font-size: 17px; } .testing-note p:last-child { line-height: 1.5; } .warning-icon { display: grid; width: 25px; height: 25px; flex: 0 0 auto; place-items: center; border-radius: 50%; background: #c8890d; color: white; font-weight: 800; }
-@media (max-width: 760px) { main { padding: 18px 12px; } .app-header, .app-footer { padding: 24px 20px; } .app-header, .app-footer { align-items: flex-start; flex-direction: column; } .content-grid { grid-template-columns: 1fr; padding: 20px; } .simulation-badge { white-space: normal; } .footer-actions { width: 100%; justify-content: space-between; } }
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: "DM Sans", sans-serif;
+  font-feature-settings: "cv05" 1;
+}
+
+button,
+select,
+input {
+  font: inherit;
+}
+
+/* Typography roles from the canonical Hallzee UI shell */
+h1,
+h2,
+h3,
+button,
+nav {
+  font-family: "Nunito", sans-serif;
+}
+
+.font-heading {
+  font-family: "Nunito", sans-serif;
+}
+
+.font-numeric-data {
+  font-family: "DM Sans", sans-serif;
+  font-feature-settings: "tnum" 1, "lnum" 1, "cv05" 1;
+}
+
+.font-timer-display {
+  font-family: "Nunito", sans-serif;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
+
+.font-mono-hardware {
+  font-family: "Space Mono", monospace;
+}
+
+/* Canonical Hallzee Vibrant Gradient (Top to Bottom: Bright Cyan-Sky -> Deep Ocean Blue) */
+.hallzee-pill-btn-active {
+  background: linear-gradient(180deg, #00b8f2 0%, #0098e8 45%, #0070c4 100%);
+  box-shadow: 0 10px 25px -4px rgba(0, 168, 236, 0.45), 0 4px 10px -2px rgba(0, 168, 236, 0.3);
+  color: #ffffff;
+}
+
+.hallzee-gradient-btn {
+  background: linear-gradient(180deg, #00b8f2 0%, #0098e8 45%, #0070c4 100%);
+  box-shadow: 0 10px 25px -4px rgba(0, 168, 236, 0.45), 0 4px 10px -2px rgba(0, 168, 236, 0.3);
+  color: #ffffff;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hallzee-gradient-btn:hover {
+  background: linear-gradient(180deg, #00c6ff 0%, #00a4f2 45%, #007ad0 100%);
+  box-shadow: 0 14px 28px -4px rgba(0, 168, 236, 0.55), 0 6px 12px -2px rgba(0, 168, 236, 0.35);
+  filter: brightness(1.03);
+}
+
+.hallzee-gradient-btn:active {
+  transform: scale(0.98);
+  box-shadow: 0 6px 15px -3px rgba(0, 168, 236, 0.4);
+}

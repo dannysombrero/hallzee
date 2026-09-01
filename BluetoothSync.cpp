@@ -50,6 +50,8 @@ void BluetoothSync::resetSyncState() {
   streamUsesCursor = false;
   pendingTripID = 0;
   lastStreamedTripID = 0;
+  commandBuffer = "";
+  discardingInput = false;
 }
 
 void BluetoothSync::sendNextTrip() {

@@ -185,7 +185,7 @@ void TerminalDisplay::drawIdleScreen(const String &currentOutId, const String &e
   display.setTextColor(DISPLAY_WHITE);
   display.setTextSize(1);
   display.setCursor(9, 3);
-  display.println("BATHROOM");
+  display.println("HALLZEE");
   display.setTextColor(UI_BACKGROUND);
   display.setCursor(9, 14);
   display.println("TERMINAL");

@@ -25,7 +25,7 @@ public partial class MainWindow : Window {
     if (DataContext is not SyncViewModel viewModel) return;
     var file = await StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions {
       Title = "Save bathroom trip export",
-      SuggestedFileName = "bathroom_trips.csv",
+      SuggestedFileName = "hallzee_trips.csv",
       DefaultExtension = "csv",
       FileTypeChoices = [new FilePickerFileType("CSV files") { Patterns = ["*.csv"] }]
     });

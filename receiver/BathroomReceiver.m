@@ -428,8 +428,8 @@
 
 int main(int argc, const char * argv[]) {
   @autoreleasepool {
-    NSString *deviceName = (argc >= 2) ? [NSString stringWithUTF8String:argv[1]] : @"Bathroom-Terminal";
-    NSString *csvPath = (argc >= 3) ? [NSString stringWithUTF8String:argv[2]] : @"bathroom_trips.csv";
+    NSString *deviceName = (argc >= 2) ? [NSString stringWithUTF8String:argv[1]] : @"Hallzee";
+    NSString *csvPath = (argc >= 3) ? [NSString stringWithUTF8String:argv[2]] : @"hallzee_trips.csv";
 
     fprintf(stdout, "Looking for Bluetooth device '%s'...\n", deviceName.UTF8String);
     fflush(stdout);

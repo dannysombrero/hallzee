@@ -55,7 +55,7 @@ public sealed class SyncSession {
   private void ProcessLine(string line, SyncUpdate update) {
     update.Logs.Add($"ESP32: {line}");
 
-    if (line == "BATHROOM_TERMINAL_READY") {
+    if (line == "HALLZEE_READY") {
       update.Status = SyncStatus.Synchronizing;
       return;
     }

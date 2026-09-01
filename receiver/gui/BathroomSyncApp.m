@@ -15,9 +15,13 @@
 @implementation SyncApp
 - (void)applicationDidFinishLaunching:(NSNotification *)note {
   NSURL *documents = [[NSFileManager defaultManager] URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask].firstObject;
-  NSURL *folder = [documents URLByAppendingPathComponent:@"Bathroom Terminal" isDirectory:YES];
+  NSURL *folder = [documents URLByAppendingPathComponent:@"Hallzee" isDirectory:YES];
   [[NSFileManager defaultManager] createDirectoryAtURL:folder withIntermediateDirectories:YES attributes:nil error:nil];
-  self.csvPath = [[folder URLByAppendingPathComponent:@"bathroom_trips.csv"] path];
+  self.csvPath = [[folder URLByAppendingPathComponent:@"hallzee_trips.csv"] path];
+  NSURL *legacy = [[documents URLByAppendingPathComponent:@"Bathroom Terminal" isDirectory:YES] URLByAppendingPathComponent:@"bathroom_trips.csv"];
+  if (![[NSFileManager defaultManager] fileExistsAtPath:self.csvPath] && [[NSFileManager defaultManager] fileExistsAtPath:legacy.path]) {
+    [[NSFileManager defaultManager] copyItemAtURL:legacy toURL:[NSURL fileURLWithPath:self.csvPath] error:nil];
+  }
   [self buildWindow];
 }
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender { return YES; }
@@ -28,10 +32,10 @@
 }
 - (void)buildWindow {
   self.window = [[NSWindow alloc] initWithContentRect:NSMakeRect(0,0,700,520) styleMask:(NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskMiniaturizable) backing:NSBackingStoreBuffered defer:NO];
-  self.window.title = @"Bathroom Sync"; [self.window center];
+  self.window.title = @"Hallzee Sync"; [self.window center];
   NSView *view = self.window.contentView;
-  NSTextField *title = [self label:@"Bathroom Terminal Sync" size:24]; title.font = [NSFont boldSystemFontOfSize:24]; [view addSubview:title];
-  NSTextField *device = [self label:@"Device: Bathroom-Terminal" size:14]; [view addSubview:device];
+  NSTextField *title = [self label:@"Hallzee Sync" size:24]; title.font = [NSFont boldSystemFontOfSize:24]; [view addSubview:title];
+  NSTextField *device = [self label:@"Device: Hallzee" size:14]; [view addSubview:device];
   self.status = [self label:@"Ready to sync." size:15]; self.status.textColor = NSColor.systemBlueColor; [view addSubview:self.status];
   self.count = [self label:@"Trips saved this session: 0" size:13]; [view addSubview:self.count];
   NSTextField *path = [self label:[NSString stringWithFormat:@"CSV: %@",self.csvPath] size:12]; path.lineBreakMode=NSLineBreakByTruncatingMiddle; [view addSubview:path];
@@ -62,8 +66,8 @@
 - (void)start {
   NSString *helper=[NSBundle.mainBundle.executablePath.stringByDeletingLastPathComponent stringByAppendingPathComponent:@"bathroom-receiver"];
   if (![[NSFileManager defaultManager] isExecutableFileAtPath:helper]) { [self setStatus:@"Receiver helper is missing. Rebuild the app." color:NSColor.systemRedColor]; return; }
-  self.saved=0; self.count.stringValue=@"Trips saved this session: 0"; self.log.string=@""; [self append:@"Starting sync...\n"]; [self setStatus:@"Searching for Bathroom-Terminal..." color:NSColor.systemBlueColor];
-  self.pipe=[NSPipe pipe]; self.task=[[NSTask alloc]init]; self.task.launchPath=helper; self.task.arguments=@[@"Bathroom-Terminal",self.csvPath]; self.task.standardOutput=self.pipe; self.task.standardError=self.pipe;
+  self.saved=0; self.count.stringValue=@"Trips saved this session: 0"; self.log.string=@""; [self append:@"Starting sync...\n"]; [self setStatus:@"Searching for Hallzee..." color:NSColor.systemBlueColor];
+  self.pipe=[NSPipe pipe]; self.task=[[NSTask alloc]init]; self.task.launchPath=helper; self.task.arguments=@[@"Hallzee",self.csvPath]; self.task.standardOutput=self.pipe; self.task.standardError=self.pipe;
   __weak SyncApp *weakSelf=self;
   self.pipe.fileHandleForReading.readabilityHandler=^(NSFileHandle *h){ NSData *d=[h availableData]; if (!d.length) return; NSString *s=[[NSString alloc]initWithData:d encoding:NSUTF8StringEncoding]; dispatch_async(dispatch_get_main_queue(), ^{ [weakSelf handle:s]; }); };
   self.task.terminationHandler=^(NSTask *t){ dispatch_async(dispatch_get_main_queue(), ^{ weakSelf.pipe.fileHandleForReading.readabilityHandler=nil; weakSelf.task=nil; weakSelf.pipe=nil; weakSelf.sync.title=@"Sync Now"; [weakSelf setStatus:t.terminationStatus ? @"Sync stopped or could not connect." : @"Sync closed." color:t.terminationStatus ? NSColor.systemRedColor : NSColor.secondaryLabelColor]; }); };

@@ -23,7 +23,7 @@ public sealed class SyncSessionTests {
     var session = new SyncSession(new RecordingRepository());
     session.Start();
 
-    var partial = session.ProcessReceivedData("BATHROOM_TERMINAL_");
+    var partial = session.ProcessReceivedData("HALLZEE_");
     var complete = session.ProcessReceivedData("READY\n");
 
     Assert.Null(partial.Status);

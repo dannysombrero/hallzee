@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Bathroom Sign-in Display Emulator</title>
+  <title>Hallzee Display Emulator</title>
   <style>
     :root { color-scheme: dark; font-family: system-ui, sans-serif; }
     body { align-items: center; background: #192022; color: #e9f3f0; display: flex; flex-direction: column; gap: 18px; margin: 0; min-height: 100vh; padding: 28px 16px; }
@@ -21,10 +21,10 @@
   </style>
 </head>
 <body>
-  <h1>Bathroom Sign-in — Display Emulator</h1>
+  <h1>Hallzee — Display Emulator</h1>
   <p>Manual UI testing for the 160 × 128 ST7735 screen.</p>
   <main class="terminal">
-    <canvas id="screen" width="160" height="128" aria-label="Emulated bathroom sign-in display"></canvas>
+    <canvas id="screen" width="160" height="128" aria-label="Emulated Hallzee sign-in display"></canvas>
     <div class="keypad" id="keypad" aria-label="Keypad"></div>
     <div class="tools"><button id="reset">Reset emulator</button><button id="log">View trip log</button></div>
   </main>
@@ -49,7 +49,7 @@
     function rounded(x, y, width, height, radius, color, stroke = false) { ctx.strokeStyle = ctx.fillStyle = colors[color]; ctx.beginPath(); ctx.roundRect(x, y, width, height, radius); stroke ? ctx.stroke() : ctx.fill(); }
     function drawIdle() {
       fill('background'); ctx.fillStyle = colors.navy; ctx.fillRect(0, 0, 160, 24);
-      text('BATHROOM', 9, 3); text('TERMINAL', 9, 14, 'background'); text(formatTime(), 104, 8);
+      text('HALLZEE', 9, 3); text('TERMINAL', 9, 14, 'background'); text(formatTime(), 104, 8);
       const stateColor = currentOutID ? 'red' : 'green'; rounded(8, 28, 144, 31, 6, 'panel'); rounded(8, 28, 5, 31, 3, stateColor);
       if (!currentOutID) { text('OPEN', 20, 34, 'green', 2); text('Bathroom is open', 21, 50, 'muted'); }
       else { text('OCCUPIED', 20, 34, 'red', 2); text(`OUT WITH ID ${currentOutID}`, 21, 50, 'muted'); }

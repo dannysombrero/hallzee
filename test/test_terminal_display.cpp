@@ -231,7 +231,7 @@ void testOccupiedIdleScreenGoldenInstructions() {
     "setTextColor:65535",
     "setTextSize:1",
     "setCursor:9:3",
-    "println:BATHROOM",
+    "println:HALLZEE",
     "setTextColor:48631",
     "setCursor:9:14",
     "println:TERMINAL",
@@ -491,11 +491,11 @@ void testBluetoothProtocolAndRecovery() {
   FakeBluetoothSerial serial;
   BluetoothSync sync(storage, serial, setBluetoothClock, onBluetoothClockSet);
   sync.begin();
-  expectTrue(serial.deviceName == "Bathroom-Terminal" && serial.pin.empty(), "Bluetooth LE setup");
+  expectTrue(serial.deviceName == "Hallzee" && serial.pin.empty(), "Bluetooth LE setup");
 
   serial.connected = true;
   sync.poll();
-  expectTrue(contains(serial.output, "BATHROOM_TERMINAL_READY"), "Bluetooth readiness handshake");
+  expectTrue(contains(serial.output, "HALLZEE_READY"), "Bluetooth readiness handshake");
 
   bluetoothClockSetCount = 0;
   serial.input = "TIME,2026-02-28,08:30:00\n";

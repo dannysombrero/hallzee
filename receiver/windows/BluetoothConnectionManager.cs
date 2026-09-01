@@ -11,7 +11,7 @@ using Windows.Devices.Bluetooth.GenericAttributeProfile;
 using Windows.Storage.Streams;
 
 sealed class BluetoothConnectionManager : ITerminalConnection {
-  const string TerminalName = "Bathroom-Terminal";
+  const string TerminalName = "Hallzee";
   static readonly Guid ServiceUuid = Guid.Parse("005924a2-c6e5-4340-9bb8-22d9dd37a283");
   static readonly Guid TxUuid = Guid.Parse("44a359f3-9215-4189-a3cb-e7ce18ad40d6");
   static readonly Guid RxUuid = Guid.Parse("e80f9559-49eb-47bc-af04-8e92e98ced56");
@@ -62,7 +62,7 @@ sealed class BluetoothConnectionManager : ITerminalConnection {
 
     try {
       bluetoothDevice = await BluetoothLEDevice.FromBluetoothAddressAsync(address)
-        ?? throw new InvalidOperationException("Windows could not open Bathroom-Terminal over BLE.");
+        ?? throw new InvalidOperationException("Windows could not open Hallzee over BLE.");
       bluetoothDevice.ConnectionStatusChanged += HandleConnectionStatusChanged;
 
       // The advertisement is available before Windows has populated its GATT cache.
@@ -75,7 +75,7 @@ sealed class BluetoothConnectionManager : ITerminalConnection {
 
       var access = await service.RequestAccessAsync();
       if (access != Windows.Devices.Enumeration.DeviceAccessStatus.Allowed)
-        throw new InvalidOperationException($"Windows denied access to Bathroom-Terminal's BLE service ({access}).");
+        throw new InvalidOperationException($"Windows denied access to Hallzee's BLE service ({access}).");
 
       var txResult = await service.GetCharacteristicsForUuidAsync(TxUuid, BluetoothCacheMode.Uncached);
       if (txResult.Status != GattCommunicationStatus.Success || txResult.Characteristics.Count == 0)
@@ -92,7 +92,7 @@ sealed class BluetoothConnectionManager : ITerminalConnection {
         GattClientCharacteristicConfigurationDescriptorValue.Notify
       );
       if (notifyStatus != GattCommunicationStatus.Success)
-        throw new InvalidOperationException($"Windows could not subscribe to Bathroom-Terminal updates ({notifyStatus}). Check that the terminal firmware includes the BLE notification descriptor.");
+        throw new InvalidOperationException($"Windows could not subscribe to Hallzee updates ({notifyStatus}). Check that the terminal firmware includes the BLE notification descriptor.");
     } catch (Exception exception) {
       await DisconnectAsync();
       throw new InvalidOperationException($"BLE connection failed: {DescribeException(exception)}", exception);
@@ -110,7 +110,7 @@ sealed class BluetoothConnectionManager : ITerminalConnection {
   }
 
   public async Task SendAsync(string command) {
-    if (rxCharacteristic is null) throw new InvalidOperationException("Bathroom-Terminal is not connected.");
+    if (rxCharacteristic is null) throw new InvalidOperationException("Hallzee is not connected.");
     var bytes = Encoding.UTF8.GetBytes(command + "\n");
 
     await writeLock.WaitAsync();
@@ -141,7 +141,7 @@ sealed class BluetoothConnectionManager : ITerminalConnection {
 
   void HandleConnectionStatusChanged(BluetoothLEDevice sender, object args) {
     if (!isDisconnecting && sender.ConnectionStatus == BluetoothConnectionStatus.Disconnected)
-      ConnectionLost?.Invoke(this, "Bathroom-Terminal disconnected.");
+      ConnectionLost?.Invoke(this, "Hallzee disconnected.");
   }
 
   public Task DisconnectAsync() {

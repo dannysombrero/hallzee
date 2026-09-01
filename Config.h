@@ -5,7 +5,7 @@
 // Product behavior
 constexpr char CLOCK_CODE[] = "1234";
 constexpr char LOG_SUMMARY_CODE[] = "9999";
-constexpr char BLUETOOTH_DEVICE_NAME[] = "Bathroom-Terminal";
+constexpr char BLUETOOTH_DEVICE_NAME[] = "Hallzee";
 constexpr int MAX_BLUETOOTH_COMMAND_LENGTH = 48;
 constexpr int MAX_ID_LENGTH = 10;
 constexpr unsigned long RESET_HOLD_MS = 2000;

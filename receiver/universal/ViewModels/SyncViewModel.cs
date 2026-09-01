@@ -27,11 +27,12 @@ public sealed class SyncViewModel : INotifyPropertyChanged, IDisposable {
     uiContext = SynchronizationContext.Current;
     var appData = appDataPath ?? Path.Combine(
       Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-      "Bathroom Terminal",
+      "Hallzee",
       isPreviewMode ? "universal-preview" : "universal"
     );
     exportFolder = Path.Combine(appData, "exports");
-    storage = new TripSqliteRepository(Path.Combine(appData, "bathroom-trips.db"));
+    if (appDataPath is null) MigrateLegacyDatabase(appData, isPreviewMode);
+    storage = new TripSqliteRepository(Path.Combine(appData, "hallzee-trips.db"));
     session = new SyncSession(storage);
     connection.TextReceived += HandleTerminalText;
     connection.ConnectionLost += HandleConnectionLost;
@@ -65,23 +66,23 @@ public sealed class SyncViewModel : INotifyPropertyChanged, IDisposable {
   public bool CanSync { get => canSync; private set { canSync = value; OnPropertyChanged(); } }
   public bool IsPreviewMode { get; }
   public string ModeDescription { get; }
-  public string WindowTitle => IsPreviewMode ? "Bathroom Sync Preview" : "Bathroom Sync";
+  public string WindowTitle => IsPreviewMode ? "Hallzee Sync Preview" : "Hallzee Sync";
   public string FooterDescription => IsPreviewMode
     ? "The preview uses a simulated terminal. The Windows build uses this same UI with Bluetooth."
-    : "Find, pair, and sync Bathroom-Terminal directly from this Windows app.";
+    : "Find, pair, and sync Hallzee directly from this Windows app.";
 
   public async Task FindAsync() {
     CanFind = false;
     CanSync = false;
     Devices.Clear();
-    SetStatus("Finding Bathroom-Terminal", "Scanning nearby devices…", "#1261A0");
+    SetStatus("Finding Hallzee", "Scanning nearby devices…", "#1261A0");
     try {
       var devices = await connection.DiscoverAsync();
       foreach (var device in devices) Devices.Add(device);
       SelectedDevice = Devices.FirstOrDefault();
       SetStatus(
         SelectedDevice is null ? "Terminal not found" : "Terminal ready",
-        SelectedDevice is null ? "Make sure Bathroom-Terminal is powered on, then try again." : "Bathroom-Terminal is ready to sync.",
+        SelectedDevice is null ? "Make sure Hallzee is powered on, then try again." : "Hallzee is ready to sync.",
         SelectedDevice is null ? "#B3443C" : "#2C8A50"
       );
       LogEntries.Add($"Discovery completed: {Devices.Count} matching terminal(s).");
@@ -120,9 +121,25 @@ public sealed class SyncViewModel : INotifyPropertyChanged, IDisposable {
     return exception.HResult == 0 ? message : $"{message} (0x{exception.HResult:X8})";
   }
 
+  static void MigrateLegacyDatabase(string appData, bool isPreviewMode) {
+    var destinationPath = Path.Combine(appData, "hallzee-trips.db");
+    if (File.Exists(destinationPath)) return;
+
+    var legacyPath = Path.Combine(
+      Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+      "Bathroom Terminal",
+      isPreviewMode ? "universal-preview" : "universal",
+      "bathroom-trips.db"
+    );
+    if (!File.Exists(legacyPath)) return;
+
+    Directory.CreateDirectory(appData);
+    File.Copy(legacyPath, destinationPath);
+  }
+
   public Task OpenExportFolderAsync() {
     Directory.CreateDirectory(exportFolder);
-    storage.ExportCsv(Path.Combine(exportFolder, $"bathroom_trips_{DateTime.Now:yyyyMMdd_HHmmss}.csv"));
+    storage.ExportCsv(Path.Combine(exportFolder, $"hallzee_trips_{DateTime.Now:yyyyMMdd_HHmmss}.csv"));
     Process.Start(new ProcessStartInfo(exportFolder) { UseShellExecute = true });
     return Task.CompletedTask;
   }
@@ -150,7 +167,7 @@ public sealed class SyncViewModel : INotifyPropertyChanged, IDisposable {
     }
 
     if (update.Status == SyncStatus.Synchronizing) {
-      SetStatus("Synchronizing", "Securely retrieving trips from Bathroom-Terminal.", "#2C8A50");
+      SetStatus("Synchronizing", "Securely retrieving trips from Hallzee.", "#2C8A50");
     } else if (update.Status == SyncStatus.Complete) {
       SavedTrips = update.SavedTripCount ?? 0;
       SetStatus("Sync complete", $"{SavedTrips} new trip(s) saved this session.", "#2C8A50");

@@ -13,8 +13,8 @@ public sealed class ActivePassViewModelTests {
     Assert.Equal("No active pass", vm.DisplayName);
     Assert.Equal("00:00", vm.ElapsedFormatted);
     Assert.Equal("Hall Pass Available", vm.StatusText);
-    Assert.Equal("AVAILABLE", vm.BadgeText);
-    Assert.Equal("#10B981", vm.StatusColor);
+    Assert.Equal("PASS AVAILABLE (DEMO STATE)", vm.BadgeText);
+    Assert.Equal("#059669", vm.StatusColor);
   }
 
   [Fact]
@@ -28,8 +28,8 @@ public sealed class ActivePassViewModelTests {
     Assert.Equal("Elena Rostova", vm.StudentName);
     Assert.Equal("Elena Rostova", vm.DisplayName);
     Assert.Equal("Student Out of Class", vm.StatusText);
-    Assert.Equal("OCCUPIED", vm.BadgeText);
-    Assert.Equal("#F43F5E", vm.StatusColor);
+    Assert.Equal("PASS OCCUPIED (DEMO STATE)", vm.BadgeText);
+    Assert.Equal("#D97706", vm.StatusColor);
     Assert.True(vm.ElapsedSeconds >= 195);
     Assert.StartsWith("03:", vm.ElapsedFormatted);
   }

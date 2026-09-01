@@ -13,10 +13,15 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
   readonly RosterService rosterService;
   readonly SyncSession syncSession;
 
+  string activeView = "dashboard";
   string activeModal = "None";
-  bool isConnected;
+  bool isConnected = false;
   bool isSyncing;
-  string lastSyncTimeText = "Never synced";
+  string lastSyncTimeText = "Today, 9:22 AM (4 mins ago)";
+  string connectedTerminalName = "Room 204 Door Kiosk (East-204)";
+  string profileDetails = "Period 3 (9:15–10:05)";
+  string profileTeacher = "Teacher: Dr. Aris Thorne";
+  string loadedRosterFileName = "Chemistry_Period3_Students.csv";
   ClassroomProfile activeProfile;
   string exportFolder;
   Timer? timer;
@@ -45,10 +50,13 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     // Load active profile
     var allProfiles = profileRepository.GetAllProfiles();
     foreach (var p in allProfiles) Profiles.Add(p);
-    activeProfile = profileRepository.GetActiveProfile() ?? Profiles.FirstOrDefault() ?? new ClassroomProfile("default", "Room 204");
+    activeProfile = profileRepository.GetActiveProfile() ?? Profiles.FirstOrDefault() ?? new ClassroomProfile("default", "Room 204 • Chemistry AP");
 
     // Initialize child viewmodels
     ActivePass = new ActivePassViewModel();
+    // Start with demo occupied pass matching React prototype initial state
+    ActivePass.SetOccupied("9042", "Marcus Sterling", DateTime.Now.AddMinutes(-57).AddSeconds(-13));
+
     Dashboard = new DashboardViewModel(tripRepository, rosterService, ActivePass);
     TripsModal = new TripsViewModel(tripRepository, rosterService);
     RosterModal = new RosterViewModel(rosterService);
@@ -80,6 +88,29 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
   public PolicyViewModel PolicyModal { get; }
   public TerminalSettingsViewModel TerminalSettingsModal { get; }
   public FindTerminalsViewModel FindTerminalsModal { get; }
+
+  public string ActiveView {
+    get => activeView;
+    set {
+      if (activeView != value) {
+        activeView = value;
+        OnPropertyChanged();
+        OnPropertyChanged(nameof(IsDashboardActive));
+        OnPropertyChanged(nameof(IsTripsActive));
+        OnPropertyChanged(nameof(IsRosterActive));
+        OnPropertyChanged(nameof(IsPoliciesActive));
+        OnPropertyChanged(nameof(IsTerminalSettingsActive));
+        OnPropertyChanged(nameof(IsAppSettingsActive));
+      }
+    }
+  }
+
+  public bool IsDashboardActive => ActiveView == "dashboard";
+  public bool IsTripsActive => ActiveView == "trips";
+  public bool IsRosterActive => ActiveView == "roster";
+  public bool IsPoliciesActive => ActiveView == "policies";
+  public bool IsTerminalSettingsActive => ActiveView == "terminal";
+  public bool IsAppSettingsActive => ActiveView == "settings";
 
   public string ActiveModal {
     get => activeModal;
@@ -113,6 +144,11 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
         OnPropertyChanged(nameof(ConnectionStatusText));
         OnPropertyChanged(nameof(ConnectionStatusColor));
         OnPropertyChanged(nameof(ConnectionBadgeBackground));
+        OnPropertyChanged(nameof(ConnectionBadgeForeground));
+        OnPropertyChanged(nameof(TopStatusBadgeText));
+        OnPropertyChanged(nameof(TopStatusBadgeBackground));
+        OnPropertyChanged(nameof(TopStatusBadgeForeground));
+        OnPropertyChanged(nameof(TerminalAvatarBackground));
       }
     }
   }
@@ -124,18 +160,43 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
         isSyncing = value;
         OnPropertyChanged();
         OnPropertyChanged(nameof(ConnectionStatusText));
+        OnPropertyChanged(nameof(TopStatusBadgeText));
       }
     }
   }
 
+  public string ConnectedTerminalName {
+    get => isConnected ? connectedTerminalName : "No Terminal Connected";
+    set { connectedTerminalName = value; OnPropertyChanged(); }
+  }
+
+  public string ProfileDetails => profileDetails;
+  public string ProfileTeacher => profileTeacher;
+  public string LoadedRosterFileName => loadedRosterFileName;
+
   public string ConnectionStatusText =>
-    IsSyncing ? "Syncing…" : IsConnected ? "Connected" : "Disconnected";
+    IsSyncing ? "SYNCING" : IsConnected ? "BLE CONNECTED" : "OFFLINE";
 
   public string ConnectionStatusColor =>
     IsSyncing ? "#0284C7" : IsConnected ? "#10B981" : "#94A3B8";
 
   public string ConnectionBadgeBackground =>
-    IsConnected ? "#DCFCE7" : "#F1F5F9";
+    IsSyncing ? "#E0F2FE" : IsConnected ? "#DCFCE7" : "#F1F5F9";
+
+  public string ConnectionBadgeForeground =>
+    IsSyncing ? "#0369A1" : IsConnected ? "#166534" : "#475569";
+
+  public string TopStatusBadgeText =>
+    !IsConnected ? "OFFLINE" : IsSyncing ? "SYNCING" : "BLE CONNECTED";
+
+  public string TopStatusBadgeBackground =>
+    !IsConnected ? "#E2E8F0" : IsSyncing ? "#E0F2FE" : "#DCFCE7";
+
+  public string TopStatusBadgeForeground =>
+    !IsConnected ? "#475569" : IsSyncing ? "#0369A1" : "#166534";
+
+  public string TerminalAvatarBackground =>
+    !IsConnected ? "#94A3B8" : "#10B981";
 
   public string LastSyncTimeText {
     get => lastSyncTimeText;
@@ -199,7 +260,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
       var command = $"TIME_CURSOR,{now:yyyy-MM-dd},{now:HH:mm:ss},{lastTripId}\n";
       await connection.SendAsync(command);
 
-      LastSyncTimeText = $"Today, {DateTime.Now:hh:mm tt}";
+      LastSyncTimeText = $"Today, {DateTime.Now:h:mm tt} (just now)";
     } catch {
       IsConnected = false;
     } finally {
@@ -212,6 +273,28 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     await connection.DisconnectAsync();
     IsConnected = false;
     ActivePass.SetAvailable();
+  }
+
+  // Sandbox simulation actions matching prototype floating bar
+  public void ToggleSandboxConnection() {
+    if (IsConnected) {
+      _ = DisconnectAsync();
+    } else {
+      IsConnected = true;
+      LastSyncTimeText = $"Today, {DateTime.Now:h:mm tt} (just now)";
+    }
+  }
+
+  public void ToggleSandboxOccupancy() {
+    ActivePass.ToggleDemoOccupancy();
+  }
+
+  public void ToggleSandboxName() {
+    if (ActivePass.StudentName == "Marcus Sterling") {
+      ActivePass.SetOccupied("9042", null);
+    } else {
+      ActivePass.SetOccupied("9042", "Marcus Sterling");
+    }
   }
 
   public void RefreshActiveProfileData() {

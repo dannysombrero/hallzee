@@ -4,136 +4,182 @@
         xmlns:views="clr-namespace:BathroomSync.Universal.Views;assembly=HallzeeSync.Universal"
         x:Class="BathroomSync.Universal.MainWindow"
         x:DataType="vm:MainViewModel"
-        Width="1080" Height="720" MinWidth="880" MinHeight="600"
-        Title="Hallzee · Classroom Hall Pass Manager"
-        Background="#F8FAFC">
+        Width="1120" Height="740" MinWidth="940" MinHeight="640"
+        Title="Hallzee Desktop Client · Room 204 • Period 3 (Chemistry AP)"
+        Background="#EBF5FB">
   
-  <Grid>
-    <!-- MAIN APPLICATION SHELL -->
-    <Grid ColumnDefinitions="240,*">
+  <Grid RowDefinitions="Auto,*">
+    
+    <!-- 1. TOP WINDOW BAR -->
+    <Border Grid.Row="0" Background="{StaticResource HallzeeWindowHeaderGradient}" Padding="16,8" BorderBrush="#38BDF8" BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <Image Source="avares://HallzeeSync.Universal/Assets/hallzee-logo.png" Width="18" Height="18" VerticalAlignment="Center" />
+          <TextBlock Text="Hallzee Desktop Client" FontWeight="Bold" FontSize="12" Foreground="White" VerticalAlignment="Center" />
+          <TextBlock Text="|" Foreground="#7DD3FC" VerticalAlignment="Center" Margin="4,0" />
+          <TextBlock Text="{Binding ActiveProfile.Name}" FontSize="12" Foreground="#F0F9FF" FontWeight="SemiBold" VerticalAlignment="Center" />
+        </StackPanel>
+
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+          <TextBlock Text="v1.5.2-win64" FontSize="11" FontFamily="Cascadia Mono, Menlo, monospace" Foreground="#E0F2FE" VerticalAlignment="Center" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- 2. MAIN APPLICATION WORKSPACE -->
+    <Grid Grid.Row="1" ColumnDefinitions="260,*">
       
-      <!-- LEFT NAVIGATION SIDEBAR -->
-      <Border Grid.Column="0" Background="#0F172A" Padding="16,20">
-        <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="20">
+      <!-- LEFT SIDEBAR -->
+      <Border Grid.Column="0" Background="White" BorderBrush="#BAE6FD" BorderThickness="0,0,1,0" Padding="16,18">
+        <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="16">
           
-          <!-- BRAND LOGO & TITLE -->
+          <!-- LOGO & BRAND -->
           <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" VerticalAlignment="Center">
-            <Image Grid.Column="0" Source="avares://HallzeeSync.Universal/Assets/hallzee-logo.png" Width="36" Height="36" VerticalAlignment="Center" />
+            <Border Width="42" Height="42" CornerRadius="14" Background="White" BorderBrush="#BAE6FD" BorderThickness="1" BoxShadow="0 4 12 0 #0D0284C7" VerticalAlignment="Center" Padding="4">
+              <Image Source="avares://HallzeeSync.Universal/Assets/hallzee-logo.png" Width="32" Height="32" VerticalAlignment="Center" HorizontalAlignment="Center" />
+            </Border>
             <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
-              <TextBlock Text="Hallzee" FontSize="20" FontWeight="Black" Foreground="White" LetterSpacing="0.5" />
-              <TextBlock Text="Classroom Pass" FontSize="11" Foreground="#94A3B8" />
+              <TextBlock Text="Hallzee" FontSize="18" FontWeight="Black" Foreground="#0F172A" LetterSpacing="0.5" />
+              <TextBlock Text="Terminal Gateway" FontSize="11" FontWeight="Bold" Foreground="#0369A1" />
             </StackPanel>
           </Grid>
 
-          <!-- CLASSROOM PROFILE PICKER -->
-          <Border Grid.Row="1" Background="#1E293B" CornerRadius="10" Padding="12,10">
-            <StackPanel Spacing="4">
-              <TextBlock Text="ACTIVE PROFILE" FontSize="10" FontWeight="Bold" Foreground="#64748B" LetterSpacing="0.5" />
-              <ComboBox ItemsSource="{Binding Profiles}" SelectedItem="{Binding ActiveProfile}" HorizontalAlignment="Stretch" Background="Transparent" Foreground="White">
-                <ComboBox.ItemTemplate>
-                  <DataTemplate>
-                    <TextBlock Text="{Binding Name}" Foreground="White" />
-                  </DataTemplate>
-                </ComboBox.ItemTemplate>
-              </ComboBox>
+          <!-- CLASSROOM PROFILE BOX -->
+          <Border Grid.Row="1" Background="#F0F9FF" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="16" Padding="12,10">
+            <StackPanel Spacing="3">
+              <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                <TextBlock Text="CLASSROOM PROFILE" FontSize="10" FontWeight="ExtraBold" Foreground="#64748B" LetterSpacing="0.5" />
+                <Border Grid.Column="1" Background="#DCFCE7" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="10" Padding="8,1">
+                  <TextBlock Text="Active" FontSize="10" FontWeight="ExtraBold" Foreground="#166534" />
+                </Border>
+              </Grid>
+
+              <TextBlock Text="{Binding ActiveProfile.Name}" FontSize="13" FontWeight="Bold" Foreground="#0F172A" Margin="0,2,0,0" />
+              <TextBlock Text="{Binding ProfileDetails}" FontSize="11" Foreground="#475569" FontWeight="Medium" />
+              <TextBlock Text="{Binding ProfileTeacher}" FontSize="11" Foreground="#64748B" />
             </StackPanel>
           </Border>
 
-          <!-- NAVIGATION LINKS -->
-          <StackPanel Grid.Row="2" Spacing="4">
-            <Button Classes="nav" Click="OnDashboardClick">
-              <StackPanel Orientation="Horizontal" Spacing="10">
-                <TextBlock Text="📊" FontSize="16" />
-                <TextBlock Text="Dashboard" VerticalAlignment="Center" />
+          <!-- NAVIGATION MENU -->
+          <StackPanel Grid.Row="2" Spacing="6">
+            
+            <!-- Dashboard (Active) -->
+            <Button Classes="sidebar-nav-active" Click="OnDashboardClick">
+              <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                <PathIcon Data="{StaticResource IconLaptop}" Width="16" Height="16" Foreground="White" VerticalAlignment="Center" />
+                <TextBlock Text="Dashboard Overview" FontWeight="Bold" VerticalAlignment="Center" />
               </StackPanel>
             </Button>
 
-            <Button Classes="nav" Click="OnTripsClick">
-              <StackPanel Orientation="Horizontal" Spacing="10">
-                <TextBlock Text="📋" FontSize="16" />
-                <TextBlock Text="Trip History" VerticalAlignment="Center" />
+            <!-- Trip History -->
+            <Button Classes="sidebar-nav" Click="OnTripsClick">
+              <Grid ColumnDefinitions="*,Auto" HorizontalAlignment="Stretch">
+                <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                  <PathIcon Data="{StaticResource IconHistory}" Width="16" Height="16" Foreground="#0F172A" VerticalAlignment="Center" />
+                  <TextBlock Text="Trip History Log" FontWeight="Bold" VerticalAlignment="Center" />
+                </StackPanel>
+                <Border Grid.Column="1" Background="#E0F2FE" CornerRadius="10" Padding="8,2" Margin="0,0,4,0">
+                  <TextBlock Text="{Binding Dashboard.RecentTrips.Count, FallbackValue='5'}" FontSize="10" FontWeight="Bold" Foreground="#0369A1" />
+                </Border>
+              </Grid>
+            </Button>
+
+            <!-- Student Roster -->
+            <Button Classes="sidebar-nav" Click="OnRosterClick">
+              <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                <PathIcon Data="{StaticResource IconUsers}" Width="16" Height="16" Foreground="#0F172A" VerticalAlignment="Center" />
+                <TextBlock Text="Student Roster Import" FontWeight="Bold" VerticalAlignment="Center" />
               </StackPanel>
             </Button>
 
-            <Button Classes="nav" Click="OnRosterClick">
-              <StackPanel Orientation="Horizontal" Spacing="10">
-                <TextBlock Text="👥" FontSize="16" />
-                <TextBlock Text="Class Roster" VerticalAlignment="Center" />
+            <!-- Policies & Bell Times -->
+            <Button Classes="sidebar-nav" Click="OnPoliciesClick">
+              <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                <PathIcon Data="{StaticResource IconCalendar}" Width="16" Height="16" Foreground="#0F172A" VerticalAlignment="Center" />
+                <TextBlock Text="Policies &amp; Bell Times" FontWeight="Bold" VerticalAlignment="Center" />
               </StackPanel>
             </Button>
 
-            <Button Classes="nav" Click="OnPoliciesClick">
-              <StackPanel Orientation="Horizontal" Spacing="10">
-                <TextBlock Text="⚙️" FontSize="16" />
-                <TextBlock Text="Policies &amp; Schedule" VerticalAlignment="Center" />
+            <!-- Terminal Settings -->
+            <Button Classes="sidebar-nav" Click="OnTerminalSettingsClick">
+              <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                <PathIcon Data="{StaticResource IconRadio}" Width="16" Height="16" Foreground="#0F172A" VerticalAlignment="Center" />
+                <TextBlock Text="Terminal Settings" FontWeight="Bold" VerticalAlignment="Center" />
               </StackPanel>
             </Button>
 
-            <Button Classes="nav" Click="OnTerminalSettingsClick">
-              <StackPanel Orientation="Horizontal" Spacing="10">
-                <TextBlock Text="📟" FontSize="16" />
-                <TextBlock Text="Kiosk Settings" VerticalAlignment="Center" />
+            <!-- App Settings -->
+            <Button Classes="sidebar-nav" Click="OnTerminalSettingsClick">
+              <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                <PathIcon Data="{StaticResource IconSettings}" Width="16" Height="16" Foreground="#0F172A" VerticalAlignment="Center" />
+                <TextBlock Text="App Settings" FontWeight="Bold" VerticalAlignment="Center" />
               </StackPanel>
             </Button>
           </StackPanel>
 
-          <!-- BOTTOM QUICK ACTIONS -->
-          <StackPanel Grid.Row="3" Spacing="8">
-            <Button Classes="secondary" HorizontalAlignment="Stretch" Click="OnFindTerminalsClick">
-              <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
-                <TextBlock Text="📡" />
-                <TextBlock Text="Find Terminal" />
-              </StackPanel>
-            </Button>
+          <!-- BOTTOM TERMINAL NODE BOX -->
+          <Border Grid.Row="3" Background="#F0F9FF" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="16" Padding="12,10">
+            <StackPanel Spacing="4">
+              <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                <TextBlock Text="TERMINAL NODE" FontSize="10" FontWeight="ExtraBold" Foreground="#64748B" LetterSpacing="0.5" />
+                <Border Grid.Column="1" Background="{Binding ConnectionBadgeBackground}" CornerRadius="10" Padding="8,2">
+                  <TextBlock Text="{Binding TopStatusBadgeText}" FontSize="9" FontWeight="ExtraBold" Foreground="{Binding ConnectionBadgeForeground}" />
+                </Border>
+              </Grid>
 
-            <Button Classes="primary" HorizontalAlignment="Stretch" Click="OnSyncNowClick" IsEnabled="{Binding !IsSyncing}">
-              <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
-                <TextBlock Text="🔄" />
-                <TextBlock Text="Sync Now" />
-              </StackPanel>
-            </Button>
+              <TextBlock Text="{Binding ConnectedTerminalName}" FontSize="11" FontWeight="Bold" FontFamily="Cascadia Mono, Menlo, monospace" Foreground="#0F172A" TextTrimming="CharacterEllipsis" />
+              <TextBlock Text="Auto-clock synced with Windows RTC" FontSize="10" Foreground="#64748B" />
 
-            <Button Classes="nav" HorizontalAlignment="Center" Click="OnDisconnectClick" IsVisible="{Binding IsConnected}">
-              <TextBlock Text="⚡ Disconnect" FontSize="11" Foreground="#94A3B8" />
-            </Button>
-          </StackPanel>
+              <Button Classes="card-outline" Click="OnTerminalSettingsClick" HorizontalAlignment="Stretch" Padding="8,6" Margin="0,4,0,0">
+                <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center">
+                  <PathIcon Data="{StaticResource IconRadio}" Width="12" Height="12" Foreground="#0369A1" VerticalAlignment="Center" />
+                  <TextBlock Text="Configure Node" FontSize="11" FontWeight="Bold" VerticalAlignment="Center" />
+                </StackPanel>
+              </Button>
+            </StackPanel>
+          </Border>
         </Grid>
       </Border>
 
-      <!-- MAIN CONTENT AREA -->
-      <Grid Grid.Column="1" RowDefinitions="Auto,*">
-        
-        <!-- HEADER BAR -->
-        <Border Grid.Row="0" Background="White" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="28,16">
-          <Grid ColumnDefinitions="*,Auto,Auto" VerticalAlignment="Center">
+      <!-- MAIN DASHBOARD CONTENT -->
+      <Grid Grid.Column="1">
+        <views:DashboardView />
+
+        <!-- BOTTOM FLOATING SANDBOX PILL TOOLBAR -->
+        <Border Background="#0F172A" CornerRadius="24" Padding="16,8" BoxShadow="0 8 24 0 #40000000" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,16">
+          <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+            <TextBlock Text="SANDBOX:" FontSize="11" FontWeight="Black" Foreground="#38BDF8" VerticalAlignment="Center" LetterSpacing="0.5" />
             
-            <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-              <TextBlock Text="{Binding ActiveProfile.Name}" FontSize="18" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center" />
-              <TextBlock Text="·" Foreground="#CBD5E1" VerticalAlignment="Center" />
-              <TextBlock Text="{Binding LastSyncTimeText, StringFormat='Last sync: {0}'}" FontSize="12" Foreground="#64748B" VerticalAlignment="Center" />
-            </StackPanel>
-
-            <Border Grid.Column="1" Background="{Binding ConnectionBadgeBackground}" CornerRadius="16" Padding="12,5" Margin="0,0,14,0" VerticalAlignment="Center">
+            <Button Classes="dark-action" Click="OnSandboxDisconnectClick">
               <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                <Border Width="8" Height="8" CornerRadius="4" Background="{Binding ConnectionStatusColor}" />
-                <TextBlock Text="{Binding ConnectionStatusText}" FontSize="12" FontWeight="SemiBold" Foreground="{Binding ConnectionStatusColor}" />
+                <PathIcon Data="{StaticResource IconZap}" Width="12" Height="12" Foreground="#F59E0B" VerticalAlignment="Center" />
+                <TextBlock Text="Disconnect" FontSize="11" FontWeight="Bold" VerticalAlignment="Center" />
               </StackPanel>
-            </Border>
+            </Button>
 
-            <Button Grid.Column="2" Classes="primary" Content="Sync" Click="OnSyncNowClick" IsEnabled="{Binding !IsSyncing}" />
-          </Grid>
+            <Button Classes="dark-action" Click="OnSandboxStudentOutClick">
+              <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                <PathIcon Data="{StaticResource IconUsers}" Width="12" Height="12" Foreground="#38BDF8" VerticalAlignment="Center" />
+                <TextBlock Text="Student Out" FontSize="11" FontWeight="Bold" VerticalAlignment="Center" />
+              </StackPanel>
+            </Button>
+
+            <Button Classes="dark-action" Click="OnSandboxToggleNameClick">
+              <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                <PathIcon Data="{StaticResource IconTag}" Width="12" Height="12" Foreground="#34D399" VerticalAlignment="Center" />
+                <TextBlock Text="Toggle Name" FontSize="11" FontWeight="Bold" VerticalAlignment="Center" />
+              </StackPanel>
+            </Button>
+          </StackPanel>
         </Border>
-
-        <!-- DASHBOARD VIEW -->
-        <views:DashboardView Grid.Row="1" />
       </Grid>
     </Grid>
 
     <!-- MODAL DIALOG OVERLAYS -->
-    <views:TripsModalView IsVisible="{Binding IsTripsModalVisible}" />
-    <views:RosterModalView IsVisible="{Binding IsRosterModalVisible}" />
-    <views:PoliciesModalView IsVisible="{Binding IsPoliciesModalVisible}" />
-    <views:TerminalSettingsModalView IsVisible="{Binding IsTerminalSettingsModalVisible}" />
-    <views:FindTerminalsModalView IsVisible="{Binding IsFindTerminalsModalVisible}" />
+    <views:TripsModalView Grid.RowSpan="2" IsVisible="{Binding IsTripsModalVisible}" />
+    <views:RosterModalView Grid.RowSpan="2" IsVisible="{Binding IsRosterModalVisible}" />
+    <views:PoliciesModalView Grid.RowSpan="2" IsVisible="{Binding IsPoliciesModalVisible}" />
+    <views:TerminalSettingsModalView Grid.RowSpan="2" IsVisible="{Binding IsTerminalSettingsModalVisible}" />
+    <views:FindTerminalsModalView Grid.RowSpan="2" IsVisible="{Binding IsFindTerminalsModalVisible}" />
   </Grid>
 </Window>

@@ -11,6 +11,7 @@
 #include "KeypadController.h"
 #include "MonotonicClock.h"
 #include "St7735DisplayPort.h"
+#include "StudentIdPolicy.h"
 #include "TerminalDisplay.h"
 #include "TerminalController.h"
 #include "TimeProvider.h"
@@ -159,7 +160,7 @@ int daysInMonth(int month, int year) {
   return ClockService::daysInMonth(month, year);
 }
 
-// Bluetooth Classic SPP transport lives in BluetoothSync.cpp.
+// BLE transport lives in BluetoothSync.cpp.
 void showBluetoothClockSync() {
   terminalDisplay.showBluetoothClockSynced(getDateString(), getTimeString());
 }
@@ -572,6 +573,14 @@ void handleSetupKey(char key) {
 
 void submitID() {
   const String submittedID = enteredID;
+  const uint8_t currentIdLimit = tripStorage.getMaxStudentIdLength();
+  if (!isStudentIdWithinLimit(submittedID, currentIdLimit)) {
+    enteredID = "";
+    terminalDisplay.showStudentIdTooLong(currentIdLimit);
+    drawIdleScreen();
+    return;
+  }
+
   const TerminalActionResult result = terminal.submit(submittedID);
 
   switch (result.action) {
@@ -637,7 +646,7 @@ void submitID() {
 }
 void handleNormalNumber(char key) {
 
-  if (enteredID.length() < MAX_ID_LENGTH) {
+  if (enteredID.length() < tripStorage.getMaxStudentIdLength()) {
     Serial.print("Key pressed: ");
     Serial.println(key);
 

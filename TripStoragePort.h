@@ -3,6 +3,13 @@
 #include <Arduino.h>
 #include <time.h>
 
+enum class SettingWriteResult {
+  Saved,
+  InvalidValue,
+  ActiveCheckoutTooLong,
+  Unavailable
+};
+
 class TripStoragePort {
 public:
   virtual ~TripStoragePort() = default;
@@ -10,6 +17,8 @@ public:
   virtual void loadActiveCheckout(String &studentID, time_t &checkoutTime) = 0;
   virtual bool saveActiveCheckout(const String &studentID, time_t checkoutTime) = 0;
   virtual void clearActiveCheckout() = 0;
+  virtual uint8_t getMaxStudentIdLength() const = 0;
+  virtual SettingWriteResult setMaxStudentIdLength(uint8_t value) = 0;
   virtual bool appendTripRecord(
     const String &studentID,
     time_t outTime,

@@ -37,8 +37,7 @@ void BluetoothSync::updateConnection() {
   wasConnected = isConnected;
   if (isConnected) {
     Serial.println("Bluetooth LE client connected.");
-    serial.println("HALLZEE_READY");
-    serial.println("BLE transport connected.");
+    serial.println("HALLZEE_READY,1");
     return;
   }
 
@@ -48,9 +47,11 @@ void BluetoothSync::updateConnection() {
 
 void BluetoothSync::resetSyncState() {
   syncInProgress = false;
-  syncAllRecords = false;
+  streamUsesCursor = false;
   pendingTripID = 0;
   lastStreamedTripID = 0;
+  commandBuffer = "";
+  discardingInput = false;
 }
 
 void BluetoothSync::sendNextTrip() {
@@ -62,7 +63,7 @@ void BluetoothSync::sendNextTrip() {
 
   String record;
   uint32_t tripID;
-  const bool hasNextRecord = syncAllRecords
+  const bool hasNextRecord = streamUsesCursor
     ? tripStorage.getNextRecordAfter(lastStreamedTripID, record, tripID)
     : tripStorage.getNextUnsyncedRecord(record, tripID);
 
@@ -78,16 +79,29 @@ void BluetoothSync::sendNextTrip() {
 }
 
 void BluetoothSync::beginSync(bool includeSyncedRecords) {
+  if (includeSyncedRecords) {
+    beginCursorSync(0);
+    return;
+  }
+
   if (!ready || !serial.hasClient()) return;
   syncInProgress = true;
-  syncAllRecords = includeSyncedRecords;
+  streamUsesCursor = false;
   pendingTripID = 0;
   lastStreamedTripID = 0;
-  const uint32_t recordCount = includeSyncedRecords
-    ? tripStorage.getTripRecordCount()
-    : tripStorage.getUnsyncedTripRecordCount();
   serial.print("SYNC_BEGIN,");
-  serial.println(String(recordCount));
+  serial.println(String(tripStorage.getUnsyncedTripRecordCount()));
+  sendNextTrip();
+}
+
+void BluetoothSync::beginCursorSync(uint32_t afterTripID) {
+  if (!ready || !serial.hasClient()) return;
+  syncInProgress = true;
+  streamUsesCursor = true;
+  pendingTripID = 0;
+  lastStreamedTripID = afterTripID;
+  serial.print("SYNC_BEGIN,");
+  serial.println(String(tripStorage.getTripRecordCountAfter(afterTripID)));
   sendNextTrip();
 }
 
@@ -112,7 +126,12 @@ bool BluetoothSync::processAcknowledgement(const String &command) {
     serial.println("ACK_ERROR,UNEXPECTED_ID");
     return true;
   }
-  if (!tripStorage.markTripSynced(acknowledgedID)) {
+
+  if (streamUsesCursor) {
+    // The desktop cursor is advanced only after its durable SQLite write.
+    // Avoid rewriting the entire flash log for every cursor-mode ACK.
+    lastStreamedTripID = acknowledgedID;
+  } else if (!tripStorage.markTripSynced(acknowledgedID)) {
     serial.println("ACK_ERROR,MARK_FAILED");
     syncInProgress = false;
     pendingTripID = 0;
@@ -121,7 +140,6 @@ bool BluetoothSync::processAcknowledgement(const String &command) {
 
   Serial.print("Trip synced: ");
   Serial.println(acknowledgedID);
-  if (syncAllRecords) lastStreamedTripID = acknowledgedID;
   sendNextTrip();
   return true;
 }
@@ -147,6 +165,33 @@ bool BluetoothSync::processTimeCommand(const String &command) {
   return true;
 }
 
+bool BluetoothSync::processTimeCursorCommand(
+  const String &command,
+  uint32_t &afterTripID
+) {
+  int year, month, day, hour, minute, second;
+  unsigned long cursor;
+  char extraCharacter;
+  const int parsedValues = sscanf(
+    command.c_str(), "TIME_CURSOR,%d-%d-%d,%d:%d:%d,%lu%c", &year, &month,
+    &day, &hour, &minute, &second, &cursor, &extraCharacter
+  );
+
+  if (parsedValues != 7 || year < 2024 || year > 2099 || month < 1 ||
+      month > 12 || day < 1 || day > daysInMonth(month, year) || hour < 0 ||
+      hour > 23 || minute < 0 || minute > 59 || second < 0 || second > 59 ||
+      cursor > UINT32_MAX) {
+    serial.println("TIME_ACK,ERROR");
+    return false;
+  }
+
+  clockSetter(year, month, day, hour, minute, second);
+  serial.println("TIME_ACK,OK");
+  clockSetHandler();
+  afterTripID = static_cast<uint32_t>(cursor);
+  return true;
+}
+
 void BluetoothSync::processCommands() {
   if (!ready) return;
 
@@ -158,12 +203,19 @@ void BluetoothSync::processCommands() {
       if (!discardingInput && commandBuffer.length() > 0) {
         Serial.print("Bluetooth command: ");
         Serial.println(commandBuffer);
-        if (commandBuffer.startsWith("TIME,")) {
+        if (commandBuffer == "HELLO,1") {
+          serial.println("HALLZEE_READY,1");
+        } else if (commandBuffer.startsWith("TIME_CURSOR,")) {
+          uint32_t afterTripID = 0;
+          if (processTimeCursorCommand(commandBuffer, afterTripID)) {
+            beginCursorSync(afterTripID);
+          }
+        } else if (commandBuffer.startsWith("TIME,")) {
           if (processTimeCommand(commandBuffer)) beginSync();
         } else if (commandBuffer == "SYNC_START") {
           beginSync();
         } else if (commandBuffer == "SYNC_ALL") {
-          beginSync(true);
+          beginCursorSync(0);
         } else if (!processAcknowledgement(commandBuffer)) {
           serial.println("ERROR,UNKNOWN_COMMAND");
         }

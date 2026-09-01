@@ -24,6 +24,7 @@ public:
 
   bool isLogReady() const;
   uint32_t getTripRecordCount() override;
+  uint32_t getTripRecordCountAfter(uint32_t afterTripID) override;
   uint32_t getUnsyncedTripRecordCount() override;
   uint32_t getLatestTripID();
   bool getNextUnsyncedRecord(String &record, uint32_t &tripID) override;

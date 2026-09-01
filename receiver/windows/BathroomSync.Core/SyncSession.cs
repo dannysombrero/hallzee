@@ -21,7 +21,6 @@ public sealed class SyncUpdate {
 public sealed class SyncSession {
   private readonly ITripRepository repository;
   private readonly StringBuilder input = new();
-  private bool requestedFullHistory;
   private int savedTripCount;
   private int transferredTripCount;
 
@@ -31,7 +30,6 @@ public sealed class SyncSession {
 
   public void Start() {
     input.Clear();
-    requestedFullHistory = false;
     savedTripCount = 0;
     transferredTripCount = 0;
   }
@@ -55,7 +53,7 @@ public sealed class SyncSession {
   private void ProcessLine(string line, SyncUpdate update) {
     update.Logs.Add($"ESP32: {line}");
 
-    if (line == "HALLZEE_READY") {
+    if (line == "HALLZEE_READY" || line == "HALLZEE_READY,1") {
       update.Status = SyncStatus.Synchronizing;
       return;
     }
@@ -73,13 +71,6 @@ public sealed class SyncSession {
     }
 
     if (line != "SYNC_END") {
-      return;
-    }
-
-    if (!requestedFullHistory) {
-      requestedFullHistory = true;
-      update.OutboundCommands.Add("SYNC_ALL");
-      update.Logs.Add("Requesting full history...");
       return;
     }
 

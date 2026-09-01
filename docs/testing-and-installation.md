@@ -16,7 +16,7 @@ tools automatically.
 Open **Terminal**, paste this one command, and press Return:
 
 ```sh
-bash "$HOME/Downloads/bathroom-signin-codex-web-preview-site/scripts/flash-terminal-macos.sh"
+bash "$HOME/Downloads/hallzee-mono-main/scripts/flash-terminal-macos.sh"
 ```
 
 The script downloads Arduino CLI, ESP32 board support, and required libraries,
@@ -30,7 +30,7 @@ After downloading and unzipping the project, plug in the ESP32, open
 **PowerShell**, and run:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File "$HOME\Downloads\bathroom-signin-codex-web-preview-site\scripts\flash-terminal-windows.ps1"
+powershell -ExecutionPolicy Bypass -File "$HOME\Downloads\hallzee-mono-main\scripts\flash-terminal-windows.ps1"
 ```
 
 The same requirements apply: use a USB **data** cable, connect only one USB
@@ -42,12 +42,12 @@ It installs the Arduino tools, board support, and libraries automatically.
 Open **PowerShell**, paste this one command, and press Enter:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File "$HOME\Downloads\bathroom-signin-codex-web-preview-site\scripts\build-windows-client.ps1"
+powershell -ExecutionPolicy Bypass -File "$HOME\Downloads\hallzee-mono-main\scripts\build-windows-client.ps1"
 ```
 
 The script downloads the .NET 8 build tools, then creates the Windows app in
 the downloaded project’s `artifacts\BathroomSync-Windows` folder. Open that
-folder and run `BathroomSync.Windows.exe`.
+folder and run `HallzeeSync.exe`.
 
 ### Easier: download the latest ready-to-run Windows app
 
@@ -55,17 +55,17 @@ Once the **Publish Latest Windows Sync App** GitHub Action has run, download
 the latest ready-to-run ZIP here:
 
 ```text
-https://github.com/dannysombrero/bathroom-signin/releases/download/windows-client-latest/BathroomSync-Windows.zip
+https://github.com/dannysombrero/hallzee-mono/releases/download/windows-client-latest/BathroomSync-Windows.zip
 ```
 
-Extract the entire ZIP to a normal folder, then run `BathroomSync.Windows.exe`.
+Extract the entire ZIP to a normal folder, then run `HallzeeSync.exe`.
 No software installation or local build is needed. If the link has not been
 published yet, open the repository’s **Actions** tab, run **Publish Latest
 Windows Sync App**, then refresh this link when the run completes. The same ZIP
 is also available from that workflow run’s **Artifacts** section.
 
 > The Windows build and physical Bluetooth sync require a Windows PC. The Mac
-> command flashes the terminal, but does not verify Windows Bluetooth pairing.
+> command flashes the terminal, but does not verify Windows Bluetooth discovery.
 
 ## Choose the right way to check a change
 
@@ -75,11 +75,11 @@ is also available from that workflow run’s **Artifacts** section.
 | Shared sync logic, CSV storage, or protocol parsing | Automated .NET tests | No for the hardware-independent tests |
 | Terminal display, keypad behavior, and pass lifecycle | Display emulator or Wokwi | No for the emulator; a physical terminal is recommended before release |
 | Firmware build | Local development machine with the ESP32 Arduino tools | No |
-| Finding, pairing, reconnecting to, or directly syncing a physical Bluetooth terminal | Windows desktop client and the physical ESP32 terminal | **Yes** — this uses the Windows Bluetooth transport |
+| Finding, reconnecting to, or directly syncing a physical Bluetooth terminal | Windows desktop client and the physical ESP32 terminal | **Yes** — this uses the Windows Bluetooth transport |
 | Windows installer or Windows-only operating-system behavior | Windows desktop client | **Yes** |
 
 Mac testing confirms the shared interface and simulated flow. It does **not**
-confirm that a Windows PC can pair with or transfer data from a physical
+confirm that a Windows PC can discover or transfer data from a physical
 terminal.
 
 ## Quick checks on a Mac
@@ -109,7 +109,7 @@ npm --prefix preview-site run dev
 ```
 
 Mac testing is sufficient for the simulated browser flow. A Windows PC is only
-required to test Bluetooth pairing or a transfer with a physical terminal.
+required to test Bluetooth discovery or a transfer with a physical terminal.
 
 ### Shared Avalonia desktop client
 
@@ -139,16 +139,16 @@ or use the Wokwi setup described in [WOKWI.md](../WOKWI.md).
 Use a Windows PC only when the change involves actual Bluetooth behavior or a
 Windows package. Install the .NET 8 SDK or use the provided Windows build, make
 sure the ESP32 terminal is powered on, then use the desktop app to find and
-sync `Hallzee`. Accept Windows pairing confirmation if it appears.
-
-The terminal’s configured pairing PIN is `1234`.
+sync `Hallzee`. BLE discovery and sync do not require a pairing PIN.
 
 Before calling a Windows change complete, check:
 
-1. The terminal can be found.
-2. Pairing succeeds when required.
-3. A sync completes and reports the expected number of saved trips.
-4. Disconnecting and reconnecting does not lose unsynchronized records.
+1. The terminal can be found within five seconds.
+2. The client subscribes and receives `HALLZEE_READY,1`.
+3. A second sync with no new trips completes without replaying history.
+4. A sync with new trips transfers only IDs after the local durable cursor.
+5. Disconnecting mid-transfer and reconnecting produces one durable copy.
+6. Powering the kiosk off clears the client status; Find terminal works after it returns.
 
 ## Automated checks
 

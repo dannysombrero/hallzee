@@ -66,6 +66,8 @@ public:
   bool saveSucceeds = true;
   bool appendSucceeds = true;
   bool markSucceeds = true;
+  SettingWriteResult settingWriteResult = SettingWriteResult::Saved;
+  uint8_t maxStudentIdLength = DEFAULT_STUDENT_ID_LENGTH;
   bool cleared = false;
   String savedId;
   time_t savedTime = 0;
@@ -83,6 +85,11 @@ public:
     return saveSucceeds;
   }
   void clearActiveCheckout() override { cleared = true; }
+  uint8_t getMaxStudentIdLength() const override { return maxStudentIdLength; }
+  SettingWriteResult setMaxStudentIdLength(uint8_t value) override {
+    if (settingWriteResult == SettingWriteResult::Saved) maxStudentIdLength = value;
+    return settingWriteResult;
+  }
   bool appendTripRecord(const String &studentID, time_t outTime, time_t inTime,
                         long durationSeconds, const char *status) override {
     records.push_back({studentID, outTime, inTime, durationSeconds, status});
@@ -511,6 +518,35 @@ void testBluetoothProtocolAndRecovery() {
   serial.input = "LO,1\n";
   sync.poll();
   expectTrue(contains(serial.output, "HALLZEE_READY,1"), "HELLO repeats readiness");
+
+  serial.output.clear();
+  serial.input = "GET_SETTINGS\n";
+  sync.poll();
+  expectTrue(contains(serial.output, "SETTINGS,MAX_ID_LENGTH,10"),
+    "current kiosk settings can be queried");
+
+  serial.output.clear();
+  const std::string settingsCommand = "SET,MAX_ID_LENGTH,16\n";
+  serial.input = settingsCommand.substr(0, 20);
+  sync.poll();
+  expectTrue(serial.output.empty(), "long settings command waits for final BLE chunk");
+  serial.input = settingsCommand.substr(20);
+  sync.poll();
+  expectTrue(storage.maxStudentIdLength == 16 &&
+    contains(serial.output, "SETTINGS_ACK,MAX_ID_LENGTH,16"),
+    "valid settings command persists and acknowledges the ID limit");
+
+  serial.input = "SET,MAX_ID_LENGTH,3\n";
+  sync.poll();
+  expectTrue(contains(serial.output, "SETTINGS_ERROR,MAX_ID_LENGTH,INVALID_VALUE") &&
+    storage.maxStudentIdLength == 16, "out-of-range ID limit is rejected");
+
+  storage.settingWriteResult = SettingWriteResult::ActiveCheckoutTooLong;
+  serial.input = "SET,MAX_ID_LENGTH,8\n";
+  sync.poll();
+  expectTrue(contains(serial.output, "SETTINGS_ERROR,MAX_ID_LENGTH,ACTIVE_ID_TOO_LONG") &&
+    storage.maxStudentIdLength == 16, "active checkout prevents an unsafe shorter limit");
+  storage.settingWriteResult = SettingWriteResult::Saved;
 
   bluetoothClockSetCount = 0;
   serial.output.clear();

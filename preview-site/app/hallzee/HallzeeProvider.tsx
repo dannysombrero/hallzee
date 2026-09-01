@@ -82,6 +82,7 @@ export function HallzeeProvider({ children }: PropsWithChildren) {
   const [connectingTerminalId, setConnectingTerminalId] = useState<string | null>(null);
 
   const discoveryTimerRef = useRef<number | null>(null);
+  const connectionTimerRef = useRef<number | null>(null);
   const prevTerminalStateRef = useRef<TerminalState | null>(null);
 
   const view: View = activeModal ?? "dashboard";
@@ -113,10 +114,16 @@ export function HallzeeProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     if (!isOccupied || terminalState !== "connected") return;
-    const timer = window.setInterval(
-      () => setActiveTrip((trip) => ({ ...trip, elapsedSeconds: trip.elapsedSeconds + 1 })),
-      1000,
-    );
+    const timer = window.setInterval(() => {
+      setActiveTrip((trip) => ({ ...trip, elapsedSeconds: trip.elapsedSeconds + 1 }));
+      setTrips((items) =>
+        items.map((trip) =>
+          trip.status === "OCCUPIED"
+            ? { ...trip, durationSeconds: trip.durationSeconds + 1 }
+            : trip,
+        ),
+      );
+    }, 1000);
     return () => window.clearInterval(timer);
   }, [isOccupied, terminalState]);
 
@@ -137,27 +144,53 @@ export function HallzeeProvider({ children }: PropsWithChildren) {
     }
 
     discoveryTimerRef.current = window.setTimeout(() => {
+      const previousState = prevTerminalStateRef.current;
       setDiscoveredTerminals(discoverableTerminals);
-      setTerminalState(prevTerminalStateRef.current === "connected" ? "connected" : "disconnected");
+      setTerminalState(previousState ?? "disconnected");
+      prevTerminalStateRef.current = null;
       discoveryTimerRef.current = null;
     }, 900);
   }, [terminalState]);
 
   useEffect(() => {
-    if (activeModal !== "search") {
-      if (discoveryTimerRef.current) {
-        window.clearTimeout(discoveryTimerRef.current);
-        discoveryTimerRef.current = null;
-      }
-      if (prevTerminalStateRef.current === "connected") setTerminalState("connected");
+    if (activeModal === "search") return;
+
+    if (discoveryTimerRef.current) {
+      window.clearTimeout(discoveryTimerRef.current);
+      discoveryTimerRef.current = null;
+    }
+    if (connectionTimerRef.current) {
+      window.clearTimeout(connectionTimerRef.current);
+      connectionTimerRef.current = null;
+      setConnectingTerminalId(null);
+    }
+
+    const previousState = prevTerminalStateRef.current;
+    if (previousState !== null) {
+      setTerminalState(previousState);
+      prevTerminalStateRef.current = null;
     }
   }, [activeModal]);
 
+  useEffect(
+    () => () => {
+      if (discoveryTimerRef.current) window.clearTimeout(discoveryTimerRef.current);
+      if (connectionTimerRef.current) window.clearTimeout(connectionTimerRef.current);
+    },
+    [],
+  );
+
   const connectTerminal = useCallback(
     (terminal: TerminalDevice) => {
+      if (connectionTimerRef.current) {
+        window.clearTimeout(connectionTimerRef.current);
+      }
+      prevTerminalStateRef.current = terminalState;
       setConnectingTerminalId(terminal.id);
       setTerminalState("connecting");
-      window.setTimeout(() => {
+      connectionTimerRef.current = window.setTimeout(() => {
+        connectionTimerRef.current = null;
+        prevTerminalStateRef.current = null;
         setConnectedTerminalName(terminal.name);
         setTerminalId(terminal.id);
         setTerminalSettings((settings) => ({ ...settings, name: terminal.id }));
@@ -168,7 +201,7 @@ export function HallzeeProvider({ children }: PropsWithChildren) {
         showToast(`Connected to ${terminal.name}!`);
       }, 900);
     },
-    [showToast],
+    [showToast, terminalState],
   );
 
   const syncNow = useCallback(() => {
@@ -232,6 +265,17 @@ export function HallzeeProvider({ children }: PropsWithChildren) {
   }, [showToast]);
 
   const disconnect = useCallback(() => {
+    if (discoveryTimerRef.current) {
+      window.clearTimeout(discoveryTimerRef.current);
+      discoveryTimerRef.current = null;
+    }
+    if (connectionTimerRef.current) {
+      window.clearTimeout(connectionTimerRef.current);
+      connectionTimerRef.current = null;
+    }
+    prevTerminalStateRef.current = null;
+    setConnectingTerminalId(null);
+    setActiveModal(null);
     setTerminalState("disconnected");
     showToast("Terminal disconnected.");
   }, [showToast]);

@@ -22,7 +22,7 @@
           <Grid RowDefinitions="Auto,*,Auto" RowSpacing="14" IsVisible="{Binding !RosterModal.IsImportPreviewActive}">
             <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
               <TextBlock Text="{Binding RosterModal.TotalStudents, StringFormat='Enrolled Students: {0}'}" FontWeight="SemiBold" Foreground="#334155" VerticalAlignment="Center" />
-              <Button Grid.Column="1" Classes="primary" Content="Import Roster (CSV)" Click="OnImportCsvClick" />
+              <Button Grid.Column="1" Classes="hallzee-pill-btn" Content="Import Roster (CSV)" Click="OnImportCsvClick" Padding="14,8" FontSize="13" />
             </Grid>
 
             <Border Grid.Row="1" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8">
@@ -31,14 +31,16 @@
                   <ListBox.ItemTemplate>
                     <DataTemplate>
                       <Grid ColumnDefinitions="Auto,2*,*,*,Auto" Margin="0,4" VerticalAlignment="Center">
-                        <TextBlock Text="👤" FontSize="16" Margin="4,0,8,0" VerticalAlignment="Center" />
+                        <PathIcon Data="{StaticResource IconUsers}" Width="16" Height="16" Margin="4,0,8,0" Foreground="#0284C7" VerticalAlignment="Center" />
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                           <TextBlock Text="{Binding FullName}" FontWeight="SemiBold" FontSize="13" Foreground="#0F172A" />
                           <TextBlock Text="{Binding StudentId, StringFormat='ID: {0}'}" FontSize="11" Foreground="#64748B" />
                         </StackPanel>
                         <TextBlock Grid.Column="2" Text="{Binding Grade, FallbackValue='Grade --'}" FontSize="12" Foreground="#334155" VerticalAlignment="Center" />
                         <TextBlock Grid.Column="3" Text="{Binding ClassPeriod, FallbackValue='Period --'}" FontSize="12" Foreground="#334155" VerticalAlignment="Center" />
-                        <Button Grid.Column="4" Classes="danger" Content="Delete" Click="OnDeleteStudentClick" Tag="{Binding StudentId}" Margin="0,0,6,0" />
+                        <Button Grid.Column="4" Classes="danger" Click="OnDeleteStudentClick" Tag="{Binding StudentId}" Margin="0,0,6,0" Padding="8,4">
+                          <PathIcon Data="{StaticResource IconTrash}" Width="12" Height="12" Foreground="#E11D48" />
+                        </Button>
                       </Grid>
                     </DataTemplate>
                   </ListBox.ItemTemplate>
@@ -119,7 +121,7 @@
             <Grid Grid.Row="3" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
               <TextBlock Text="{Binding RosterModal.ImportStatusMessage}" Foreground="{Binding RosterModal.ImportStatusColor}" FontSize="12" VerticalAlignment="Center" />
               <Button Grid.Column="1" Classes="secondary" Content="Cancel" Click="OnCancelImportClick" />
-              <Button Grid.Column="2" Classes="primary" Content="Confirm &amp; Import" Click="OnConfirmImportClick" IsEnabled="{Binding RosterModal.CanConfirmImport}" />
+              <Button Grid.Column="2" Classes="hallzee-pill-btn" Content="Confirm &amp; Import" Click="OnConfirmImportClick" IsEnabled="{Binding RosterModal.CanConfirmImport}" Padding="16,8" FontSize="13" />
             </Grid>
           </Grid>
         </Grid>

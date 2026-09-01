@@ -43,7 +43,7 @@
 
         <Grid Grid.Row="2" ColumnDefinitions="*,Auto" VerticalAlignment="Center">
           <TextBlock Text="{Binding TerminalSettingsModal.StatusMessage}" Foreground="{Binding TerminalSettingsModal.StatusColor}" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center" />
-          <Button Grid.Column="1" Classes="primary" Content="Apply Setting to Kiosk" Click="OnApplyClick" />
+          <Button Grid.Column="1" Classes="hallzee-pill-btn" Content="Apply Setting to Kiosk" Click="OnApplyClick" Padding="16,8" FontSize="13" />
         </Grid>
       </Grid>
     </Border>

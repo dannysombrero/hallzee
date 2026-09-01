@@ -23,7 +23,7 @@
               <ListBox.ItemTemplate>
                 <DataTemplate>
                   <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,4" VerticalAlignment="Center">
-                    <TextBlock Text="📡" FontSize="18" Margin="4,0,10,0" VerticalAlignment="Center" />
+                    <PathIcon Data="{StaticResource IconRadio}" Width="18" Height="18" Margin="4,0,10,0" Foreground="#0284C7" VerticalAlignment="Center" />
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                       <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="14" Foreground="#0F172A" />
                       <TextBlock Text="{Binding Id, StringFormat='ID: {0}'}" FontSize="11" Foreground="#64748B" />
@@ -41,7 +41,7 @@
         <Grid Grid.Row="3" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
           <ProgressBar IsIndeterminate="True" IsVisible="{Binding FindTerminalsModal.IsScanning}" Height="6" VerticalAlignment="Center" />
           <Button Grid.Column="1" Classes="secondary" Content="Scan Again" Click="OnScanClick" IsEnabled="{Binding FindTerminalsModal.CanScan}" />
-          <Button Grid.Column="2" Classes="primary" Content="Connect &amp; Sync" Click="OnConnectClick" IsEnabled="{Binding FindTerminalsModal.CanConnect}" />
+          <Button Grid.Column="2" Classes="hallzee-pill-btn" Content="Connect &amp; Sync" Click="OnConnectClick" IsEnabled="{Binding FindTerminalsModal.CanConnect}" Padding="16,8" FontSize="13" />
         </Grid>
       </Grid>
     </Border>

@@ -64,15 +64,17 @@ and whether a reset is allowed.
 
 ### BluetoothSync
 
-Owns the ESP32 Bluetooth Classic SPP server, newline-delimited command parser,
-and reliable trip streaming. It does not know about the display or keypad. A
-successful Bluetooth `TIME` command invokes callbacks that update the clock and
-leave manual clock setup when appropriate.
+Owns the ESP32 Bluetooth Low Energy GATT service, newline-delimited command
+parser, 20-byte write/notification fragmentation, and reliable incremental trip
+streaming. It does not know about the display or keypad. A successful
+`TIME_CURSOR` command invokes callbacks that update the clock, streams only
+records newer than the client’s durable cursor, and leaves manual clock setup
+when appropriate.
 
 ## Design rules
 
-- Keep the trip-sync message format independent of the Bluetooth transport.
-  A future BLE implementation should be able to use the same protocol.
+- Keep the trip-sync message format independent of the Bluetooth transport so
+  protocol behavior remains testable without Windows BLE hardware.
 - Do not let display code decide business outcomes or mutate persisted state.
 - Do not clear an active pass until its checkout/check-in/reset persistence
   operation has succeeded.

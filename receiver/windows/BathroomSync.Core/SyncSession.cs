@@ -16,6 +16,9 @@ public sealed class SyncUpdate {
   public int? TransferTotal { get; set; }
   public int? TransferredTripCount { get; set; }
   public bool StorageUnavailable { get; set; }
+  public int? MaxStudentIdLength { get; set; }
+  public bool SettingsApplied { get; set; }
+  public string? SettingsError { get; set; }
 }
 
 public sealed class SyncSession {
@@ -57,6 +60,9 @@ public sealed class SyncSession {
       update.Status = SyncStatus.Synchronizing;
       return;
     }
+    if (TryProcessSettingsLine(line, update)) {
+      return;
+    }
     if (line.StartsWith("SYNC_BEGIN,", StringComparison.Ordinal) && int.TryParse(line[11..], out var transferTotal) && transferTotal >= 0) {
       transferredTripCount = 0;
       update.TransferTotal = transferTotal;
@@ -76,6 +82,27 @@ public sealed class SyncSession {
 
     update.Status = SyncStatus.Complete;
     update.SavedTripCount = savedTripCount;
+  }
+
+  static bool TryProcessSettingsLine(string line, SyncUpdate update) {
+    var fields = line.Split(',');
+    if (fields.Length != 3 || fields[1] != "MAX_ID_LENGTH") return false;
+
+    if ((fields[0] == "SETTINGS" || fields[0] == "SETTINGS_ACK") &&
+        int.TryParse(fields[2], out var value) &&
+        value >= KioskSettingsProtocol.MinimumStudentIdLength &&
+        value <= KioskSettingsProtocol.MaximumStudentIdLength) {
+      update.MaxStudentIdLength = value;
+      update.SettingsApplied = fields[0] == "SETTINGS_ACK";
+      return true;
+    }
+
+    if (fields[0] == "SETTINGS_ERROR") {
+      update.SettingsError = fields[2];
+      return true;
+    }
+
+    return false;
   }
 
   private void StoreTrip(string payload, SyncUpdate update) {

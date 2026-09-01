@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { Clock, RefreshCw, Settings } from "./Icons";
 import ModalDialog from "./ModalDialog";
 
@@ -93,6 +94,32 @@ export function SettingsContent() {
             <p className="text-slate-600 mt-0.5">
               Use <strong>Sync Now</strong> to fetch new records until continuous background sync is approved and enabled.
             </p>
+          </div>
+        </div>
+
+        {/* About Hallzee Brand Box */}
+        <div className="p-4 rounded-2xl border border-sky-200/80 bg-gradient-to-r from-sky-50/70 via-white to-sky-50/40 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="h-12 w-12 rounded-2xl bg-white border border-sky-200/80 p-1.5 flex items-center justify-center shadow-md shadow-sky-500/10 shrink-0">
+              <Image
+                src="/hallzee-logo.png"
+                alt="Hallzee Logo"
+                width={44}
+                height={44}
+                className="w-full h-full object-contain"
+              />
+            </div>
+            <div>
+              <div className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
+                Hallzee Desktop Gateway
+                <span className="text-[10px] uppercase font-bold tracking-wider rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 px-2 py-0.5">
+                  v1.5.2
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                ESP32 BLE Bathroom Sign-In & Classroom Management System
+              </p>
+            </div>
           </div>
         </div>
       </div>

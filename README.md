@@ -1,4 +1,4 @@
-# Hallzee
+# <img src="docs/images/hallzee-logo.png" alt="Hallzee Logo" width="48" style="vertical-align: middle; margin-right: 8px;" /> Hallzee
 
 Hallzee is an ESP32-based school bathroom sign-in terminal. Students
 enter an ID on a 3×4 keypad to check out and back in. The terminal stores trip
@@ -21,15 +21,19 @@ records locally and can synchronize them to a desktop receiver over Bluetooth Lo
 | `receiver/` | Legacy/native macOS receiver |
 | `docs/` | Architecture and Bluetooth protocol references |
 
-## Contributor guides
+## Contributor guides & design documentation
 
-- [Installation and testing guide](docs/testing-and-installation.md) — which
-  checks can be done on a Mac, when a Windows PC is required, and how to run
-  the supported test workflows. Includes one-command setup for flashing the
-  terminal or building the Windows app on a clean computer.
-- [Architecture](docs/architecture.md)
-- [Client UI architecture and refactor plan](docs/client-ui-architecture.md)
-- [Bluetooth protocol](docs/bluetooth-protocol.md)
+- [Installation and testing guide](docs/testing-and-installation.md) — Contributor setup, Mac vs. Windows verification rules, and one-command bootstraps.
+- **Level 1 (PRD):** [Product & Requirements Document](docs/product-requirements.md) — Product vision, personas, classroom workflows, and FERPA privacy boundaries.
+- **Level 2 (Architecture):**
+  - [System Technical Architecture](docs/architecture.md) — Topology, state ownership decision matrix, SQLite schema, and layer boundaries.
+  - [Client UI Architecture](docs/client-ui-architecture.md) — Desktop presentation contracts, ViewModel state, and refactor roadmap.
+  - [Bluetooth Sync Protocol](docs/bluetooth-protocol.md) — BLE GATT services, command framing, and incremental sync session flow.
+- **Level 3 (Feature Design Specifications):**
+  - [Roster Import & Enrichment](docs/design/roster-import.md) — CSV parser, student ID mapping, and profile-scoped storage.
+  - [Live Active-Pass Protocol](docs/design/active-pass-protocol.md) — Real-time BLE query/event stream for live pass monitoring.
+  - [Classroom Policies & Bell Schedules](docs/design/policy-and-schedules.md) — Pass limits, 10/10 lockout rules, and timetable engine.
+  - [Background Auto-Sync](docs/design/auto-sync.md) — Autonomous connection management and channel arbitration.
 
 ## Hardware
 

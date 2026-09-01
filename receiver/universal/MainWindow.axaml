@@ -5,8 +5,9 @@
         Title="{Binding WindowTitle}">
   <Grid RowDefinitions="Auto,*,Auto" Background="#F5F8FB">
     <Border Padding="32,26" Background="#103A5B">
-      <Grid>
-        <StackPanel Spacing="4">
+      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
+        <Image Grid.Column="0" Source="avares://HallzeeSync.Universal/Assets/hallzee-logo.png" Width="44" Height="44" VerticalAlignment="Center" />
+        <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
           <TextBlock Text="Hallzee" FontSize="28" FontWeight="Bold" Foreground="White" />
           <TextBlock Text="{Binding ModeDescription}" FontSize="14" Foreground="#CFE6F7" />
         </StackPanel>

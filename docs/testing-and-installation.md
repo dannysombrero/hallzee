@@ -75,7 +75,7 @@ is also available from that workflow run’s **Artifacts** section.
 | Shared sync logic, CSV storage, or protocol parsing | Automated .NET tests | No for the hardware-independent tests |
 | Terminal display, keypad behavior, and pass lifecycle | Display emulator or Wokwi | No for the emulator; a physical terminal is recommended before release |
 | Firmware build | Local development machine with the ESP32 Arduino tools | No |
-| Finding, pairing, reconnecting to, or directly syncing a physical Bluetooth terminal | Windows desktop client and the physical ESP32 terminal | **Yes** — this uses the Windows Bluetooth transport |
+| Finding, reconnecting to, or directly syncing a physical Bluetooth terminal | Windows desktop client and the physical ESP32 terminal | **Yes** — this uses the Windows Bluetooth transport |
 | Windows installer or Windows-only operating-system behavior | Windows desktop client | **Yes** |
 
 Mac testing confirms the shared interface and simulated flow. It does **not**
@@ -145,10 +145,12 @@ The terminal’s configured pairing PIN is `1234`.
 
 Before calling a Windows change complete, check:
 
-1. The terminal can be found.
-2. Pairing succeeds when required.
-3. A sync completes and reports the expected number of saved trips.
-4. Disconnecting and reconnecting does not lose unsynchronized records.
+1. The terminal can be found within five seconds.
+2. The client subscribes and receives `HALLZEE_READY,1`.
+3. A second sync with no new trips completes without replaying history.
+4. A sync with new trips transfers only IDs after the local durable cursor.
+5. Disconnecting mid-transfer and reconnecting produces one durable copy.
+6. Powering the kiosk off clears the client status; Find terminal works after it returns.
 
 ## Automated checks
 

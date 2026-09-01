@@ -71,7 +71,7 @@ export default function AppShell() {
           </div>
           <div className="p-3.5 rounded-2xl bg-sky-50 border border-sky-200 text-xs space-y-2">
             <div className="flex justify-between"><span className="uppercase font-bold tracking-wider text-slate-500">Terminal Node</span><span className={`rounded-full px-2 font-bold ${connected ? "bg-emerald-500 text-white" : "bg-slate-200"}`}>{terminalState.toUpperCase()}</span></div>
-            <div className="font-mono font-bold truncate">{connected ? terminalId : "-- (No Terminal Linked)"}</div><p className="text-slate-500">Auto-clock synced with Windows RTC</p>
+            <div className="font-mono-hardware font-bold truncate">{connected ? terminalId : "-- (No Terminal Linked)"}</div><p className="text-slate-500">Auto-clock synced with Windows RTC</p>
           </div>
         </aside>
         <main className="flex-1 overflow-y-auto p-6">{pages[view]}</main>

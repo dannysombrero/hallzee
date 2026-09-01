@@ -150,6 +150,22 @@ Before calling a Windows change complete, check:
 5. Disconnecting mid-transfer and reconnecting produces one durable copy.
 6. Powering the kiosk off clears the client status; Find terminal works after it returns.
 
+### Verify the student-ID limit
+
+This feature requires both newly flashed firmware and the updated Windows
+client. Mac tests and CI cover validation, persistence logic, protocol
+fragmentation, and rendering, but a Windows PC is required to verify the real
+BLE settings write.
+
+1. Find Hallzee and run a normal sync; confirm the client shows the kiosk's
+   current maximum ID length.
+2. Choose 8 and select **Apply ID Limit**; confirm the success message.
+3. On Hallzee, enter eight digits and confirm a ninth digit is ignored.
+4. Restart Hallzee, sync again, and confirm the client still reports 8.
+5. While an ID longer than a proposed new limit is checked out, confirm Hallzee
+   rejects the shorter limit until that student is checked in or the pass is
+   reset.
+
 ## Automated checks
 
 These checks do not require a Windows PC or connected ESP32 terminal:

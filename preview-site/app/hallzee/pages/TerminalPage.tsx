@@ -1,6 +1,6 @@
 "use client";
 import { Bluetooth, Radio, Save, Search } from "../components/Icons";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useHallzee } from "../HallzeeProvider";
 
 export default function TerminalPage() {
@@ -8,11 +8,13 @@ export default function TerminalPage() {
   const [name, setName] = useState(terminalSettings.name);
   const [length, setLength] = useState(terminalSettings.maxStudentIdLength);
 
-  // Keep the form in sync when the context settings change (e.g., after connecting).
-  useEffect(() => {
+  const [prevSettings, setPrevSettings] = useState(terminalSettings);
+
+  if (prevSettings !== terminalSettings) {
+    setPrevSettings(terminalSettings);
     setName(terminalSettings.name);
     setLength(terminalSettings.maxStudentIdLength);
-  }, [terminalSettings]);
+  }
 
   return <div className="grid lg:grid-cols-[1fr_420px] gap-6 pb-24">
     <section className="bg-white rounded-3xl border border-sky-200 p-6 shadow-lg">

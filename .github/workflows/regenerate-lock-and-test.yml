@@ -1,9 +1,6 @@
 name: Regenerate preview lockfile and run tests
 
 on:
-  push:
-    branches:
-      - 'refactor/react-client-shell'
   workflow_dispatch: {}
 
 permissions:

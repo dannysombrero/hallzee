@@ -46,8 +46,8 @@ powershell -ExecutionPolicy Bypass -File "$HOME\Downloads\hallzee-mono-main\scri
 ```
 
 The script downloads the .NET 8 build tools, then creates the Windows app in
-the downloaded project’s `artifacts\HallzeeSync-Universal-Windows` folder. Open that
-folder and run `HallzeeSync.Universal.exe`.
+the downloaded project’s `artifacts\BathroomSync-Windows` folder. Open that
+folder and run `HallzeeSync.exe`.
 
 ### Easier: download the latest ready-to-run Windows app
 
@@ -55,10 +55,10 @@ Once the **Publish Latest Windows Sync App** GitHub Action has run, download
 the latest ready-to-run ZIP here:
 
 ```text
-https://github.com/dannysombrero/hallzee-mono/releases/download/windows-client-latest/HallzeeSync-Universal-Windows.zip
+https://github.com/dannysombrero/hallzee-mono/releases/download/windows-client-latest/BathroomSync-Windows.zip
 ```
 
-Extract the entire ZIP to a normal folder, then run `HallzeeSync.Universal.exe`.
+Extract the entire ZIP to a normal folder, then run `HallzeeSync.exe`.
 No software installation or local build is needed. If the link has not been
 published yet, open the repository’s **Actions** tab, run **Publish Latest
 Windows Sync App**, then refresh this link when the run completes. The same ZIP

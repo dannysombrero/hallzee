@@ -67,12 +67,14 @@ void setSystemClock24(
   int second
 );
 void handleBluetoothClockSet();
+bool getActivePassState(String &activeId, uint32_t &checkoutEpoch);
 
 BluetoothSync bluetoothSync(
   tripStorage,
   bluetoothSerial,
   setSystemClock24,
-  handleBluetoothClockSet
+  handleBluetoothClockSet,
+  getActivePassState
 );
 
 String enteredID = "";
@@ -251,6 +253,15 @@ void showTripLogSummary() {
     tripStorage.getLatestTripID()
   );
 }
+bool getActivePassState(String &activeId, uint32_t &checkoutEpoch) {
+  if (terminal.hasActivePass()) {
+    activeId = terminal.activeId();
+    checkoutEpoch = static_cast<uint32_t>(terminal.activeCheckoutTime());
+    return true;
+  }
+  return false;
+}
+
 void resetCurrentCheckout() {
   String oldID;
   if (!terminal.resetActivePass(oldID)) {
@@ -260,6 +271,8 @@ void resetCurrentCheckout() {
   }
 
   enteredID = "";
+
+  bluetoothSync.notifyReset(oldID, 0);
 
   terminalDisplay.showManualReset(oldID);
 
@@ -609,6 +622,7 @@ void submitID() {
       Serial.println(getDateString());
       Serial.print("Time: ");
       Serial.println(getTimeString());
+      bluetoothSync.notifyCheckout(result.id, static_cast<uint32_t>(terminal.activeCheckoutTime()));
       showCheckedOut(result.id);
       enteredID = "";
       drawIdleScreen();
@@ -624,6 +638,7 @@ void submitID() {
       Serial.print("Duration: ");
       Serial.print(result.elapsedSeconds);
       Serial.println(" seconds");
+      bluetoothSync.notifyCheckin(result.id, result.elapsedSeconds);
       showCheckedIn(result.id, result.elapsedSeconds);
       enteredID = "";
       drawIdleScreen();

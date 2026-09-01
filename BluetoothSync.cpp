@@ -6,11 +6,37 @@ BluetoothSync::BluetoothSync(
   TripStoragePort &tripStorage,
   BluetoothSerialPort &serial,
   ClockSetter clockSetter,
-  ClockSetHandler clockSetHandler
+  ClockSetHandler clockSetHandler,
+  ActivePassProvider activePassProvider
 ) : tripStorage(tripStorage),
     clockSetter(clockSetter),
     clockSetHandler(clockSetHandler),
+    activePassProvider(activePassProvider),
     serial(serial) {}
+
+void BluetoothSync::notifyCheckout(const String &studentId, uint32_t checkoutEpoch) {
+  if (!ready || !serial.hasClient()) return;
+  serial.print("EVENT,CHECKOUT,");
+  serial.print(studentId);
+  serial.print(",");
+  serial.println(String(checkoutEpoch));
+}
+
+void BluetoothSync::notifyCheckin(const String &studentId, unsigned long durationSeconds) {
+  if (!ready || !serial.hasClient()) return;
+  serial.print("EVENT,CHECKIN,");
+  serial.print(studentId);
+  serial.print(",");
+  serial.println(String(durationSeconds));
+}
+
+void BluetoothSync::notifyReset(const String &studentId, unsigned long durationSeconds) {
+  if (!ready || !serial.hasClient()) return;
+  serial.print("EVENT,RESET,");
+  serial.print(studentId);
+  serial.print(",");
+  serial.println(String(durationSeconds));
+}
 
 void BluetoothSync::begin() {
   ready = serial.begin(BLUETOOTH_DEVICE_NAME);
@@ -254,6 +280,17 @@ void BluetoothSync::processCommands() {
         Serial.println(commandBuffer);
         if (commandBuffer == "HELLO,1") {
           serial.println("HALLZEE_READY,1");
+        } else if (commandBuffer == "GET_ACTIVE_PASS") {
+          String activeId;
+          uint32_t checkoutEpoch = 0;
+          if (activePassProvider && activePassProvider(activeId, checkoutEpoch) && activeId.length() > 0) {
+            serial.print("ACTIVE_PASS,");
+            serial.print(activeId);
+            serial.print(",");
+            serial.println(String(checkoutEpoch));
+          } else {
+            serial.println("ACTIVE_PASS,NONE");
+          }
         } else if (processSettingsCommand(commandBuffer)) {
           // Settings command handled.
         } else if (commandBuffer.startsWith("TIME_CURSOR,")) {

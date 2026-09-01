@@ -9,21 +9,32 @@ public:
   using ClockSetter = void (*)(int year, int month, int day, int hour,
                                int minute, int second);
   using ClockSetHandler = void (*)();
+  using ActivePassProvider = bool (*)(String &activeId, uint32_t &checkoutEpoch);
 
   BluetoothSync(
     TripStoragePort &tripStorage,
     BluetoothSerialPort &serial,
     ClockSetter clockSetter,
-    ClockSetHandler clockSetHandler
+    ClockSetHandler clockSetHandler,
+    ActivePassProvider activePassProvider = nullptr
   );
+
+  void setActivePassProvider(ActivePassProvider provider) {
+    this->activePassProvider = provider;
+  }
 
   void begin();
   void poll();
+
+  void notifyCheckout(const String &studentId, uint32_t checkoutEpoch);
+  void notifyCheckin(const String &studentId, unsigned long durationSeconds);
+  void notifyReset(const String &studentId, unsigned long durationSeconds);
 
 private:
   TripStoragePort &tripStorage;
   ClockSetter clockSetter;
   ClockSetHandler clockSetHandler;
+  ActivePassProvider activePassProvider;
   BluetoothSerialPort &serial;
 
   bool ready = false;

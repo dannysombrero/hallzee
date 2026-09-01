@@ -19,6 +19,8 @@ public sealed class SyncUpdate {
   public int? MaxStudentIdLength { get; set; }
   public bool SettingsApplied { get; set; }
   public string? SettingsError { get; set; }
+  public ActivePassInfo? ActivePass { get; set; }
+  public LivePassEvent? LiveEvent { get; set; }
 }
 
 public sealed class SyncSession {
@@ -61,6 +63,14 @@ public sealed class SyncSession {
       return;
     }
     if (TryProcessSettingsLine(line, update)) {
+      return;
+    }
+    if (ActivePassProtocol.TryParseActivePassResponse(line, out var activeInfo)) {
+      update.ActivePass = activeInfo;
+      return;
+    }
+    if (ActivePassProtocol.TryParseLiveEvent(line, out var liveEvt)) {
+      update.LiveEvent = liveEvt;
       return;
     }
     if (line.StartsWith("SYNC_BEGIN,", StringComparison.Ordinal) && int.TryParse(line[11..], out var transferTotal) && transferTotal >= 0) {

@@ -538,6 +538,19 @@ void testKeypadControllerInterpretsKeysAndResetGesture() {
   expectTrue(clearCount == 2, "clear resumes after reset keys release");
 }
 
+static bool fakeHasActivePass = false;
+static String fakeActiveId = "";
+static uint32_t fakeActiveEpoch = 0;
+
+static bool fakeGetActivePass(String &activeId, uint32_t &checkoutEpoch) {
+  if (fakeHasActivePass) {
+    activeId = fakeActiveId;
+    checkoutEpoch = fakeActiveEpoch;
+    return true;
+  }
+  return false;
+}
+
 void testBluetoothProtocolAndRecovery() {
   FakeTripStorage storage;
   storage.syncRecords = {
@@ -545,7 +558,7 @@ void testBluetoothProtocolAndRecovery() {
     {8, "8,ID2,2026-01-01,09:00:00,09:10:00,600,COMPLETE,0"}
   };
   FakeBluetoothSerial serial;
-  BluetoothSync sync(storage, serial, setBluetoothClock, onBluetoothClockSet);
+  BluetoothSync sync(storage, serial, setBluetoothClock, onBluetoothClockSet, fakeGetActivePass);
   sync.begin();
   expectTrue(serial.deviceName == "Hallzee" && serial.pin.empty(), "Bluetooth LE setup");
 
@@ -562,6 +575,35 @@ void testBluetoothProtocolAndRecovery() {
   serial.input = "LO,1\n";
   sync.poll();
   expectTrue(contains(serial.output, "HALLZEE_READY,1"), "HELLO repeats readiness");
+
+  // Active pass query when available
+  fakeHasActivePass = false;
+  serial.output.clear();
+  serial.input = "GET_ACTIVE_PASS\n";
+  sync.poll();
+  expectTrue(contains(serial.output, "ACTIVE_PASS,NONE"), "active pass query reports NONE when available");
+
+  // Active pass query when occupied
+  fakeHasActivePass = true;
+  fakeActiveId = "10482";
+  fakeActiveEpoch = 1725200000;
+  serial.output.clear();
+  serial.input = "GET_ACTIVE_PASS\n";
+  sync.poll();
+  expectTrue(contains(serial.output, "ACTIVE_PASS,10482,1725200000"), "active pass query reports occupied pass and epoch");
+
+  // Real-time event notifications
+  serial.output.clear();
+  sync.notifyCheckout("10482", 1725200000);
+  expectTrue(contains(serial.output, "EVENT,CHECKOUT,10482,1725200000"), "emits CHECKOUT event notification");
+
+  serial.output.clear();
+  sync.notifyCheckin("10482", 300);
+  expectTrue(contains(serial.output, "EVENT,CHECKIN,10482,300"), "emits CHECKIN event notification");
+
+  serial.output.clear();
+  sync.notifyReset("10482", 0);
+  expectTrue(contains(serial.output, "EVENT,RESET,10482,0"), "emits RESET event notification");
 
   serial.output.clear();
   serial.input = "GET_SETTINGS\n";

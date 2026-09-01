@@ -165,8 +165,9 @@ void TerminalDisplay::showManualReset(const String &id) {
 void TerminalDisplay::drawIdEntry(const String &entry) {
   display.fillRect(13, 79, 134, 17, UI_PANEL_DARK);
   display.setTextColor(UI_TEXT);
-  display.setTextSize(2);
-  display.setCursor(16, 79);
+  const bool useCompactText = entry.length() > 10;
+  display.setTextSize(useCompactText ? 1 : 2);
+  display.setCursor(16, useCompactText ? 83 : 79);
   display.print(entry.length() == 0 ? "_" : entry);
 }
 

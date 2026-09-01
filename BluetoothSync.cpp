@@ -37,7 +37,7 @@ void BluetoothSync::updateConnection() {
   wasConnected = isConnected;
   if (isConnected) {
     Serial.println("Bluetooth LE client connected.");
-    serial.println("BATHROOM_TERMINAL_READY");
+    serial.println("HALLZEE_READY");
     serial.println("BLE transport connected.");
     return;
   }

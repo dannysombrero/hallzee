@@ -19,22 +19,31 @@ class SyncForm : Form {
   readonly string exportFolder;
 
   public SyncForm() {
-    Text = "Bathroom Sync";
+    Text = "Hallzee Sync";
     Width = 700;
     Height = 500;
 
-    var documentsFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Bathroom Terminal");
+    var documentsFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "Hallzee");
     exportFolder = Path.Combine(documentsFolder, "exports");
-    var databaseFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Bathroom Terminal");
-    var legacyCsv = Path.Combine(documentsFolder, "bathroom_trips.csv");
-    tripStorage = new TripSqliteRepository(Path.Combine(databaseFolder, "bathroom-trips.db"), legacyCsv);
+    var databaseFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Hallzee");
+    var legacyCsv = Path.Combine(documentsFolder, "hallzee_trips.csv");
+    if (!File.Exists(legacyCsv)) {
+      legacyCsv = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+        "Bathroom Terminal",
+        "bathroom_trips.csv"
+      );
+    }
+    var databasePath = Path.Combine(databaseFolder, "hallzee-trips.db");
+    MigrateLegacyDatabase(databasePath);
+    tripStorage = new TripSqliteRepository(databasePath, legacyCsv);
     session = new SyncSession(tripStorage);
     connection.TextReceived += (_, text) => BeginInvoke(() => Process(text));
     connection.ConnectionLost += (_, message) => BeginInvoke(() => SetStatus($"Connection lost: {message} Find the terminal and try again.", Color.Firebrick));
 
     var top = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, WrapContents = true, Padding = new Padding(12) };
     top.Controls.AddRange(new Control[] {
-      new Label { Text = "Bathroom terminal:", AutoSize = true, Padding = new Padding(0, 6, 0, 0) },
+      new Label { Text = "Hallzee device:", AutoSize = true, Padding = new Padding(0, 6, 0, 0) },
       terminals,
       refresh,
       sync,
@@ -49,7 +58,7 @@ class SyncForm : Form {
     saveCsv.Click += (_, _) => SaveCsvAs();
 
     var panel = new Panel { Dock = DockStyle.Top, Height = 55, Padding = new Padding(12) };
-    status.Text = "Turn on Bathroom-Terminal, then choose Find Terminal.";
+    status.Text = "Turn on Hallzee, then choose Find Terminal.";
     panel.Controls.Add(status);
     Controls.Add(log);
     Controls.Add(panel);
@@ -62,16 +71,16 @@ class SyncForm : Form {
     refresh.Enabled = false;
     sync.Enabled = false;
     terminals.Items.Clear();
-    SetStatus("Looking for Bathroom-Terminal nearby...", Color.RoyalBlue);
+    SetStatus("Looking for Hallzee nearby...", Color.RoyalBlue);
     try {
       var found = await connection.DiscoverAsync();
       foreach (var terminal in found) terminals.Items.Add(terminal);
       if (terminals.Items.Count > 0) {
         terminals.SelectedIndex = 0;
         sync.Enabled = true;
-        SetStatus("Select Bathroom-Terminal and choose Sync Now.", Color.ForestGreen);
+        SetStatus("Select Hallzee and choose Sync Now.", Color.ForestGreen);
       } else {
-        SetStatus("Bathroom-Terminal was not found. Confirm it is powered on and nearby, then try again.", Color.Firebrick);
+        SetStatus("Hallzee was not found. Confirm it is powered on and nearby, then try again.", Color.Firebrick);
       }
     } catch (Exception exception) {
       Log(DescribeException(exception) + "\n");
@@ -86,13 +95,13 @@ class SyncForm : Form {
 
     sync.Enabled = false;
     refresh.Enabled = false;
-    SetStatus(terminal.IsPaired ? "Connecting to Bathroom-Terminal..." : "Pairing with Bathroom-Terminal...", Color.RoyalBlue);
+    SetStatus(terminal.IsPaired ? "Connecting to Hallzee..." : "Pairing with Hallzee...", Color.RoyalBlue);
     try {
       await connection.ConnectAsync(terminal);
       session.Start();
       await connection.SendAsync($"TIME,{DateTime.Now:yyyy-MM-dd,HH:mm:ss}");
-      Log("Connected directly to Bathroom-Terminal; waiting for sync response.\n");
-      SetStatus("Connected to Bathroom-Terminal. Synchronizing...", Color.ForestGreen);
+      Log("Connected directly to Hallzee; waiting for sync response.\n");
+      SetStatus("Connected to Hallzee. Synchronizing...", Color.ForestGreen);
     } catch (Exception exception) {
       Log(DescribeException(exception) + "\n");
       SetStatus("Could not connect. Find the terminal and try again.", Color.Firebrick);
@@ -106,6 +115,20 @@ class SyncForm : Form {
   static string DescribeException(Exception exception) {
     var message = string.IsNullOrWhiteSpace(exception.Message) ? exception.GetType().Name : exception.Message;
     return exception.HResult == 0 ? message : $"{message} (0x{exception.HResult:X8})";
+  }
+
+  static void MigrateLegacyDatabase(string destinationPath) {
+    if (File.Exists(destinationPath)) return;
+
+    var legacyPath = Path.Combine(
+      Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+      "Bathroom Terminal",
+      "bathroom-trips.db"
+    );
+    if (!File.Exists(legacyPath)) return;
+
+    Directory.CreateDirectory(Path.GetDirectoryName(destinationPath)!);
+    File.Copy(legacyPath, destinationPath);
   }
 
   async void Process(string text) {
@@ -134,7 +157,7 @@ class SyncForm : Form {
   void SaveCsvAs() {
     using var dialog = new SaveFileDialog {
       Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
-      FileName = "bathroom_trips.csv",
+      FileName = "hallzee_trips.csv",
       OverwritePrompt = true
     };
     if (dialog.ShowDialog(this) != DialogResult.OK) return;
@@ -152,7 +175,7 @@ class SyncForm : Form {
   void OpenCsv() {
     try {
       Directory.CreateDirectory(exportFolder);
-      var exportPath = Path.Combine(exportFolder, $"bathroom_trips_{DateTime.Now:yyyyMMdd_HHmmss}.csv");
+      var exportPath = Path.Combine(exportFolder, $"hallzee_trips_{DateTime.Now:yyyyMMdd_HHmmss}.csv");
       tripStorage.ExportCsv(exportPath);
       System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(exportPath) { UseShellExecute = true });
     } catch (Exception exception) {
@@ -183,10 +206,10 @@ static class Program {
   }
 
   static void ReportStartupFailure(Exception exception) {
-    const string title = "Bathroom Sync could not start";
+    const string title = "Hallzee Sync could not start";
     var logPath = Path.Combine(
       Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-      "Bathroom Terminal",
+      "Hallzee",
       "startup-errors.log"
     );
 

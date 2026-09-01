@@ -1,6 +1,6 @@
-# Bathroom Terminal browser preview
+# Hallzee browser preview
 
-This is a browser-based simulation of the Bathroom Terminal desktop sync
+This is a browser-based simulation of the Hallzee desktop sync
 client. It is useful for checking the interface and simulated sync flow on a
 Mac without a physical terminal or a Windows PC.
 

@@ -11,14 +11,14 @@ public sealed class PreviewTerminalConnection : ITerminalConnection {
 
   public async Task<IReadOnlyList<TerminalDevice>> DiscoverAsync() {
     await Task.Delay(500);
-    return [new TerminalDevice("preview-bathroom-terminal", "Bathroom-Terminal", true)];
+    return [new TerminalDevice("preview-hallzee", "Hallzee", true)];
   }
 
   public async Task ConnectAsync(TerminalDevice terminal) {
     await Task.Delay(350);
     connected = true;
     fullHistoryRequested = false;
-    TextReceived?.Invoke(this, "BATHROOM_TERMINAL_READY\n");
+    TextReceived?.Invoke(this, "HALLZEE_READY\n");
   }
 
   public async Task SendAsync(string command) {

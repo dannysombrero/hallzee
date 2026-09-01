@@ -1,6 +1,6 @@
-# Bathroom Terminal
+# Hallzee
 
-Bathroom Terminal is an ESP32-based school bathroom sign-in terminal. Students
+Hallzee is an ESP32-based school bathroom sign-in terminal. Students
 enter an ID on a 3×4 keypad to check out and back in. The terminal stores trip
 records locally and can synchronize them to a desktop receiver over Bluetooth
 Classic Serial Port Profile (SPP).
@@ -71,7 +71,7 @@ also set automatically when the receiver sends a valid `TIME` command.
 ## Desktop sync
 
 The current desktop transport is Bluetooth Classic SPP/RFCOMM. On Windows, the
-.NET 8 WinForms receiver finds nearby `Bathroom-Terminal` devices, pairs when
+.NET 8 WinForms receiver finds nearby `Hallzee` devices, pairs when
 needed, and opens the ESP32's standard Serial Port service directly. The user
 does not need to find or select a Bluetooth COM port. If Windows shows its
 pairing confirmation, accept it; the app supplies the terminal's configured

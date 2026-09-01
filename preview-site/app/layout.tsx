@@ -13,17 +13,17 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Bathroom Terminal Preview",
-  description: "A browser simulation of the Bathroom Terminal desktop sync client.",
+  title: "Hallzee Preview",
+  description: "A browser simulation of the Hallzee desktop sync client.",
   openGraph: {
-    title: "Bathroom Terminal Preview",
-    description: "A browser simulation of the Bathroom Terminal desktop sync client.",
+    title: "Hallzee Preview",
+    description: "A browser simulation of the Hallzee desktop sync client.",
     images: ["/og.png"],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Bathroom Terminal Preview",
-    description: "A browser simulation of the Bathroom Terminal desktop sync client.",
+    title: "Hallzee Preview",
+    description: "A browser simulation of the Hallzee desktop sync client.",
     images: ["/og.png"],
   },
   icons: {

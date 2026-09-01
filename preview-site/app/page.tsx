@@ -6,10 +6,10 @@ type PreviewState = "ready" | "finding" | "found" | "connecting" | "syncing" | "
 
 const stateDetails: Record<PreviewState, { title: string; detail: string; tone: string }> = {
   ready: { title: "Ready to find a terminal", detail: "Choose Find terminal to start the simulated discovery flow.", tone: "green" },
-  finding: { title: "Finding Bathroom-Terminal", detail: "Simulating nearby-device discovery…", tone: "blue" },
-  found: { title: "Terminal ready", detail: "Bathroom-Terminal is ready to sync.", tone: "green" },
+  finding: { title: "Finding Hallzee", detail: "Simulating nearby-device discovery…", tone: "blue" },
+  found: { title: "Terminal ready", detail: "Hallzee is ready to sync.", tone: "green" },
   connecting: { title: "Connecting", detail: "Simulating a secure Bluetooth connection…", tone: "blue" },
-  syncing: { title: "Synchronizing", detail: "Securely retrieving trips from Bathroom-Terminal.", tone: "green" },
+  syncing: { title: "Synchronizing", detail: "Securely retrieving trips from Hallzee.", tone: "green" },
   complete: { title: "Sync complete", detail: "3 new trip(s) saved this session.", tone: "green" },
 };
 
@@ -27,7 +27,7 @@ export default function Home() {
     setState("finding");
     setSavedTrips(0);
     setExported(false);
-    setLog((items) => [...items, "Scanning for Bathroom-Terminal…"]);
+    setLog((items) => [...items, "Scanning for Hallzee…"]);
     await wait(900);
     setState("found");
     setLog((items) => [...items, "Discovery completed: 1 matching terminal."]);
@@ -48,11 +48,11 @@ export default function Home() {
 
   return (
     <main>
-      <section className="app-shell" aria-label="Bathroom Terminal preview">
+      <section className="app-shell" aria-label="Hallzee preview">
         <header className="app-header">
           <div>
             <p className="eyebrow">Preview site</p>
-            <h1>Bathroom Terminal</h1>
+            <h1>Hallzee</h1>
             <p className="subtitle">Desktop sync client · Browser simulation</p>
           </div>
           <span className="simulation-badge">Simulation — no hardware connected</span>
@@ -67,9 +67,9 @@ export default function Home() {
                 <p>Practice the same discovery and sync flow used by the desktop client.</p>
               </div>
               <label htmlFor="terminal">Nearby terminal</label>
-              <select id="terminal" value={found ? "bathroom-terminal" : ""} disabled={!found} onChange={() => undefined}>
+              <select id="terminal" value={found ? "hallzee" : ""} disabled={!found} onChange={() => undefined}>
                 <option value="">{state === "finding" ? "Searching…" : "Find a terminal first"}</option>
-                <option value="bathroom-terminal">Bathroom-Terminal</option>
+                <option value="hallzee">Hallzee</option>
               </select>
               <div className="actions">
                 <button className="button secondary" onClick={findTerminal} disabled={state === "finding" || state === "connecting" || state === "syncing"}>Find terminal</button>

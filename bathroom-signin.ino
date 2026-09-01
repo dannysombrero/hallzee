@@ -48,7 +48,7 @@ ArduinoKeypadPort arduinoKeypad(keypad);
 ArduinoMonotonicClock monotonicClock;
 
 // ======================================================
-// BATHROOM STATE
+// HALLZEE STATE
 // ======================================================
 
 TripStorage tripStorage;
@@ -210,7 +210,7 @@ void updateClockIfNeeded() {
 }
 
 // ======================================================
-// MAIN BATHROOM SCREEN
+// MAIN HALLZEE SCREEN
 // ======================================================
 
 void drawIdleScreen() {
@@ -703,7 +703,7 @@ void setup() {
 
   Serial.println();
   Serial.println(
-    "Bathroom Terminal Starting..."
+    "Hallzee Starting..."
   );
 
   bluetoothSync.begin();

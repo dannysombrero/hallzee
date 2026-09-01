@@ -75,7 +75,7 @@ or use the Wokwi setup described in [WOKWI.md](../WOKWI.md).
 Use a Windows PC only when the change involves actual Bluetooth behavior or a
 Windows package. Install the .NET 8 SDK or use the provided Windows build, make
 sure the ESP32 terminal is powered on, then use the desktop app to find and
-sync `Bathroom-Terminal`. Accept Windows pairing confirmation if it appears.
+sync `Hallzee`. Accept Windows pairing confirmation if it appears.
 
 The terminal’s configured pairing PIN is `1234`.
 

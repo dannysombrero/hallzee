@@ -31,16 +31,18 @@ private:
   String commandBuffer;
   bool discardingInput = false;
   bool syncInProgress = false;
-  bool syncAllRecords = false;
+  bool streamUsesCursor = false;
   uint32_t pendingTripID = 0;
   uint32_t lastStreamedTripID = 0;
 
   void updateConnection();
   void processCommands();
   void beginSync(bool includeSyncedRecords = false);
+  void beginCursorSync(uint32_t afterTripID);
   void sendNextTrip();
   bool processAcknowledgement(const String &command);
   bool processTimeCommand(const String &command);
+  bool processTimeCursorCommand(const String &command, uint32_t &afterTripID);
   void resetSyncState();
 
   static bool isLeapYear(int year);

@@ -1,8 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import {
   Calendar,
-  Droplets,
   History,
   Laptop,
   Minus,
@@ -59,9 +59,13 @@ export default function AppShell() {
       {/* 1. Desktop Window Top Bar */}
       <div className="bg-gradient-to-r from-[#0284C7] via-[#0369A1] to-[#075985] text-white border-b border-sky-400/40 px-4 py-1.5 flex items-center justify-between text-xs select-none shadow-xs">
         <div className="flex items-center gap-2">
-          <div className="h-4 w-4 rounded bg-white text-sky-800 font-black flex items-center justify-center text-[10px] shadow-xs">
-            H
-          </div>
+          <Image
+            src="/hallzee-logo.png"
+            alt="Hallzee"
+            width={16}
+            height={16}
+            className="h-4 w-4 object-contain rounded-xs drop-shadow-xs"
+          />
           <span className="font-bold">Hallzee Desktop Client</span>
           <span className="text-white/40">|</span>
           <span className="text-white/90">Room 204 • Period 3 (Chemistry AP)</span>
@@ -90,12 +94,18 @@ export default function AppShell() {
           <div className="space-y-5">
             {/* Logo and Brand */}
             <div>
-              <div className="flex items-center gap-2.5">
-                <div className="h-10 w-10 rounded-2xl bg-gradient-to-tr from-sky-400 to-cyan-300 text-white flex items-center justify-center shadow-md shadow-sky-400/30 shrink-0">
-                  <Droplets className="w-5 h-5" />
+              <div className="flex items-center gap-3">
+                <div className="h-11 w-11 rounded-2xl bg-white border border-sky-200/80 p-1 flex items-center justify-center shadow-md shadow-sky-500/10 shrink-0">
+                  <Image
+                    src="/hallzee-logo.png"
+                    alt="Hallzee Logo"
+                    width={40}
+                    height={40}
+                    className="w-full h-full object-contain"
+                  />
                 </div>
                 <div>
-                  <h1 className="font-black text-base leading-none text-slate-900">Hallzee</h1>
+                  <h1 className="font-black text-lg leading-none text-slate-900 tracking-tight">Hallzee</h1>
                   <p className="text-xs text-sky-700 font-bold mt-1">Terminal Gateway</p>
                 </div>
               </div>

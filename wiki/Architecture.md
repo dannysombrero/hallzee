@@ -1,82 +1,280 @@
-# Architecture
+# Hallzee Technical Architecture Document
 
-## Runtime flow
+**Status:** Approved Reference  
+**Scope:** ESP32 Firmware, Bluetooth Protocol, Native Desktop Application, SQLite Storage, and Data Boundaries  
+**Target Architecture:** Multi-Layer Local-First Native Client & Dedicated BLE Hardware Kiosk
 
-```text
-KeypadController ── events ──> bathroom-signin.ino ──> TerminalController
-                                      │                      │
-                                      │                      └──> TripStorage
-                                      │
-                                      ├──> TerminalDisplay
-                                      ├──> ClockService
-                                      └──> BluetoothSync ──> TripStorage
+---
+
+## 1. System Overview & Topology
+
+Hallzee is structured into three primary architectural tiers:
+1. **Embedded Physical Terminal (Kiosk):** An ESP32 microcontroller with a 1.8" ST7735 color TFT display and 4x4 matrix keypad placed at the classroom exit door.
+2. **Bluetooth Low Energy (BLE) Synchronization Transport:** A connectionless/paired GATT service facilitating encrypted/authenticated local transfer between the kiosk and desktop.
+3. **Local Desktop Client (Teacher Workstation):** A native .NET 8 / Avalonia client backed by an embedded SQLite database, responsible for roster mapping, live pass oversight, historical search, and data export.
+
+```mermaid
+flowchart TB
+    subgraph Hardware_Kiosk ["ESP32 Physical Kiosk"]
+        Keypad["4x4 Keypad"] --> KeypadCtrl["KeypadController"]
+        KeypadCtrl --> Sketch["bathroom-signin.ino"]
+        Sketch --> TermCtrl["TerminalController"]
+        TermCtrl --> FlashStorage["TripStorage\n(LittleFS Append Log + Preferences)"]
+        Sketch --> Display["TerminalDisplay (ST7735)"]
+        Sketch --> Clock["ClockService (RTC / System Clock)"]
+        BluetoothSync["BluetoothSync (GATT Server)"] <--> FlashStorage
+        BluetoothSync <--> Sketch
+    end
+
+    subgraph BLE_Transport ["Bluetooth Low Energy (GATT)"]
+        BluetoothSync <===|"Chunked UTF-8 Packets (20-byte ATT MTU)\nService: 005924a2-c6e5-4340-9bb8-22d9dd37a283"===> BleManager["BluetoothConnectionManager\n(WinRT BLE GATT Client)"]
+    end
+
+    subgraph Desktop_Client ["Teacher Workstation (.NET / Avalonia)"]
+        BleManager <--> SyncSession["SyncSession & KioskProtocol"]
+        SyncSession <--> AppServices["Application Services\n(ActivePass, Roster, Policy, Settings)"]
+        AppServices <--> ViewModels["ViewModels & State Stores"]
+        ViewModels <--> UIViews["Avalonia XAML Views\n(Dashboard, Trips, Roster, Policies)"]
+        AppServices <--> SQLiteRepo["TripSqliteRepository\n(Local SQLite with WAL)"]
+        SQLiteRepo --> SQLiteDB[("hallzee.db\n(trips, profiles, rosters, policies)")]
+        SQLiteRepo --> CSVExport["CSV File Exporter"]
+    end
+
+    subgraph Future_Expansion ["Future Cloud Boundary (Optional)"]
+        Desktop_Client -.->|"Opt-In Aggregate Sync"| CloudPortal["School-Wide Admin Portal"]
+    end
 ```
 
-`bathroom-signin.ino` is deliberately the composition root. It creates the
-hardware-backed services, binds input callbacks to terminal actions, and keeps
-the main loop non-blocking except for the existing short user-feedback screens.
+---
 
-## Firmware modules
+## 2. State Ownership Decision Matrix
 
-### TerminalController
+To prevent data drift, duplicated configuration systems, and split-brain sync errors, every entity in the Hallzee ecosystem has an explicit authority boundary:
 
-Owns the active-pass lifecycle:
+| Data or Behavior | Desktop Client | Classroom Profile | Terminal Kiosk | Future Cloud | Authoritative Source |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Trip History** | Yes (Local SQLite store) | Referenced | Local source (LittleFS) | Possible (read-only audit) | **Terminal** creates; **Client SQLite** is permanent historical authority. |
+| **Student Roster** | Yes (Local DB) | Yes (Scoped to profile) | No (Never sent over BLE) | Possible (SIS integration) | **Desktop Client Profile** is authoritative. |
+| **Student-ID Length Limit** | Display & Configuration | Optional default preset | Authoritative (Preferences) | Possible (School policy default) | **Terminal Hardware** is authoritative during checkout. |
+| **Terminal Name** | Remembered in UI | Association | Authoritative (Preferences) | Possible (Asset registry) | **Terminal Hardware** stores its own name in non-volatile flash. |
+| **Auto-Sync Preferences** | Yes (Local client config) | Yes (Profile setting) | No | No | **Desktop Client** owns sync timing. |
+| **Maximum Students Out** | Display & UI warning | Yes (Profile setting) | Enforcement planned | Possible | **Terminal** enforces physically; **Profile** configures. |
+| **Bell Schedule & Periods** | Yes (Local DB) | Yes (Profile setting) | Optional cache | Possible (School schedule sync) | **Desktop Client** is authoritative. |
+| **Live Active Pass** | UI Display & Timer | Ephemeral cache | Authoritative (Preferences) | Possible (Live status widget) | **Terminal Hardware** owns the current active checkout. |
 
-1. Restore a saved active pass at startup.
-2. Accept a first student ID as a checkout and persist it immediately.
-3. Accept the same ID as a check-in, append a `COMPLETE` record, and clear the
-   active pass only after the record is safely written.
-4. Append a `MANUAL_RESET` record when an occupied pass is reset.
-5. Classify the clock and log-summary administrator codes.
+---
 
-It returns an action result to the sketch. The sketch supplies the display and
-diagnostic output associated with that action; therefore the controller has no
-TFT dependency.
+## 3. Desktop Client Architecture
 
-### TripStorage
+The desktop application is built with modern C# / .NET 8 using the MVVM (Model-View-ViewModel) pattern, with presentation in Avalonia UI and a prototype reference in React/Vite.
 
-Stores the current active pass in ESP32 Preferences and stores append-only trip
-records in LittleFS. Records have stable numeric IDs and sync state. The
-Bluetooth protocol acknowledges each record separately, which makes a retry
-safe after a desktop or Bluetooth disconnect.
+```text
+receiver/
+  universal/                  # Avalonia Desktop Presentation
+    ViewModels/               # Reactive ViewModels
+      DashboardViewModel.cs
+      TripsViewModel.cs
+      RosterViewModel.cs
+      PoliciesViewModel.cs
+      TerminalViewModel.cs
+      SettingsViewModel.cs
+    Views/                    # XAML Views & Dialogs
+      DashboardView.axaml
+      TripsView.axaml
+      RosterView.axaml
+  windows/
+    BathroomSync.Core/        # Core Domain & Infrastructure
+      Contracts/              # Service Interfaces
+        ITripRepository.cs
+        ITerminalConnectionPort.cs
+        IRosterRepository.cs
+        IPolicyEngine.cs
+        ISettingsService.cs
+      Storage/                # SQLite & Migration Engine
+        TripSqliteRepository.cs
+        DatabaseMigrator.cs
+        Migrations/
+      Protocol/               # BLE Transport & Session Codec
+        SyncSession.cs
+        KioskSettingsProtocol.cs
+        ActivePassProtocol.cs
+      Domain/                 # Strongly-typed models
+        Trip.cs
+        Student.cs
+        Profile.cs
+        PolicyRule.cs
+```
 
-### ClockService
+### Layer Responsibilities
+- **Views (XAML):** Declarative UI rendering, responsive layout, dark/light themes, user input bindings.
+- **ViewModels:** Screen state coordination, command handling, formatting (e.g. converting elapsed seconds to `4m 12s`), toast notification dispatching.
+- **Service Contracts:** Pure business interfaces decoupled from hardware or storage implementations.
+- **Storage Layer:** Thread-safe SQLite repository operating with Write-Ahead Logging (WAL) and synchronous transactions.
+- **Protocol & Bluetooth Layer:** Handles WinRT BLE GATT device discovery, notification subscriptions, fragment assembly, and command serialization.
 
-Sets the ESP32 system clock, formats the date and time for the display, and
-provides calendar validation for manual clock setup.
+---
 
-### TerminalDisplay
+## 4. Firmware Architecture (ESP32)
 
-Contains all ST7735 drawing operations. It is given values to display and does
-not read persistent state or Bluetooth state itself.
+The firmware composition root is `bathroom-signin.ino`. It instantiates modular hardware controllers and runs a cooperative, non-blocking main loop.
 
-### KeypadController
+### Core Firmware Modules
+1. **`TerminalController`:**
+   - Manages the active-pass state machine (`AVAILABLE` vs. `OCCUPIED`).
+   - Restores in-flight passes from ESP32 Preferences upon power-on.
+   - Handles checkout, checkin, student ID validation, and manual admin reset (`* + #` gesture).
+2. **`TripStorage`:**
+   - Maintains an append-only transaction log in LittleFS flash memory.
+   - Assigns monotonically increasing integer `trip_id` values.
+   - Streams unsynced or post-cursor records across BLE.
+3. **`BluetoothSync`:**
+   - Implements the BLE GATT server, advertising the service UUID `005924a2-c6e5-4340-9bb8-22d9dd37a283`.
+   - Manages 20-byte ATT fragmentation, UTF-8 newline buffering, and cursor-based synchronization.
+4. **`ClockService`:**
+   - Tracks wall-clock time using ESP32 system time.
+   - Synchronizes time with the desktop client upon BLE handshake.
+5. **`TerminalDisplay`:**
+   - Manages ST7735 128x160 TFT graphics rendering.
+   - Decoupled from business logic; accepts view models and draw commands.
+6. **`KeypadController`:**
+   - Implements debounce, long-press detection, and keystroke buffering for 4x4 matrix keypads.
 
-Owns multi-key keypad mechanics:
+---
 
-- press/release interpretation;
-- standard `*` clear and `#` submit behavior;
-- the two-second `* + #` reset gesture;
-- suppression of clear/submit events after a successful reset.
+## 5. Bluetooth Protocol & State Machines
 
-The callback receiver determines whether the terminal is in clock setup mode
-and whether a reset is allowed.
+### 5.1 BLE GATT Transport Specification
+- **Service UUID:** `005924a2-c6e5-4340-9bb8-22d9dd37a283`
+- **RX Characteristic (Client -> Terminal Writes):** `e80f9559-49eb-47bc-af04-8e92e98ced56`
+- **TX Characteristic (Terminal -> Client Notifications):** `44a359f3-9215-4189-a3cb-e7ce18ad40d6`
 
-### BluetoothSync
+All protocol communication consists of newline-terminated (`\n`) UTF-8 text strings, chunked into 20-byte payloads to guarantee compatibility with default BLE ATT MTU constraints.
 
-Owns the ESP32 Bluetooth Low Energy GATT service, newline-delimited command
-parser, 20-byte write/notification fragmentation, and reliable incremental trip
-streaming. It does not know about the display or keypad. A successful
-`TIME_CURSOR` command invokes callbacks that update the clock, streams only
-records newer than the client’s durable cursor, and leaves manual clock setup
-when appropriate.
+### 5.2 Synchronization Protocol Flow
 
-## Design rules
+```text
+Desktop Client                               ESP32 Kiosk Terminal
+      |                                              |
+      |--- Enable TX Notifications ----------------->|
+      |--- HELLO,1 \n ------------------------------>|
+      |<-- HALLZEE_READY,1 \n -----------------------|
+      |--- GET_SETTINGS \n ------------------------->|
+      |<-- SETTINGS,MAX_ID_LENGTH,10 \n -------------|
+      |--- GET_ACTIVE_PASS \n ---------------------->|
+      |<-- ACTIVE_PASS,12345,1725200000 \n ----------|  (or ACTIVE_PASS,NONE)
+      |--- TIME_CURSOR,2026-09-01,16:45:00,104 \n -->|
+      |<-- TIME_ACK,OK \n ---------------------------|
+      |<-- SYNC_BEGIN,2 \n --------------------------|
+      |<-- TRIP,105,12345,2026-09-01,16:30,16:35,300,COMPLETED \n
+      |--- ACK,105 \n (Committed to SQLite) -------->|
+      |<-- TRIP,106,67890,2026-09-01,16:36,16:40,240,COMPLETED \n
+      |--- ACK,106 \n (Committed to SQLite) -------->|
+      |<-- SYNC_END \n ------------------------------|
+```
 
-- Keep the trip-sync message format independent of the Bluetooth transport so
-  protocol behavior remains testable without Windows BLE hardware.
-- Do not let display code decide business outcomes or mutate persisted state.
-- Do not clear an active pass until its checkout/check-in/reset persistence
-  operation has succeeded.
-- Treat Bluetooth connection loss as normal. The terminal retains unacknowledged
-  records, and the receiver can request them again.
+### 5.3 Exclusive Channel Operations
+To prevent race conditions, the desktop client's communication coordinator strictly serializes commands. Only one operation may occupy the channel at a time:
+1. `SyncSession` (Clock update + `TIME_CURSOR` stream)
+2. `SettingsQuery` / `SettingsUpdate` (`GET_SETTINGS`, `SET,MAX_ID_LENGTH,<val>`, `SET,TERMINAL_NAME,<name>`)
+3. `ActivePassQuery` (`GET_ACTIVE_PASS`)
+4. `FullRecovery` (`SYNC_ALL`)
+
+---
+
+## 6. SQLite Database Schema & Versioned Migrations
+
+The desktop client maintains a local SQLite database named `hallzee.db` in `%LOCALAPPDATA%/Hallzee/` (Windows) or `~/Library/Application Support/Hallzee/` (macOS).
+
+### 6.1 Schema Version Table
+```sql
+CREATE TABLE IF NOT EXISTS schema_migrations (
+    version INTEGER PRIMARY KEY,
+    applied_at TEXT NOT NULL,
+    description TEXT NOT NULL
+);
+```
+
+### 6.2 Relational Tables (v2 Unified Schema)
+
+```sql
+-- 1. Completed & Logged Trips
+CREATE TABLE IF NOT EXISTS trips (
+    trip_id INTEGER PRIMARY KEY,
+    student_id TEXT NOT NULL,
+    trip_date TEXT NOT NULL,
+    time_out TEXT NOT NULL,
+    time_in TEXT NOT NULL,
+    duration_seconds INTEGER NOT NULL,
+    status TEXT NOT NULL,               -- 'COMPLETED' | 'MANUAL_RESET'
+    synced_at TEXT NOT NULL DEFAULT (datetime('now')),
+    terminal_id TEXT DEFAULT 'DEFAULT'
+);
+CREATE INDEX IF NOT EXISTS idx_trips_date ON trips(trip_date);
+CREATE INDEX IF NOT EXISTS idx_trips_student ON trips(student_id);
+
+-- 2. Classroom Profiles
+CREATE TABLE IF NOT EXISTS profiles (
+    profile_id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    is_active INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+-- 3. Student Roster (Scoped per Profile)
+CREATE TABLE IF NOT EXISTS roster_students (
+    student_id TEXT NOT NULL,
+    profile_id TEXT NOT NULL,
+    first_name TEXT NOT NULL,
+    last_name TEXT NOT NULL,
+    grade TEXT,
+    class_period TEXT,
+    PRIMARY KEY (student_id, profile_id),
+    FOREIGN KEY (profile_id) REFERENCES profiles(profile_id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_roster_name ON roster_students(last_name, first_name);
+
+-- 4. Terminal Associations & Config
+CREATE TABLE IF NOT EXISTS terminals (
+    terminal_id TEXT PRIMARY KEY,
+    custom_name TEXT NOT NULL,
+    ble_address TEXT,
+    last_seen_at TEXT,
+    max_id_length INTEGER DEFAULT 10
+);
+
+-- 5. Classroom Policies
+CREATE TABLE IF NOT EXISTS policy_rules (
+    rule_id TEXT PRIMARY KEY,
+    profile_id TEXT NOT NULL,
+    max_simultaneous_passes INTEGER DEFAULT 1,
+    duration_warning_seconds INTEGER DEFAULT 420,
+    max_daily_passes_per_student INTEGER DEFAULT 3,
+    lockout_start_minutes INTEGER DEFAULT 10,
+    lockout_end_minutes INTEGER DEFAULT 10,
+    FOREIGN KEY (profile_id) REFERENCES profiles(profile_id) ON DELETE CASCADE
+);
+```
+
+---
+
+## 7. Security, Privacy & Compliance Boundaries
+
+1. **FERPA Compliance:** Student names, grades, and profile information are stored exclusively within the local SQLite database. No roster data is transmitted over the air.
+2. **Bluetooth Hygiene:** Bluetooth advertising packets contain only the device name (`Hallzee`) and standard 128-bit service UUIDs. No telemetry or student IDs are broadcast in advertising payloads.
+3. **Local Encryption & Permissions:** Database files are stored with standard user-level file permissions. On multi-user school computers, data is isolated per Windows user profile.
+4. **Log Sanitization:** Diagnostic logging libraries must filter student IDs and student names, logging only transaction outcome codes and byte counts.
+
+---
+
+## 8. Verification & Platform Testing Matrix
+
+In compliance with the project documentation policy (`AGENTS.md`), the testing requirements for all architectural subsystems are declared below:
+
+| Architectural Component | macOS Testing | Windows Testing | Hardware Required | Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| **React Prototype UI (`preview-site`)** | Sufficient | Optional | No | Full preview & mock testing available in browser. |
+| **C# Domain Logic & ViewModels** | Sufficient | Optional | No | Fully tested via `dotnet test` on .NET 8 (macOS & Linux). |
+| **SQLite Schema & Migrations** | Sufficient | Optional | No | Validated via cross-platform SQLite unit tests. |
+| **WinRT Bluetooth Discovery & GATT** | **Not Usable** | **Required** | **Yes (BLE PC)** | Windows-specific WinRT BLE stack requires a Windows 10/11 host. |
+| **Physical ESP32 Kiosk Firmware** | **Not Usable** | **Required** | **Yes (ESP32 Kiosk)** | End-to-end BLE pairing, chunking, and flash sync requires physical hardware. |

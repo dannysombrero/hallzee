@@ -1,6 +1,7 @@
 "use client";
 
-import { Bluetooth, Loader2, Radio, Signal, X } from "./Icons";
+import Image from "next/image";
+import { Loader2, Radio, Signal, X } from "./Icons";
 import { useHallzee } from "../HallzeeProvider";
 
 export default function TerminalSearchDialog() {
@@ -39,8 +40,14 @@ export default function TerminalSearchDialog() {
         {/* Header */}
         <div className="flex items-center justify-between border-b border-sky-100 pb-3.5">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-2xl bg-gradient-to-tr from-sky-500 to-cyan-400 text-white flex items-center justify-center shadow-md shadow-sky-500/20 shrink-0">
-              <Bluetooth className="w-5 h-5" />
+            <div className="h-10 w-10 rounded-2xl bg-white border border-sky-200/80 p-1 flex items-center justify-center shadow-md shadow-sky-500/10 shrink-0">
+              <Image
+                src="/hallzee-logo.png"
+                alt="Hallzee Logo"
+                width={36}
+                height={36}
+                className="w-full h-full object-contain"
+              />
             </div>
             <div>
               <h2 id="terminal-search-title" className="font-extrabold text-slate-900 text-base">

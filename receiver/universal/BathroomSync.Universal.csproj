@@ -22,4 +22,7 @@
   <ItemGroup Condition="'$(OS)' == 'Windows_NT'">
     <Compile Include="../windows/BluetoothConnectionManager.cs" Link="Platforms/BluetoothConnectionManager.cs" />
   </ItemGroup>
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\**" />
+  </ItemGroup>
 </Project>

@@ -27,8 +27,9 @@ export const metadata: Metadata = {
     images: ["/og.png"],
   },
   icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
+    icon: "/hallzee-logo.png",
+    shortcut: "/hallzee-logo.png",
+    apple: "/hallzee-logo.png",
   },
 };
 

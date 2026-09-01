@@ -7,7 +7,9 @@ constexpr char CLOCK_CODE[] = "1234";
 constexpr char LOG_SUMMARY_CODE[] = "9999";
 constexpr char BLUETOOTH_DEVICE_NAME[] = "Hallzee";
 constexpr int MAX_BLUETOOTH_COMMAND_LENGTH = 48;
-constexpr int MAX_ID_LENGTH = 10;
+constexpr uint8_t MIN_STUDENT_ID_LENGTH = 4;
+constexpr uint8_t DEFAULT_STUDENT_ID_LENGTH = 10;
+constexpr uint8_t MAX_STUDENT_ID_LENGTH = 16;
 constexpr unsigned long RESET_HOLD_MS = 2000;
 
 // Display palette

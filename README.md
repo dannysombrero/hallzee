@@ -61,6 +61,8 @@ also set automatically when the receiver sends a valid `TIME` command.
 
 - Enter a student ID and press `#` to check out.
 - Enter the same ID and press `#` to check back in.
+- Use the Windows client's **Max student ID digits** control to configure a
+  persisted 4–16 digit limit; the firmware default is 10.
 - Press `*` to clear the in-progress ID.
 - Hold `*` and `#` together for two seconds to record a manual reset of an
   occupied pass.
@@ -70,8 +72,8 @@ also set automatically when the receiver sends a valid `TIME` command.
 
 ## Desktop sync
 
-The desktop transport is Bluetooth Low Energy GATT. On Windows, the .NET 8
-Avalonia receiver scans for Hallzee's service UUID, subscribes to notifications,
+The desktop transport is Bluetooth Low Energy GATT. On Windows, the published .NET 8
+WinForms receiver scans for Hallzee's service UUID, subscribes to notifications,
 and synchronizes directly without a COM port or pairing PIN. Normal syncs use
 the latest trip ID durably stored in the local SQLite database, so only newer
 records are transferred. Full history remains an explicit recovery operation.

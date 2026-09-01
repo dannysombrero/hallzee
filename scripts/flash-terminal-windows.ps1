@@ -10,7 +10,7 @@ $cli = Join-Path $cliDir "arduino-cli.exe"
 $esp32Index = "https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json"
 
 Write-Host @"
-Bathroom Terminal firmware flasher
+Hallzee firmware flasher
 
 Before continuing, make sure:
   - An original ESP32 terminal is connected with a USB data cable.
@@ -47,7 +47,7 @@ Write-Host "Installing the ESP32 board support and required libraries if needed�
 & $cli core install esp32:esp32 --additional-urls $esp32Index
 & $cli lib install "Adafruit GFX Library" "Adafruit ST7735 and ST7789 Library" Keypad
 
-Write-Host "Building and flashing Bathroom Terminal to $Port…"
+Write-Host "Building and flashing Hallzee to $Port…"
 & $cli compile --fqbn esp32:esp32:esp32 $ProjectRoot
 & $cli upload --fqbn esp32:esp32:esp32 --port $Port $ProjectRoot
-Write-Host "Done. The Bathroom Terminal firmware is now on the ESP32."
+Write-Host "Done. The Hallzee firmware is now on the ESP32."

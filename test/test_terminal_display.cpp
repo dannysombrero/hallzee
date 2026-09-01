@@ -549,9 +549,18 @@ void testBluetoothProtocolAndRecovery() {
   sync.poll();
   expectTrue(contains(serial.output, "TIME_ACK,ERROR") && contains(serial.output, "ERROR,UNKNOWN_COMMAND"), "invalid commands rejected");
 
+  serial.input = "SYNC_";
+  sync.poll();
   serial.connected = false;
   sync.poll();
   serial.connected = true;
+  serial.output.clear();
+  sync.poll();
+  serial.input = "ALL\n";
+  sync.poll();
+  expectTrue(contains(serial.output, "ERROR,UNKNOWN_COMMAND"),
+    "disconnect discards a fragmented command");
+
   serial.input = "SYNC_ALL\n";
   sync.poll();
   expectTrue(contains(serial.output, "TRIP,7,ID1,2026-01-01,08:00:00,08:10:00,600,COMPLETE,0"), "disconnect resets full history sync state");

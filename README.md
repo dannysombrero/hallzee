@@ -2,8 +2,7 @@
 
 Hallzee is an ESP32-based school bathroom sign-in terminal. Students
 enter an ID on a 3×4 keypad to check out and back in. The terminal stores trip
-records locally and can synchronize them to a desktop receiver over Bluetooth
-Classic Serial Port Profile (SPP).
+records locally and can synchronize them to a desktop receiver over Bluetooth Low Energy (BLE).
 
 ## Project layout
 
@@ -13,7 +12,7 @@ Classic Serial Port Profile (SPP).
 | `Config.h` | Product constants, pin assignments, and display palette |
 | `TerminalController.*` | Active-pass state, check-in/out, reset, and persistence decisions |
 | `ClockService.*` | System time setting, formatting, and date validation |
-| `BluetoothSync.*` | Bluetooth Classic SPP connection and record-sync protocol |
+| `BluetoothSync.*` | BLE GATT connection and incremental record-sync protocol |
 | `KeypadController.*` | Keypad events and the `* + #` reset gesture |
 | `TerminalDisplay.*` | TFT rendering only |
 | `TripStorage.*` | ESP32 Preferences and LittleFS trip-log persistence |
@@ -33,7 +32,7 @@ Classic Serial Port Profile (SPP).
 
 ## Hardware
 
-- ESP32 with Bluetooth Classic support
+- ESP32 with Bluetooth Low Energy support
 - ST7735 TFT display
 - 3×4 matrix keypad
 
@@ -41,8 +40,7 @@ The configured pins are documented in `Config.h` and in [WOKWI.md](WOKWI.md).
 
 ## Firmware build
 
-The firmware targets the original ESP32 family with Bluetooth Classic SPP
-available. Install the ESP32 Arduino core and these libraries:
+The firmware targets the original ESP32 family with Bluetooth Low Energy\navailable. Install the ESP32 Arduino core and these libraries:
 
 - Adafruit GFX Library
 - Adafruit ST7735 and ST7789 Library
@@ -71,12 +69,11 @@ also set automatically when the receiver sends a valid `TIME` command.
 
 ## Desktop sync
 
-The current desktop transport is Bluetooth Classic SPP/RFCOMM. On Windows, the
-.NET 8 WinForms receiver finds nearby `Hallzee` devices, pairs when
-needed, and opens the ESP32's standard Serial Port service directly. The user
-does not need to find or select a Bluetooth COM port. If Windows shows its
-pairing confirmation, accept it; the app supplies the terminal's configured
-PIN (`1234`) when Windows requests one.
+The desktop transport is Bluetooth Low Energy GATT. On Windows, the .NET 8
+Avalonia receiver scans for Hallzee's service UUID, subscribes to notifications,
+and synchronizes directly without a COM port or pairing PIN. Normal syncs use
+the latest trip ID durably stored in the local SQLite database, so only newer
+records are transferred. Full history remains an explicit recovery operation.
 
 See [Bluetooth protocol](docs/bluetooth-protocol.md) and
 [architecture](docs/architecture.md).

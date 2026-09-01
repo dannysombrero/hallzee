@@ -47,6 +47,16 @@ test("preserves the current demo behaviors behind the application provider", asy
   }
 });
 
+test("cancels terminal work safely and keeps the occupied duration live", async () => {
+  const source = await readFile(new URL("app/hallzee/HallzeeProvider.tsx", root), "utf8");
+
+  assert.match(source, /connectionTimerRef/);
+  assert.match(source, /setTerminalState\(previousState\)/);
+  assert.match(source, /setConnectingTerminalId\(null\)/);
+  assert.match(source, /trip\.status === "OCCUPIED"[\s\S]*durationSeconds: trip\.durationSeconds \+ 1/);
+  assert.match(source, /setActiveModal\(null\);[\s\S]*setTerminalState\("disconnected"\)/);
+});
+
 test("keeps the route and application entry points thin", async () => {
   const [page, app] = await Promise.all([
     readFile(new URL("app/page.tsx", root), "utf8"),

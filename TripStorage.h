@@ -4,6 +4,7 @@
 #include <Preferences.h>
 #include <time.h>
 
+#include "Config.h"
 #include "TripStoragePort.h"
 
 class TripStorage : public TripStoragePort {
@@ -13,6 +14,8 @@ public:
   void loadActiveCheckout(String &studentID, time_t &checkoutTime) override;
   bool saveActiveCheckout(const String &studentID, time_t checkoutTime) override;
   void clearActiveCheckout() override;
+  uint8_t getMaxStudentIdLength() const override;
+  SettingWriteResult setMaxStudentIdLength(uint8_t value) override;
 
   bool appendTripRecord(
     const String &studentID,
@@ -41,6 +44,7 @@ private:
   bool preferencesReady = false;
   bool littleFSReady = false;
   uint32_t nextTripID = 1;
+  uint8_t maxStudentIdLength = DEFAULT_STUDENT_ID_LENGTH;
 
   void initializeTripLogStorage();
   bool getDateAndTimeForTimestamp(

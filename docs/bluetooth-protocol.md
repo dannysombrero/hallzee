@@ -21,6 +21,8 @@ remain UTF-8, newline-delimited text. The Windows client divides writes into
 Client enables notifications
 Client -> HELLO,1
 Terminal -> HALLZEE_READY,1
+Client -> GET_SETTINGS
+Terminal -> SETTINGS,MAX_ID_LENGTH,<value>
 Client -> TIME_CURSOR,YYYY-MM-DD,HH:MM:SS,<last_durable_trip_id>
 Terminal -> TIME_ACK,OK
 Terminal -> SYNC_BEGIN,<count_after_cursor>
@@ -45,6 +47,8 @@ the retry a safe duplicate and ACKs it again.
 | Command | Meaning |
 | --- | --- |
 | `HELLO,1` | Request a versioned readiness response |
+| `GET_SETTINGS` | Read all supported persisted kiosk settings |
+| `SET,MAX_ID_LENGTH,<4-16>` | Persist the maximum accepted student-ID length |
 | `TIME_CURSOR,...,<id>` | Set local time and send records with trip ID greater than `id` |
 | `TIME,...` | Legacy compatibility: set time and send records whose terminal sync flag is unset |
 | `SYNC_START` | Legacy compatibility: send records whose terminal sync flag is unset |
@@ -59,6 +63,9 @@ Carriage returns are ignored.
 | Message | Meaning |
 | --- | --- |
 | `HALLZEE_READY,1` | BLE notifications and protocol version 1 are usable |
+| `SETTINGS,MAX_ID_LENGTH,<value>` | Current persisted maximum student-ID length |
+| `SETTINGS_ACK,MAX_ID_LENGTH,<value>` | Setting was saved successfully |
+| `SETTINGS_ERROR,MAX_ID_LENGTH,<reason>` | Setting was rejected without changing the stored value |
 | `TIME_ACK,OK` / `TIME_ACK,ERROR` | Result of a time or cursor command |
 | `SYNC_BEGIN,<count>` | A sequence started with the expected record count |
 | `TRIP,<record>` | Next record; the first CSV field is the trip ID |
@@ -67,6 +74,19 @@ Carriage returns are ignored.
 | `ACK_ERROR,UNEXPECTED_ID` | ACK did not match the pending trip |
 | `ACK_ERROR,MARK_FAILED` | Legacy unsynced mode could not persist its sync flag |
 | `ERROR,UNKNOWN_COMMAND` | Command was not recognized |
+
+## Kiosk settings
+
+The first persisted kiosk setting is `MAX_ID_LENGTH`. Its default is 10 and
+its accepted range is 4–16. The lower bound preserves access to the four-digit
+local administrator codes. The firmware rejects a shorter value while an
+active checkout has a longer ID, returning `ACTIVE_ID_TOO_LONG`. Other error
+reasons are `INVALID_VALUE` and `STORAGE_UNAVAILABLE`.
+
+Reading settings is safe during every sync. Writing is always an explicit
+client action. Both settings commands and responses may exceed the default
+20-byte ATT payload and therefore use the same newline buffering and chunking
+as the rest of the protocol.
 
 ## Recovery and compatibility
 

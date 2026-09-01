@@ -1,5 +1,5 @@
 "use client";
-import { Bluetooth, Radio, Save, Search } from "lucide-react";
+import { Bluetooth, Radio, Save, Search } from "../components/Icons";
 import { useState } from "react";
 import { useHallzee } from "../HallzeeProvider";
 

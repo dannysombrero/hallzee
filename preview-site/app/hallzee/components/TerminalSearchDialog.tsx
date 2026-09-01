@@ -1,5 +1,5 @@
 "use client";
-import { Bluetooth, Loader2, Radio, Signal, X } from "lucide-react";
+import { Bluetooth, Loader2, Radio, Signal, X } from "./Icons";
 import { useHallzee } from "../HallzeeProvider";
 
 export default function TerminalSearchDialog() {

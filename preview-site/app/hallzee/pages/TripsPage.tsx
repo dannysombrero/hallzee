@@ -1,5 +1,5 @@
 "use client";
-import { ArrowUpDown, Download, Search } from "lucide-react";
+import { ArrowUpDown, Download, Search } from "../components/Icons";
 import { useMemo, useState } from "react";
 import { useHallzee } from "../HallzeeProvider";
 import type { Trip } from "../types";

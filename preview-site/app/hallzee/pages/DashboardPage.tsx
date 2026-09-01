@@ -1,5 +1,5 @@
 "use client";
-import { ChevronRight, Download, Radio, RefreshCw, ShieldCheck, UserCheck, UserX, Users, WifiOff } from "lucide-react";
+import { ChevronRight, Download, Radio, RefreshCw, ShieldCheck, UserCheck, UserX, Users, WifiOff } from "../components/Icons";
 import { useHallzee } from "../HallzeeProvider";
 
 const duration = (seconds: number) => `${Math.floor(seconds / 60)}m ${String(seconds % 60).padStart(2, "0")}s`;

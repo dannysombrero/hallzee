@@ -1,6 +1,6 @@
 "use client";
 
-import { Calendar, History, Laptop, Minus, Radio, Settings, Square, Users, Droplets } from "lucide-react";
+import { Calendar, History, Laptop, Minus, Radio, Settings, Square, Users, Droplets } from "./Icons";
 import { useHallzee } from "../HallzeeProvider";
 import type { View } from "../types";
 import DashboardPage from "../pages/DashboardPage";

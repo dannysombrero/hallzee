@@ -231,6 +231,20 @@ void testEmptyIdEntryGoldenInstructions() {
   }, "empty ID field golden instructions");
 }
 
+void testLongIdEntryUsesCompactText() {
+  RecordingDisplay display;
+  TerminalDisplay terminal(display);
+  terminal.drawIdEntry("1234567890123456");
+
+  expectEqual(display.commands, {
+    "fillRect:13:79:134:17:59196",
+    "setTextColor:8484",
+    "setTextSize:1",
+    "setCursor:16:83",
+    "print:1234567890123456"
+  }, "long ID entry compact instructions");
+}
+
 void testOccupiedIdleScreenGoldenInstructions() {
   RecordingDisplay display;
   TerminalDisplay terminal(display);
@@ -692,6 +706,7 @@ void testCheckedOutScreenIncludesDurationInstruction() {
 
 int main() {
   testEmptyIdEntryGoldenInstructions();
+  testLongIdEntryUsesCompactText();
   testOccupiedIdleScreenGoldenInstructions();
   testClockSetupStepUsesCorrectPromptAndHint();
   testCheckedOutScreenIncludesDurationInstruction();

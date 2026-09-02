@@ -743,6 +743,17 @@ hardware identifiers.
 
 ## 14. Required Automated Tests
 
+Run these repository commands before requesting human hardware verification:
+
+    arduino-cli compile --fqbn esp32:esp32:esp32 .
+    make -C test coverage
+    dotnet test receiver/windows/BathroomSync.Tests/BathroomSync.Tests.csproj
+    dotnet test receiver/universal.tests/BathroomSync.Universal.Tests.csproj
+
+If the clean computer does not have the required toolchain, use the project flash
+or setup scripts documented in docs/testing-and-installation.md rather than
+assuming Git, .NET, Arduino CLI, board packages, or libraries are preinstalled.
+
 At minimum, add these named scenarios:
 
 - TerminalIdentityProtocolTests.ParsesValidIdentityAndRejectsInvalidFields

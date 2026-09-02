@@ -792,13 +792,22 @@ void setup() {
   tft.setRotation(1);
 
   tft.fillScreen(ST77XX_BLACK);
-  tft.fillRoundRect(28, 18, 104, 88, 18, ST77XX_ORANGE);
-  tft.fillCircle(80, 43, 12, ST77XX_WHITE);
-  tft.fillRoundRect(52, 58, 56, 28, 8, ST77XX_WHITE);
-  tft.setTextColor(ST77XX_WHITE);
-  tft.setTextSize(2);
-  tft.setCursor(35, 118);
-  tft.println("HALLZEE");
+  // Compact Hallzee favicon: paired chevrons around the center passage arrow.
+  const uint16_t logoGreen = tft.color565(118, 220, 40);
+  const uint16_t logoBlue = tft.color565(2, 132, 199);
+  tft.fillTriangle(43, 30, 57, 38, 57, 50, logoGreen);
+  tft.fillTriangle(43, 66, 57, 58, 57, 78, logoBlue);
+  tft.fillTriangle(117, 30, 103, 38, 103, 50, logoGreen);
+  tft.fillTriangle(117, 66, 103, 58, 103, 78, logoBlue);
+  tft.fillTriangle(55, 54, 69, 42, 91, 42, ST77XX_WHITE);
+  tft.fillTriangle(105, 54, 91, 42, 69, 42, ST77XX_WHITE);
+  tft.fillTriangle(55, 54, 69, 66, 91, 66, ST77XX_WHITE);
+  tft.fillTriangle(105, 54, 91, 66, 69, 66, ST77XX_WHITE);
+  tft.fillTriangle(63, 54, 74, 47, 74, 52, logoBlue);
+  tft.fillTriangle(97, 54, 86, 47, 86, 52, logoGreen);
+  tft.fillRect(74, 52, 12, 5, logoBlue);
+  tft.fillTriangle(97, 54, 86, 61, 86, 56, logoGreen);
+  tft.fillRect(74, 56, 12, 5, logoGreen);
 
   delay(800);
 

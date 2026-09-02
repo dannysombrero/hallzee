@@ -106,7 +106,7 @@
                   <TextBlock Text="{Binding DisplayName, StringFormat='{}{0} is Out of Class'}" FontSize="22" FontWeight="Black" Foreground="#0F172A" />
                   <TextBlock Text="{Binding TimeOut, StringFormat='Departed at {0}.'}" FontSize="13" Foreground="#475569" FontWeight="Medium" />
                 </StackPanel>
-                <Border Grid.Column="2" Background="White" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="18" Padding="18,12" MinWidth="160">
+                <Border Grid.Column="2" Background="White" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="18" Padding="18,12" MinWidth="260">
                   <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                   <StackPanel Spacing="2">
                     <TextBlock Text="TRIP ELAPSED" FontSize="10" FontWeight="Bold" Foreground="#94A3B8" LetterSpacing="0.5" />

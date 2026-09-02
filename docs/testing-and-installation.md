@@ -128,6 +128,9 @@ On macOS, Connect & Sync waits until CoreBluetooth confirms that terminal
 notifications are enabled before sending any sync commands. If this readiness
 handshake does not complete within 15 seconds, the app reports a connection
 failure instead of silently dropping the first commands.
+On Windows, Connect & Sync records whether the terminal advertises with a Random
+or Public BLE address type and applies a 15-second handshake timeout with automatic
+address-type fallback before establishing GATT subscriptions.
 
 ### Firmware and display behavior
 

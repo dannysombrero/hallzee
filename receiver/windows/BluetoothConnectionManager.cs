@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -16,6 +17,9 @@ sealed class BluetoothConnectionManager : ITerminalConnection {
   static readonly Guid TxUuid = Guid.Parse("44a359f3-9215-4189-a3cb-e7ce18ad40d6");
   static readonly Guid RxUuid = Guid.Parse("e80f9559-49eb-47bc-af04-8e92e98ced56");
   static readonly TimeSpan DiscoveryWindow = TimeSpan.FromSeconds(4);
+  static readonly TimeSpan HandshakeTimeout = TimeSpan.FromSeconds(15);
+
+  static readonly ConcurrentDictionary<ulong, BluetoothAddressType> DiscoveredAddressTypes = new();
 
   readonly SemaphoreSlim writeLock = new(1, 1);
   BluetoothLEDevice? bluetoothDevice;
@@ -23,6 +27,7 @@ sealed class BluetoothConnectionManager : ITerminalConnection {
   GattCharacteristic? txCharacteristic;
   GattCharacteristic? rxCharacteristic;
   bool isDisconnecting;
+  bool isConnecting;
 
   public event EventHandler<string>? TextReceived;
   public event EventHandler<string>? ConnectionLost;
@@ -35,7 +40,9 @@ sealed class BluetoothConnectionManager : ITerminalConnection {
       ScanningMode = BluetoothLEScanningMode.Active
     };
     watcher.AdvertisementFilter.Advertisement.ServiceUuids.Add(ServiceUuid);
-    watcher.Received += (_, args) => {
+
+    void OnAdvertisementReceived(BluetoothLEAdvertisementWatcher _, BluetoothLEAdvertisementReceivedEventArgs args) {
+      DiscoveredAddressTypes[args.BluetoothAddress] = args.BluetoothAddressType;
       var name = string.IsNullOrWhiteSpace(args.Advertisement.LocalName)
         ? TerminalName
         : args.Advertisement.LocalName;
@@ -44,13 +51,15 @@ sealed class BluetoothConnectionManager : ITerminalConnection {
           args.BluetoothAddress.ToString("X12"), name, false
         );
       }
-    };
+    }
 
+    watcher.Received += OnAdvertisementReceived;
     watcher.Start();
     try {
       await Task.Delay(DiscoveryWindow);
     } finally {
       watcher.Stop();
+      watcher.Received -= OnAdvertisementReceived;
     }
 
     lock (found) return found.Values.ToList();
@@ -58,46 +67,101 @@ sealed class BluetoothConnectionManager : ITerminalConnection {
 
   public async Task ConnectAsync(TerminalDevice terminal) {
     await DisconnectAsync();
-    if (!ulong.TryParse(terminal.Id, System.Globalization.NumberStyles.HexNumber, null, out var address))
+    var cleanId = terminal.Id.Replace(":", "").Replace("-", "").Trim();
+    if (!ulong.TryParse(cleanId, System.Globalization.NumberStyles.HexNumber, null, out var address))
       throw new InvalidOperationException("The saved kiosk Bluetooth address is invalid.");
 
+    isConnecting = true;
     try {
-      bluetoothDevice = await BluetoothLEDevice.FromBluetoothAddressAsync(address)
-        ?? throw new InvalidOperationException("Windows could not open Hallzee over BLE.");
+      // Determine preferred address type. ESP32 BLE peripherals predominantly use Random address.
+      // If we discovered the device in this session, use its reported address type; otherwise default to Random.
+      var primaryType = DiscoveredAddressTypes.TryGetValue(address, out var type) && type != BluetoothAddressType.Unspecified
+        ? type
+        : BluetoothAddressType.Random;
+      var fallbackType = primaryType == BluetoothAddressType.Random
+        ? BluetoothAddressType.Public
+        : BluetoothAddressType.Random;
+
+      Exception? firstException = null;
+      try {
+        using var cts = new CancellationTokenSource(HandshakeTimeout);
+        await AttemptConnectAsync(address, primaryType, cts.Token);
+      } catch (Exception ex) {
+        firstException = ex;
+        await CleanupFailedConnectionAsync();
+      }
+
+      if (bluetoothDevice is null && firstException is not null) {
+        try {
+          using var cts = new CancellationTokenSource(HandshakeTimeout);
+          await AttemptConnectAsync(address, fallbackType, cts.Token);
+        } catch (Exception ex) {
+          await CleanupFailedConnectionAsync();
+          throw new InvalidOperationException(
+            $"BLE connection failed: {DescribeException(firstException)} (retry with {fallbackType}: {DescribeException(ex)})",
+            ex
+          );
+        }
+      }
+
+      if (bluetoothDevice is null) {
+        throw new InvalidOperationException("Windows could not open Hallzee over BLE.");
+      }
+
+      // Attach disconnection monitor ONLY after the full handshake and notification enablement succeeded.
       bluetoothDevice.ConnectionStatusChanged += HandleConnectionStatusChanged;
-
-      // The advertisement is available before Windows has populated its GATT cache.
-      // Reading uncached here both establishes the link and avoids a stale/missing
-      // service result on a first-time BLE connection.
-      var services = await bluetoothDevice.GetGattServicesForUuidAsync(ServiceUuid, BluetoothCacheMode.Uncached);
-      if (services.Status != GattCommunicationStatus.Success || services.Services.Count == 0)
-        throw ConnectionFailure("reading the Hallzee BLE sync service", services.Status, services.ProtocolError);
-      service = services.Services[0];
-
-      var access = await service.RequestAccessAsync();
-      if (access != Windows.Devices.Enumeration.DeviceAccessStatus.Allowed)
-        throw new InvalidOperationException($"Windows denied access to Hallzee's BLE service ({access}).");
-
-      var txResult = await service.GetCharacteristicsForUuidAsync(TxUuid, BluetoothCacheMode.Uncached);
-      if (txResult.Status != GattCommunicationStatus.Success || txResult.Characteristics.Count == 0)
-        throw ConnectionFailure("reading the terminal-to-PC characteristic", txResult.Status, txResult.ProtocolError);
-
-      var rxResult = await service.GetCharacteristicsForUuidAsync(RxUuid, BluetoothCacheMode.Uncached);
-      if (rxResult.Status != GattCommunicationStatus.Success || rxResult.Characteristics.Count == 0)
-        throw ConnectionFailure("reading the PC-to-terminal characteristic", rxResult.Status, rxResult.ProtocolError);
-
-      txCharacteristic = txResult.Characteristics[0];
-      rxCharacteristic = rxResult.Characteristics[0];
-      txCharacteristic.ValueChanged += HandleValueChanged;
-      var notifyStatus = await txCharacteristic.WriteClientCharacteristicConfigurationDescriptorAsync(
-        GattClientCharacteristicConfigurationDescriptorValue.Notify
-      );
-      if (notifyStatus != GattCommunicationStatus.Success)
-        throw new InvalidOperationException($"Windows could not subscribe to Hallzee updates ({notifyStatus}). Check that the terminal firmware includes the BLE notification descriptor.");
-    } catch (Exception exception) {
+    } catch (Exception exception) when (exception is not InvalidOperationException) {
       await DisconnectAsync();
       throw new InvalidOperationException($"BLE connection failed: {DescribeException(exception)}", exception);
+    } finally {
+      isConnecting = false;
     }
+  }
+
+  async Task AttemptConnectAsync(ulong address, BluetoothAddressType addressType, CancellationToken cancellationToken) {
+    var dev = await BluetoothLEDevice.FromBluetoothAddressAsync(address, addressType).AsTask(cancellationToken)
+      ?? throw new InvalidOperationException($"Windows could not open Hallzee device ({addressType}).");
+    bluetoothDevice = dev;
+
+    // The advertisement is available before Windows has populated its GATT cache.
+    // Reading uncached here both establishes the link and avoids a stale/missing
+    // service result on a first-time BLE connection.
+    var services = await dev.GetGattServicesForUuidAsync(ServiceUuid, BluetoothCacheMode.Uncached).AsTask(cancellationToken);
+    if (services.Status != GattCommunicationStatus.Success || services.Services.Count == 0)
+      throw ConnectionFailure("reading the Hallzee BLE sync service", services.Status, services.ProtocolError);
+    service = services.Services[0];
+
+    var access = await service.RequestAccessAsync().AsTask(cancellationToken);
+    if (access != Windows.Devices.Enumeration.DeviceAccessStatus.Allowed)
+      throw new InvalidOperationException($"Windows denied access to Hallzee's BLE service ({access}).");
+
+    var txResult = await service.GetCharacteristicsForUuidAsync(TxUuid, BluetoothCacheMode.Uncached).AsTask(cancellationToken);
+    if (txResult.Status != GattCommunicationStatus.Success || txResult.Characteristics.Count == 0)
+      throw ConnectionFailure("reading the terminal-to-PC characteristic", txResult.Status, txResult.ProtocolError);
+
+    var rxResult = await service.GetCharacteristicsForUuidAsync(RxUuid, BluetoothCacheMode.Uncached).AsTask(cancellationToken);
+    if (rxResult.Status != GattCommunicationStatus.Success || rxResult.Characteristics.Count == 0)
+      throw ConnectionFailure("reading the PC-to-terminal characteristic", rxResult.Status, rxResult.ProtocolError);
+
+    txCharacteristic = txResult.Characteristics[0];
+    rxCharacteristic = rxResult.Characteristics[0];
+    txCharacteristic.ValueChanged += HandleValueChanged;
+    var notifyStatus = await txCharacteristic.WriteClientCharacteristicConfigurationDescriptorAsync(
+      GattClientCharacteristicConfigurationDescriptorValue.Notify
+    ).AsTask(cancellationToken);
+    if (notifyStatus != GattCommunicationStatus.Success)
+      throw new InvalidOperationException($"Windows could not subscribe to Hallzee updates ({notifyStatus}). Check that the terminal firmware includes the BLE notification descriptor.");
+  }
+
+  Task CleanupFailedConnectionAsync() {
+    if (txCharacteristic is not null) txCharacteristic.ValueChanged -= HandleValueChanged;
+    txCharacteristic = null;
+    rxCharacteristic = null;
+    service?.Dispose();
+    bluetoothDevice?.Dispose();
+    service = null;
+    bluetoothDevice = null;
+    return Task.CompletedTask;
   }
 
   static InvalidOperationException ConnectionFailure(string action, GattCommunicationStatus status, byte? protocolError) {
@@ -112,7 +176,8 @@ sealed class BluetoothConnectionManager : ITerminalConnection {
 
   public async Task SendAsync(string command) {
     if (rxCharacteristic is null) throw new InvalidOperationException("Hallzee is not connected.");
-    var bytes = Encoding.UTF8.GetBytes(command + "\n");
+    var normalized = command.EndsWith('\n') ? command : command + "\n";
+    var bytes = Encoding.UTF8.GetBytes(normalized);
 
     await writeLock.WaitAsync();
     try {
@@ -121,12 +186,16 @@ sealed class BluetoothConnectionManager : ITerminalConnection {
       for (var offset = 0; offset < bytes.Length; offset += 20) {
         var length = Math.Min(20, bytes.Length - offset);
         using var writer = new DataWriter();
-        writer.WriteBytes(bytes.Skip(offset).Take(length).ToArray());
+        writer.WriteBytes(bytes.AsSpan(offset, length).ToArray());
         var result = await rxCharacteristic.WriteValueWithResultAsync(
           writer.DetachBuffer(), GattWriteOption.WriteWithoutResponse
         );
         if (result.Status != GattCommunicationStatus.Success)
           throw new InvalidOperationException($"BLE write failed ({result.Status}).");
+
+        if (offset + 20 < bytes.Length) {
+          await Task.Delay(15);
+        }
       }
     } finally {
       writeLock.Release();
@@ -142,8 +211,9 @@ sealed class BluetoothConnectionManager : ITerminalConnection {
   }
 
   void HandleConnectionStatusChanged(BluetoothLEDevice sender, object args) {
-    if (isDisconnecting ||
-        !ReferenceEquals(sender, bluetoothDevice) ||
+    if (isDisconnecting || isConnecting ||
+        bluetoothDevice is null ||
+        sender.BluetoothAddress != bluetoothDevice.BluetoothAddress ||
         sender.ConnectionStatus != BluetoothConnectionStatus.Disconnected) return;
 
     ConnectionLost?.Invoke(this, "Hallzee disconnected.");

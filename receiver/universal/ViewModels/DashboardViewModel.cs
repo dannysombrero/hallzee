@@ -59,7 +59,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged {
     var filter = new TripQueryFilter(
       SearchText: string.IsNullOrWhiteSpace(QuickSearchText) ? null : QuickSearchText.Trim(),
       ProfileId: profileId,
-      Limit: 15
+      Limit: 15,
+      OrderBy: "activity DESC"
     );
     var raw = tripRepository.QueryTrips(filter);
 

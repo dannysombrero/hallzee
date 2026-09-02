@@ -60,6 +60,17 @@ public sealed class MainViewModelTests : IDisposable {
   }
 
   [Fact]
+  public void ExportTripsOpensTheHistoryPanel() {
+    var exportPath = Path.Combine(tempFolder, "hallzee_trips.csv");
+
+    viewModel.ExportTrips(exportPath);
+
+    Assert.True(File.Exists(exportPath));
+    Assert.True(viewModel.IsTripsModalVisible);
+    Assert.Equal("Trips", viewModel.ActiveModal);
+  }
+
+  [Fact]
   public async Task ConnectAndSyncWorkflowUpdatesConnectionAndStatus() {
     await viewModel.FindTerminalsModal.ScanAsync();
     Assert.NotEmpty(viewModel.FindTerminalsModal.Devices);

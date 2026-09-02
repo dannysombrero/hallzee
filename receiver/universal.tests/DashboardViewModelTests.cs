@@ -34,13 +34,16 @@ public sealed class DashboardViewModelTests : IDisposable {
     var today = DateTime.UtcNow.ToString("yyyy-MM-dd");
     var result = tripRepository.Store($"1,10482,{today},09:00:00,09:06:00,360,COMPLETED");
     Assert.Equal(TripStoreResult.Saved, result);
+    result = tripRepository.Store($"2,10483,{today},10:00:00,10:11:00,660,COMPLETED");
+    Assert.Equal(TripStoreResult.Saved, result);
 
     viewModel.Refresh("default");
 
-    Assert.Equal(1, viewModel.TotalTripsToday);
-    Assert.Equal(6.0, viewModel.AverageDurationMinutes);
-    Assert.Equal("6.0 min", viewModel.AverageDurationFormatted);
-    Assert.Single(viewModel.RecentTrips);
-    Assert.Equal("10482", viewModel.RecentTrips[0].StudentId);
+    Assert.Equal(2, viewModel.TotalTripsToday);
+    Assert.Equal(8.5, viewModel.AverageDurationMinutes);
+    Assert.Equal("8.5 min", viewModel.AverageDurationFormatted);
+    Assert.Equal(2, viewModel.RecentTrips.Count);
+    Assert.Equal("10483", viewModel.RecentTrips[0].StudentId);
+    Assert.Equal("10482", viewModel.RecentTrips[1].StudentId);
   }
 }

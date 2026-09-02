@@ -218,8 +218,13 @@ class Program
         
         public void Send(string data)
         {
-            if (targetPeripheral == null || rxCharacteristic == null) return;
-            if (!data.EndsWith("\n")) data += "\n";
+            if (targetPeripheral == null || rxCharacteristic == null)
+            {
+                EmitEvent("Error", new { Message = "BLE write requested before the terminal was ready." });
+                return;
+            }
+
+            data = data.TrimEnd('\r', '\n') + "\n";
             var bytes = Encoding.UTF8.GetBytes(data);
             
             for (var offset = 0; offset < bytes.Length; offset += 20)
@@ -237,7 +242,16 @@ class Program
     {
         public override void DiscoveredService(CBPeripheral peripheral, NSError? error)
         {
-            if (error != null || peripheral.Services == null) return;
+            if (error != null)
+            {
+                EmitEvent("Error", new { Message = $"BLE service discovery failed: {error.LocalizedDescription}" });
+                return;
+            }
+            if (peripheral.Services == null)
+            {
+                EmitEvent("Error", new { Message = "Hallzee did not expose any BLE services." });
+                return;
+            }
             
             foreach (var service in peripheral.Services)
             {
@@ -250,7 +264,16 @@ class Program
         
         public override void DiscoveredCharacteristics(CBPeripheral peripheral, CBService service, NSError? error)
         {
-            if (error != null || service.Characteristics == null) return;
+            if (error != null)
+            {
+                EmitEvent("Error", new { Message = $"BLE characteristic discovery failed: {error.LocalizedDescription}" });
+                return;
+            }
+            if (service.Characteristics == null)
+            {
+                EmitEvent("Error", new { Message = "Hallzee did not expose the expected BLE characteristics." });
+                return;
+            }
             
             foreach (var charac in service.Characteristics)
             {
@@ -264,11 +287,20 @@ class Program
                     rxCharacteristic = charac;
                 }
             }
+
+            if (txCharacteristic == null || rxCharacteristic == null)
+            {
+                EmitEvent("Error", new { Message = "Hallzee's BLE service is missing its TX or RX characteristic." });
+            }
         }
         
         public override void UpdatedNotificationState(CBPeripheral peripheral, CBCharacteristic characteristic, NSError? error)
         {
-            if (error != null) return;
+            if (error != null)
+            {
+                EmitEvent("Error", new { Message = $"BLE notification subscription failed: {error.LocalizedDescription}" });
+                return;
+            }
             
             if (characteristic.UUID.Equals(TxUuid) && characteristic.IsNotifying)
             {

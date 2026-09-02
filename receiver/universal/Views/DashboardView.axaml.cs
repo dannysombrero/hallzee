@@ -1,3 +1,4 @@
+using System;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using BathroomSync.Universal.ViewModels;
@@ -63,14 +64,26 @@ public partial class DashboardView : UserControl {
     }
   }
 
-  void OnExportCsvClick(object? sender, RoutedEventArgs e) {
-    if (DataContext is MainViewModel vm) {
-      var exportPath = Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-        "Downloads",
-        $"hallzee_trips_{DateTime.Now:yyyyMMdd_HHmmss}.csv"
-      );
-      vm.ExportTrips(exportPath);
+  async void OnExportCsvClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is not MainViewModel vm) return;
+
+    var topLevel = TopLevel.GetTopLevel(this);
+    if (topLevel == null) return;
+
+    var file = await topLevel.StorageProvider.SaveFilePickerAsync(new Avalonia.Platform.Storage.FilePickerSaveOptions {
+      Title = "Export Hall Pass Trips",
+      SuggestedFileName = $"hallzee_trips_{DateTime.Now:yyyyMMdd_HHmmss}.csv",
+      DefaultExtension = "csv",
+      FileTypeChoices = new[] {
+        new Avalonia.Platform.Storage.FilePickerFileType("CSV Files (*.csv)") {
+          Patterns = new[] { "*.csv" }
+        }
+      }
+    });
+
+    if (file != null) {
+      var exportPath = file.Path.LocalPath;
+      vm.ExportTrips(exportPath, openModal: false);
     }
   }
 }

@@ -34,6 +34,7 @@ records locally and can synchronize them to a desktop receiver over Bluetooth Lo
   - [Live Active-Pass Protocol](docs/design/active-pass-protocol.md) — Real-time BLE query/event stream for live pass monitoring.
   - [Classroom Policies & Bell Schedules](docs/design/policy-and-schedules.md) — Pass limits, 10/10 lockout rules, and timetable engine.
   - [Background Auto-Sync](docs/design/auto-sync.md) — Autonomous connection management and channel arbitration.
+  - [Terminal Identity & Exclusive Claim](docs/design/terminal-identity-and-exclusive-claim.md) — Stable kiosk IDs, one-owner authorization, safe multi-terminal storage, and implementation plan.
 
 ## Hardware
 

@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using BathroomSync.Core;
+using BathroomSync.Universal.Services;
 
 namespace BathroomSync.Universal.ViewModels;
 
@@ -17,7 +18,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
   string activeModal = "None";
   bool isConnected = false;
   bool isSyncing;
-  string lastSyncTimeText = "Today, 9:22 AM (4 mins ago)";
+  string lastSyncTimeText = "Never (No sync yet)";
   string connectedTerminalName = "Room 204 Door Kiosk (East-204)";
   string profileDetails = "Period 3 (9:15–10:05)";
   string profileTeacher = "Teacher: Dr. Aris Thorne";
@@ -54,8 +55,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
 
     // Initialize child viewmodels
     ActivePass = new ActivePassViewModel();
-    // Start with demo occupied pass matching React prototype initial state
-    ActivePass.SetOccupied("9042", "Marcus Sterling", DateTime.Now.AddMinutes(-57).AddSeconds(-13));
+    ActivePass.SetAvailable();
 
     Dashboard = new DashboardViewModel(tripRepository, rosterService, ActivePass);
     TripsModal = new TripsViewModel(tripRepository, rosterService);
@@ -149,6 +149,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
         OnPropertyChanged(nameof(TopStatusBadgeBackground));
         OnPropertyChanged(nameof(TopStatusBadgeForeground));
         OnPropertyChanged(nameof(TerminalAvatarBackground));
+        OnPropertyChanged(nameof(ConnectedTerminalName));
       }
     }
   }
@@ -161,9 +162,14 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
         OnPropertyChanged();
         OnPropertyChanged(nameof(ConnectionStatusText));
         OnPropertyChanged(nameof(TopStatusBadgeText));
+        OnPropertyChanged(nameof(TopStatusBadgeBackground));
+        OnPropertyChanged(nameof(TopStatusBadgeForeground));
+        OnPropertyChanged(nameof(SyncButtonText));
       }
     }
   }
+
+  public string SyncButtonText => IsSyncing ? "Syncing…" : "Sync Now";
 
   public string ConnectedTerminalName {
     get => isConnected ? connectedTerminalName : "No Terminal Connected";
@@ -234,6 +240,11 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
   }
 
   public async Task ConnectAndSyncAsync() {
+    var device = FindTerminalsModal.SelectedDevice;
+    if (device != null) {
+      connectedTerminalName = device.Name;
+    }
+
     var connected = await FindTerminalsModal.ConnectAsync();
     if (connected) {
       IsConnected = true;
@@ -263,6 +274,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
       LastSyncTimeText = $"Today, {DateTime.Now:h:mm tt} (just now)";
     } catch {
       IsConnected = false;
+      LastSyncTimeText = "Sync failed (Terminal offline)";
     } finally {
       IsSyncing = false;
       Dashboard.Refresh(ActiveProfile.ProfileId);
@@ -275,25 +287,14 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     ActivePass.SetAvailable();
   }
 
-  // Sandbox simulation actions matching prototype floating bar
-  public void ToggleSandboxConnection() {
-    if (IsConnected) {
-      _ = DisconnectAsync();
-    } else {
-      IsConnected = true;
-      LastSyncTimeText = $"Today, {DateTime.Now:h:mm tt} (just now)";
-    }
-  }
-
-  public void ToggleSandboxOccupancy() {
-    ActivePass.ToggleDemoOccupancy();
-  }
-
-  public void ToggleSandboxName() {
-    if (ActivePass.StudentName == "Marcus Sterling") {
-      ActivePass.SetOccupied("9042", null);
-    } else {
-      ActivePass.SetOccupied("9042", "Marcus Sterling");
+  public async Task CheckInActivePassAsync() {
+    if (ActivePass.IsOccupied && !string.IsNullOrEmpty(ActivePass.StudentId)) {
+      var studentId = ActivePass.StudentId;
+      ActivePass.SetAvailable();
+      if (connection is PreviewTerminalConnection preview) {
+        preview.SimulateCheckin(studentId);
+      }
+      await SyncNowAsync();
     }
   }
 

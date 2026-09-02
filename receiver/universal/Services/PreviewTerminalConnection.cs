@@ -13,9 +13,9 @@ public sealed class PreviewTerminalConnection : ITerminalConnection {
   public List<string> SentCommands { get; } = new();
 
   public async Task<IReadOnlyList<TerminalDevice>> DiscoverAsync() {
-    await Task.Delay(50);
+    await Task.Delay(600);
     return [
-      new TerminalDevice("preview-hallzee", "Hallzee", true)
+      new TerminalDevice("EAST-204", "Room 204 Door Kiosk (East-204)", true)
     ];
   }
 
@@ -46,13 +46,27 @@ public sealed class PreviewTerminalConnection : ITerminalConnection {
         TextReceived?.Invoke(this, "ACTIVE_PASS,NONE\n");
       }
     } else if (command.StartsWith("TIME_CURSOR,", StringComparison.Ordinal)) {
-      await Task.Delay(25);
-      TextReceived?.Invoke(this, "TIME_ACK,OK\nSYNC_BEGIN,0\nSYNC_END\n");
+      await Task.Delay(250);
+      var today = DateTime.Now.ToString("yyyy-MM-dd");
+      var parts = command.Split(',');
+      var lastId = parts.Length >= 4 && int.TryParse(parts[3].Trim(), out var idVal) ? idVal : 0;
+      if (lastId == 0) {
+        var payload = $"TIME_ACK,OK\n" +
+                      $"SYNC_BEGIN,4\n" +
+                      $"TRIP,1,9042,{today} 08:32:00,285,COMPLETED\n" +
+                      $"TRIP,2,10482,{today} 09:12:00,192,COMPLETED\n" +
+                      $"TRIP,3,8831,{today} 09:44:00,340,COMPLETED\n" +
+                      $"TRIP,4,11029,{today} 10:05:00,210,COMPLETED\n" +
+                      $"SYNC_END\n";
+        TextReceived?.Invoke(this, payload);
+      } else {
+        TextReceived?.Invoke(this, "TIME_ACK,OK\nSYNC_BEGIN,0\nSYNC_END\n");
+      }
     } else if (command.StartsWith("TIME,", StringComparison.Ordinal)) {
-      await Task.Delay(25);
+      await Task.Delay(100);
       TextReceived?.Invoke(this, "TIME_ACK,OK\nSYNC_BEGIN,0\nSYNC_END\n");
     } else if (command == "SYNC_ALL") {
-      await Task.Delay(25);
+      await Task.Delay(100);
       TextReceived?.Invoke(this, "SYNC_BEGIN,0\nSYNC_END\n");
     }
   }

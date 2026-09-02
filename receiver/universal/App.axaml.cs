@@ -19,10 +19,6 @@ public partial class App : Application {
   }
 
   static BathroomSync.Core.ITerminalConnection CreateConnection() {
-#if WINDOWS_BLUETOOTH
-    return new BluetoothConnectionManager();
-#else
-    return new PreviewTerminalConnection();
-#endif
+    return new BathroomSync.Universal.Services.UniversalBluetoothConnectionManager();
   }
 }

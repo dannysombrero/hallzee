@@ -29,7 +29,7 @@ public partial class DashboardView : UserControl {
 
   void OnToggleOccupancyClick(object? sender, RoutedEventArgs e) {
     if (DataContext is MainViewModel vm) {
-      vm.ToggleSandboxOccupancy();
+      _ = vm.CheckInActivePassAsync();
     }
   }
 

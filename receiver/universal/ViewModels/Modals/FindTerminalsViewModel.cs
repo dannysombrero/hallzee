@@ -8,8 +8,9 @@ namespace BathroomSync.Universal.ViewModels;
 public sealed class FindTerminalsViewModel : INotifyPropertyChanged {
   readonly ITerminalConnection connection;
   bool isScanning;
+  bool isConnecting;
   TerminalDevice? selectedDevice;
-  string statusText = "Ready to discover nearby Hallzee terminals.";
+  string statusText = "Searching for devices...";
 
   public FindTerminalsViewModel(ITerminalConnection connection) {
     this.connection = connection;
@@ -21,17 +22,43 @@ public sealed class FindTerminalsViewModel : INotifyPropertyChanged {
 
   public bool IsScanning {
     get => isScanning;
-    private set { isScanning = value; OnPropertyChanged(); OnPropertyChanged(nameof(CanScan)); }
+    private set {
+      isScanning = value;
+      OnPropertyChanged();
+      OnPropertyChanged(nameof(CanScan));
+      OnPropertyChanged(nameof(CanConnect));
+      OnPropertyChanged(nameof(IsBusy));
+    }
   }
 
-  public bool CanScan => !IsScanning;
+  public bool IsConnecting {
+    get => isConnecting;
+    private set {
+      isConnecting = value;
+      OnPropertyChanged();
+      OnPropertyChanged(nameof(CanScan));
+      OnPropertyChanged(nameof(CanConnect));
+      OnPropertyChanged(nameof(IsBusy));
+      OnPropertyChanged(nameof(ConnectButtonText));
+    }
+  }
+
+  public bool IsBusy => IsScanning || IsConnecting;
+
+  public bool CanScan => !IsBusy;
 
   public TerminalDevice? SelectedDevice {
     get => selectedDevice;
-    set { selectedDevice = value; OnPropertyChanged(); OnPropertyChanged(nameof(CanConnect)); }
+    set {
+      selectedDevice = value;
+      OnPropertyChanged();
+      OnPropertyChanged(nameof(CanConnect));
+    }
   }
 
-  public bool CanConnect => SelectedDevice != null && !IsScanning;
+  public bool CanConnect => SelectedDevice != null && !IsBusy;
+
+  public string ConnectButtonText => IsConnecting ? "Connecting…" : "Connect & Sync";
 
   public string StatusText {
     get => statusText;
@@ -40,7 +67,7 @@ public sealed class FindTerminalsViewModel : INotifyPropertyChanged {
 
   public async Task ScanAsync() {
     IsScanning = true;
-    StatusText = "Scanning for Bluetooth Low Energy terminals…";
+    StatusText = "Searching for devices...";
     Devices.Clear();
 
     try {
@@ -48,7 +75,7 @@ public sealed class FindTerminalsViewModel : INotifyPropertyChanged {
       foreach (var d in found) Devices.Add(d);
       SelectedDevice = Devices.FirstOrDefault();
       StatusText = Devices.Count > 0
-        ? $"Found {Devices.Count} terminal(s). Select a device to connect."
+        ? $"Found {Devices.Count} terminal(s) nearby. Select a kiosk to connect."
         : "No terminals found nearby. Ensure kiosk is powered on.";
     } catch (Exception ex) {
       StatusText = $"Scan failed: {ex.Message}";
@@ -59,6 +86,7 @@ public sealed class FindTerminalsViewModel : INotifyPropertyChanged {
 
   public async Task<bool> ConnectAsync() {
     if (SelectedDevice == null) return false;
+    IsConnecting = true;
     StatusText = $"Connecting to {SelectedDevice.Name}…";
     try {
       await connection.ConnectAsync(SelectedDevice);
@@ -67,6 +95,8 @@ public sealed class FindTerminalsViewModel : INotifyPropertyChanged {
     } catch (Exception ex) {
       StatusText = $"Connection failed: {ex.Message}";
       return false;
+    } finally {
+      IsConnecting = false;
     }
   }
 

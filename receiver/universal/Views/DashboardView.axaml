@@ -86,7 +86,7 @@
                 <TextBlock Text="{Binding ActivePass.StudentId, StringFormat='Student ID: #{0}', FallbackValue='Door kiosk live'}" FontSize="11" Foreground="#64748B" FontWeight="SemiBold" />
               </StackPanel>
 
-              <Button Grid.Column="1" Classes="dark-action" Content="{Binding ActivePass.ActionButtonText}" Click="OnToggleOccupancyClick" Margin="14,0,0,0" VerticalAlignment="Center" />
+              <Button Grid.Column="1" Classes="dark-action" Content="Check In" Click="OnToggleOccupancyClick" IsVisible="{Binding ActivePass.IsOccupied}" Margin="14,0,0,0" VerticalAlignment="Center" />
             </Grid>
           </Border>
         </Grid>

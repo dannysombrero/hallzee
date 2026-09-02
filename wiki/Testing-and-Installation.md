@@ -75,12 +75,10 @@ is also available from that workflow run’s **Artifacts** section.
 | Shared sync logic, CSV storage, or protocol parsing | Automated .NET tests | No for the hardware-independent tests |
 | Terminal display, keypad behavior, and pass lifecycle | Display emulator or Wokwi | No for the emulator; a physical terminal is recommended before release |
 | Firmware build | Local development machine with the ESP32 Arduino tools | No |
-| Finding, reconnecting to, or directly syncing a physical Bluetooth terminal | Windows desktop client and the physical ESP32 terminal | **Yes** — this uses the Windows Bluetooth transport |
+| Finding, reconnecting to, or directly syncing a physical Bluetooth terminal | Shared Avalonia desktop client and the physical ESP32 terminal | No — Bluetooth LE is fully supported natively on both macOS and Windows |
 | Windows installer or Windows-only operating-system behavior | Windows desktop client | **Yes** |
 
-Mac testing confirms the shared interface and simulated flow. It does **not**
-confirm that a Windows PC can discover or transfer data from a physical
-terminal.
+Mac testing using the Universal desktop client now fully supports physical Bluetooth LE discovery and data transfer to the ESP32 terminal. A Windows PC is only needed to test Windows-specific packaging or installation behaviors.
 
 ## Quick checks on a Mac
 
@@ -108,19 +106,24 @@ After the first run, you can start the preview more quickly with:
 npm --prefix preview-site run dev
 ```
 
-Mac testing is sufficient for the simulated browser flow. A Windows PC is only
-required to test Bluetooth discovery or a transfer with a physical terminal.
+Mac testing is sufficient for the simulated browser flow and physical Bluetooth LE interactions via the desktop client. A Windows PC is no longer strictly required for basic Bluetooth testing.
 
 ### Shared Avalonia desktop client
 
-Install the .NET 8 SDK, then run:
+Install the .NET 8 SDK. If you are developing on a Mac, you must also install Xcode from the App Store and the .NET macOS workload to support native Bluetooth LE:
+
+```sh
+sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+sudo dotnet workload install macos
+```
+
+Then run the client:
 
 ```sh
 dotnet run --project receiver/universal/BathroomSync.Universal.csproj
 ```
 
-On macOS this starts in preview mode with a simulated terminal; Bluetooth
-hardware is not used.
+The Universal client connects to the physical ESP32 terminal via Bluetooth LE on both macOS and Windows.
 
 ### Firmware and display behavior
 
@@ -134,10 +137,9 @@ arduino-cli compile --fqbn esp32:esp32:esp32 .
 For keypad and display-flow checks, open `display-emulator.html` in a browser
 or use the Wokwi setup described in [WOKWI.md](../WOKWI.md).
 
-## Windows verification
+## Windows / Mac Bluetooth verification
 
-Use a Windows PC only when the change involves actual Bluetooth behavior or a
-Windows package. Install the .NET 8 SDK or use the provided Windows build, make
+Use a Mac or Windows PC to test actual Bluetooth behavior. Install the .NET 8 SDK (along with Xcode if on Mac as documented above), make
 sure the ESP32 terminal is powered on, then use the desktop app to find and
 sync `Hallzee`. BLE discovery and sync do not require a pairing PIN.
 

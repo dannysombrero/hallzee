@@ -258,9 +258,9 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     CloseModal();
   }
 
-  public void ExportTrips(string exportPath) {
+  public void ExportTrips(string exportPath, bool openModal = true) {
     TripsModal.ExportCsv(ActiveProfile.ProfileId, exportPath);
-    OpenModal("Trips");
+    if (openModal) OpenModal("Trips");
   }
 
   public void SwitchProfile(ClassroomProfile profile) {

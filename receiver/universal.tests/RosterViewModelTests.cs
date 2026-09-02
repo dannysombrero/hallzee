@@ -101,4 +101,36 @@ public sealed class RosterViewModelTests : IDisposable {
       if (File.Exists(numbersPath)) File.Delete(numbersPath);
     }
   }
+
+  [Fact]
+  public void RosterSortingTogglesOrderCorrectly() {
+    profileRepository.SaveProfile(new ClassroomProfile("prof-sort", "Sorting Class"));
+    rosterRepository.SaveStudents("prof-sort", new[] {
+      new RosterStudent("101", "prof-sort", "Zara", "Young", "12", "Period 3"),
+      new RosterStudent("102", "prof-sort", "Aaron", "Blake", "9", "Period 1"),
+      new RosterStudent("103", "prof-sort", "Chloe", "Adams", "11", "Period 2")
+    });
+
+    viewModel.Refresh("prof-sort");
+    Assert.Equal(3, viewModel.Students.Count);
+
+    // Default: Student name Ascending
+    Assert.Equal("Aaron Blake", viewModel.Students[0].FullName);
+    Assert.Equal("Zara Young", viewModel.Students[2].FullName);
+
+    // Toggle to Student name Descending
+    viewModel.ToggleSort("Student");
+    Assert.Equal("Zara Young", viewModel.Students[0].FullName);
+    Assert.Equal("Aaron Blake", viewModel.Students[2].FullName);
+
+    // Sort by Grade Ascending
+    viewModel.ToggleSort("Grade");
+    Assert.Equal("11", viewModel.Students[0].Grade); // Grade sorting: "11", "12", "9" alphabetically or "9"
+    Assert.Equal(" ▲", viewModel.GradeSortIndicator);
+
+    // Sort by Period Ascending
+    viewModel.ToggleSort("Period");
+    Assert.Equal("Period 1", viewModel.Students[0].ClassPeriod);
+    Assert.Equal(" ▲", viewModel.PeriodSortIndicator);
+  }
 }

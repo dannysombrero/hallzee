@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using BathroomSync.Core;
 
@@ -19,6 +20,8 @@ public sealed class RosterViewModel : INotifyPropertyChanged {
   string? importStatusMessage;
   string? importStatusColor;
   int totalStudents;
+  string sortColumn = "Student";
+  bool sortAscending = true;
 
   public RosterViewModel(IRosterService rosterService) {
     this.rosterService = rosterService;
@@ -28,6 +31,37 @@ public sealed class RosterViewModel : INotifyPropertyChanged {
 
   public ObservableCollection<RosterStudent> Students { get; } = new();
   public ObservableCollection<string> AvailableHeaders { get; } = new();
+
+  public string SortColumn => sortColumn;
+  public bool SortAscending => sortAscending;
+
+  public string StudentSortIndicator => sortColumn == "Student" ? (sortAscending ? " ▲" : " ▼") : "";
+  public string GradeSortIndicator => sortColumn == "Grade" ? (sortAscending ? " ▲" : " ▼") : "";
+  public string PeriodSortIndicator => sortColumn == "Period" ? (sortAscending ? " ▲" : " ▼") : "";
+
+  public void ToggleSort(string column) {
+    if (sortColumn == column) {
+      sortAscending = !sortAscending;
+    } else {
+      sortColumn = column;
+      sortAscending = true;
+    }
+    ApplySort();
+    OnPropertyChanged(nameof(StudentSortIndicator));
+    OnPropertyChanged(nameof(GradeSortIndicator));
+    OnPropertyChanged(nameof(PeriodSortIndicator));
+  }
+
+  void ApplySort() {
+    var items = Students.ToList();
+    IEnumerable<RosterStudent> sorted = sortColumn switch {
+      "Grade" => sortAscending ? items.OrderBy(s => s.Grade).ThenBy(s => s.FullName) : items.OrderByDescending(s => s.Grade).ThenBy(s => s.FullName),
+      "Period" => sortAscending ? items.OrderBy(s => s.ClassPeriod).ThenBy(s => s.FullName) : items.OrderByDescending(s => s.ClassPeriod).ThenBy(s => s.FullName),
+      _ => sortAscending ? items.OrderBy(s => s.FullName).ThenBy(s => s.StudentId) : items.OrderByDescending(s => s.FullName).ThenByDescending(s => s.StudentId)
+    };
+    Students.Clear();
+    foreach (var s in sorted) Students.Add(s);
+  }
 
   public int TotalStudents {
     get => totalStudents;
@@ -107,6 +141,7 @@ public sealed class RosterViewModel : INotifyPropertyChanged {
     foreach (var student in list) {
       Students.Add(student);
     }
+    ApplySort();
     TotalStudents = Students.Count;
   }
 

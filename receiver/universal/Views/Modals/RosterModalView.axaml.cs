@@ -56,4 +56,8 @@ public partial class RosterModalView : UserControl {
       vm.Dashboard.Refresh(vm.ActiveProfile.ProfileId);
     }
   }
+
+  void OnCreateClassClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) vm.CreateProfileFromPolicy();
+  }
 }

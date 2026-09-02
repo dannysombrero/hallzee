@@ -68,7 +68,8 @@ void setSystemClock24(
 );
 void handleBluetoothClockSet();
 bool getActivePassState(String &activeId, uint32_t &checkoutEpoch);
-bool manualCheckInFromDesktop();
+uint8_t getActivePassStates(ActiveCheckout *checkouts, uint8_t maximum);
+bool manualCheckInFromDesktop(const String &studentId);
 bool setActivePassCapacity(uint8_t capacity);
 
 BluetoothSync bluetoothSync(
@@ -78,6 +79,7 @@ BluetoothSync bluetoothSync(
   handleBluetoothClockSet,
   getActivePassState,
   manualCheckInFromDesktop,
+  getActivePassStates,
   setActivePassCapacity
 );
 
@@ -266,10 +268,15 @@ bool getActivePassState(String &activeId, uint32_t &checkoutEpoch) {
   return false;
 }
 
-bool manualCheckInFromDesktop() {
+uint8_t getActivePassStates(ActiveCheckout *checkouts, uint8_t maximum) {
+  return terminal.copyActivePasses(checkouts, maximum);
+}
+
+bool manualCheckInFromDesktop(const String &requestedId) {
+  const String oldestId = terminal.activeId();
   String studentId;
   unsigned long elapsedSeconds = 0;
-  if (!terminal.manualCheckIn(studentId, elapsedSeconds)) return false;
+  if (!terminal.manualCheckIn(requestedId, studentId, elapsedSeconds)) return false;
 
   bluetoothSync.notifyCheckin(studentId, elapsedSeconds);
   String completedRecord;
@@ -277,7 +284,7 @@ bool manualCheckInFromDesktop() {
   if (tripStorage.getLatestTripRecord(completedRecord, completedTripID)) {
     bluetoothSync.notifyCompletedTrip(completedRecord);
   }
-  if (terminal.hasActivePass()) {
+  if (studentId == oldestId && terminal.hasActivePass()) {
     bluetoothSync.notifyCheckout(terminal.activeId(), static_cast<uint32_t>(terminal.activeCheckoutTime()));
   }
   showCheckedIn(studentId, elapsedSeconds);
@@ -650,7 +657,7 @@ void submitID() {
       Serial.println(getDateString());
       Serial.print("Time: ");
       Serial.println(getTimeString());
-      bluetoothSync.notifyCheckout(result.id, static_cast<uint32_t>(terminal.activeCheckoutTime()));
+      bluetoothSync.notifyCheckout(result.id, static_cast<uint32_t>(terminal.checkoutTimeFor(result.id)));
       showCheckedOut(result.id);
       enteredID = "";
       drawIdleScreen();
@@ -785,12 +792,13 @@ void setup() {
   tft.setRotation(1);
 
   tft.fillScreen(ST77XX_BLACK);
-
+  tft.fillRoundRect(28, 18, 104, 88, 18, ST77XX_ORANGE);
+  tft.fillCircle(80, 43, 12, ST77XX_WHITE);
+  tft.fillRoundRect(52, 58, 56, 28, 8, ST77XX_WHITE);
   tft.setTextColor(ST77XX_WHITE);
   tft.setTextSize(2);
-
-  tft.setCursor(10, 35);
-  tft.println("STARTING");
+  tft.setCursor(35, 118);
+  tft.println("HALLZEE");
 
   delay(800);
 

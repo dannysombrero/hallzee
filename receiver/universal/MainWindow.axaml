@@ -75,22 +75,17 @@
 
             <!-- Trip History -->
             <Button Classes="sidebar-nav" Click="OnTripsClick">
-              <Grid ColumnDefinitions="*,Auto" HorizontalAlignment="Stretch">
-                <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                  <PathIcon Data="{StaticResource IconHistory}" Width="16" Height="16" Foreground="#0F172A" VerticalAlignment="Center" />
-                  <TextBlock Text="Trip History Log" FontWeight="Bold" VerticalAlignment="Center" />
-                </StackPanel>
-                <Border Grid.Column="1" Background="#E0F2FE" CornerRadius="10" Padding="8,2" Margin="0,0,4,0">
-                  <TextBlock Text="{Binding Dashboard.RecentTrips.Count, FallbackValue='5'}" FontSize="10" FontWeight="Bold" Foreground="#0369A1" />
-                </Border>
-              </Grid>
+              <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                <PathIcon Data="{StaticResource IconHistory}" Width="16" Height="16" Foreground="#0F172A" VerticalAlignment="Center" />
+                <TextBlock Text="Trip History Log" FontWeight="Bold" VerticalAlignment="Center" />
+              </StackPanel>
             </Button>
 
             <!-- Student Roster -->
             <Button Classes="sidebar-nav" Click="OnRosterClick">
               <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
                 <PathIcon Data="{StaticResource IconUsers}" Width="16" Height="16" Foreground="#0F172A" VerticalAlignment="Center" />
-                <TextBlock Text="Student Roster Import" FontWeight="Bold" VerticalAlignment="Center" />
+                <TextBlock Text="Student Roster" FontWeight="Bold" VerticalAlignment="Center" />
               </StackPanel>
             </Button>
 

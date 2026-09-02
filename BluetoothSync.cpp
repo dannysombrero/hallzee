@@ -9,11 +9,13 @@ BluetoothSync::BluetoothSync(
   ClockSetHandler clockSetHandler,
   ActivePassProvider activePassProvider,
   ManualCheckInHandler manualCheckInHandler,
+  ActivePassListProvider activePassListProvider,
   CapacitySetter capacitySetter
 ) : tripStorage(tripStorage),
     clockSetter(clockSetter),
     clockSetHandler(clockSetHandler),
     activePassProvider(activePassProvider),
+    activePassListProvider(activePassListProvider),
     manualCheckInHandler(manualCheckInHandler),
     capacitySetter(capacitySetter),
     serial(serial) {}
@@ -301,8 +303,20 @@ void BluetoothSync::processCommands() {
           } else {
             serial.println("ACTIVE_PASS,NONE");
           }
-        } else if (commandBuffer == "MANUAL_CHECKIN") {
-          if (!manualCheckInHandler || !manualCheckInHandler()) {
+        } else if (commandBuffer == "GET_ACTIVE_PASSES") {
+          ActiveCheckout checkouts[MAX_ACTIVE_PASSES];
+          const uint8_t count = activePassListProvider ? activePassListProvider(checkouts, MAX_ACTIVE_PASSES) : 0;
+          serial.print("ACTIVE_PASSES");
+          for (uint8_t index = 0; index < count; index++) {
+            serial.print(",");
+            serial.print(checkouts[index].studentID);
+            serial.print(",");
+            serial.print(String(static_cast<uint32_t>(checkouts[index].checkoutTime)));
+          }
+          serial.println("");
+        } else if (commandBuffer == "MANUAL_CHECKIN" || commandBuffer.startsWith("MANUAL_CHECKIN,")) {
+          const String studentId = commandBuffer.length() > 15 ? commandBuffer.substring(15) : "";
+          if (!manualCheckInHandler || !manualCheckInHandler(studentId)) {
             serial.println("MANUAL_CHECKIN_ERROR,NO_ACTIVE_PASS");
           }
         } else if (commandBuffer.startsWith("SET,MAX_ACTIVE_PASSES,")) {

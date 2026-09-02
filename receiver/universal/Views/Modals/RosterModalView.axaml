@@ -20,10 +20,17 @@
         <Grid Grid.Row="1">
           <!-- 1. NORMAL ROSTER VIEW -->
           <Grid RowDefinitions="Auto,*,Auto" RowSpacing="14" IsVisible="{Binding !RosterModal.IsImportPreviewActive}">
-            <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
-              <TextBlock Text="{Binding RosterModal.TotalStudents, StringFormat='Enrolled Students: {0}'}" FontWeight="SemiBold" Foreground="#334155" VerticalAlignment="Center" />
-              <Button Grid.Column="1" Classes="hallzee-pill-btn" Content="Import Roster (CSV)" Click="OnImportCsvClick" Padding="14,8" FontSize="13" />
+            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" VerticalAlignment="Center">
+              <TextBlock Text="Class:" FontWeight="SemiBold" Foreground="#334155" VerticalAlignment="Center" />
+              <ComboBox Grid.Column="1" ItemsSource="{Binding Profiles}" SelectedItem="{Binding ActiveProfile}" DisplayMemberBinding="{Binding Name}" MinWidth="180" />
+              <Button Grid.Column="2" Classes="hallzee-pill-btn" Content="Import Roster (CSV)" Click="OnImportCsvClick" Padding="14,8" FontSize="13" />
             </Grid>
+
+            <StackPanel Grid.Row="0" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,42,0,0">
+              <TextBlock Text="{Binding RosterModal.TotalStudents, StringFormat='Enrolled: {0}'}" FontSize="12" Foreground="#64748B" VerticalAlignment="Center" />
+              <TextBox Width="150" Text="{Binding PolicyModal.NewProfileName}" Watermark="New class name" />
+              <Button Classes="secondary" Content="Create Class" Click="OnCreateClassClick" Padding="10,6" />
+            </StackPanel>
 
             <Border Grid.Row="1" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8">
               <ScrollViewer VerticalScrollBarVisibility="Auto">

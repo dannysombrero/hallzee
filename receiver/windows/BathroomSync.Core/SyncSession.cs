@@ -20,6 +20,7 @@ public sealed class SyncUpdate {
   public bool SettingsApplied { get; set; }
   public string? SettingsError { get; set; }
   public ActivePassInfo? ActivePass { get; set; }
+  public IReadOnlyList<ActivePassInfo>? ActivePasses { get; set; }
   public LivePassEvent? LiveEvent { get; set; }
   public bool LiveTripStored { get; set; }
 }
@@ -68,6 +69,10 @@ public sealed class SyncSession {
     }
     if (ActivePassProtocol.TryParseActivePassResponse(line, out var activeInfo)) {
       update.ActivePass = activeInfo;
+      return;
+    }
+    if (ActivePassProtocol.TryParseActivePassesResponse(line, out var activePasses)) {
+      update.ActivePasses = activePasses;
       return;
     }
     if (ActivePassProtocol.TryParseLiveEvent(line, out var liveEvt)) {

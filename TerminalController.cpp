@@ -26,6 +26,17 @@ bool TerminalController::setCapacity(uint8_t value) {
   return true;
 }
 
+uint8_t TerminalController::copyActivePasses(ActiveCheckout *destination, uint8_t maximum) const {
+  const uint8_t count = activeCount < maximum ? activeCount : maximum;
+  for (uint8_t index = 0; index < count; index++) destination[index] = activePasses[index];
+  return count;
+}
+
+time_t TerminalController::checkoutTimeFor(const String &studentId) const {
+  const int index = findActivePass(studentId);
+  return index >= 0 ? activePasses[index].checkoutTime : 0;
+}
+
 int TerminalController::findActivePass(const String &studentId) const {
   for (uint8_t index = 0; index < activeCount; index++) {
     if (activePasses[index].studentID == studentId) return index;
@@ -83,10 +94,12 @@ TerminalActionResult TerminalController::submit(const String &enteredId) {
   return {TerminalAction::CheckedIn, id, static_cast<unsigned long>(elapsedSeconds)};
 }
 
-bool TerminalController::manualCheckIn(String &checkedInId, unsigned long &elapsedSeconds) {
+bool TerminalController::manualCheckIn(const String &requestedId, String &checkedInId, unsigned long &elapsedSeconds) {
   if (!hasActivePass()) return false;
 
-  const ActiveCheckout checkout = activePasses[0];
+  const int index = requestedId.length() == 0 ? 0 : findActivePass(requestedId);
+  if (index < 0) return false;
+  const ActiveCheckout checkout = activePasses[index];
   const time_t checkinTime = timeProvider.now();
   long elapsed = static_cast<long>(difftime(checkinTime, checkout.checkoutTime));
   if (elapsed < 0) elapsed = 0;
@@ -99,7 +112,7 @@ bool TerminalController::manualCheckIn(String &checkedInId, unsigned long &elaps
     return false;
   }
 
-  for (uint8_t index = 0; index + 1 < activeCount; index++) activePasses[index] = activePasses[index + 1];
+  for (uint8_t cursor = static_cast<uint8_t>(index); cursor + 1 < activeCount; cursor++) activePasses[cursor] = activePasses[cursor + 1];
   activeCount--;
   return persistActivePasses();
 }

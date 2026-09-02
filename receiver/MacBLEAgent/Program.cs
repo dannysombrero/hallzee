@@ -147,6 +147,7 @@ class Program
             }
             
             foundDevices.Clear();
+            centralManager.StopScan();
             centralManager.ScanForPeripherals(new[] { ServiceUuid });
             
             // Stop scanning after 4 seconds
@@ -206,8 +207,12 @@ class Program
         
         public void Disconnect()
         {
+            centralManager?.StopScan();
+            scanTimer?.Invalidate();
+            scanTimer = null;
             if (centralManager != null && targetPeripheral != null)
             {
+                targetPeripheral.Delegate = null;
                 centralManager.CancelPeripheralConnection(targetPeripheral);
             }
             targetPeripheral = null;

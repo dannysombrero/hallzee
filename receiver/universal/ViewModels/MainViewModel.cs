@@ -297,7 +297,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     try {
       syncSession.Start();
       await connection.SendAsync("HELLO,1");
-      await connection.SendAsync(ActivePassProtocol.BuildGetActivePassCommand());
+      await connection.SendAsync(ActivePassProtocol.BuildGetActivePassesCommand());
       await connection.SendAsync(KioskSettingsProtocol.QueryCommand + "\n");
       await connection.SendAsync($"SET,MAX_ACTIVE_PASSES,{PolicyModal.MaxSimultaneousPasses}");
 
@@ -327,12 +327,16 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
 
   public async Task CheckInActivePassAsync() {
     if (ActivePass.IsOccupied && !string.IsNullOrEmpty(ActivePass.StudentId)) {
-      var studentId = ActivePass.StudentId;
-      if (connection is PreviewTerminalConnection preview) {
-        preview.SimulateCheckin(studentId);
-      } else {
-        await connection.SendAsync("MANUAL_CHECKIN");
-      }
+      await CheckInStudentAsync(ActivePass.StudentId);
+    }
+  }
+
+  public async Task CheckInStudentAsync(string studentId) {
+    if (string.IsNullOrWhiteSpace(studentId)) return;
+    if (connection is PreviewTerminalConnection preview) {
+      preview.SimulateCheckin(studentId);
+    } else {
+      await connection.SendAsync($"MANUAL_CHECKIN,{studentId}");
     }
   }
 
@@ -360,6 +364,23 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
         ActivePass.SetAvailable();
         Dashboard.ClearLiveCheckouts();
       }
+    }
+
+    if (update.ActivePasses != null) {
+      Dashboard.ClearLiveCheckouts();
+      foreach (var pass in update.ActivePasses) {
+        var student = rosterService.LookupStudent(ActiveProfile.ProfileId, pass.StudentId!);
+        Dashboard.RegisterLiveCheckout(pass.StudentId!, student?.FullName, pass.CheckedOutAt);
+      }
+      var oldest = update.ActivePasses.FirstOrDefault();
+      if (oldest != null) {
+        var student = rosterService.LookupStudent(ActiveProfile.ProfileId, oldest.StudentId!);
+        ActivePass.SetOccupied(oldest.StudentId!, student?.FullName, oldest.CheckedOutAt);
+      } else {
+        ActivePass.SetAvailable();
+      }
+      Dashboard.RefreshAdditionalActiveTrips();
+      Dashboard.Refresh(ActiveProfile.ProfileId);
     }
 
     if (update.LiveEvent != null) {

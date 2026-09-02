@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-macos</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>BathroomSync.MacBLEAgent</AssemblyName>
+    <ApplicationId>com.hallzee.macbleagent</ApplicationId>
+    <SupportedOSPlatformVersion>10.15</SupportedOSPlatformVersion>
+  </PropertyGroup>
+</Project>

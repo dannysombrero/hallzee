@@ -23,6 +23,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
   string profileDetails = "Period 3 (9:15–10:05)";
   string profileTeacher = "Teacher: Dr. Aris Thorne";
   string loadedRosterFileName = "Chemistry_Period3_Students.csv";
+  string syncProgressText = "";
   ClassroomProfile activeProfile;
   string exportFolder;
   Timer? timer;
@@ -170,6 +171,11 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
   }
 
   public string SyncButtonText => IsSyncing ? "Syncing…" : "Sync Now";
+  
+  public string SyncProgressText {
+    get => syncProgressText;
+    private set { syncProgressText = value; OnPropertyChanged(); }
+  }
 
   public string ConnectedTerminalName {
     get => isConnected ? connectedTerminalName : "No Terminal Connected";
@@ -260,6 +266,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     }
 
     IsSyncing = true;
+    SyncProgressText = "Preparing sync...";
     try {
       syncSession.Start();
       await connection.SendAsync("HELLO,1");
@@ -275,9 +282,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     } catch {
       IsConnected = false;
       LastSyncTimeText = "Sync failed (Terminal offline)";
-    } finally {
       IsSyncing = false;
-      Dashboard.Refresh(ActiveProfile.ProfileId);
     }
   }
 
@@ -323,9 +328,24 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
         Dashboard.Refresh(ActiveProfile.ProfileId);
       }
     }
+    
+    if (update.TransferTotal is not null || update.TransferredTripCount is not null) {
+      SyncProgressText = $"Syncing {update.TransferredTripCount ?? 0} of {update.TransferTotal ?? 0} trips...";
+    }
 
     if (update.Status == SyncStatus.Complete) {
+      IsSyncing = false;
+      LastSyncTimeText = $"Today, {DateTime.Now:h:mm tt} (just now)";
       Dashboard.Refresh(ActiveProfile.ProfileId);
+    }
+    
+    if (update.OutboundCommands.Count > 0) {
+      // Send ACKs and any other outbound commands
+      _ = Task.Run(async () => {
+        foreach (var command in update.OutboundCommands) {
+          try { await connection.SendAsync(command); } catch { }
+        }
+      });
     }
   }
 

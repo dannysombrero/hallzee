@@ -73,6 +73,7 @@ public:
   String savedId;
   time_t savedTime = 0;
   std::vector<Record> records;
+  std::vector<ActiveCheckout> activeCheckouts;
   std::vector<std::pair<uint32_t, String>> syncRecords;
   std::vector<uint32_t> markedSynced;
 
@@ -86,6 +87,25 @@ public:
     return saveSucceeds;
   }
   void clearActiveCheckout() override { cleared = true; }
+  uint8_t loadActiveCheckouts(ActiveCheckout *checkouts, uint8_t maximum) override {
+    uint8_t count = 0;
+    for (const auto &checkout : activeCheckouts) {
+      if (count >= maximum) break;
+      checkouts[count++] = checkout;
+    }
+    if (count == 0 && restoredId.length() > 0 && maximum > 0) {
+      checkouts[0] = {restoredId, restoredTime};
+      return 1;
+    }
+    return count;
+  }
+  bool saveActiveCheckouts(const ActiveCheckout *checkouts, uint8_t count) override {
+    if (!saveSucceeds) return false;
+    activeCheckouts.assign(checkouts, checkouts + count);
+    cleared = count == 0;
+    if (count > 0) { savedId = checkouts[0].studentID; savedTime = checkouts[0].checkoutTime; }
+    return true;
+  }
   uint8_t getMaxStudentIdLength() const override { return maxStudentIdLength; }
   SettingWriteResult setMaxStudentIdLength(uint8_t value) override {
     if (settingWriteResult == SettingWriteResult::Saved) maxStudentIdLength = value;
@@ -476,6 +496,43 @@ void testTerminalClampsBackwardTimeAndPersistsManualReset() {
   );
 }
 
+void testTerminalManualCheckInPersistsManualTrip() {
+  FakeTripStorage storage;
+  FakeTimeProvider time;
+  time.currentTime = 1000;
+  TerminalController terminal(storage, time);
+  expectAction(terminal.submit("TEACHER-1").action, TerminalAction::CheckedOut,
+    "checkout before desktop checkin");
+
+  time.currentTime = 1120;
+  String checkedInId;
+  unsigned long elapsedSeconds = 0;
+  expectTrue(terminal.manualCheckIn(checkedInId, elapsedSeconds),
+    "desktop manual checkin succeeds");
+  expectTrue(checkedInId == "TEACHER-1" && elapsedSeconds == 120,
+    "desktop manual checkin returns the active pass details");
+  expectTrue(storage.records.size() == 1 && storage.records[0].status == "MANUAL",
+    "desktop manual checkin records a MANUAL trip");
+  expectTrue(storage.cleared && !terminal.hasActivePass(),
+    "desktop manual checkin clears the active pass");
+}
+
+void testTerminalEnforcesConfiguredMultiPassCapacity() {
+  FakeTripStorage storage;
+  FakeTimeProvider time;
+  TerminalController terminal(storage, time);
+  expectTrue(terminal.setCapacity(2), "capacity of two is accepted");
+  time.currentTime = 100;
+  expectAction(terminal.submit("A").action, TerminalAction::CheckedOut, "first student checks out");
+  time.currentTime = 110;
+  expectAction(terminal.submit("B").action, TerminalAction::CheckedOut, "second student checks out");
+  expectTrue(terminal.activePassCount() == 2 && terminal.activeId() == "A", "oldest pass remains primary");
+  expectAction(terminal.submit("C").action, TerminalAction::PassOccupied, "capacity blocks a third checkout");
+  time.currentTime = 130;
+  expectAction(terminal.submit("A").action, TerminalAction::CheckedIn, "oldest student checks in");
+  expectTrue(terminal.activePassCount() == 1 && terminal.activeId() == "B", "next oldest pass becomes primary");
+}
+
 void testKeypadControllerInterpretsKeysAndResetGesture() {
   resetKeypadCallbacks();
   FakeKeypad keypad;
@@ -791,6 +848,8 @@ int main() {
   testTerminalStorageFailuresDoNotLosePassState();
   testTerminalRestorationAndSubmissionClassification();
   testTerminalClampsBackwardTimeAndPersistsManualReset();
+  testTerminalManualCheckInPersistsManualTrip();
+  testTerminalEnforcesConfiguredMultiPassCapacity();
   testKeypadControllerInterpretsKeysAndResetGesture();
   testBluetoothProtocolAndRecovery();
   testBluetoothFailureAndValidationPaths();

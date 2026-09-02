@@ -3,7 +3,7 @@ using Microsoft.Data.Sqlite;
 namespace BathroomSync.Core;
 
 public static class DatabaseMigrator {
-  public const int CurrentSchemaVersion = 2;
+  public const int CurrentSchemaVersion = 3;
 
   public static void Migrate(SqliteConnection connection) {
     EnsureMigrationTable(connection);
@@ -14,6 +14,9 @@ public static class DatabaseMigrator {
     }
     if (currentVersion < 2) {
       ApplyMigration2(connection);
+    }
+    if (currentVersion < 3) {
+      ApplyMigration3(connection);
     }
   }
 
@@ -171,5 +174,47 @@ public static class DatabaseMigrator {
       transaction.Rollback();
       throw;
     }
+  }
+
+  static void ApplyMigration3(SqliteConnection connection) {
+    using var transaction = connection.BeginTransaction();
+    try {
+      var policyColumns = GetColumnNames(connection, transaction, "policy_rules");
+      var scheduleColumns = GetColumnNames(connection, transaction, "bell_schedules");
+      using var command = connection.CreateCommand();
+      command.Transaction = transaction;
+      if (!policyColumns.Contains("first_window_action")) {
+        command.CommandText = "ALTER TABLE policy_rules ADD COLUMN first_window_action TEXT NOT NULL DEFAULT 'Warn';";
+        command.ExecuteNonQuery();
+      }
+      if (!policyColumns.Contains("last_window_action")) {
+        command.CommandText = "ALTER TABLE policy_rules ADD COLUMN last_window_action TEXT NOT NULL DEFAULT 'Warn';";
+        command.ExecuteNonQuery();
+      }
+      if (!policyColumns.Contains("alert_sound")) {
+        command.CommandText = "ALTER TABLE policy_rules ADD COLUMN alert_sound TEXT NOT NULL DEFAULT 'Chime';";
+        command.ExecuteNonQuery();
+      }
+      if (!scheduleColumns.Contains("schedule_name")) {
+        command.CommandText = "ALTER TABLE bell_schedules ADD COLUMN schedule_name TEXT NOT NULL DEFAULT 'Regular';";
+        command.ExecuteNonQuery();
+      }
+      command.CommandText = "INSERT OR REPLACE INTO schema_migrations (version, applied_at, description) VALUES (3, datetime('now'), 'Bell-window policies, sounds, and named schedules');";
+      command.ExecuteNonQuery();
+      transaction.Commit();
+    } catch {
+      transaction.Rollback();
+      throw;
+    }
+  }
+
+  static HashSet<string> GetColumnNames(SqliteConnection connection, SqliteTransaction transaction, string tableName) {
+    using var command = connection.CreateCommand();
+    command.Transaction = transaction;
+    command.CommandText = $"PRAGMA table_info({tableName});";
+    using var reader = command.ExecuteReader();
+    var columns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    while (reader.Read()) columns.Add(reader.GetString(1));
+    return columns;
   }
 }

@@ -5,6 +5,7 @@ namespace BathroomSync.Universal.ViewModels;
 
 public sealed class ActivePassViewModel : INotifyPropertyChanged {
   bool isOccupied;
+  bool isStatusKnown;
   string? studentId;
   string? studentName;
   string? departTime;
@@ -54,12 +55,16 @@ public sealed class ActivePassViewModel : INotifyPropertyChanged {
         : "No active pass";
 
   public string HeadingText =>
-    IsOccupied
+    IsStatusUnknown
+      ? "Pass Status Unknown"
+      : IsOccupied
       ? $"{DisplayName} is Out of Class"
       : "Restroom is Currently Empty";
 
   public string SubtitleText =>
-    IsOccupied
+    IsStatusUnknown
+      ? "Connect to the Hallzee terminal to confirm whether a student is out."
+      : IsOccupied
       ? $"Departed at {DepartTime ?? "recently"} for {Destination}."
       : "The physical Hallzee terminal is ready for the next student.";
 
@@ -79,9 +84,12 @@ public sealed class ActivePassViewModel : INotifyPropertyChanged {
       elapsedSeconds = value;
       OnPropertyChanged();
       OnPropertyChanged(nameof(ElapsedFormatted));
-      OnPropertyChanged(nameof(DurationDisplay));
+        OnPropertyChanged(nameof(DurationDisplay));
+        OnPropertyChanged(nameof(IsStatusUnknown));
     }
   }
+
+  public bool IsStatusUnknown => !isStatusKnown;
 
   public string ElapsedFormatted {
     get {
@@ -93,6 +101,7 @@ public sealed class ActivePassViewModel : INotifyPropertyChanged {
 
   public string DurationDisplay {
     get {
+      if (IsStatusUnknown) return "Unknown";
       if (!IsOccupied) return "Ready";
       var minutes = ElapsedSeconds / 60;
       var seconds = ElapsedSeconds % 60;
@@ -100,18 +109,19 @@ public sealed class ActivePassViewModel : INotifyPropertyChanged {
     }
   }
 
-  public string StatusText => IsOccupied ? "Student Out of Class" : "Hall Pass Available";
-  public string StatusColor => IsOccupied ? "#D97706" : "#059669";
-  public string BadgeColor => IsOccupied ? "#F59E0B" : "#10B981";
-  public string BadgeText => IsOccupied ? "PASS OCCUPIED (DEMO STATE)" : "PASS AVAILABLE (DEMO STATE)";
-  public string HeroCardBackground => IsOccupied ? "#FFFBEB" : "#ECFDF5";
-  public string HeroCardBorderBrush => IsOccupied ? "#FCD34D" : "#6EE7B7";
-  public string AvatarBackground => IsOccupied ? "#F59E0B" : "#10B981";
+  public string StatusText => IsStatusUnknown ? "Pass Status Unknown" : IsOccupied ? "Student Out of Class" : "Hall Pass Available";
+  public string StatusColor => IsStatusUnknown ? "#64748B" : IsOccupied ? "#D97706" : "#059669";
+  public string BadgeColor => IsStatusUnknown ? "#64748B" : IsOccupied ? "#F59E0B" : "#10B981";
+  public string BadgeText => IsStatusUnknown ? "STATUS UNKNOWN" : IsOccupied ? "PASS OCCUPIED" : "PASS AVAILABLE";
+  public string HeroCardBackground => IsStatusUnknown ? "#F8FAFC" : IsOccupied ? "#FFFBEB" : "#ECFDF5";
+  public string HeroCardBorderBrush => IsStatusUnknown ? "#CBD5E1" : IsOccupied ? "#FCD34D" : "#6EE7B7";
+  public string AvatarBackground => IsStatusUnknown ? "#64748B" : IsOccupied ? "#F59E0B" : "#10B981";
   public string AvatarIconResource => IsOccupied ? "IconUserX" : "IconUserCheck";
-  public string TimerTextColor => IsOccupied ? "#D97706" : "#059669";
+  public string TimerTextColor => IsStatusUnknown ? "#64748B" : IsOccupied ? "#D97706" : "#059669";
   public string ActionButtonText => IsOccupied ? "Check In" : "Simulate Tap";
 
   public void SetOccupied(string id, string? name, DateTime? timestamp = null) {
+    isStatusKnown = true;
     StudentId = id;
     StudentName = name;
     checkoutTimestamp = timestamp ?? DateTime.Now;
@@ -122,12 +132,41 @@ public sealed class ActivePassViewModel : INotifyPropertyChanged {
   }
 
   public void SetAvailable() {
+    var wasUnknown = IsStatusUnknown;
+    isStatusKnown = true;
     IsOccupied = false;
     StudentId = null;
     StudentName = null;
     DepartTime = null;
     checkoutTimestamp = null;
     ElapsedSeconds = 0;
+    if (wasUnknown) NotifyStatusPresentationChanged();
+  }
+
+  public void SetUnknown() {
+    isStatusKnown = false;
+    IsOccupied = false;
+    StudentId = null;
+    StudentName = null;
+    DepartTime = null;
+    checkoutTimestamp = null;
+    ElapsedSeconds = 0;
+    NotifyStatusPresentationChanged();
+  }
+
+  void NotifyStatusPresentationChanged() {
+    OnPropertyChanged(nameof(IsStatusUnknown));
+    OnPropertyChanged(nameof(StatusText));
+    OnPropertyChanged(nameof(StatusColor));
+    OnPropertyChanged(nameof(BadgeColor));
+    OnPropertyChanged(nameof(BadgeText));
+    OnPropertyChanged(nameof(HeroCardBackground));
+    OnPropertyChanged(nameof(HeroCardBorderBrush));
+    OnPropertyChanged(nameof(AvatarBackground));
+    OnPropertyChanged(nameof(TimerTextColor));
+    OnPropertyChanged(nameof(HeadingText));
+    OnPropertyChanged(nameof(SubtitleText));
+    OnPropertyChanged(nameof(DurationDisplay));
   }
 
   public void ToggleDemoOccupancy(string fallbackId = "9042", string fallbackName = "Marcus Sterling") {

@@ -109,6 +109,15 @@ public sealed class RosterViewModel : INotifyPropertyChanged {
       return false;
     }
 
+    var extension = Path.GetExtension(filePath);
+    if (extension.Equals(".numbers", StringComparison.OrdinalIgnoreCase) ||
+        extension.Equals(".xlsx", StringComparison.OrdinalIgnoreCase) ||
+        extension.Equals(".xls", StringComparison.OrdinalIgnoreCase)) {
+      ImportStatusMessage = "This is a spreadsheet workbook, not a CSV. In Numbers, choose File → Export To → CSV, then import the exported .csv file.";
+      ImportStatusColor = "#EF4444";
+      return false;
+    }
+
     currentImportFilePath = filePath;
     using var reader = new StreamReader(filePath);
     var preview = rosterService.PreviewRosterCsv(reader, sampleSize: 3);

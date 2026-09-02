@@ -96,3 +96,63 @@ public sealed class PolicyEngine : IPolicyEngine {
 | Bell schedule time-window matching tests | **Sufficient** | Optional | No |
 | Desktop UI policy alerts & warnings | **Sufficient** | Optional | No |
 | Physical kiosk single-pass rejection test | **Not Usable** | **Required** | **Yes (ESP32 Kiosk)** |
+
+---
+
+## Future to-do: bell-aware ten-minute policies and period tracking
+
+This is a planned enhancement, not behavior currently enforced by the client or
+terminal.
+
+### Teacher schedule setup
+
+- Let teachers create named schedule templates, such as `Regular`,
+  `Wednesday`, `Block A`, and `Block B`.
+- Let each template contain ordered periods with a name, start time, and end
+  time.
+- Let teachers assign templates to individual days of the week and add
+  date-specific exceptions for assemblies, early-release days, testing, or
+  other one-off schedules. A Wednesday schedule therefore does not need to
+  match Monday, Tuesday, Thursday, or Friday.
+- Show the active schedule and period in Policies/Bell Times so the teacher can
+  confirm what the terminal will use before the school day begins.
+
+### First/last-ten-minute policy
+
+For every period, teachers will be able to choose an action for the first ten
+minutes and last ten minutes (with the window length configurable):
+
+| Option | Terminal behavior |
+| --- | --- |
+| Allow | Accept checkouts normally. |
+| Warning | Accept the checkout and show a warning; optionally play a selected sound. |
+| Lock | Refuse new checkouts until the protected time window ends. |
+
+The Policies/Bell Times screen will offer a small, bundled sound library with
+a preview control, plus `No sound`. Sound is optional and never required for a
+warning or lockout policy.
+
+Because a warning sound or a lock must work when the desktop app is disconnected,
+the selected schedule, exceptions, time windows, and terminal action must be
+synchronized to the ESP32 and evaluated against its clock. The desktop remains
+the editor and source of configuration; the ESP32 stores the active offline
+copy. The terminal needs a clear on-screen explanation when it refuses a
+checkout due to a bell-time policy.
+
+### Period metadata and export
+
+When a checkout occurs during a matched period, the trip will optionally retain
+the schedule template and period name active at checkout. CSV export will add
+optional fields such as `schedule_name` and `class_period`; blank values remain
+valid for unscheduled time, missing bell data, or legacy trips. This makes it
+possible to report the period in which a student left without making roster
+period data mandatory.
+
+### Future verification
+
+| Capability | macOS Testing | Windows Testing | Hardware Required |
+| :--- | :--- | :--- | :--- |
+| Schedule-template, day assignment, and exception matching | **Sufficient** | Optional | No |
+| First/last-window evaluation and period metadata export | **Sufficient** | Optional | No |
+| Policy editor and sound preview | **Sufficient** | Optional | No |
+| Offline ESP32 warning sound and lockout enforcement | **Sufficient** | Optional | **Yes (ESP32 Kiosk)** |

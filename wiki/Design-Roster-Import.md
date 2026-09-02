@@ -12,6 +12,8 @@
 When students use the Hallzee kiosk, they enter only their numeric student ID (e.g. `10482`). In the raw sync database, records only contain this number. Teachers need immediate visual recognition of student names on their dashboard and in historical trip logs (e.g., displaying `Alex Rivera (Period 2)` instead of just `10482`).
 
 Teachers will import class rosters directly from standard Student Information System (SIS) CSV exports (PowerSchool, Infinite Campus, Canvas, Google Classroom).
+Apple Numbers and Excel workbooks must first be exported as `.csv` files; roster
+import intentionally reads CSV text rather than spreadsheet-workbook internals.
 
 ### User Flow & Two-Phase Import Architecture
 1. Teacher opens **Roster Management** from the desktop sidebar or settings.

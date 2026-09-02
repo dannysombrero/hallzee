@@ -7,11 +7,15 @@ BluetoothSync::BluetoothSync(
   BluetoothSerialPort &serial,
   ClockSetter clockSetter,
   ClockSetHandler clockSetHandler,
-  ActivePassProvider activePassProvider
+  ActivePassProvider activePassProvider,
+  ManualCheckInHandler manualCheckInHandler,
+  CapacitySetter capacitySetter
 ) : tripStorage(tripStorage),
     clockSetter(clockSetter),
     clockSetHandler(clockSetHandler),
     activePassProvider(activePassProvider),
+    manualCheckInHandler(manualCheckInHandler),
+    capacitySetter(capacitySetter),
     serial(serial) {}
 
 void BluetoothSync::notifyCheckout(const String &studentId, uint32_t checkoutEpoch) {
@@ -36,6 +40,12 @@ void BluetoothSync::notifyReset(const String &studentId, unsigned long durationS
   serial.print(studentId);
   serial.print(",");
   serial.println(String(durationSeconds));
+}
+
+void BluetoothSync::notifyCompletedTrip(const String &record) {
+  if (!ready || !serial.hasClient() || record.length() == 0) return;
+  serial.print("LIVE_TRIP,");
+  serial.println(record);
 }
 
 void BluetoothSync::begin() {
@@ -290,6 +300,19 @@ void BluetoothSync::processCommands() {
             serial.println(String(checkoutEpoch));
           } else {
             serial.println("ACTIVE_PASS,NONE");
+          }
+        } else if (commandBuffer == "MANUAL_CHECKIN") {
+          if (!manualCheckInHandler || !manualCheckInHandler()) {
+            serial.println("MANUAL_CHECKIN_ERROR,NO_ACTIVE_PASS");
+          }
+        } else if (commandBuffer.startsWith("SET,MAX_ACTIVE_PASSES,")) {
+          const String valueText = commandBuffer.substring(String("SET,MAX_ACTIVE_PASSES,").length());
+          const int value = valueText.toInt();
+          if (value < 1 || value > MAX_ACTIVE_PASSES || !capacitySetter || !capacitySetter(static_cast<uint8_t>(value))) {
+            serial.println("SETTINGS_ERROR,MAX_ACTIVE_PASSES,INVALID_VALUE");
+          } else {
+            serial.print("SETTINGS_ACK,MAX_ACTIVE_PASSES,");
+            serial.println(String(value));
           }
         } else if (processSettingsCommand(commandBuffer)) {
           // Settings command handled.

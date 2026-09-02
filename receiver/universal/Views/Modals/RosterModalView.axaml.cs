@@ -22,8 +22,13 @@ public partial class RosterModalView : UserControl {
     if (topLevel == null) return;
 
     var files = await topLevel.StorageProvider.OpenFilePickerAsync(new Avalonia.Platform.Storage.FilePickerOpenOptions {
-      Title = "Select Student Roster CSV",
-      AllowMultiple = false
+      Title = "Select Student Roster CSV (export Numbers files as CSV first)",
+      AllowMultiple = false,
+      FileTypeFilter = new[] {
+        new Avalonia.Platform.Storage.FilePickerFileType("CSV roster files") {
+          Patterns = new[] { "*.csv" }
+        }
+      }
     });
 
     if (files.Count > 0) {

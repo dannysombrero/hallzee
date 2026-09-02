@@ -110,6 +110,7 @@ sequenceDiagram
   - Daily/weekly pass limit per student (e.g., max 2 passes per day).
   - "10/10 Rule" or lockout windows (no passes permitted during first/last 10 minutes of class).
 - **FR-POL-3:** Teachers must be able to define bell schedules (period start and end times) to automate profile switching and policy enforcement.
+- **Future bell-time enhancement:** Policies/Bell Times will support named schedule templates, weekday assignments, date-specific exceptions, and distinct schedules for Wednesdays, block days, assemblies, and early-release days. Teachers will choose whether the first and last ten minutes of each period allow passes, warn with an optional selected terminal sound, or lock new checkouts. The terminal will receive an offline copy of the policy, and trips may optionally export the matched schedule and class period.
 
 ### 3.5 Terminal Management & Kiosk Settings
 - **FR-TERM-1:** The desktop client must scan for nearby Hallzee BLE peripherals and display signal strength (RSSI).

@@ -46,4 +46,38 @@ public sealed class DashboardViewModelTests : IDisposable {
     Assert.Equal("10483", viewModel.RecentTrips[0].StudentId);
     Assert.Equal("10482", viewModel.RecentTrips[1].StudentId);
   }
+
+  [Fact]
+  public void RefreshPlacesTheActivePassAtTheTopOfRecentActivity() {
+    var today = DateTime.UtcNow.ToString("yyyy-MM-dd");
+    tripRepository.Store($"1,10482,{today},09:00:00,09:06:00,360,COMPLETE");
+    activePass.SetOccupied("10483", "Avery Chen", DateTime.Now.AddMinutes(-2));
+
+    viewModel.Refresh("default");
+
+    Assert.Equal("10483", viewModel.RecentTrips[0].StudentId);
+    Assert.Equal("Out", viewModel.RecentTrips[0].StatusText);
+    Assert.Equal("—", viewModel.RecentTrips[0].TimeIn);
+    Assert.Equal("10482", viewModel.RecentTrips[1].StudentId);
+    Assert.Equal("Returned", viewModel.RecentTrips[1].StatusText);
+  }
+
+  [Fact]
+  public void RefreshKeepsEveryLiveCheckoutUntilThatStudentReturns() {
+    viewModel.RegisterLiveCheckout("1001", "Avery Chen", DateTime.Now.AddMinutes(-3));
+    viewModel.RegisterLiveCheckout("1002", "Jordan Lee", DateTime.Now.AddMinutes(-1));
+
+    viewModel.Refresh("default");
+
+    Assert.Equal(2, viewModel.RecentTrips.Count);
+    Assert.Equal("1002", viewModel.RecentTrips[0].StudentId);
+    Assert.Equal("1001", viewModel.RecentTrips[1].StudentId);
+    Assert.All(viewModel.RecentTrips, trip => Assert.Equal("Out", trip.StatusText));
+    viewModel.ResolveLiveCheckout("1001");
+    viewModel.Refresh("default");
+    Assert.Single(viewModel.RecentTrips);
+    Assert.Equal("1002", viewModel.RecentTrips[0].StudentId);
+    Assert.Single(viewModel.AdditionalActiveTrips);
+    Assert.Equal("1002", viewModel.AdditionalActiveTrips[0].StudentId);
+  }
 }

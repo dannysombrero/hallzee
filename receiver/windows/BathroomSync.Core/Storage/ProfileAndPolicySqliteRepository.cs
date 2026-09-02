@@ -127,7 +127,7 @@ public sealed class ProfileAndPolicySqliteRepository : IProfileRepository, IPoli
     using var connection = OpenConnection();
     using var command = connection.CreateCommand();
     command.CommandText = """
-      SELECT rule_id, profile_id, max_simultaneous_passes, duration_warning_seconds, max_daily_passes_per_student, lockout_start_minutes, lockout_end_minutes
+      SELECT rule_id, profile_id, max_simultaneous_passes, duration_warning_seconds, max_daily_passes_per_student, lockout_start_minutes, lockout_end_minutes, first_window_action, last_window_action, alert_sound
       FROM policy_rules
       WHERE profile_id = $profileId
       LIMIT 1;
@@ -143,7 +143,10 @@ public sealed class ProfileAndPolicySqliteRepository : IProfileRepository, IPoli
         DurationWarningSeconds: reader.GetInt32(3),
         MaxDailyPassesPerStudent: reader.GetInt32(4),
         LockoutStartMinutes: reader.GetInt32(5),
-        LockoutEndMinutes: reader.GetInt32(6)
+        LockoutEndMinutes: reader.GetInt32(6),
+        FirstWindowAction: reader.GetString(7),
+        LastWindowAction: reader.GetString(8),
+        AlertSound: reader.GetString(9)
       );
     }
 
@@ -155,16 +158,19 @@ public sealed class ProfileAndPolicySqliteRepository : IProfileRepository, IPoli
     using var command = connection.CreateCommand();
     command.CommandText = """
       INSERT INTO policy_rules 
-        (rule_id, profile_id, max_simultaneous_passes, duration_warning_seconds, max_daily_passes_per_student, lockout_start_minutes, lockout_end_minutes)
+        (rule_id, profile_id, max_simultaneous_passes, duration_warning_seconds, max_daily_passes_per_student, lockout_start_minutes, lockout_end_minutes, first_window_action, last_window_action, alert_sound)
       VALUES 
-        ($ruleId, $profileId, $maxSimul, $durWarn, $maxDaily, $lockStart, $lockEnd)
+        ($ruleId, $profileId, $maxSimul, $durWarn, $maxDaily, $lockStart, $lockEnd, $firstAction, $lastAction, $alertSound)
       ON CONFLICT(profile_id) DO UPDATE SET
         rule_id = excluded.rule_id,
         max_simultaneous_passes = excluded.max_simultaneous_passes,
         duration_warning_seconds = excluded.duration_warning_seconds,
         max_daily_passes_per_student = excluded.max_daily_passes_per_student,
         lockout_start_minutes = excluded.lockout_start_minutes,
-        lockout_end_minutes = excluded.lockout_end_minutes;
+        lockout_end_minutes = excluded.lockout_end_minutes,
+        first_window_action = excluded.first_window_action,
+        last_window_action = excluded.last_window_action,
+        alert_sound = excluded.alert_sound;
       """;
     command.Parameters.AddWithValue("$ruleId", rule.RuleId);
     command.Parameters.AddWithValue("$profileId", rule.ProfileId);
@@ -173,6 +179,9 @@ public sealed class ProfileAndPolicySqliteRepository : IProfileRepository, IPoli
     command.Parameters.AddWithValue("$maxDaily", rule.MaxDailyPassesPerStudent);
     command.Parameters.AddWithValue("$lockStart", rule.LockoutStartMinutes);
     command.Parameters.AddWithValue("$lockEnd", rule.LockoutEndMinutes);
+    command.Parameters.AddWithValue("$firstAction", rule.FirstWindowAction);
+    command.Parameters.AddWithValue("$lastAction", rule.LastWindowAction);
+    command.Parameters.AddWithValue("$alertSound", rule.AlertSound);
     command.ExecuteNonQuery();
   }
 
@@ -180,7 +189,7 @@ public sealed class ProfileAndPolicySqliteRepository : IProfileRepository, IPoli
     using var connection = OpenConnection();
     using var command = connection.CreateCommand();
     command.CommandText = """
-      SELECT schedule_id, profile_id, period_name, start_time, end_time, days_of_week
+      SELECT schedule_id, profile_id, period_name, start_time, end_time, days_of_week, schedule_name
       FROM bell_schedules
       WHERE profile_id = $profileId
       ORDER BY start_time ASC;
@@ -196,7 +205,8 @@ public sealed class ProfileAndPolicySqliteRepository : IProfileRepository, IPoli
         PeriodName: reader.GetString(2),
         StartTime: reader.GetString(3),
         EndTime: reader.GetString(4),
-        DaysOfWeek: reader.GetString(5)
+        DaysOfWeek: reader.GetString(5),
+        ScheduleName: reader.GetString(6)
       ));
     }
     return list;
@@ -215,8 +225,8 @@ public sealed class ProfileAndPolicySqliteRepository : IProfileRepository, IPoli
       using var insertCmd = connection.CreateCommand();
       insertCmd.Transaction = transaction;
       insertCmd.CommandText = """
-        INSERT INTO bell_schedules (schedule_id, profile_id, period_name, start_time, end_time, days_of_week)
-        VALUES ($id, $profileId, $name, $start, $end, $days);
+        INSERT INTO bell_schedules (schedule_id, profile_id, period_name, start_time, end_time, days_of_week, schedule_name)
+        VALUES ($id, $profileId, $name, $start, $end, $days, $scheduleName);
         """;
       var pId = insertCmd.Parameters.Add("$id", SqliteType.Text);
       var pProfile = insertCmd.Parameters.Add("$profileId", SqliteType.Text);
@@ -224,6 +234,7 @@ public sealed class ProfileAndPolicySqliteRepository : IProfileRepository, IPoli
       var pStart = insertCmd.Parameters.Add("$start", SqliteType.Text);
       var pEnd = insertCmd.Parameters.Add("$end", SqliteType.Text);
       var pDays = insertCmd.Parameters.Add("$days", SqliteType.Text);
+      var pScheduleName = insertCmd.Parameters.Add("$scheduleName", SqliteType.Text);
 
       pProfile.Value = profileId;
 
@@ -233,6 +244,7 @@ public sealed class ProfileAndPolicySqliteRepository : IProfileRepository, IPoli
         pStart.Value = period.StartTime;
         pEnd.Value = period.EndTime;
         pDays.Value = period.DaysOfWeek;
+        pScheduleName.Value = period.ScheduleName;
         insertCmd.ExecuteNonQuery();
       }
 

@@ -43,7 +43,7 @@ GET_ACTIVE_PASS\n
 
 ### 2.2 Asynchronous Event Notifications (When Connected)
 
-When the desktop client maintains an active BLE connection with the terminal, the terminal emits live notifications on the TX characteristic whenever local keypad interactions occur:
+When the desktop client maintains an active BLE connection with the terminal, the terminal emits live notifications on the TX characteristic whenever a pass changes state:
 
 1. **Student Checks Out:**
    ```text
@@ -57,6 +57,7 @@ When the desktop client maintains an active BLE connection with the terminal, th
    ```text
    EVENT,RESET,<student_id>,<duration_seconds>\n
    ```
+4. **Teacher Manual Check In (desktop):** the desktop sends `MANUAL_CHECKIN`; the terminal records the trip as `MANUAL`, then sends the same `EVENT,CHECKIN` and `LIVE_TRIP` notifications as a kiosk check-in.
 
 ---
 
@@ -103,6 +104,15 @@ stateDiagram-v2
 ---
 
 ## 5. Verification & Testing Matrix
+
+## Deferred enhancement: multiple active passes and teacher controls
+
+The current kiosk persists one active pass. A future firmware and protocol
+revision will support up to eight simultaneous active passes, a terminal
+setting to allow or disallow that mode, capacity warnings in the desktop
+client, and teacher-initiated manual checkout. The desktop manual check-in
+already records `MANUAL` rather than `MANUAL_RESET`. The desktop will continue to show
+the oldest active pass until it is checked in, then show the next oldest pass.
 
 | Capability | macOS Testing | Windows Testing | Hardware Required |
 | :--- | :--- | :--- | :--- |

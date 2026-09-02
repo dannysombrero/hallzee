@@ -8,9 +8,11 @@ namespace {
 const char *PREFERENCES_NAMESPACE = "bathroom";
 const char *PREF_OUT_ID = "out_id";
 const char *PREF_OUT_TIME = "out_time";
+const char *PREF_OUT_COUNT = "out_count";
 const char *PREF_NEXT_TRIP_ID = "next_trip";
 const char *PREF_LOG_READY = "log_ready";
 const char *PREF_MAX_STUDENT_ID_LENGTH = "max_id_len";
+const char *PREF_MAX_ACTIVE_PASSES = "max_active";
 const char *TRIP_LOG_PATH = "/trips.csv";
 const char *TRIP_LOG_TEMP_PATH = "/trips.tmp";
 const char *TRIP_LOG_BACKUP_PATH = "/trips.bak";
@@ -108,6 +110,56 @@ void TripStorage::clearActiveCheckout() {
 
   preferences.remove(PREF_OUT_ID);
   preferences.remove(PREF_OUT_TIME);
+  preferences.remove(PREF_OUT_COUNT);
+  for (uint8_t index = 0; index < MAX_ACTIVE_PASSES; index++) {
+    preferences.remove((String("out_id_") + index).c_str());
+    preferences.remove((String("out_time_") + index).c_str());
+  }
+}
+
+uint8_t TripStorage::loadActiveCheckouts(ActiveCheckout *checkouts, uint8_t maximum) {
+  if (!preferencesReady || maximum == 0) return 0;
+  const uint8_t savedCount = preferences.getUChar(PREF_OUT_COUNT, 0);
+  if (savedCount == 0) {
+    String id;
+    time_t time = 0;
+    loadActiveCheckout(id, time);
+    if (id.length() == 0) return 0;
+    checkouts[0] = {id, time};
+    return 1;
+  }
+
+  uint8_t count = 0;
+  for (uint8_t index = 0; index < savedCount && index < maximum && index < MAX_ACTIVE_PASSES; index++) {
+    const String id = preferences.getString((String("out_id_") + index).c_str(), "");
+    const time_t time = static_cast<time_t>(preferences.getLong64((String("out_time_") + index).c_str(), 0));
+    if (id.length() > 0 && time != 0) checkouts[count++] = {id, time};
+  }
+  return count;
+}
+
+bool TripStorage::saveActiveCheckouts(const ActiveCheckout *checkouts, uint8_t count) {
+  if (!preferencesReady || count > MAX_ACTIVE_PASSES) return false;
+  preferences.putUChar(PREF_OUT_COUNT, count);
+  for (uint8_t index = 0; index < MAX_ACTIVE_PASSES; index++) {
+    const String idKey = String("out_id_") + index;
+    const String timeKey = String("out_time_") + index;
+    if (index < count) {
+      preferences.putString(idKey.c_str(), checkouts[index].studentID);
+      preferences.putLong64(timeKey.c_str(), static_cast<int64_t>(checkouts[index].checkoutTime));
+    } else {
+      preferences.remove(idKey.c_str());
+      preferences.remove(timeKey.c_str());
+    }
+  }
+  if (count > 0) {
+    preferences.putString(PREF_OUT_ID, checkouts[0].studentID);
+    preferences.putLong64(PREF_OUT_TIME, static_cast<int64_t>(checkouts[0].checkoutTime));
+  } else {
+    preferences.remove(PREF_OUT_ID);
+    preferences.remove(PREF_OUT_TIME);
+  }
+  return true;
 }
 
 uint8_t TripStorage::getMaxStudentIdLength() const {
@@ -133,6 +185,17 @@ SettingWriteResult TripStorage::setMaxStudentIdLength(uint8_t value) {
 
   maxStudentIdLength = value;
   return SettingWriteResult::Saved;
+}
+
+uint8_t TripStorage::getMaxActivePasses() {
+  if (!preferencesReady) return 1;
+  const uint8_t value = preferences.getUChar(PREF_MAX_ACTIVE_PASSES, 1);
+  return value >= 1 && value <= MAX_ACTIVE_PASSES ? value : 1;
+}
+
+bool TripStorage::setMaxActivePasses(uint8_t value) {
+  if (!preferencesReady || value < 1 || value > MAX_ACTIVE_PASSES) return false;
+  return preferences.putUChar(PREF_MAX_ACTIVE_PASSES, value) == sizeof(uint8_t);
 }
 
 void TripStorage::initializeTripLogStorage() {
@@ -398,6 +461,25 @@ uint32_t TripStorage::getLatestTripID() {
 
   tripLog.close();
   return latestTripID;
+}
+
+bool TripStorage::getLatestTripRecord(String &record, uint32_t &tripID) {
+  record = "";
+  tripID = 0;
+  if (!littleFSReady) return false;
+
+  File tripLog = LittleFS.open(TRIP_LOG_PATH, FILE_READ);
+  if (!tripLog) return false;
+
+  while (tripLog.available()) {
+    String candidate = tripLog.readStringUntil('\n');
+    candidate.trim();
+    if (candidate.length() > 0) record = candidate;
+  }
+  tripLog.close();
+
+  bool ignoredSynced = false;
+  return record.length() > 0 && parseTripRecord(record, tripID, ignoredSynced);
 }
 
 bool TripStorage::parseTripRecord(

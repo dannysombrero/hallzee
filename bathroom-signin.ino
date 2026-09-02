@@ -68,13 +68,17 @@ void setSystemClock24(
 );
 void handleBluetoothClockSet();
 bool getActivePassState(String &activeId, uint32_t &checkoutEpoch);
+bool manualCheckInFromDesktop();
+bool setActivePassCapacity(uint8_t capacity);
 
 BluetoothSync bluetoothSync(
   tripStorage,
   bluetoothSerial,
   setSystemClock24,
   handleBluetoothClockSet,
-  getActivePassState
+  getActivePassState,
+  manualCheckInFromDesktop,
+  setActivePassCapacity
 );
 
 String enteredID = "";
@@ -260,6 +264,30 @@ bool getActivePassState(String &activeId, uint32_t &checkoutEpoch) {
     return true;
   }
   return false;
+}
+
+bool manualCheckInFromDesktop() {
+  String studentId;
+  unsigned long elapsedSeconds = 0;
+  if (!terminal.manualCheckIn(studentId, elapsedSeconds)) return false;
+
+  bluetoothSync.notifyCheckin(studentId, elapsedSeconds);
+  String completedRecord;
+  uint32_t completedTripID = 0;
+  if (tripStorage.getLatestTripRecord(completedRecord, completedTripID)) {
+    bluetoothSync.notifyCompletedTrip(completedRecord);
+  }
+  if (terminal.hasActivePass()) {
+    bluetoothSync.notifyCheckout(terminal.activeId(), static_cast<uint32_t>(terminal.activeCheckoutTime()));
+  }
+  showCheckedIn(studentId, elapsedSeconds);
+  enteredID = "";
+  drawIdleScreen();
+  return true;
+}
+
+bool setActivePassCapacity(uint8_t capacity) {
+  return terminal.setCapacity(capacity) && tripStorage.setMaxActivePasses(capacity);
 }
 
 void resetCurrentCheckout() {
@@ -628,7 +656,7 @@ void submitID() {
       drawIdleScreen();
       return;
 
-    case TerminalAction::CheckedIn:
+    case TerminalAction::CheckedIn: {
       Serial.print("CHECK IN: ");
       Serial.println(result.id);
       Serial.print("Date: ");
@@ -639,10 +667,19 @@ void submitID() {
       Serial.print(result.elapsedSeconds);
       Serial.println(" seconds");
       bluetoothSync.notifyCheckin(result.id, result.elapsedSeconds);
+      String completedRecord;
+      uint32_t completedTripID = 0;
+      if (tripStorage.getLatestTripRecord(completedRecord, completedTripID)) {
+        bluetoothSync.notifyCompletedTrip(completedRecord);
+      }
+      if (terminal.hasActivePass()) {
+        bluetoothSync.notifyCheckout(terminal.activeId(), static_cast<uint32_t>(terminal.activeCheckoutTime()));
+      }
       showCheckedIn(result.id, result.elapsedSeconds);
       enteredID = "";
       drawIdleScreen();
       return;
+    }
 
     case TerminalAction::StorageError:
       enteredID = "";
@@ -735,6 +772,7 @@ void setup() {
   // Storage owns NVS and LittleFS, then restores an active pass before clock
   // setup. The display is intentionally deferred until the clock is set.
   tripStorage.begin();
+  terminal.setCapacity(tripStorage.getMaxActivePasses());
   terminal.restoreActivePass();
 
   Serial.println("Serial command: p = print trip log");

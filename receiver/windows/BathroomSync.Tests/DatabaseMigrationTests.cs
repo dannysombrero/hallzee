@@ -69,7 +69,7 @@ public sealed class DatabaseMigrationTests {
 
       using (var connection = new SqliteConnection($"Data Source={dbPath}")) {
         connection.Open();
-        Assert.Equal(2, DatabaseMigrator.GetCurrentVersion(connection));
+        Assert.Equal(3, DatabaseMigrator.GetCurrentVersion(connection));
 
         // Check legacy data survived intact
         using var checkCmd = connection.CreateCommand();

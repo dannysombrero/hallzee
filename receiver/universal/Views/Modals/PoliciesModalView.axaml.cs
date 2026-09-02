@@ -16,9 +16,17 @@ public partial class PoliciesModalView : UserControl {
     }
   }
 
-  void OnSavePolicyClick(object? sender, RoutedEventArgs e) {
+  async void OnSavePolicyClick(object? sender, RoutedEventArgs e) {
     if (DataContext is MainViewModel vm) {
       vm.PolicyModal.Save(vm.ActiveProfile.ProfileId);
+      vm.Dashboard.Refresh(vm.ActiveProfile.ProfileId);
+      await vm.ApplyPolicyCapacityAsync();
+    }
+  }
+
+  void OnSaveAsProfileClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) {
+      vm.CreateProfileFromPolicy();
     }
   }
 

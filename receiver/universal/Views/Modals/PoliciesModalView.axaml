@@ -4,7 +4,7 @@
              x:Class="BathroomSync.Universal.Views.PoliciesModalView"
              x:DataType="vm:MainViewModel">
   <Border Background="#99000000">
-    <Border Background="White" CornerRadius="16" Width="680" MaxHeight="560" VerticalAlignment="Center" HorizontalAlignment="Center" Padding="24" BoxShadow="0 10 30 0 #40000000">
+    <Border Background="White" CornerRadius="16" Width="790" MaxHeight="680" VerticalAlignment="Center" HorizontalAlignment="Center" Padding="24" BoxShadow="0 10 30 0 #40000000">
       <Grid RowDefinitions="Auto,*,Auto" RowSpacing="16">
         
         <Grid ColumnDefinitions="*,Auto">
@@ -23,15 +23,32 @@
                 <TextBlock Text="CLASSROOM PASS LIMITS" FontSize="11" FontWeight="Bold" Foreground="#64748B" />
                 
                 <Grid ColumnDefinitions="2*,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="10" VerticalAlignment="Center">
-                  <TextBlock Grid.Row="0" Grid.Column="0" Text="Maximum Daily Passes per Student:" FontSize="13" Foreground="#334155" VerticalAlignment="Center" />
-                  <NumericUpDown Grid.Row="0" Grid.Column="1" Minimum="1" Maximum="10" Value="{Binding PolicyModal.MaxDailyPasses}" />
+                  <TextBlock Grid.Row="0" Grid.Column="0" Text="Students allowed out at once:" FontSize="13" Foreground="#334155" VerticalAlignment="Center" />
+                  <NumericUpDown Grid.Row="0" Grid.Column="1" Minimum="1" Maximum="8" Value="{Binding PolicyModal.MaxSimultaneousPasses}" />
 
-                  <TextBlock Grid.Row="1" Grid.Column="0" Text="Grace Period (Minutes):" FontSize="13" Foreground="#334155" VerticalAlignment="Center" />
-                  <NumericUpDown Grid.Row="1" Grid.Column="1" Minimum="1" Maximum="20" Value="{Binding PolicyModal.GracePeriodMinutes}" />
+                  <TextBlock Grid.Row="1" Grid.Column="0" Text="Maximum Daily Passes per Student:" FontSize="13" Foreground="#334155" VerticalAlignment="Center" />
+                  <NumericUpDown Grid.Row="1" Grid.Column="1" Minimum="1" Maximum="10" Value="{Binding PolicyModal.MaxDailyPasses}" />
 
-                  <TextBlock Grid.Row="2" Grid.Column="0" Text="Auto-Reset Timeout (Minutes):" FontSize="13" Foreground="#334155" VerticalAlignment="Center" />
-                  <NumericUpDown Grid.Row="2" Grid.Column="1" Minimum="5" Maximum="60" Value="{Binding PolicyModal.AutoResetTimeoutMinutes}" />
+                  <TextBlock Grid.Row="2" Grid.Column="0" Text="Overdue warning (minutes):" FontSize="13" Foreground="#334155" VerticalAlignment="Center" />
+                  <NumericUpDown Grid.Row="2" Grid.Column="1" Minimum="1" Maximum="60" Value="{Binding PolicyModal.DurationWarningMinutes}" />
                 </Grid>
+              </StackPanel>
+            </Border>
+
+            <Border Background="#FFFBEB" BorderBrush="#FDE68A" BorderThickness="1" CornerRadius="10" Padding="16">
+              <StackPanel Spacing="10">
+                <TextBlock Text="BELL-TIME WINDOWS" FontSize="11" FontWeight="Bold" Foreground="#92400E" />
+                <Grid ColumnDefinitions="2*,Auto,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="8">
+                  <TextBlock Grid.Row="0" Text="First minutes of period" FontSize="13" Foreground="#334155" VerticalAlignment="Center" />
+                  <NumericUpDown Grid.Row="0" Grid.Column="1" Width="62" Minimum="0" Maximum="30" Value="{Binding PolicyModal.FirstWindowMinutes}" />
+                  <ComboBox Grid.Row="0" Grid.Column="2" Width="110" ItemsSource="{Binding PolicyModal.BellActions}" SelectedItem="{Binding PolicyModal.FirstWindowAction}" />
+                  <TextBlock Grid.Row="1" Text="Last minutes of period" FontSize="13" Foreground="#334155" VerticalAlignment="Center" />
+                  <NumericUpDown Grid.Row="1" Grid.Column="1" Width="62" Minimum="0" Maximum="30" Value="{Binding PolicyModal.LastWindowMinutes}" />
+                  <ComboBox Grid.Row="1" Grid.Column="2" Width="110" ItemsSource="{Binding PolicyModal.BellActions}" SelectedItem="{Binding PolicyModal.LastWindowAction}" />
+                  <TextBlock Grid.Row="2" Text="Warning sound" FontSize="13" Foreground="#334155" VerticalAlignment="Center" />
+                  <ComboBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" ItemsSource="{Binding PolicyModal.AlertSounds}" SelectedItem="{Binding PolicyModal.AlertSound}" />
+                </Grid>
+                <TextBlock Text="Allow accepts passes; Warn accepts and alerts; Lock blocks new checkouts during the selected window." TextWrapping="Wrap" FontSize="11" Foreground="#92400E" />
               </StackPanel>
             </Border>
 
@@ -50,11 +67,13 @@
                 <ItemsControl ItemsSource="{Binding PolicyModal.Periods}">
                   <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                      <Grid ColumnDefinitions="2*,*,*,Auto" Margin="0,3" VerticalAlignment="Center">
-                        <TextBlock Text="{Binding PeriodName}" FontWeight="SemiBold" FontSize="13" Foreground="#0F172A" VerticalAlignment="Center" />
-                        <TextBlock Grid.Column="1" Text="{Binding StartTime}" FontSize="12" Foreground="#64748B" VerticalAlignment="Center" />
-                        <TextBlock Grid.Column="2" Text="{Binding EndTime}" FontSize="12" Foreground="#64748B" VerticalAlignment="Center" />
-                        <Button Grid.Column="3" Classes="danger" Click="OnRemovePeriodClick" Tag="{Binding}" Margin="0,0,4,0" Padding="6,4">
+                      <Grid ColumnDefinitions="*,*,*,*,*,Auto" ColumnSpacing="6" Margin="0,3" VerticalAlignment="Center">
+                        <TextBox Text="{Binding ScheduleName}" Watermark="Schedule" FontSize="12" />
+                        <TextBox Grid.Column="1" Text="{Binding PeriodName}" Watermark="Period" FontSize="12" />
+                        <TextBox Grid.Column="2" Text="{Binding StartTime}" Watermark="Start" FontSize="12" />
+                        <TextBox Grid.Column="3" Text="{Binding EndTime}" Watermark="End" FontSize="12" />
+                        <TextBox Grid.Column="4" Text="{Binding DaysOfWeek}" Watermark="Days" FontSize="12" />
+                        <Button Grid.Column="5" Classes="danger" Click="OnRemovePeriodClick" Tag="{Binding}" Margin="0,0,4,0" Padding="6,4">
                           <PathIcon Data="{StaticResource IconX}" Width="10" Height="10" Foreground="#E11D48" />
                         </Button>
                       </Grid>
@@ -68,8 +87,12 @@
         </ScrollViewer>
 
         <Grid Grid.Row="2" ColumnDefinitions="*,Auto" VerticalAlignment="Center">
-          <TextBlock Text="{Binding PolicyModal.StatusMessage}" Foreground="#10B981" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center" />
-          <Button Grid.Column="1" Classes="hallzee-pill-btn" Content="Save Policy" Click="OnSavePolicyClick" Padding="16,8" FontSize="13" />
+          <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <TextBox Width="170" Text="{Binding PolicyModal.NewProfileName}" Watermark="New profile name" />
+            <Button Classes="secondary" Content="Save as New Profile" Click="OnSaveAsProfileClick" Padding="12,8" FontSize="12" />
+            <TextBlock Text="{Binding PolicyModal.StatusMessage}" MaxWidth="180" TextTrimming="CharacterEllipsis" Foreground="#10B981" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center" />
+          </StackPanel>
+          <Button Grid.Column="1" Classes="hallzee-pill-btn" Content="Save Profile Settings" Click="OnSavePolicyClick" Padding="16,8" FontSize="13" />
         </Grid>
       </Grid>
     </Border>

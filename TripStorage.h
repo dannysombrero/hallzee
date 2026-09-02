@@ -14,8 +14,12 @@ public:
   void loadActiveCheckout(String &studentID, time_t &checkoutTime) override;
   bool saveActiveCheckout(const String &studentID, time_t checkoutTime) override;
   void clearActiveCheckout() override;
+  uint8_t loadActiveCheckouts(ActiveCheckout *checkouts, uint8_t maximum) override;
+  bool saveActiveCheckouts(const ActiveCheckout *checkouts, uint8_t count) override;
   uint8_t getMaxStudentIdLength() const override;
   SettingWriteResult setMaxStudentIdLength(uint8_t value) override;
+  uint8_t getMaxActivePasses();
+  bool setMaxActivePasses(uint8_t value);
 
   bool appendTripRecord(
     const String &studentID,
@@ -30,6 +34,7 @@ public:
   uint32_t getTripRecordCountAfter(uint32_t afterTripID) override;
   uint32_t getUnsyncedTripRecordCount() override;
   uint32_t getLatestTripID();
+  bool getLatestTripRecord(String &record, uint32_t &tripID);
   bool getNextUnsyncedRecord(String &record, uint32_t &tripID) override;
   bool getNextRecordAfter(
     uint32_t afterTripID,

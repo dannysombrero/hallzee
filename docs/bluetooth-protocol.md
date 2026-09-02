@@ -32,6 +32,11 @@ Client -> ACK,<trip_id>              (only after SQLite commit)
 Terminal -> SYNC_END
 ```
 
+While the BLE connection remains open, a completed or manually reset pass is
+also delivered immediately as `LIVE_TRIP,<record>`. The desktop stores this
+record without an ACK; a later cursor sync safely retransmits it if the live
+notification was missed.
+
 `HELLO,1` makes readiness deterministic if the connect-time ready notification
 was sent before Windows completed its notification subscription. The client
 cursor is the largest trip ID durably stored in SQLite. A normal sync therefore
@@ -49,7 +54,9 @@ the retry a safe duplicate and ACKs it again.
 | `HELLO,1` | Request a versioned readiness response |
 | `GET_SETTINGS` | Read all supported persisted kiosk settings |
 | `GET_ACTIVE_PASS` | Query current active in-flight checkout pass status |
+| `MANUAL_CHECKIN` | Teacher check-in of the active pass; records the completed trip with status `MANUAL` |
 | `SET,MAX_ID_LENGTH,<4-16>` | Persist the maximum accepted student-ID length |
+| `SET,MAX_ACTIVE_PASSES,<1-8>` | Persist the maximum number of simultaneous active passes; the oldest active pass remains the client-visible pass |
 | `TIME_CURSOR,...,<id>` | Set local time and send records with trip ID greater than `id` |
 | `TIME,...` | Legacy compatibility: set time and send records whose terminal sync flag is unset |
 | `SYNC_START` | Legacy compatibility: send records whose terminal sync flag is unset |
@@ -75,6 +82,8 @@ Carriage returns are ignored.
 | `TIME_ACK,OK` / `TIME_ACK,ERROR` | Result of a time or cursor command |
 | `SYNC_BEGIN,<count>` | A sequence started with the expected record count |
 | `TRIP,<record>` | Next record; the first CSV field is the trip ID |
+| `LIVE_TRIP,<record>` | A newly completed record delivered while connected; it does not require an ACK |
+| `MANUAL_CHECKIN_ERROR,NO_ACTIVE_PASS` | A manual check-in was requested when no pass was active |
 | `SYNC_END` | No more records in the requested sequence |
 | `ACK_ERROR,INVALID_ID` | ACK did not contain a numeric ID |
 | `ACK_ERROR,UNEXPECTED_ID` | ACK did not match the pending trip |

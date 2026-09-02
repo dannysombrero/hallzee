@@ -8,6 +8,23 @@ cli="$cli_dir/bin/arduino-cli"
 esp32_index="https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json"
 port="${1:-}"
 
+# Arduino sketches must live in a directory with the same name as their .ino
+# file. The repository directory is named independently, so stage the sketch
+# sources in a short-lived Arduino-compatible directory before compiling.
+shopt -s nullglob
+sketch_files=("$project_root"/*.ino)
+source_files=("$project_root"/*.ino "$project_root"/*.h "$project_root"/*.cpp)
+if [[ ${#sketch_files[@]} -ne 1 ]]; then
+  echo "Expected exactly one .ino sketch in $project_root."
+  exit 1
+fi
+sketch_name="$(basename "${sketch_files[0]}" .ino)"
+staging_root="$(mktemp -d)"
+staging_sketch="$staging_root/$sketch_name"
+mkdir -p "$staging_sketch"
+cp "${source_files[@]}" "$staging_sketch/"
+trap 'rm -rf "$staging_root"' EXIT
+
 cat <<'REQUIREMENTS'
 Hallzee firmware flasher
 
@@ -48,6 +65,6 @@ echo "Installing the ESP32 board support and required libraries if needed…"
 "$cli" lib install "Adafruit GFX Library" "Adafruit ST7735 and ST7789 Library" Keypad
 
 echo "Building and flashing Hallzee to ${port}…"
-"$cli" compile --fqbn esp32:esp32:esp32 "$project_root"
-"$cli" upload --fqbn esp32:esp32:esp32 --port "$port" "$project_root"
+"$cli" compile --fqbn esp32:esp32:esp32 "$staging_sketch"
+"$cli" upload --fqbn esp32:esp32:esp32 --port "$port" "$staging_sketch"
 echo "Done. The Hallzee firmware is now on the ESP32."

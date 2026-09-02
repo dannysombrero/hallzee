@@ -241,6 +241,11 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     Dashboard.Refresh(ActiveProfile.ProfileId);
   }
 
+  public void ExportTrips(string exportPath) {
+    TripsModal.ExportCsv(ActiveProfile.ProfileId, exportPath);
+    OpenModal("Trips");
+  }
+
   public void SwitchProfile(ClassroomProfile profile) {
     ActiveProfile = profile;
   }

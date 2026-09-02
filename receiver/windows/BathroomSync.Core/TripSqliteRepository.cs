@@ -108,6 +108,7 @@ public sealed class TripSqliteRepository : ITripRepository {
       "trip_id ASC" => "t.trip_id ASC",
       "trip_date DESC" => "t.trip_date DESC, t.time_out DESC",
       "trip_date ASC" => "t.trip_date ASC, t.time_out ASC",
+      "activity DESC" => "t.trip_date DESC, COALESCE(NULLIF(t.time_in, ''), t.time_out) DESC, t.trip_id DESC",
       "duration DESC" => "CAST(t.duration_seconds AS INTEGER) DESC",
       "duration ASC" => "CAST(t.duration_seconds AS INTEGER) ASC",
       _ => "t.trip_id DESC"

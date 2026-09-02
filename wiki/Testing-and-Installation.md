@@ -124,6 +124,10 @@ dotnet run --project receiver/universal/BathroomSync.Universal.csproj
 ```
 
 The Universal client connects to the physical ESP32 terminal via Bluetooth LE on both macOS and Windows.
+On macOS, Connect & Sync waits until CoreBluetooth confirms that terminal
+notifications are enabled before sending any sync commands. If this readiness
+handshake does not complete within 15 seconds, the app reports a connection
+failure instead of silently dropping the first commands.
 
 ### Firmware and display behavior
 

@@ -17,11 +17,10 @@
 
         <Grid Grid.Row="1" ColumnDefinitions="2*,*,Auto" ColumnSpacing="12">
           <TextBox Text="{Binding TripsModal.SearchText}" Watermark="Filter by student name or ID…" />
-          <ComboBox Grid.Column="1" SelectedItem="{Binding TripsModal.SelectedStatus}" HorizontalAlignment="Stretch">
-            <ComboBoxItem Content="ALL" />
-            <ComboBoxItem Content="COMPLETED" />
-            <ComboBoxItem Content="MANUAL_RESET" />
-          </ComboBox>
+          <ComboBox Grid.Column="1"
+                    ItemsSource="{Binding TripsModal.StatusOptions}"
+                    SelectedItem="{Binding TripsModal.SelectedStatus}"
+                    HorizontalAlignment="Stretch" />
           <Button Grid.Column="2" Classes="hallzee-pill-btn" Content="Refresh" Click="OnFilterClick" Padding="14,6" FontSize="12" />
         </Grid>
 

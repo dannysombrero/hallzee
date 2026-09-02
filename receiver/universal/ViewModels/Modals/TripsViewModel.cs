@@ -19,6 +19,9 @@ public sealed class TripsViewModel : INotifyPropertyChanged {
   public event PropertyChangedEventHandler? PropertyChanged;
 
   public ObservableCollection<EnrichedTripRecord> Trips { get; } = new();
+  public IReadOnlyList<string> StatusOptions { get; } = new[] {
+    "ALL", "COMPLETED", "MANUAL_RESET"
+  };
 
   public string SearchText {
     get => searchText;

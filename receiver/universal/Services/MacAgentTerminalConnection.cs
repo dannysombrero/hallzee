@@ -5,6 +5,7 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using BathroomSync.Core;
 using Avalonia.Threading;
@@ -23,14 +24,35 @@ public class MacAgentTerminalConnection : ITerminalConnection
     private StreamWriter? agentInput;
     private StreamReader? agentOutput;
     private bool isConnected;
+    private TaskCompletionSource<bool>? connectionTcs;
     private TaskCompletionSource<IReadOnlyList<TerminalDevice>>? discoveryTcs;
     private List<TerminalDevice> discoveredDevices = new();
 
     public async Task ConnectAsync(TerminalDevice terminal)
     {
         await EnsureAgentRunning();
+        if (agentInput == null)
+        {
+            throw new InvalidOperationException("The macOS Bluetooth helper is unavailable.");
+        }
+
+        var connectionAttempt = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        connectionTcs = connectionAttempt;
         SendCommand("Connect", new Dictionary<string, string> { { "Id", terminal.Id } });
-        isConnected = true;
+
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var registration = timeout.Token.Register(() =>
+            connectionAttempt.TrySetException(new TimeoutException(
+                "Timed out waiting for the terminal's BLE notifications to become ready.")));
+
+        try
+        {
+            await connectionAttempt.Task;
+        }
+        finally
+        {
+            if (ReferenceEquals(connectionTcs, connectionAttempt)) connectionTcs = null;
+        }
     }
 
     public Task DisconnectAsync()
@@ -40,6 +62,8 @@ public class MacAgentTerminalConnection : ITerminalConnection
             SendCommand("Disconnect", null);
             isConnected = false;
         }
+        connectionTcs?.TrySetCanceled();
+        connectionTcs = null;
         return Task.CompletedTask;
     }
 
@@ -189,9 +213,24 @@ public class MacAgentTerminalConnection : ITerminalConnection
                             TextReceived?.Invoke(this, text);
                         }
                         break;
+                    case "Connected":
+                        if (connectionTcs == null)
+                        {
+                            // The connection completed after its caller timed out or cancelled.
+                            // Close it so a late callback cannot revive stale UI state.
+                            SendCommand("Disconnect", null);
+                            isConnected = false;
+                            break;
+                        }
+                        isConnected = true;
+                        connectionTcs?.TrySetResult(true);
+                        connectionTcs = null;
+                        break;
                     case "ConnectionLost":
                         ConnectionLost?.Invoke(this, "Disconnected from Agent");
                         isConnected = false;
+                        connectionTcs?.TrySetException(new IOException("Hallzee disconnected while connecting."));
+                        connectionTcs = null;
                         break;
                     case "Error":
                         var errMsg = data.GetProperty("Message").GetString() ?? "Unknown error";
@@ -200,6 +239,8 @@ public class MacAgentTerminalConnection : ITerminalConnection
                             discoveryTcs.TrySetException(new Exception(errMsg));
                             discoveryTcs = null;
                         } else {
+                            connectionTcs?.TrySetException(new Exception(errMsg));
+                            connectionTcs = null;
                             // If we get an error while syncing or trying to connect, abort!
                             ConnectionLost?.Invoke(this, errMsg);
                             isConnected = false;

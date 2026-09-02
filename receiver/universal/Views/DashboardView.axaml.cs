@@ -52,7 +52,7 @@ public partial class DashboardView : UserControl {
         "Downloads",
         $"hallzee_trips_{DateTime.Now:yyyyMMdd_HHmmss}.csv"
       );
-      vm.TripsModal.ExportCsv(vm.ActiveProfile.ProfileId, exportPath);
+      vm.ExportTrips(exportPath);
     }
   }
 }

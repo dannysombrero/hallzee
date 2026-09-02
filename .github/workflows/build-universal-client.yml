@@ -1,8 +1,13 @@
 name: Build Universal Sync Client
+
 on:
   workflow_dispatch:
   pull_request:
-    paths: &client_paths [receiver/universal/**, receiver/universal.tests/**, receiver/windows/**, .github/workflows/build-universal-client.yml]
+    paths:
+      - receiver/universal/**
+      - receiver/universal.tests/**
+      - receiver/windows/**
+      - .github/workflows/build-universal-client.yml
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -13,27 +18,53 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, windows-latest]
+        os:
+          - macos-latest
+          - windows-latest
+
     runs-on: ${{ matrix.os }}
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
-        with: { dotnet-version: 8.0.x }
-      - run: dotnet test receiver/windows/BathroomSync.Tests/BathroomSync.Tests.csproj --configuration Release
-      - run: dotnet test receiver/universal.tests/BathroomSync.Universal.Tests.csproj --configuration Release
-      - run: dotnet build receiver/universal/BathroomSync.Universal.csproj --configuration Release
-      - if: matrix.os == 'windows-latest'
-        run: dotnet build receiver/windows/BathroomSync.Windows.csproj --configuration Release
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Run Universal client tests
+        run: dotnet test receiver/universal.tests/BathroomSync.Universal.Tests.csproj --configuration Release
+
+      - name: Build Universal client
+        run: dotnet build receiver/universal/BathroomSync.Universal.csproj --configuration Release
+
   publish_windows_client:
     if: github.event_name == 'workflow_dispatch'
     needs: validate
     runs-on: windows-latest
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
-        with: { dotnet-version: 8.0.x }
-      - run: dotnet publish receiver/universal/BathroomSync.Universal.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -o publish
-      - uses: actions/upload-artifact@v4
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Publish Windows Universal client
+        run: >
+          dotnet publish receiver/universal/BathroomSync.Universal.csproj
+          --configuration Release
+          --runtime win-x64
+          --self-contained true
+          -p:PublishSingleFile=true
+          -p:PublishTrimmed=false
+          --output publish
+
+      - name: Upload Windows client
+        uses: actions/upload-artifact@v4
         with:
           name: HallzeeSync-Universal-Windows
           path: publish/

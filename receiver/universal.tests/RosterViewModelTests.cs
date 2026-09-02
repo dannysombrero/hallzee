@@ -79,4 +79,18 @@ public sealed class RosterViewModelTests : IDisposable {
       if (File.Exists(csvPath)) File.Delete(csvPath);
     }
   }
+
+  [Fact]
+  public void RejectsNumbersWorkbookWithExportInstructions() {
+    var numbersPath = Path.Combine(Path.GetDirectoryName(tempDbPath)!, "roster.numbers");
+    File.WriteAllText(numbersPath, "not CSV data");
+
+    try {
+      Assert.False(viewModel.StartCsvImport(numbersPath));
+      Assert.False(viewModel.IsImportPreviewActive);
+      Assert.Contains("Export To → CSV", viewModel.ImportStatusMessage);
+    } finally {
+      if (File.Exists(numbersPath)) File.Delete(numbersPath);
+    }
+  }
 }

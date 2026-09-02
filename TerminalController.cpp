@@ -8,15 +8,33 @@ TerminalController::TerminalController(
 ) : tripStorage(tripStorage), timeProvider(timeProvider) {}
 
 void TerminalController::restoreActivePass() {
-  tripStorage.loadActiveCheckout(currentOutId, checkoutTime);
+  activeCount = tripStorage.loadActiveCheckouts(activePasses, MAX_ACTIVE_PASSES);
 }
 
 bool TerminalController::hasActivePass() const {
-  return currentOutId.length() > 0;
+  return activeCount > 0;
 }
 
 const String &TerminalController::activeId() const {
-  return currentOutId;
+  static String empty;
+  return activeCount > 0 ? activePasses[0].studentID : empty;
+}
+
+bool TerminalController::setCapacity(uint8_t value) {
+  if (value < 1 || value > MAX_ACTIVE_PASSES || value < activeCount) return false;
+  maxSimultaneousPasses = value;
+  return true;
+}
+
+int TerminalController::findActivePass(const String &studentId) const {
+  for (uint8_t index = 0; index < activeCount; index++) {
+    if (activePasses[index].studentID == studentId) return index;
+  }
+  return -1;
+}
+
+bool TerminalController::persistActivePasses() {
+  return tripStorage.saveActiveCheckouts(activePasses, activeCount);
 }
 
 TerminalActionResult TerminalController::submit(const String &enteredId) {
@@ -30,38 +48,60 @@ TerminalActionResult TerminalController::submit(const String &enteredId) {
     return {TerminalAction::ShowTripLog, "", 0};
   }
 
-  if (!hasActivePass()) {
-    currentOutId = enteredId;
-    checkoutTime = timeProvider.now();
-    if (!tripStorage.saveActiveCheckout(currentOutId, checkoutTime)) {
-      currentOutId = "";
-      checkoutTime = 0;
+  const int existingIndex = findActivePass(enteredId);
+  if (existingIndex < 0 && activeCount < maxSimultaneousPasses) {
+    activePasses[activeCount] = {enteredId, timeProvider.now()};
+    activeCount++;
+    if (!persistActivePasses()) {
+      activeCount--;
       return {TerminalAction::StorageError, "", 0};
     }
-    return {TerminalAction::CheckedOut, currentOutId};
+    return {TerminalAction::CheckedOut, enteredId};
   }
 
-  if (enteredId != currentOutId) {
+  if (existingIndex < 0) {
     return {TerminalAction::PassOccupied, "", 0};
   }
 
   const time_t checkinTime = timeProvider.now();
-  long elapsedSeconds = static_cast<long>(difftime(checkinTime, checkoutTime));
+  const ActiveCheckout checkout = activePasses[existingIndex];
+  long elapsedSeconds = static_cast<long>(difftime(checkinTime, checkout.checkoutTime));
   if (elapsedSeconds < 0) {
     elapsedSeconds = 0;
   }
 
-  const String id = currentOutId;
+  const String id = checkout.studentID;
   if (!tripStorage.appendTripRecord(
-    id, checkoutTime, checkinTime, elapsedSeconds, "COMPLETE"
+    id, checkout.checkoutTime, checkinTime, elapsedSeconds, "COMPLETE"
   )) {
     return {TerminalAction::StorageError, "", 0};
   }
 
-  currentOutId = "";
-  checkoutTime = 0;
-  tripStorage.clearActiveCheckout();
+  for (uint8_t index = existingIndex; index + 1 < activeCount; index++) activePasses[index] = activePasses[index + 1];
+  activeCount--;
+  if (!persistActivePasses()) return {TerminalAction::StorageError, "", 0};
   return {TerminalAction::CheckedIn, id, static_cast<unsigned long>(elapsedSeconds)};
+}
+
+bool TerminalController::manualCheckIn(String &checkedInId, unsigned long &elapsedSeconds) {
+  if (!hasActivePass()) return false;
+
+  const ActiveCheckout checkout = activePasses[0];
+  const time_t checkinTime = timeProvider.now();
+  long elapsed = static_cast<long>(difftime(checkinTime, checkout.checkoutTime));
+  if (elapsed < 0) elapsed = 0;
+
+  checkedInId = checkout.studentID;
+  elapsedSeconds = static_cast<unsigned long>(elapsed);
+  if (!tripStorage.appendTripRecord(
+    checkedInId, checkout.checkoutTime, checkinTime, elapsed, "MANUAL"
+  )) {
+    return false;
+  }
+
+  for (uint8_t index = 0; index + 1 < activeCount; index++) activePasses[index] = activePasses[index + 1];
+  activeCount--;
+  return persistActivePasses();
 }
 
 bool TerminalController::resetActivePass(String &resetId) {
@@ -69,15 +109,15 @@ bool TerminalController::resetActivePass(String &resetId) {
     return false;
   }
 
-  resetId = currentOutId;
+  const ActiveCheckout checkout = activePasses[0];
+  resetId = checkout.studentID;
   if (!tripStorage.appendTripRecord(
-    resetId, checkoutTime, 0, 0, "MANUAL_RESET"
+    resetId, checkout.checkoutTime, 0, 0, "MANUAL_RESET"
   )) {
     return false;
   }
 
-  currentOutId = "";
-  checkoutTime = 0;
-  tripStorage.clearActiveCheckout();
-  return true;
+  for (uint8_t index = 0; index + 1 < activeCount; index++) activePasses[index] = activePasses[index + 1];
+  activeCount--;
+  return persistActivePasses();
 }

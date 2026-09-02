@@ -10,13 +10,17 @@ public:
                                int minute, int second);
   using ClockSetHandler = void (*)();
   using ActivePassProvider = bool (*)(String &activeId, uint32_t &checkoutEpoch);
+  using ManualCheckInHandler = bool (*)();
+  using CapacitySetter = bool (*)(uint8_t);
 
   BluetoothSync(
     TripStoragePort &tripStorage,
     BluetoothSerialPort &serial,
     ClockSetter clockSetter,
     ClockSetHandler clockSetHandler,
-    ActivePassProvider activePassProvider = nullptr
+    ActivePassProvider activePassProvider = nullptr,
+    ManualCheckInHandler manualCheckInHandler = nullptr,
+    CapacitySetter capacitySetter = nullptr
   );
 
   void setActivePassProvider(ActivePassProvider provider) {
@@ -29,12 +33,15 @@ public:
   void notifyCheckout(const String &studentId, uint32_t checkoutEpoch);
   void notifyCheckin(const String &studentId, unsigned long durationSeconds);
   void notifyReset(const String &studentId, unsigned long durationSeconds);
+  void notifyCompletedTrip(const String &record);
 
 private:
   TripStoragePort &tripStorage;
   ClockSetter clockSetter;
   ClockSetHandler clockSetHandler;
   ActivePassProvider activePassProvider;
+  ManualCheckInHandler manualCheckInHandler;
+  CapacitySetter capacitySetter;
   BluetoothSerialPort &serial;
 
   bool ready = false;

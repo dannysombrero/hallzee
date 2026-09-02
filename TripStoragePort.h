@@ -10,6 +10,13 @@ enum class SettingWriteResult {
   Unavailable
 };
 
+constexpr uint8_t MAX_ACTIVE_PASSES = 8;
+
+struct ActiveCheckout {
+  String studentID;
+  time_t checkoutTime = 0;
+};
+
 class TripStoragePort {
 public:
   virtual ~TripStoragePort() = default;
@@ -17,6 +24,16 @@ public:
   virtual void loadActiveCheckout(String &studentID, time_t &checkoutTime) = 0;
   virtual bool saveActiveCheckout(const String &studentID, time_t checkoutTime) = 0;
   virtual void clearActiveCheckout() = 0;
+  virtual uint8_t loadActiveCheckouts(ActiveCheckout *checkouts, uint8_t maximum) {
+    if (maximum == 0) return 0;
+    loadActiveCheckout(checkouts[0].studentID, checkouts[0].checkoutTime);
+    return checkouts[0].studentID.length() > 0 ? 1 : 0;
+  }
+  virtual bool saveActiveCheckouts(const ActiveCheckout *checkouts, uint8_t count) {
+    if (count == 0) { clearActiveCheckout(); return true; }
+    if (count > 1) return false;
+    return saveActiveCheckout(checkouts[0].studentID, checkouts[0].checkoutTime);
+  }
   virtual uint8_t getMaxStudentIdLength() const = 0;
   virtual SettingWriteResult setMaxStudentIdLength(uint8_t value) = 0;
   virtual bool appendTripRecord(

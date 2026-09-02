@@ -90,6 +90,35 @@
         </Grid>
       </Border>
 
+      <!-- ADDITIONAL ACTIVE PASSES -->
+      <ItemsControl ItemsSource="{Binding Dashboard.AdditionalActiveTrips}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <Border Background="#FFFBEB" BorderBrush="#FCD34D" BorderThickness="2" CornerRadius="22" BoxShadow="0 4 20 0 #0D000000" Padding="20" Margin="0,10">
+              <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+                <Border Width="56" Height="56" CornerRadius="18" Background="#F59E0B" Margin="0,0,16,0" VerticalAlignment="Center">
+                  <PathIcon Data="{StaticResource IconUserX}" Width="26" Height="26" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" />
+                </Border>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+                  <Border Background="#F59E0B" CornerRadius="12" Padding="10,2" HorizontalAlignment="Left">
+                    <TextBlock Text="PASS OCCUPIED" FontWeight="ExtraBold" FontSize="10" Foreground="White" LetterSpacing="0.5" />
+                  </Border>
+                  <TextBlock Text="{Binding DisplayName, StringFormat='{}{0} is Out of Class'}" FontSize="22" FontWeight="Black" Foreground="#0F172A" />
+                  <TextBlock Text="{Binding TimeOut, StringFormat='Departed at {0}.'}" FontSize="13" Foreground="#475569" FontWeight="Medium" />
+                </StackPanel>
+                <Border Grid.Column="2" Background="White" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="18" Padding="18,12" MinWidth="160">
+                  <StackPanel Spacing="2">
+                    <TextBlock Text="TRIP ELAPSED" FontSize="10" FontWeight="Bold" Foreground="#94A3B8" LetterSpacing="0.5" />
+                    <TextBlock Text="{Binding ElapsedDisplay}" FontSize="24" FontWeight="Black" FontFamily="Cascadia Mono, Menlo, monospace" Foreground="#D97706" />
+                    <TextBlock Text="{Binding StudentId, StringFormat='Student ID: #{0}'}" FontSize="11" Foreground="#64748B" FontWeight="SemiBold" />
+                  </StackPanel>
+                </Border>
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
       <!-- 3. MAIN DASHBOARD 2-COLUMN GRID -->
       <Grid ColumnDefinitions="1.8*,1.2*" ColumnSpacing="20">
         
@@ -127,24 +156,30 @@
                 <ItemsControl.ItemTemplate>
                   <DataTemplate>
                     <Border Background="#F8FAFC" BorderBrush="#E0F2FE" BorderThickness="1" CornerRadius="14" Padding="12,10" Margin="0,2">
-                      <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+                      <Grid ColumnDefinitions="Auto,2*,3*,Auto" ColumnSpacing="18" VerticalAlignment="Center">
                         
                         <!-- AVATAR ICON -->
-                        <Border Grid.Column="0" Width="38" Height="38" CornerRadius="12" Background="#DCFCE7" Margin="0,0,12,0" VerticalAlignment="Center">
+                        <Border Grid.Column="0" Width="38" Height="38" CornerRadius="12" Background="{Binding AvatarBackground}" Margin="0,0,12,0" VerticalAlignment="Center">
                           <PathIcon Data="{StaticResource IconUserCheck}" Width="18" Height="18" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#166534" />
                         </Border>
 
                         <!-- STUDENT DETAILS -->
                         <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
                           <TextBlock Text="{Binding DisplayName}" FontWeight="Bold" FontSize="13" Foreground="#0F172A" />
-                          <TextBlock Text="{Binding TripDate, StringFormat='ID: #{0}'}" FontSize="11" Foreground="#64748B" />
+                          <TextBlock Text="{Binding StudentId, StringFormat='ID: #{0}'}" FontSize="11" Foreground="#64748B" />
+                        </StackPanel>
+
+                        <!-- TRIP TIMES -->
+                        <StackPanel Grid.Column="2" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="2">
+                          <TextBlock Text="{Binding TimeOut, StringFormat='Out: {0}'}" FontSize="11" Foreground="#64748B" />
+                          <TextBlock Text="{Binding TimeIn, StringFormat='In: {0}'}" FontSize="11" Foreground="#64748B" />
                         </StackPanel>
 
                         <!-- DURATION & STATUS PILL -->
-                        <StackPanel Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="2">
-                          <TextBlock Text="{Binding DurationSeconds, StringFormat='{}{0}s'}" FontWeight="Bold" FontSize="12" Foreground="#0F172A" HorizontalAlignment="Right" />
-                          <Border Background="#DCFCE7" CornerRadius="10" Padding="8,2" HorizontalAlignment="Right">
-                            <TextBlock Text="Returned" FontSize="9" FontWeight="ExtraBold" Foreground="#166534" />
+                        <StackPanel Grid.Column="3" HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="2">
+                          <TextBlock Text="{Binding DurationText}" FontWeight="Bold" FontSize="12" Foreground="#0F172A" HorizontalAlignment="Right" />
+                          <Border Background="{Binding StatusBackground}" CornerRadius="10" Padding="8,2" HorizontalAlignment="Right">
+                            <TextBlock Text="{Binding StatusText}" FontSize="9" FontWeight="ExtraBold" Foreground="{Binding StatusForeground}" />
                           </Border>
                         </StackPanel>
                       </Grid>
@@ -173,7 +208,7 @@
               <StackPanel Spacing="8">
                 <Grid ColumnDefinitions="*,Auto">
                   <TextBlock Text="Pass Capacity:" FontSize="12" Foreground="#475569" />
-                  <TextBlock Grid.Column="1" Text="1 Student" FontSize="12" FontWeight="ExtraBold" Foreground="#0F172A" />
+                  <TextBlock Grid.Column="1" Text="{Binding PolicyModal.MaxSimultaneousPasses, StringFormat='{}{0} student(s)'}" FontSize="12" FontWeight="ExtraBold" Foreground="#0F172A" />
                 </Grid>
                 <Grid ColumnDefinitions="*,Auto">
                   <TextBlock Text="Overdue Warning:" FontSize="12" Foreground="#475569" />

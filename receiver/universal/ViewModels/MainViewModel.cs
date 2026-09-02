@@ -56,7 +56,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
 
     // Initialize child viewmodels
     ActivePass = new ActivePassViewModel();
-    ActivePass.SetAvailable();
+    ActivePass.SetUnknown();
 
     Dashboard = new DashboardViewModel(tripRepository, rosterService, ActivePass);
     TripsModal = new TripsViewModel(tripRepository, rosterService);
@@ -75,6 +75,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     // Start 1-second ticker for active pass elapsed timer
     timer = new Timer(_ => {
       ActivePass.Tick();
+      Dashboard.TickLiveActivePasses();
     }, null, 1000, 1000);
   }
 
@@ -222,6 +223,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
         activeProfile = value;
         profileRepository.SetActiveProfile(value.ProfileId);
         OnPropertyChanged();
+        Dashboard.ClearLiveCheckouts();
         RefreshActiveProfileData();
       }
     }
@@ -248,6 +250,26 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
 
   public void SwitchProfile(ClassroomProfile profile) {
     ActiveProfile = profile;
+  }
+
+  public void CreateProfileFromPolicy() {
+    var name = PolicyModal.NewProfileName.Trim();
+    if (string.IsNullOrWhiteSpace(name)) return;
+
+    var idBase = string.Concat(name.ToLowerInvariant().Select(c => char.IsLetterOrDigit(c) ? c : '-')).Trim('-');
+    if (string.IsNullOrWhiteSpace(idBase)) idBase = "classroom";
+    var id = idBase;
+    var suffix = 2;
+    while (Profiles.Any(profile => string.Equals(profile.ProfileId, id, StringComparison.OrdinalIgnoreCase))) {
+      id = $"{idBase}-{suffix++}";
+    }
+
+    var profile = new ClassroomProfile(id, name);
+    profileRepository.SaveProfile(profile);
+    PolicyModal.Save(profile.ProfileId);
+    Profiles.Add(profile);
+    ActiveProfile = profile;
+    PolicyModal.NewProfileName = "";
   }
 
   public async Task ConnectAndSyncAsync() {
@@ -277,7 +299,11 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
       await connection.SendAsync("HELLO,1");
       await connection.SendAsync(ActivePassProtocol.BuildGetActivePassCommand());
       await connection.SendAsync(KioskSettingsProtocol.QueryCommand + "\n");
+      await connection.SendAsync($"SET,MAX_ACTIVE_PASSES,{PolicyModal.MaxSimultaneousPasses}");
 
+      // The kiosk stores its classroom wall-clock time as a UTC-shaped epoch.
+      // Send the Mac's local time so the terminal display and its local records
+      // match the classroom clock.
       var now = DateTime.Now;
       var lastTripId = tripRepository.GetRecentTrips(1).FirstOrDefault()?.TripId ?? 0;
       var command = $"TIME_CURSOR,{now:yyyy-MM-dd},{now:HH:mm:ss},{lastTripId}\n";
@@ -294,22 +320,31 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
   public async Task DisconnectAsync() {
     await connection.DisconnectAsync();
     IsConnected = false;
-    ActivePass.SetAvailable();
+    ActivePass.SetUnknown();
+    Dashboard.ClearLiveCheckouts();
+    Dashboard.Refresh(ActiveProfile.ProfileId);
   }
 
   public async Task CheckInActivePassAsync() {
     if (ActivePass.IsOccupied && !string.IsNullOrEmpty(ActivePass.StudentId)) {
       var studentId = ActivePass.StudentId;
-      ActivePass.SetAvailable();
       if (connection is PreviewTerminalConnection preview) {
         preview.SimulateCheckin(studentId);
+      } else {
+        await connection.SendAsync("MANUAL_CHECKIN");
       }
-      await SyncNowAsync();
+    }
+  }
+
+  public async Task ApplyPolicyCapacityAsync() {
+    if (IsConnected) {
+      await connection.SendAsync($"SET,MAX_ACTIVE_PASSES,{PolicyModal.MaxSimultaneousPasses}");
     }
   }
 
   public void RefreshActiveProfileData() {
     Dashboard.Refresh(ActiveProfile.ProfileId);
+    PolicyModal.Refresh(ActiveProfile.ProfileId);
   }
 
   void HandleTextReceived(object? sender, string text) {
@@ -319,19 +354,36 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
       if (update.ActivePass.Status == ActivePassStatus.Occupied && !string.IsNullOrEmpty(update.ActivePass.StudentId)) {
         var student = rosterService.LookupStudent(ActiveProfile.ProfileId, update.ActivePass.StudentId);
         ActivePass.SetOccupied(update.ActivePass.StudentId, student?.FullName, update.ActivePass.CheckedOutAt);
+        Dashboard.RegisterLiveCheckout(update.ActivePass.StudentId, student?.FullName, update.ActivePass.CheckedOutAt);
+        Dashboard.RefreshAdditionalActiveTrips();
       } else {
         ActivePass.SetAvailable();
+        Dashboard.ClearLiveCheckouts();
       }
     }
 
     if (update.LiveEvent != null) {
       if (update.LiveEvent.EventType == LivePassEventType.Checkout) {
         var student = rosterService.LookupStudent(ActiveProfile.ProfileId, update.LiveEvent.StudentId);
-        ActivePass.SetOccupied(update.LiveEvent.StudentId, student?.FullName, update.LiveEvent.CheckoutTime);
+        Dashboard.RegisterLiveCheckout(update.LiveEvent.StudentId, student?.FullName, update.LiveEvent.CheckoutTime);
+        if (!ActivePass.IsOccupied) {
+          ActivePass.SetOccupied(update.LiveEvent.StudentId, student?.FullName, update.LiveEvent.CheckoutTime);
+        }
+        Dashboard.RefreshAdditionalActiveTrips();
+        Dashboard.Refresh(ActiveProfile.ProfileId);
       } else if (update.LiveEvent.EventType is LivePassEventType.Checkin or LivePassEventType.Reset) {
-        ActivePass.SetAvailable();
+        Dashboard.ResolveLiveCheckout(update.LiveEvent.StudentId);
+        if (ActivePass.StudentId == update.LiveEvent.StudentId) ActivePass.SetAvailable();
+        Dashboard.RefreshAdditionalActiveTrips();
         Dashboard.Refresh(ActiveProfile.ProfileId);
       }
+    }
+
+    // A LIVE_TRIP follows the real-time check-in event and is stored immediately.
+    // Refresh only after that durable record arrives so the dashboard gains the
+    // completed activity without requiring a separate Sync Now action.
+    if (update.LiveTripStored) {
+      Dashboard.Refresh(ActiveProfile.ProfileId);
     }
     
     if (update.TransferTotal is not null || update.TransferredTripCount is not null) {
@@ -357,6 +409,8 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
   void HandleConnectionLost(object? sender, string detail) {
     IsConnected = false;
     IsSyncing = false;
+    ActivePass.SetUnknown();
+    Dashboard.ClearLiveCheckouts();
   }
 
   public void Dispose() {

@@ -108,6 +108,19 @@ public sealed class SyncSessionTests {
   }
 
   [Fact]
+  public void StoresLiveTripsWithoutSendingAnAck() {
+    var session = new SyncSession(new RecordingRepository());
+    session.Start();
+
+    var update = session.ProcessReceivedData(
+      "LIVE_TRIP,7,10482,2026-09-02,09:00:00,09:06:00,360,COMPLETE,0\n");
+
+    Assert.Empty(update.OutboundCommands);
+    Assert.Contains("Saved trip 7", update.Logs);
+    Assert.True(update.LiveTripStored);
+  }
+
+  [Fact]
   public void RepositoryImportsLegacyCsvAndExportsSortedRecords() {
     var folder = Path.Combine(Path.GetTempPath(), "BathroomSyncTests", Guid.NewGuid().ToString("N"));
     var csv = Path.Combine(folder, "trips.csv");

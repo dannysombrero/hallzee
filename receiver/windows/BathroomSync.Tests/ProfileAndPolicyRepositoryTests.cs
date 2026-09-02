@@ -70,7 +70,10 @@ public sealed class ProfileAndPolicyRepositoryTests {
         DurationWarningSeconds: 600,
         MaxDailyPassesPerStudent: 3,
         LockoutStartMinutes: 5,
-        LockoutEndMinutes: 5
+        LockoutEndMinutes: 5,
+        FirstWindowAction: "Lock",
+        LastWindowAction: "Allow",
+        AlertSound: "Bell"
       );
       repo.SavePolicyRule(customPolicy);
 
@@ -80,10 +83,13 @@ public sealed class ProfileAndPolicyRepositoryTests {
       Assert.Equal(3, updatedPolicy.MaxDailyPassesPerStudent);
       Assert.Equal(5, updatedPolicy.LockoutStartMinutes);
       Assert.Equal(5, updatedPolicy.LockoutEndMinutes);
+      Assert.Equal("Lock", updatedPolicy.FirstWindowAction);
+      Assert.Equal("Allow", updatedPolicy.LastWindowAction);
+      Assert.Equal("Bell", updatedPolicy.AlertSound);
 
       // Bell Schedule
       var periods = new[] {
-        new BellSchedulePeriod("p1", "default", "Period 1", "08:30", "09:25", "1,2,3,4,5"),
+        new BellSchedulePeriod("p1", "default", "Period 1", "08:30", "09:25", "Mon,Tue,Thu,Fri", "Regular"),
         new BellSchedulePeriod("p2", "default", "Period 2", "09:30", "10:25", "1,2,3,4,5")
       };
       repo.SaveBellSchedule("default", periods);
@@ -93,6 +99,8 @@ public sealed class ProfileAndPolicyRepositoryTests {
       Assert.Equal("Period 1", savedPeriods[0].PeriodName);
       Assert.Equal("08:30", savedPeriods[0].StartTime);
       Assert.Equal("Period 2", savedPeriods[1].PeriodName);
+      Assert.Equal("Regular", savedPeriods[0].ScheduleName);
+      Assert.Equal("Mon,Tue,Thu,Fri", savedPeriods[0].DaysOfWeek);
 
       // Re-saving replaces schedule
       repo.SaveBellSchedule("default", new[] {

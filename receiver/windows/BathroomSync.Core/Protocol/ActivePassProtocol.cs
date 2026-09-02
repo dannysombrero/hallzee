@@ -14,7 +14,13 @@ public record ActivePassInfo(
 ) {
   public static ActivePassInfo Available() => new(ActivePassStatus.Available);
   public static ActivePassInfo Occupied(string studentId, long epochSeconds) {
-    var dt = DateTimeOffset.FromUnixTimeSeconds(epochSeconds).LocalDateTime;
+    // The ESP32 records classroom local wall time, but its clock is configured
+    // without a timezone. Preserve those wall-clock components on the desktop
+    // rather than applying the Mac's UTC offset a second time.
+    var dt = DateTime.SpecifyKind(
+      DateTimeOffset.FromUnixTimeSeconds(epochSeconds).UtcDateTime,
+      DateTimeKind.Local
+    );
     return new(ActivePassStatus.Occupied, studentId, epochSeconds, dt);
   }
 }
@@ -32,7 +38,10 @@ public record LivePassEvent(
 ) {
   public DateTime? CheckoutTime =>
     EventType == LivePassEventType.Checkout && Value > 0
-      ? DateTimeOffset.FromUnixTimeSeconds(Value).LocalDateTime
+      ? DateTime.SpecifyKind(
+        DateTimeOffset.FromUnixTimeSeconds(Value).UtcDateTime,
+        DateTimeKind.Local
+      )
       : null;
 
   public long DurationSeconds =>

@@ -15,17 +15,39 @@ public record PolicyRule(
   int DurationWarningSeconds = 420,
   int MaxDailyPassesPerStudent = 2,
   int LockoutStartMinutes = 10,
-  int LockoutEndMinutes = 10
+  int LockoutEndMinutes = 10,
+  string FirstWindowAction = "Warn",
+  string LastWindowAction = "Warn",
+  string AlertSound = "Chime"
 );
 
-public record BellSchedulePeriod(
-  string ScheduleId,
-  string ProfileId,
-  string PeriodName,
-  string StartTime,
-  string EndTime,
-  string DaysOfWeek = "1,2,3,4,5"
-);
+public sealed class BellSchedulePeriod {
+  public BellSchedulePeriod(
+    string ScheduleId,
+    string ProfileId,
+    string PeriodName,
+    string StartTime,
+    string EndTime,
+    string DaysOfWeek = "Mon,Tue,Wed,Thu,Fri",
+    string ScheduleName = "Regular"
+  ) {
+    this.ScheduleId = ScheduleId;
+    this.ProfileId = ProfileId;
+    this.PeriodName = PeriodName;
+    this.StartTime = StartTime;
+    this.EndTime = EndTime;
+    this.DaysOfWeek = DaysOfWeek;
+    this.ScheduleName = ScheduleName;
+  }
+
+  public string ScheduleId { get; set; }
+  public string ProfileId { get; set; }
+  public string PeriodName { get; set; }
+  public string StartTime { get; set; }
+  public string EndTime { get; set; }
+  public string DaysOfWeek { get; set; }
+  public string ScheduleName { get; set; }
+}
 
 public record TerminalDeviceConfig(
   string TerminalId,

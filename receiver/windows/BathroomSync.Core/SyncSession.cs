@@ -21,6 +21,7 @@ public sealed class SyncUpdate {
   public string? SettingsError { get; set; }
   public ActivePassInfo? ActivePass { get; set; }
   public LivePassEvent? LiveEvent { get; set; }
+  public bool LiveTripStored { get; set; }
 }
 
 public sealed class SyncSession {
@@ -85,6 +86,10 @@ public sealed class SyncSession {
       StoreTrip(line[5..], update);
       return;
     }
+    if (line.StartsWith("LIVE_TRIP,", StringComparison.Ordinal)) {
+      StoreTrip(line[10..], update, acknowledge: false, isLiveTrip: true);
+      return;
+    }
 
     if (line != "SYNC_END") {
       return;
@@ -115,7 +120,7 @@ public sealed class SyncSession {
     return false;
   }
 
-  private void StoreTrip(string payload, SyncUpdate update) {
+  private void StoreTrip(string payload, SyncUpdate update, bool acknowledge = true, bool isLiveTrip = false) {
     var result = repository.Store(payload);
     if (result == TripStoreResult.Invalid) {
       update.Logs.Add("Ignored malformed trip record.");
@@ -128,12 +133,13 @@ public sealed class SyncSession {
     }
 
     var tripId = payload[..payload.IndexOf(',')];
-    update.OutboundCommands.Add($"ACK,{tripId}");
+    if (acknowledge) update.OutboundCommands.Add($"ACK,{tripId}");
     transferredTripCount++;
     update.TransferredTripCount = transferredTripCount;
     if (result == TripStoreResult.Saved) {
       savedTripCount++;
       update.Logs.Add($"Saved trip {tripId}");
     }
+    if (isLiveTrip) update.LiveTripStored = true;
   }
 }

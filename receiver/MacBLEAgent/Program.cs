@@ -191,7 +191,6 @@ class Program
         public override void ConnectedPeripheral(CBCentralManager central, CBPeripheral peripheral)
         {
             peripheral.DiscoverServices(new[] { ServiceUuid });
-            EmitEvent("Connected", new { Id = peripheral.Identifier.ToString() });
         }
         
         public override void FailedToConnectPeripheral(CBCentralManager central, CBPeripheral peripheral, NSError? error)
@@ -220,7 +219,8 @@ class Program
         public void Send(string data)
         {
             if (targetPeripheral == null || rxCharacteristic == null) return;
-            var bytes = Encoding.UTF8.GetBytes(data + "\n");
+            if (!data.EndsWith("\n")) data += "\n";
+            var bytes = Encoding.UTF8.GetBytes(data);
             
             for (var offset = 0; offset < bytes.Length; offset += 20)
             {
@@ -263,6 +263,16 @@ class Program
                 {
                     rxCharacteristic = charac;
                 }
+            }
+        }
+        
+        public override void UpdatedNotificationState(CBPeripheral peripheral, CBCharacteristic characteristic, NSError? error)
+        {
+            if (error != null) return;
+            
+            if (characteristic.UUID.Equals(TxUuid) && characteristic.IsNotifying)
+            {
+                Program.EmitEvent("Connected", new { Id = peripheral.Identifier.ToString() });
             }
         }
         

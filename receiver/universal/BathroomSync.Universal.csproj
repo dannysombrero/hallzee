@@ -2,7 +2,9 @@
   <PropertyGroup>
     <OutputType Condition="'$(OS)' == 'Windows_NT'">WinExe</OutputType>
     <OutputType Condition="'$(OS)' != 'Windows_NT'">Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework Condition="'$(OS)' == 'Windows_NT'">net8.0-windows10.0.19041.0</TargetFramework>
+    <TargetFramework Condition="$([MSBuild]::IsOSPlatform('OSX'))">net8.0-macos</TargetFramework>
+    <TargetFramework Condition="'$(OS)' != 'Windows_NT' And !$([MSBuild]::IsOSPlatform('OSX'))">net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>HallzeeSync.Universal</AssemblyName>

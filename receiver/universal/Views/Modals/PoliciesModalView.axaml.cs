@@ -37,9 +37,31 @@ public partial class PoliciesModalView : UserControl {
     }
   }
 
+  void OnPlaySoundPreviewClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) {
+      vm.PolicyModal.PlayAlertSoundPreview();
+    }
+  }
+
+  void OnEditPeriodClick(object? sender, RoutedEventArgs e) {
+    if (sender is Button btn && btn.Tag is BellPeriodItemViewModel period) {
+      period.StartEdit();
+    }
+  }
+
+  void OnSavePeriodClick(object? sender, RoutedEventArgs e) {
+    if (sender is Button btn && btn.Tag is BellPeriodItemViewModel period) {
+      period.SaveEdit();
+    }
+  }
+
   void OnRemovePeriodClick(object? sender, RoutedEventArgs e) {
-    if (sender is Button btn && btn.Tag is BellSchedulePeriod period && DataContext is MainViewModel vm) {
-      vm.PolicyModal.RemovePeriod(period);
+    if (sender is Button btn && DataContext is MainViewModel vm) {
+      if (btn.Tag is BellPeriodItemViewModel periodItem) {
+        vm.PolicyModal.RemovePeriod(periodItem);
+      } else if (btn.Tag is BellSchedulePeriod period) {
+        vm.PolicyModal.RemovePeriod(period);
+      }
     }
   }
 }

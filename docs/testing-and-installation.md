@@ -159,6 +159,14 @@ Before calling a Windows change complete, check:
 5. Disconnecting mid-transfer and reconnecting produces one durable copy.
 6. Powering the kiosk off clears the client status; Find terminal works after it returns.
 
+### Verify policy rules and bell schedule editing
+
+1. In **Hall Pass Policies & Schedule**, confirm number inputs (student limits, pass counts, grace windows) only display integer numbers without decimal fractions when stepping up and down.
+2. Under **Bell-Time Windows**, select an alert sound and click **Play Preview** to hear the tone.
+3. Under **Bell Schedule Periods**, add a period, select day checkboxes (Mon–Fri), adjust times, and click the checkmark to save; confirm the row switches to a compact summary with edit (pencil) and delete (trashcan) controls.
+4. Confirm that trip durations display in minutes and seconds (e.g., `0m 45s`, `5m 30s`) across dashboard activity and the trips history modal, and include hours if duration exceeds 60 minutes.
+5. In **Classroom Roster & Students**, confirm the class selection, enrollment count badge, import button, new class input, and student list render cleanly with no overlapping controls.
+
 ### Verify the student-ID limit
 
 This feature requires both newly flashed firmware and the updated Windows

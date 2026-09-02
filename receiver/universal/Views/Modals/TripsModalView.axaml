@@ -36,7 +36,7 @@
                     </StackPanel>
                     <TextBlock Grid.Column="1" Text="{Binding TripDate}" FontSize="12" Foreground="#334155" VerticalAlignment="Center" />
                     <TextBlock Grid.Column="2" Text="{Binding TimeOut, StringFormat='Out: {0}'}" FontSize="12" Foreground="#334155" VerticalAlignment="Center" />
-                    <TextBlock Grid.Column="3" Text="{Binding DurationSeconds, StringFormat='{}{0}s'}" FontWeight="SemiBold" FontSize="12" Foreground="#0F172A" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="3" Text="{Binding FormattedDuration}" FontWeight="SemiBold" FontSize="12" Foreground="#0F172A" VerticalAlignment="Center" />
                     <Border Grid.Column="4" Background="#F1F5F9" CornerRadius="4" Padding="6,2" VerticalAlignment="Center" Margin="0,0,6,0">
                       <TextBlock Text="{Binding Status}" FontSize="10" FontWeight="Bold" Foreground="#475569" />
                     </Border>

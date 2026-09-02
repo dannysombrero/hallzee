@@ -103,8 +103,12 @@ public sealed class ActivePassViewModel : INotifyPropertyChanged {
     get {
       if (IsStatusUnknown) return "Unknown";
       if (!IsOccupied) return "Ready";
-      var minutes = ElapsedSeconds / 60;
-      var seconds = ElapsedSeconds % 60;
+      var totalSeconds = ElapsedSeconds;
+      if (totalSeconds < 0) totalSeconds = 0;
+      var hours = totalSeconds / 3600;
+      var minutes = (totalSeconds % 3600) / 60;
+      var seconds = totalSeconds % 60;
+      if (hours > 0) return $"{hours}h {minutes}m {seconds:D2}s";
       return $"{minutes}m {seconds:D2}s";
     }
   }

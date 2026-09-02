@@ -56,8 +56,16 @@ public sealed class RosterViewModelTests : IDisposable {
       Assert.Equal("Elena Rostova", viewModel.Students[0].FullName);
 
       // Delete student
+      Assert.True(viewModel.HasStudents);
+      Assert.False(viewModel.HasNoStudents);
       viewModel.DeleteStudent("default", "10482");
       Assert.Equal(1, viewModel.TotalStudents);
+      Assert.True(viewModel.HasStudents);
+      Assert.False(viewModel.HasNoStudents);
+      viewModel.DeleteStudent("default", "8821");
+      Assert.Equal(0, viewModel.TotalStudents);
+      Assert.False(viewModel.HasStudents);
+      Assert.True(viewModel.HasNoStudents);
     } finally {
       if (File.Exists(csvPath)) File.Delete(csvPath);
     }

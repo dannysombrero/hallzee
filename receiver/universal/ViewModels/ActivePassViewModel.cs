@@ -59,7 +59,7 @@ public sealed class ActivePassViewModel : INotifyPropertyChanged {
       ? "Pass Status Unknown"
       : IsOccupied
       ? $"{DisplayName} is Out of Class"
-      : "Restroom is Currently Empty";
+      : "Pass is Available";
 
   public string SubtitleText =>
     IsStatusUnknown

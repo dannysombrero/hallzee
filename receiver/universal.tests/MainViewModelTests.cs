@@ -80,7 +80,7 @@ public sealed class MainViewModelTests : IDisposable {
     Assert.True(viewModel.IsConnected);
     Assert.Equal("BLE CONNECTED", viewModel.ConnectionStatusText);
     Assert.Contains("HELLO,1", connection.SentCommands);
-    Assert.Contains("GET_ACTIVE_PASS\n", connection.SentCommands);
+    Assert.Contains("GET_ACTIVE_PASSES\n", connection.SentCommands);
     Assert.Contains("GET_SETTINGS\n", connection.SentCommands);
 
     await viewModel.DisconnectAsync();

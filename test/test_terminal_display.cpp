@@ -507,7 +507,7 @@ void testTerminalManualCheckInPersistsManualTrip() {
   time.currentTime = 1120;
   String checkedInId;
   unsigned long elapsedSeconds = 0;
-  expectTrue(terminal.manualCheckIn(checkedInId, elapsedSeconds),
+  expectTrue(terminal.manualCheckIn("TEACHER-1", checkedInId, elapsedSeconds),
     "desktop manual checkin succeeds");
   expectTrue(checkedInId == "TEACHER-1" && elapsedSeconds == 120,
     "desktop manual checkin returns the active pass details");

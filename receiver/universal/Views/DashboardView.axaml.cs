@@ -33,9 +33,21 @@ public partial class DashboardView : UserControl {
     }
   }
 
+  void OnCheckInStudentClick(object? sender, RoutedEventArgs e) {
+    if (sender is Button button && button.Tag is string studentId && DataContext is MainViewModel vm) {
+      _ = vm.CheckInStudentAsync(studentId);
+    }
+  }
+
   void OnManageRosterClick(object? sender, RoutedEventArgs e) {
     if (DataContext is MainViewModel vm) {
       vm.OpenModal("Roster");
+    }
+  }
+
+  void OnManagePoliciesClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) {
+      vm.OpenModal("Policies");
     }
   }
 

@@ -50,8 +50,25 @@ public record LivePassEvent(
 
 public static class ActivePassProtocol {
   public const string GetActivePassCommand = "GET_ACTIVE_PASS\n";
+  public const string GetActivePassesCommand = "GET_ACTIVE_PASSES\n";
 
   public static string BuildGetActivePassCommand() => GetActivePassCommand;
+  public static string BuildGetActivePassesCommand() => GetActivePassesCommand;
+
+  public static bool TryParseActivePassesResponse(string line, out IReadOnlyList<ActivePassInfo>? passes) {
+    passes = null;
+    if (string.IsNullOrWhiteSpace(line) || !line.StartsWith("ACTIVE_PASSES", StringComparison.Ordinal)) return false;
+    var fields = line.Split(',');
+    if (fields.Length == 1) { passes = Array.Empty<ActivePassInfo>(); return true; }
+    if ((fields.Length - 1) % 2 != 0) return false;
+    var list = new List<ActivePassInfo>();
+    for (var index = 1; index < fields.Length; index += 2) {
+      if (string.IsNullOrWhiteSpace(fields[index]) || !long.TryParse(fields[index + 1], out var epoch) || epoch <= 0) return false;
+      list.Add(ActivePassInfo.Occupied(fields[index].Trim(), epoch));
+    }
+    passes = list;
+    return true;
+  }
 
   public static bool TryParseActivePassResponse(string line, out ActivePassInfo? info) {
     info = null;

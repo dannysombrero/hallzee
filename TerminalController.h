@@ -30,11 +30,13 @@ public:
   bool hasActivePass() const;
   const String &activeId() const;
   time_t activeCheckoutTime() const { return activeCount > 0 ? activePasses[0].checkoutTime : 0; }
+  time_t checkoutTimeFor(const String &studentId) const;
   uint8_t activePassCount() const { return activeCount; }
+  uint8_t copyActivePasses(ActiveCheckout *destination, uint8_t maximum) const;
   bool setCapacity(uint8_t value);
   uint8_t capacity() const { return maxSimultaneousPasses; }
   TerminalActionResult submit(const String &enteredId);
-  bool manualCheckIn(String &checkedInId, unsigned long &elapsedSeconds);
+  bool manualCheckIn(const String &requestedId, String &checkedInId, unsigned long &elapsedSeconds);
   bool resetActivePass(String &resetId);
 
 private:

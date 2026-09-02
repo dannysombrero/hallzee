@@ -107,11 +107,14 @@
                   <TextBlock Text="{Binding TimeOut, StringFormat='Departed at {0}.'}" FontSize="13" Foreground="#475569" FontWeight="Medium" />
                 </StackPanel>
                 <Border Grid.Column="2" Background="White" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="18" Padding="18,12" MinWidth="160">
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                   <StackPanel Spacing="2">
                     <TextBlock Text="TRIP ELAPSED" FontSize="10" FontWeight="Bold" Foreground="#94A3B8" LetterSpacing="0.5" />
                     <TextBlock Text="{Binding ElapsedDisplay}" FontSize="24" FontWeight="Black" FontFamily="Cascadia Mono, Menlo, monospace" Foreground="#D97706" />
                     <TextBlock Text="{Binding StudentId, StringFormat='Student ID: #{0}'}" FontSize="11" Foreground="#64748B" FontWeight="SemiBold" />
                   </StackPanel>
+                  <Button Grid.Column="1" Classes="dark-action" Content="Check In" Click="OnCheckInStudentClick" Tag="{Binding StudentId}" VerticalAlignment="Center" />
+                  </Grid>
                 </Border>
               </Grid>
             </Border>
@@ -171,8 +174,14 @@
 
                         <!-- TRIP TIMES -->
                         <StackPanel Grid.Column="2" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="2">
-                          <TextBlock Text="{Binding TimeOut, StringFormat='Out: {0}'}" FontSize="11" Foreground="#64748B" />
-                          <TextBlock Text="{Binding TimeIn, StringFormat='In: {0}'}" FontSize="11" Foreground="#64748B" />
+                          <Grid ColumnDefinitions="28,Auto">
+                            <TextBlock Text="Out:" FontSize="11" Foreground="#64748B" />
+                            <TextBlock Grid.Column="1" Text="{Binding TimeOut}" FontSize="11" Foreground="#64748B" />
+                          </Grid>
+                          <Grid ColumnDefinitions="28,Auto">
+                            <TextBlock Text="In:" FontSize="11" Foreground="#64748B" />
+                            <TextBlock Grid.Column="1" Text="{Binding TimeIn}" FontSize="11" Foreground="#64748B" />
+                          </Grid>
                         </StackPanel>
 
                         <!-- DURATION & STATUS PILL -->
@@ -230,10 +239,10 @@
             </Border>
 
             <!-- ACTION BUTTON -->
-            <Button Grid.Row="3" Classes="hallzee-pill-btn" Click="OnManageRosterClick" HorizontalAlignment="Stretch" CornerRadius="16" Padding="12,12">
+            <Button Grid.Row="3" Classes="hallzee-pill-btn" Click="OnManagePoliciesClick" HorizontalAlignment="Stretch" CornerRadius="16" Padding="12,12">
               <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center" VerticalAlignment="Center">
                 <PathIcon Data="{StaticResource IconUsers}" Width="14" Height="14" Foreground="White" VerticalAlignment="Center" />
-                <TextBlock Text="Manage Student Roster CSV" FontSize="12" FontWeight="Bold" VerticalAlignment="Center" />
+                <TextBlock Text="Manage Pass Rules" FontSize="12" FontWeight="Bold" VerticalAlignment="Center" />
               </StackPanel>
             </Button>
           </Grid>

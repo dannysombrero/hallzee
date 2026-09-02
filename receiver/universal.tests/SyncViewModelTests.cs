@@ -16,7 +16,7 @@ public sealed class SyncViewModelTests {
       await viewModel.FindAsync();
 
       Assert.Single(viewModel.Devices);
-      Assert.Equal("Hallzee", viewModel.SelectedDevice?.Name);
+      Assert.Equal("Room 204 Door Kiosk (East-204)", viewModel.SelectedDevice?.Name);
       Assert.True(viewModel.CanSync);
       Assert.Equal("Terminal ready", viewModel.StatusTitle);
     } finally {

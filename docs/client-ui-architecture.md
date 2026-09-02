@@ -11,8 +11,9 @@ The canonical React prototype is consolidated under `preview-site` with a thin r
 ## Phase 3 implementation status
 
 The native desktop presentation host is implemented in `receiver/universal/` (.NET 8 + Avalonia 11) using the MVVM architecture:
-- **`MainWindow.axaml`**: Native AppShell with brand sidebar rail, profile selector, header connection status badge, live sync triggers, and modal overlays.
-- **`DashboardView.axaml`**: Real-time ticking hero active pass timer card, metric statistic summary cards, and search-filtered recent activity table with student display names and `#<id>` safe fallback.
+- **`MainWindow.axaml`**: Native AppShell with brand sidebar rail, classroom profile status box, top title bar gradient (`#0284C7` to `#075985`), themeable vector SVG `PathIcon` elements, and modal dialog overlays.
+- **`DashboardView.axaml`**: Real-time ticking hero active pass timer card, metric statistic summary cards, search-filtered recent activity table with student display names and `#<id>` safe fallback, and top terminal status banner.
+- **Natural State Flow**: Starts clean in disconnected state (`OFFLINE`), initiates discovery with "Searching for devices..." scanning progress, allows selecting discovered kiosks to transition to "Connecting...", then automatically enters dashboard "SYNCING" mode with live spinning indicators, and transitions to "BLE CONNECTED" with timestamped successful sync.
 - **Modal Dialog Views**: Native modal controls for `TripsModalView`, `RosterModalView` (with two-phase CSV import and column mapping verification), `PoliciesModalView`, `TerminalSettingsModalView`, and `FindTerminalsModalView`.
 - **ViewModels**: `MainViewModel`, `ActivePassViewModel`, `DashboardViewModel`, `TripsViewModel`, `RosterViewModel`, `PolicyViewModel`, `TerminalSettingsViewModel`, and `FindTerminalsViewModel`.
 - **Unit Testing**: 15 / 15 unit tests passing in `BathroomSync.Universal.Tests`.

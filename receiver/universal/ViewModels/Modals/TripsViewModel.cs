@@ -10,6 +10,7 @@ public sealed class TripsViewModel : INotifyPropertyChanged {
   string searchText = "";
   string selectedStatus = "ALL";
   int totalTrips;
+  string? exportStatusMessage;
 
   public TripsViewModel(TripSqliteRepository tripRepository, IRosterService rosterService) {
     this.tripRepository = tripRepository;
@@ -44,6 +45,11 @@ public sealed class TripsViewModel : INotifyPropertyChanged {
     private set { totalTrips = value; OnPropertyChanged(); }
   }
 
+  public string? ExportStatusMessage {
+    get => exportStatusMessage;
+    private set { exportStatusMessage = value; OnPropertyChanged(); }
+  }
+
   public void Refresh(string profileId) {
     var filter = new TripQueryFilter(
       SearchText: string.IsNullOrWhiteSpace(SearchText) ? null : SearchText.Trim(),
@@ -73,6 +79,7 @@ public sealed class TripsViewModel : INotifyPropertyChanged {
     foreach (var t in rawTrips) {
       writer.WriteLine($"{t.TripId},{EscapeCsv(t.StudentId)},{EscapeCsv(t.DisplayName)},{EscapeCsv(t.Grade ?? "")},{EscapeCsv(t.ClassPeriod ?? "")},{t.TripDate},{t.TimeOut},{t.TimeIn},{t.DurationSeconds},{t.Status},{t.SyncedAt:yyyy-MM-dd HH:mm:ss},{EscapeCsv(t.TerminalId)}");
     }
+    ExportStatusMessage = $"Exported {rawTrips.Count} trip record(s) to Downloads ({Path.GetFileName(exportPath)})";
     return exportPath;
   }
 

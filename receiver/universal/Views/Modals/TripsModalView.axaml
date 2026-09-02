@@ -50,7 +50,11 @@
         </Border>
 
         <Grid Grid.Row="3" ColumnDefinitions="*,Auto" VerticalAlignment="Center">
-          <TextBlock Text="{Binding TripsModal.TotalTrips, StringFormat='Total Records: {0}'}" FontSize="13" Foreground="#64748B" VerticalAlignment="Center" />
+          <StackPanel Spacing="2" VerticalAlignment="Center">
+            <TextBlock Text="{Binding TripsModal.TotalTrips, StringFormat='Total Records: {0}'}" FontSize="13" Foreground="#64748B" />
+            <TextBlock Text="{Binding TripsModal.ExportStatusMessage}" FontSize="11" FontWeight="SemiBold" Foreground="#166534" IsVisible="{Binding TripsModal.ExportStatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+          </StackPanel>
+          
           <Button Grid.Column="1" Classes="card-outline" Click="OnExportCsvClick" Padding="12,6">
             <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
               <PathIcon Data="{StaticResource IconDownload}" Width="12" Height="12" Foreground="#0369A1" />

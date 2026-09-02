@@ -39,9 +39,9 @@
         </Border>
 
         <Grid Grid.Row="3" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
-          <ProgressBar IsIndeterminate="True" IsVisible="{Binding FindTerminalsModal.IsScanning}" Height="6" VerticalAlignment="Center" />
+          <ProgressBar IsIndeterminate="True" IsVisible="{Binding FindTerminalsModal.IsBusy}" Height="6" VerticalAlignment="Center" />
           <Button Grid.Column="1" Classes="secondary" Content="Scan Again" Click="OnScanClick" IsEnabled="{Binding FindTerminalsModal.CanScan}" />
-          <Button Grid.Column="2" Classes="hallzee-pill-btn" Content="Connect &amp; Sync" Click="OnConnectClick" IsEnabled="{Binding FindTerminalsModal.CanConnect}" Padding="16,8" FontSize="13" />
+          <Button Grid.Column="2" Classes="hallzee-pill-btn" Content="{Binding FindTerminalsModal.ConnectButtonText}" Click="OnConnectClick" IsEnabled="{Binding FindTerminalsModal.CanConnect}" Padding="16,8" FontSize="13" />
         </Grid>
       </Grid>
     </Border>

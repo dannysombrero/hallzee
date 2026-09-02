@@ -56,6 +56,9 @@
     <StreamGeometry x:Key="IconTrash">M3 6h18 M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2</StreamGeometry>
     <StreamGeometry x:Key="IconPlus">M12 5v14 M5 12h14</StreamGeometry>
     <StreamGeometry x:Key="IconX">M18 6L6 18 M6 6l12 12</StreamGeometry>
+    <StreamGeometry x:Key="IconCheck">M20 6L9 17l-5-5</StreamGeometry>
+    <StreamGeometry x:Key="IconEdit">M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z M15 5l4 4</StreamGeometry>
+    <StreamGeometry x:Key="IconVolume2">M11 5L6 9H2v6h4l5 4V5z M19.07 4.93a10 10 0 0 1 0 14.14 M15.54 8.46a5 5 0 0 1 0 7.07</StreamGeometry>
   </Application.Resources>
 
   <Application.Styles>

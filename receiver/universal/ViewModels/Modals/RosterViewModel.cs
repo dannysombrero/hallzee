@@ -31,8 +31,16 @@ public sealed class RosterViewModel : INotifyPropertyChanged {
 
   public int TotalStudents {
     get => totalStudents;
-    private set { totalStudents = value; OnPropertyChanged(); }
+    private set {
+      totalStudents = value;
+      OnPropertyChanged();
+      OnPropertyChanged(nameof(HasStudents));
+      OnPropertyChanged(nameof(HasNoStudents));
+    }
   }
+
+  public bool HasStudents => TotalStudents > 0;
+  public bool HasNoStudents => TotalStudents == 0;
 
   public bool IsImportPreviewActive {
     get => isImportPreviewActive;

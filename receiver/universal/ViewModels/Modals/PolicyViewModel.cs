@@ -1,9 +1,220 @@
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using BathroomSync.Core;
+using BathroomSync.Universal.Services;
 
 namespace BathroomSync.Universal.ViewModels;
+
+public sealed class BellPeriodItemViewModel : INotifyPropertyChanged {
+  readonly string scheduleId;
+  readonly string profileId;
+  string scheduleName;
+  string periodName;
+  string startTime;
+  string endTime;
+  bool isMonday;
+  bool isTuesday;
+  bool isWednesday;
+  bool isThursday;
+  bool isFriday;
+  bool isEditing;
+
+  public BellPeriodItemViewModel(BellSchedulePeriod period, bool isEditing = false) {
+    scheduleId = period.ScheduleId;
+    profileId = period.ProfileId;
+    periodName = period.PeriodName;
+    startTime = period.StartTime;
+    endTime = period.EndTime;
+    scheduleName = string.IsNullOrWhiteSpace(period.ScheduleName) ? "Regular" : period.ScheduleName;
+    this.isEditing = isEditing;
+
+    var days = period.DaysOfWeek ?? "";
+    isMonday = days.Contains("Mon", StringComparison.OrdinalIgnoreCase);
+    isTuesday = days.Contains("Tue", StringComparison.OrdinalIgnoreCase);
+    isWednesday = days.Contains("Wed", StringComparison.OrdinalIgnoreCase);
+    isThursday = days.Contains("Thu", StringComparison.OrdinalIgnoreCase);
+    isFriday = days.Contains("Fri", StringComparison.OrdinalIgnoreCase);
+  }
+
+  public event PropertyChangedEventHandler? PropertyChanged;
+
+  public string ScheduleId => scheduleId;
+  public string ProfileId => profileId;
+
+  public string ScheduleName {
+    get => scheduleName;
+    set {
+      if (scheduleName != value) {
+        scheduleName = value;
+        OnPropertyChanged();
+        OnPropertyChanged(nameof(DisplayTitle));
+      }
+    }
+  }
+
+  public string PeriodName {
+    get => periodName;
+    set {
+      if (periodName != value) {
+        periodName = value;
+        OnPropertyChanged();
+        OnPropertyChanged(nameof(DisplayTitle));
+      }
+    }
+  }
+
+  public string StartTime {
+    get => startTime;
+    set {
+      if (startTime != value) {
+        startTime = value;
+        OnPropertyChanged();
+        OnPropertyChanged(nameof(DisplayTimeRange));
+      }
+    }
+  }
+
+  public string EndTime {
+    get => endTime;
+    set {
+      if (endTime != value) {
+        endTime = value;
+        OnPropertyChanged();
+        OnPropertyChanged(nameof(DisplayTimeRange));
+      }
+    }
+  }
+
+  public bool IsMonday {
+    get => isMonday;
+    set {
+      if (isMonday != value) {
+        isMonday = value;
+        OnPropertyChanged();
+        OnPropertyChanged(nameof(DaysOfWeek));
+        OnPropertyChanged(nameof(FormattedDaysSummary));
+      }
+    }
+  }
+
+  public bool IsTuesday {
+    get => isTuesday;
+    set {
+      if (isTuesday != value) {
+        isTuesday = value;
+        OnPropertyChanged();
+        OnPropertyChanged(nameof(DaysOfWeek));
+        OnPropertyChanged(nameof(FormattedDaysSummary));
+      }
+    }
+  }
+
+  public bool IsWednesday {
+    get => isWednesday;
+    set {
+      if (isWednesday != value) {
+        isWednesday = value;
+        OnPropertyChanged();
+        OnPropertyChanged(nameof(DaysOfWeek));
+        OnPropertyChanged(nameof(FormattedDaysSummary));
+      }
+    }
+  }
+
+  public bool IsThursday {
+    get => isThursday;
+    set {
+      if (isThursday != value) {
+        isThursday = value;
+        OnPropertyChanged();
+        OnPropertyChanged(nameof(DaysOfWeek));
+        OnPropertyChanged(nameof(FormattedDaysSummary));
+      }
+    }
+  }
+
+  public bool IsFriday {
+    get => isFriday;
+    set {
+      if (isFriday != value) {
+        isFriday = value;
+        OnPropertyChanged();
+        OnPropertyChanged(nameof(DaysOfWeek));
+        OnPropertyChanged(nameof(FormattedDaysSummary));
+      }
+    }
+  }
+
+  public bool IsEditing {
+    get => isEditing;
+    set {
+      if (isEditing != value) {
+        isEditing = value;
+        OnPropertyChanged();
+      }
+    }
+  }
+
+  public string DaysOfWeek {
+    get {
+      var days = new List<string>(5);
+      if (IsMonday) days.Add("Mon");
+      if (IsTuesday) days.Add("Tue");
+      if (IsWednesday) days.Add("Wed");
+      if (IsThursday) days.Add("Thu");
+      if (IsFriday) days.Add("Fri");
+      return string.Join(",", days);
+    }
+  }
+
+  public string FormattedDaysSummary {
+    get {
+      var days = new List<string>(5);
+      if (IsMonday) days.Add("Mon");
+      if (IsTuesday) days.Add("Tue");
+      if (IsWednesday) days.Add("Wed");
+      if (IsThursday) days.Add("Thu");
+      if (IsFriday) days.Add("Fri");
+      if (days.Count == 5) return "Mon – Fri (All days)";
+      if (days.Count == 0) return "No days selected";
+      return string.Join(", ", days);
+    }
+  }
+
+  public string DisplayTimeRange => $"{StartTime} – {EndTime}";
+
+  public string DisplayTitle => string.IsNullOrWhiteSpace(ScheduleName) || ScheduleName == "Regular"
+    ? PeriodName
+    : $"{ScheduleName} • {PeriodName}";
+
+  public void StartEdit() {
+    IsEditing = true;
+  }
+
+  public void SaveEdit() {
+    if (string.IsNullOrWhiteSpace(PeriodName)) PeriodName = "Period";
+    if (string.IsNullOrWhiteSpace(ScheduleName)) ScheduleName = "Regular";
+    IsEditing = false;
+  }
+
+  public BellSchedulePeriod ToModel() => new(
+    ScheduleId: scheduleId,
+    ProfileId: profileId,
+    PeriodName: PeriodName,
+    StartTime: StartTime,
+    EndTime: EndTime,
+    DaysOfWeek: DaysOfWeek,
+    ScheduleName: ScheduleName
+  );
+
+  void OnPropertyChanged([CallerMemberName] string? propertyName = null) {
+    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+  }
+}
 
 public sealed class PolicyViewModel : INotifyPropertyChanged {
   readonly IPolicyRepository policyRepository;
@@ -24,7 +235,7 @@ public sealed class PolicyViewModel : INotifyPropertyChanged {
 
   public event PropertyChangedEventHandler? PropertyChanged;
 
-  public ObservableCollection<BellSchedulePeriod> Periods { get; } = new();
+  public ObservableCollection<BellPeriodItemViewModel> Periods { get; } = new();
   public IReadOnlyList<string> BellActions { get; } = new[] { "Allow", "Warn", "Lock" };
   public IReadOnlyList<string> AlertSounds { get; } = new[] { "No sound", "Chime", "Bell", "Soft alert" };
 
@@ -78,6 +289,10 @@ public sealed class PolicyViewModel : INotifyPropertyChanged {
     private set { statusMessage = value; OnPropertyChanged(); }
   }
 
+  public void PlayAlertSoundPreview() {
+    SoundService.Play(AlertSound);
+  }
+
   public void Refresh(string profileId) {
     var rule = policyRepository.GetPolicyRule(profileId);
     MaxDailyPasses = rule.MaxDailyPassesPerStudent;
@@ -91,11 +306,17 @@ public sealed class PolicyViewModel : INotifyPropertyChanged {
 
     var schedule = policyRepository.GetBellSchedule(profileId);
     Periods.Clear();
-    foreach (var p in schedule) Periods.Add(p);
+    foreach (var p in schedule) {
+      Periods.Add(new BellPeriodItemViewModel(p, isEditing: false));
+    }
     StatusMessage = "";
   }
 
   public void Save(string profileId) {
+    foreach (var period in Periods) {
+      if (period.IsEditing) period.SaveEdit();
+    }
+
     var rule = new PolicyRule(
       RuleId: $"rule-{profileId}",
       ProfileId: profileId,
@@ -109,12 +330,12 @@ public sealed class PolicyViewModel : INotifyPropertyChanged {
       AlertSound: AlertSound
     );
     policyRepository.SavePolicyRule(rule);
-    policyRepository.SaveBellSchedule(profileId, Periods);
+    policyRepository.SaveBellSchedule(profileId, Periods.Select(p => p.ToModel()).ToList());
     StatusMessage = "Profile settings saved.";
   }
 
   public void AddPeriod(string profileId, string name, string start, string end) {
-    Periods.Add(new BellSchedulePeriod(
+    Periods.Add(new BellPeriodItemViewModel(new BellSchedulePeriod(
       ScheduleId: $"sched-{Guid.NewGuid():N}",
       ProfileId: profileId,
       PeriodName: name,
@@ -122,11 +343,16 @@ public sealed class PolicyViewModel : INotifyPropertyChanged {
       EndTime: end,
       DaysOfWeek: "Mon,Tue,Wed,Thu,Fri",
       ScheduleName: "Regular"
-    ));
+    ), isEditing: true));
+  }
+
+  public void RemovePeriod(BellPeriodItemViewModel period) {
+    Periods.Remove(period);
   }
 
   public void RemovePeriod(BellSchedulePeriod period) {
-    Periods.Remove(period);
+    var item = Periods.FirstOrDefault(p => p.ScheduleId == period.ScheduleId);
+    if (item != null) Periods.Remove(item);
   }
 
   void OnPropertyChanged([CallerMemberName] string? propertyName = null) {

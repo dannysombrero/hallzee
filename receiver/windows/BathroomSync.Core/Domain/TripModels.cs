@@ -58,6 +58,19 @@ public record EnrichedTripRecord(
       : null;
 
   public string DisplayName => FullName ?? $"#{StudentId}";
+
+  public string FormattedDuration => FormatDuration(DurationSeconds);
+
+  public static string FormatDuration(int totalSeconds) {
+    if (totalSeconds < 0) totalSeconds = 0;
+    var hours = totalSeconds / 3600;
+    var minutes = (totalSeconds % 3600) / 60;
+    var seconds = totalSeconds % 60;
+    if (hours > 0) {
+      return $"{hours}h {minutes}m {seconds:D2}s";
+    }
+    return $"{minutes}m {seconds:D2}s";
+  }
 }
 
 public record TripQueryFilter(

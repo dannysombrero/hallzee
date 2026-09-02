@@ -148,7 +148,7 @@ public sealed record DashboardActivityItem(
     trip.DisplayName,
     string.IsNullOrWhiteSpace(trip.TimeOut) ? "—" : trip.TimeOut,
     string.IsNullOrWhiteSpace(trip.TimeIn) ? "—" : trip.TimeIn,
-    $"{trip.DurationSeconds}s",
+    trip.FormattedDuration,
     "Returned",
     "#DCFCE7",
     "#166534",

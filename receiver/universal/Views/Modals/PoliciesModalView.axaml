@@ -4,7 +4,7 @@
              x:Class="BathroomSync.Universal.Views.PoliciesModalView"
              x:DataType="vm:MainViewModel">
   <Border Background="#99000000">
-    <Border Background="White" CornerRadius="16" Width="790" MaxHeight="680" VerticalAlignment="Center" HorizontalAlignment="Center" Padding="24" BoxShadow="0 10 30 0 #40000000">
+    <Border Background="White" CornerRadius="16" Width="820" MaxHeight="680" VerticalAlignment="Center" HorizontalAlignment="Center" Padding="24" BoxShadow="0 10 30 0 #40000000">
       <Grid RowDefinitions="Auto,*,Auto" RowSpacing="16">
         
         <Grid ColumnDefinitions="*,Auto">
@@ -24,13 +24,13 @@
                 
                 <Grid ColumnDefinitions="2*,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="10" VerticalAlignment="Center">
                   <TextBlock Grid.Row="0" Grid.Column="0" Text="Students allowed out at once:" FontSize="13" Foreground="#334155" VerticalAlignment="Center" />
-                  <NumericUpDown Grid.Row="0" Grid.Column="1" Minimum="1" Maximum="8" Value="{Binding PolicyModal.MaxSimultaneousPasses}" />
+                  <NumericUpDown Grid.Row="0" Grid.Column="1" Minimum="1" Maximum="8" Increment="1" FormatString="0" ParsingNumberStyle="Integer" Value="{Binding PolicyModal.MaxSimultaneousPasses}" />
 
                   <TextBlock Grid.Row="1" Grid.Column="0" Text="Maximum Daily Passes per Student:" FontSize="13" Foreground="#334155" VerticalAlignment="Center" />
-                  <NumericUpDown Grid.Row="1" Grid.Column="1" Minimum="1" Maximum="10" Value="{Binding PolicyModal.MaxDailyPasses}" />
+                  <NumericUpDown Grid.Row="1" Grid.Column="1" Minimum="1" Maximum="10" Increment="1" FormatString="0" ParsingNumberStyle="Integer" Value="{Binding PolicyModal.MaxDailyPasses}" />
 
                   <TextBlock Grid.Row="2" Grid.Column="0" Text="Overdue warning (minutes):" FontSize="13" Foreground="#334155" VerticalAlignment="Center" />
-                  <NumericUpDown Grid.Row="2" Grid.Column="1" Minimum="1" Maximum="60" Value="{Binding PolicyModal.DurationWarningMinutes}" />
+                  <NumericUpDown Grid.Row="2" Grid.Column="1" Minimum="1" Maximum="60" Increment="1" FormatString="0" ParsingNumberStyle="Integer" Value="{Binding PolicyModal.DurationWarningMinutes}" />
                 </Grid>
               </StackPanel>
             </Border>
@@ -40,13 +40,23 @@
                 <TextBlock Text="BELL-TIME WINDOWS" FontSize="11" FontWeight="Bold" Foreground="#92400E" />
                 <Grid ColumnDefinitions="2*,Auto,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="8">
                   <TextBlock Grid.Row="0" Text="First minutes of period" FontSize="13" Foreground="#334155" VerticalAlignment="Center" />
-                  <NumericUpDown Grid.Row="0" Grid.Column="1" Width="62" Minimum="0" Maximum="30" Value="{Binding PolicyModal.FirstWindowMinutes}" />
+                  <NumericUpDown Grid.Row="0" Grid.Column="1" Width="140" Minimum="0" Maximum="30" Increment="1" FormatString="0" ParsingNumberStyle="Integer" HorizontalContentAlignment="Center" Value="{Binding PolicyModal.FirstWindowMinutes}" />
                   <ComboBox Grid.Row="0" Grid.Column="2" Width="110" ItemsSource="{Binding PolicyModal.BellActions}" SelectedItem="{Binding PolicyModal.FirstWindowAction}" />
+                  
                   <TextBlock Grid.Row="1" Text="Last minutes of period" FontSize="13" Foreground="#334155" VerticalAlignment="Center" />
-                  <NumericUpDown Grid.Row="1" Grid.Column="1" Width="62" Minimum="0" Maximum="30" Value="{Binding PolicyModal.LastWindowMinutes}" />
+                  <NumericUpDown Grid.Row="1" Grid.Column="1" Width="140" Minimum="0" Maximum="30" Increment="1" FormatString="0" ParsingNumberStyle="Integer" HorizontalContentAlignment="Center" Value="{Binding PolicyModal.LastWindowMinutes}" />
                   <ComboBox Grid.Row="1" Grid.Column="2" Width="110" ItemsSource="{Binding PolicyModal.BellActions}" SelectedItem="{Binding PolicyModal.LastWindowAction}" />
+                  
                   <TextBlock Grid.Row="2" Text="Warning sound" FontSize="13" Foreground="#334155" VerticalAlignment="Center" />
-                  <ComboBox Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" ItemsSource="{Binding PolicyModal.AlertSounds}" SelectedItem="{Binding PolicyModal.AlertSound}" />
+                  <Grid Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                    <ComboBox ItemsSource="{Binding PolicyModal.AlertSounds}" SelectedItem="{Binding PolicyModal.AlertSound}" HorizontalAlignment="Stretch" />
+                    <Button Grid.Column="1" Classes="secondary" Click="OnPlaySoundPreviewClick" ToolTip.Tip="Hear selected warning sound" Padding="10,6">
+                      <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <PathIcon Data="{StaticResource IconVolume2}" Width="14" Height="14" Foreground="#0284C7" />
+                        <TextBlock Text="Play Preview" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                      </StackPanel>
+                    </Button>
+                  </Grid>
                 </Grid>
                 <TextBlock Text="Allow accepts passes; Warn accepts and alerts; Lock blocks new checkouts during the selected window." TextWrapping="Wrap" FontSize="11" Foreground="#92400E" />
               </StackPanel>
@@ -66,17 +76,63 @@
 
                 <ItemsControl ItemsSource="{Binding PolicyModal.Periods}">
                   <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                      <Grid ColumnDefinitions="*,*,*,*,*,Auto" ColumnSpacing="6" Margin="0,3" VerticalAlignment="Center">
-                        <TextBox Text="{Binding ScheduleName}" Watermark="Schedule" FontSize="12" />
-                        <TextBox Grid.Column="1" Text="{Binding PeriodName}" Watermark="Period" FontSize="12" />
-                        <TextBox Grid.Column="2" Text="{Binding StartTime}" Watermark="Start" FontSize="12" />
-                        <TextBox Grid.Column="3" Text="{Binding EndTime}" Watermark="End" FontSize="12" />
-                        <TextBox Grid.Column="4" Text="{Binding DaysOfWeek}" Watermark="Days" FontSize="12" />
-                        <Button Grid.Column="5" Classes="danger" Click="OnRemovePeriodClick" Tag="{Binding}" Margin="0,0,4,0" Padding="6,4">
-                          <PathIcon Data="{StaticResource IconX}" Width="10" Height="10" Foreground="#E11D48" />
-                        </Button>
-                      </Grid>
+                    <DataTemplate DataType="vm:BellPeriodItemViewModel">
+                      <Panel Margin="0,3">
+                        <!-- VIEW MODE -->
+                        <Border IsVisible="{Binding !IsEditing}" Background="White" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Padding="12,10">
+                          <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="12" VerticalAlignment="Center">
+                            <Border Background="#E0F2FE" CornerRadius="6" Padding="8,4" VerticalAlignment="Center">
+                              <TextBlock Text="{Binding ScheduleName}" FontSize="11" FontWeight="Bold" Foreground="#0369A1" />
+                            </Border>
+                            
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                              <TextBlock Text="{Binding PeriodName}" FontWeight="Bold" FontSize="13" Foreground="#0F172A" />
+                              <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                <PathIcon Data="{StaticResource IconClock}" Width="11" Height="11" Foreground="#64748B" VerticalAlignment="Center" />
+                                <TextBlock Text="{Binding DisplayTimeRange}" FontSize="12" Foreground="#475569" FontWeight="SemiBold" />
+                                <TextBlock Text="•" Foreground="#94A3B8" FontSize="12" />
+                                <TextBlock Text="{Binding FormattedDaysSummary}" FontSize="11" Foreground="#64748B" />
+                              </StackPanel>
+                            </StackPanel>
+
+                            <Button Grid.Column="2" Classes="secondary" Click="OnEditPeriodClick" Tag="{Binding}" Padding="8,6" ToolTip.Tip="Edit period">
+                              <PathIcon Data="{StaticResource IconEdit}" Width="12" Height="12" Foreground="#0369A1" />
+                            </Button>
+                            <Button Grid.Column="3" Classes="danger" Click="OnRemovePeriodClick" Tag="{Binding}" Padding="8,6" ToolTip.Tip="Delete period">
+                              <PathIcon Data="{StaticResource IconTrash}" Width="12" Height="12" Foreground="#E11D48" />
+                            </Button>
+                          </Grid>
+                        </Border>
+
+                        <!-- EDIT MODE -->
+                        <Border IsVisible="{Binding IsEditing}" Background="#F8FAFC" BorderBrush="#0284C7" BorderThickness="1.5" CornerRadius="8" Padding="12">
+                          <StackPanel Spacing="10">
+                            <Grid ColumnDefinitions="1.2*,1.5*,*,*,Auto,Auto" ColumnSpacing="8" VerticalAlignment="Center">
+                              <TextBox Text="{Binding ScheduleName}" Watermark="Schedule (e.g. Regular)" FontSize="12" />
+                              <TextBox Grid.Column="1" Text="{Binding PeriodName}" Watermark="Period name" FontSize="12" />
+                              <TextBox Grid.Column="2" Text="{Binding StartTime}" Watermark="Start (e.g. 08:00 AM)" FontSize="12" />
+                              <TextBox Grid.Column="3" Text="{Binding EndTime}" Watermark="End (e.g. 08:50 AM)" FontSize="12" />
+                              <Button Grid.Column="4" Background="#10B981" Foreground="White" Click="OnSavePeriodClick" Tag="{Binding}" Padding="8,6" ToolTip.Tip="Done editing period">
+                                <PathIcon Data="{StaticResource IconCheck}" Width="12" Height="12" Foreground="White" />
+                              </Button>
+                              <Button Grid.Column="5" Classes="danger" Click="OnRemovePeriodClick" Tag="{Binding}" Padding="8,6" ToolTip.Tip="Delete period">
+                                <PathIcon Data="{StaticResource IconTrash}" Width="12" Height="12" Foreground="#E11D48" />
+                              </Button>
+                            </Grid>
+
+                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" VerticalAlignment="Center">
+                              <TextBlock Text="Applies to:" FontSize="12" FontWeight="SemiBold" Foreground="#334155" VerticalAlignment="Center" />
+                              <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="14" VerticalAlignment="Center">
+                                <CheckBox Content="Mon" IsChecked="{Binding IsMonday}" FontSize="12" />
+                                <CheckBox Content="Tue" IsChecked="{Binding IsTuesday}" FontSize="12" />
+                                <CheckBox Content="Wed" IsChecked="{Binding IsWednesday}" FontSize="12" />
+                                <CheckBox Content="Thu" IsChecked="{Binding IsThursday}" FontSize="12" />
+                                <CheckBox Content="Fri" IsChecked="{Binding IsFriday}" FontSize="12" />
+                              </StackPanel>
+                            </Grid>
+                          </StackPanel>
+                        </Border>
+                      </Panel>
                     </DataTemplate>
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>

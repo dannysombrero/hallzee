@@ -4,18 +4,84 @@
              x:Class="BathroomSync.Universal.Views.TerminalSettingsModalView"
              x:DataType="vm:MainViewModel">
   <Border Background="#99000000">
-    <Border Background="White" CornerRadius="16" Width="600" VerticalAlignment="Center" HorizontalAlignment="Center" Padding="24" BoxShadow="0 10 30 0 #40000000">
-      <Grid RowDefinitions="Auto,*,Auto" RowSpacing="16">
+    <Border Background="White" CornerRadius="16" Width="640" VerticalAlignment="Center" HorizontalAlignment="Center" Padding="24" BoxShadow="0 10 30 0 #40000000">
+      <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="16">
         
+        <!-- HEADER -->
         <Grid ColumnDefinitions="*,Auto">
           <StackPanel Spacing="2">
-            <TextBlock Text="Hardware Terminal Settings" FontSize="20" FontWeight="Bold" Foreground="#0F172A" />
-            <TextBlock Text="Configure student ID limits and physical kiosk device parameters." FontSize="13" Foreground="#64748B" />
+            <TextBlock Text="Settings" FontSize="20" FontWeight="Bold" Foreground="#0F172A" />
+            <TextBlock Text="Configure classroom profiles, kiosk hardware parameters, and preferences." FontSize="13" Foreground="#64748B" />
           </StackPanel>
           <Button Grid.Column="1" Classes="secondary" Content="✕" Click="OnCloseClick" Width="36" Height="36" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
         </Grid>
 
-        <StackPanel Grid.Row="1" Spacing="16">
+        <!-- SUBMENU TAB SELECTOR (Profile, Device) -->
+        <Border Grid.Row="1" Background="#F1F5F9" CornerRadius="10" Padding="4" HorizontalAlignment="Left">
+          <StackPanel Orientation="Horizontal" Spacing="4">
+            <Button Classes="tab-btn" Click="OnProfileTabClick" Background="{Binding TerminalSettingsModal.ProfileTabBackground}" Foreground="{Binding TerminalSettingsModal.ProfileTabForeground}" CornerRadius="8" Padding="14,6">
+              <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                <PathIcon Data="{StaticResource IconUsers}" Width="14" Height="14" Foreground="{Binding TerminalSettingsModal.ProfileTabForeground}" VerticalAlignment="Center" />
+                <TextBlock Text="Profile" FontSize="13" FontWeight="Bold" VerticalAlignment="Center" />
+              </StackPanel>
+            </Button>
+            <Button Classes="tab-btn" Click="OnDeviceTabClick" Background="{Binding TerminalSettingsModal.DeviceTabBackground}" Foreground="{Binding TerminalSettingsModal.DeviceTabForeground}" CornerRadius="8" Padding="14,6">
+              <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                <PathIcon Data="{StaticResource IconRadio}" Width="14" Height="14" Foreground="{Binding TerminalSettingsModal.DeviceTabForeground}" VerticalAlignment="Center" />
+                <TextBlock Text="Device" FontSize="13" FontWeight="Bold" VerticalAlignment="Center" />
+              </StackPanel>
+            </Button>
+          </StackPanel>
+        </Border>
+
+        <!-- TAB 1: PROFILE SETTINGS -->
+        <StackPanel Grid.Row="2" Spacing="16" IsVisible="{Binding TerminalSettingsModal.IsProfileSelected}">
+          
+          <!-- ACTIVE CLASSROOM PROFILE SELECTOR -->
+          <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10" Padding="16">
+            <StackPanel Spacing="10">
+              <TextBlock Text="ACTIVE CLASSROOM PROFILE" FontSize="11" FontWeight="Bold" Foreground="#64748B" />
+              <TextBlock Text="Choose which classroom profile is currently active on this device." FontSize="12" Foreground="#475569" TextWrapping="Wrap" />
+
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" Margin="0,4,0,0" VerticalAlignment="Center">
+                <ComboBox ItemsSource="{Binding Profiles}" SelectedItem="{Binding ActiveProfile}" DisplayMemberBinding="{Binding Name}" HorizontalAlignment="Stretch" VerticalAlignment="Center" />
+                <Border Grid.Column="1" Background="#E0F2FE" CornerRadius="8" Padding="10,6" VerticalAlignment="Center">
+                  <TextBlock Text="Active" FontSize="12" FontWeight="Bold" Foreground="#0284C7" />
+                </Border>
+              </Grid>
+            </StackPanel>
+          </Border>
+
+          <!-- ADD NEW PROFILE -->
+          <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10" Padding="16">
+            <StackPanel Spacing="10">
+              <TextBlock Text="CREATE NEW PROFILE" FontSize="11" FontWeight="Bold" Foreground="#64748B" />
+              <TextBlock Text="Create an additional profile for another period, class, or subject block." FontSize="12" Foreground="#475569" TextWrapping="Wrap" />
+
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" Margin="0,4,0,0" VerticalAlignment="Center">
+                <TextBox Text="{Binding PolicyModal.NewProfileName}" Watermark="New profile name (e.g. Period 4 Biology)" FontSize="13" />
+                <Button Grid.Column="1" Classes="secondary" Content="+ Create Profile" Click="OnCreateProfileClick" Padding="14,8" FontSize="12" />
+              </Grid>
+            </StackPanel>
+          </Border>
+
+          <!-- QUICK LINKS -->
+          <Border Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="10" Padding="14">
+            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
+              <StackPanel Spacing="2">
+                <TextBlock Text="Classroom Rosters &amp; Pass Limits" FontSize="12" FontWeight="Bold" Foreground="#166534" />
+                <TextBlock Text="Customize student list or pass limits for this profile." FontSize="11" Foreground="#15803D" />
+              </StackPanel>
+              <Button Grid.Column="1" Classes="secondary" Content="Manage Roster" Click="OnOpenRosterClick" Padding="10,6" FontSize="11" />
+              <Button Grid.Column="2" Classes="secondary" Content="Manage Policies" Click="OnOpenPoliciesClick" Padding="10,6" FontSize="11" />
+            </Grid>
+          </Border>
+        </StackPanel>
+
+        <!-- TAB 2: DEVICE SETTINGS -->
+        <StackPanel Grid.Row="2" Spacing="16" IsVisible="{Binding TerminalSettingsModal.IsDeviceSelected}">
+          
+          <!-- STUDENT ID LIMIT -->
           <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10" Padding="16">
             <StackPanel Spacing="12">
               <TextBlock Text="STUDENT ID KEYPAD LIMIT" FontSize="11" FontWeight="Bold" Foreground="#64748B" />
@@ -23,27 +89,31 @@
 
               <Grid ColumnDefinitions="2*,*" VerticalAlignment="Center" Margin="0,4,0,0">
                 <TextBlock Text="Max Student ID Length:" FontSize="13" FontWeight="SemiBold" Foreground="#334155" VerticalAlignment="Center" />
-                <NumericUpDown Grid.Column="1" Minimum="4" Maximum="16" Value="{Binding TerminalSettingsModal.MaxStudentIdLength}" />
+                <NumericUpDown Grid.Column="1" Minimum="4" Maximum="16" Increment="1" FormatString="0" ParsingNumberStyle="Integer" HorizontalContentAlignment="Center" Value="{Binding TerminalSettingsModal.MaxStudentIdLength}" />
               </Grid>
             </StackPanel>
           </Border>
 
+          <!-- DEVICE INFORMATION -->
           <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10" Padding="16">
             <StackPanel Spacing="8">
               <TextBlock Text="DEVICE INFORMATION" FontSize="11" FontWeight="Bold" Foreground="#64748B" />
-              <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" RowSpacing="6" ColumnSpacing="12">
+              <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="6" ColumnSpacing="12">
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Node Name:" FontSize="12" Foreground="#64748B" />
                 <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding TerminalSettingsModal.TerminalName}" FontSize="12" FontWeight="SemiBold" Foreground="#334155" />
                 <TextBlock Grid.Row="1" Grid.Column="0" Text="GATT Transport:" FontSize="12" Foreground="#64748B" />
                 <TextBlock Grid.Row="1" Grid.Column="1" Text="Bluetooth Low Energy (BLE 4.2+)" FontSize="12" FontWeight="SemiBold" Foreground="#334155" />
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Connection:" FontSize="12" Foreground="#64748B" />
+                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding ConnectionStatusText}" FontSize="12" FontWeight="SemiBold" Foreground="{Binding ConnectionBadgeForeground}" />
               </Grid>
             </StackPanel>
           </Border>
         </StackPanel>
 
-        <Grid Grid.Row="2" ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+        <!-- FOOTER ACTIONS -->
+        <Grid Grid.Row="3" ColumnDefinitions="*,Auto" VerticalAlignment="Center">
           <TextBlock Text="{Binding TerminalSettingsModal.StatusMessage}" Foreground="{Binding TerminalSettingsModal.StatusColor}" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center" />
-          <Button Grid.Column="1" Classes="hallzee-pill-btn" Content="Apply Setting to Kiosk" Click="OnApplyClick" Padding="16,8" FontSize="13" />
+          <Button Grid.Column="1" Classes="hallzee-pill-btn" Content="Apply Setting to Kiosk" Click="OnApplyClick" Padding="16,8" FontSize="13" IsVisible="{Binding TerminalSettingsModal.IsDeviceSelected}" />
         </Grid>
       </Grid>
     </Border>

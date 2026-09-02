@@ -64,6 +64,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     PolicyModal = new PolicyViewModel(profileRepository);
     TerminalSettingsModal = new TerminalSettingsViewModel(profileRepository, connection);
     FindTerminalsModal = new FindTerminalsViewModel(connection);
+    ManualCheckInModal = new ManualCheckInViewModel(rosterService);
 
     // Connection events
     connection.TextReceived += HandleTextReceived;
@@ -90,6 +91,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
   public PolicyViewModel PolicyModal { get; }
   public TerminalSettingsViewModel TerminalSettingsModal { get; }
   public FindTerminalsViewModel FindTerminalsModal { get; }
+  public ManualCheckInViewModel ManualCheckInModal { get; }
 
   public string ActiveView {
     get => activeView;
@@ -136,6 +138,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
   public bool IsPoliciesModalVisible => ActiveModal == "Policies";
   public bool IsTerminalSettingsModalVisible => ActiveModal == "TerminalSettings";
   public bool IsFindTerminalsModalVisible => ActiveModal == "FindTerminals";
+  public bool IsManualCheckInModalVisible => ActiveModal == "ManualCheckIn";
 
   public bool IsConnected {
     get => isConnected;
@@ -188,7 +191,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
   public string LoadedRosterFileName => loadedRosterFileName;
 
   public string ConnectionStatusText =>
-    IsSyncing ? "SYNCING" : IsConnected ? "BLE CONNECTED" : "OFFLINE";
+    IsSyncing ? "SYNCING" : IsConnected ? "CONNECTED" : "OFFLINE";
 
   public string ConnectionStatusColor =>
     IsSyncing ? "#0284C7" : IsConnected ? "#10B981" : "#94A3B8";
@@ -200,7 +203,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     IsSyncing ? "#0369A1" : IsConnected ? "#166534" : "#475569";
 
   public string TopStatusBadgeText =>
-    !IsConnected ? "OFFLINE" : IsSyncing ? "SYNCING" : "BLE CONNECTED";
+    !IsConnected ? "OFFLINE" : IsSyncing ? "SYNCING" : "CONNECTED";
 
   public string TopStatusBadgeBackground =>
     !IsConnected ? "#E2E8F0" : IsSyncing ? "#E0F2FE" : "#DCFCE7";
@@ -235,12 +238,24 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     else if (modalName == "Roster") RosterModal.Refresh(ActiveProfile.ProfileId);
     else if (modalName == "Policies") PolicyModal.Refresh(ActiveProfile.ProfileId);
     else if (modalName == "FindTerminals") _ = FindTerminalsModal.ScanAsync();
+    else if (modalName == "ManualCheckIn") ManualCheckInModal.Reset(ActiveProfile.ProfileId);
   }
 
   public void CloseModal() {
     ActiveModal = "None";
     RosterModal.CancelImport();
+    ManualCheckInModal.Reset(ActiveProfile.ProfileId);
     Dashboard.Refresh(ActiveProfile.ProfileId);
+  }
+
+  public void SubmitManualCheckIn() {
+    if (!ManualCheckInModal.CanSubmit) return;
+    var (id, name, reason, location) = ManualCheckInModal.ResolvePassDetails();
+    ActivePass.SetOccupied(id, name, DateTime.Now, reason, location);
+    Dashboard.RegisterLiveCheckout(id, name, DateTime.Now);
+    Dashboard.RefreshAdditionalActiveTrips();
+    Dashboard.Refresh(ActiveProfile.ProfileId);
+    CloseModal();
   }
 
   public void ExportTrips(string exportPath) {
@@ -327,7 +342,28 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
 
   public async Task CheckInActivePassAsync() {
     if (ActivePass.IsOccupied && !string.IsNullOrEmpty(ActivePass.StudentId)) {
-      await CheckInStudentAsync(ActivePass.StudentId);
+      var studentId = ActivePass.StudentId;
+      var checkoutTime = ActivePass.CheckoutTime ?? DateTime.Now;
+      var checkinTime = DateTime.Now;
+      var duration = (int)Math.Max(0, (checkinTime - checkoutTime).TotalSeconds);
+      var date = checkoutTime.ToString("yyyy-MM-dd");
+      var timeOut = checkoutTime.ToString("HH:mm:ss");
+      var timeIn = checkinTime.ToString("HH:mm:ss");
+
+      var tripId = tripRepository.GetLatestTripId() + 1;
+      var payload = $"{tripId},{studentId},{date},{timeOut},{timeIn},{duration},COMPLETED";
+      tripRepository.Store(payload);
+
+      if (IsConnected) {
+        try {
+          await CheckInStudentAsync(studentId);
+        } catch { }
+      }
+
+      ActivePass.SetAvailable();
+      Dashboard.ResolveLiveCheckout(studentId);
+      Dashboard.RefreshAdditionalActiveTrips();
+      Dashboard.Refresh(ActiveProfile.ProfileId);
     }
   }
 

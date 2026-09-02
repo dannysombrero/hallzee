@@ -45,8 +45,16 @@ public sealed class TripsViewModel : INotifyPropertyChanged {
 
   public int TotalTrips {
     get => totalTrips;
-    private set { totalTrips = value; OnPropertyChanged(); }
+    private set {
+      totalTrips = value;
+      OnPropertyChanged();
+      OnPropertyChanged(nameof(HasTrips));
+      OnPropertyChanged(nameof(HasNoTrips));
+    }
   }
+
+  public bool HasTrips => TotalTrips > 0;
+  public bool HasNoTrips => TotalTrips == 0;
 
   public string? ExportStatusMessage {
     get => exportStatusMessage;

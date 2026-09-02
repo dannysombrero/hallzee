@@ -1,0 +1,67 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:BathroomSync.Universal.ViewModels;assembly=HallzeeSync.Universal"
+             x:Class="BathroomSync.Universal.Views.ManualCheckInModalView"
+             x:DataType="vm:MainViewModel">
+  <Border Background="#99000000">
+    <Border Background="White" CornerRadius="16" Width="520" VerticalAlignment="Center" HorizontalAlignment="Center" Padding="24" BoxShadow="0 10 30 0 #40000000">
+      <Grid RowDefinitions="Auto,*,Auto" RowSpacing="16">
+        
+        <!-- HEADER -->
+        <Grid ColumnDefinitions="*,Auto">
+          <StackPanel Spacing="2">
+            <TextBlock Text="Manual Student Check-In" FontSize="20" FontWeight="Bold" Foreground="#0F172A" />
+            <TextBlock Text="Assign an active hall pass while a pass is available." FontSize="13" Foreground="#64748B" />
+          </StackPanel>
+          <Button Grid.Column="1" Classes="secondary" Content="✕" Click="OnCancelClick" Width="36" Height="36" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+        </Grid>
+
+        <!-- FORM CONTENT -->
+        <StackPanel Grid.Row="1" Spacing="14">
+          
+          <!-- STUDENT NAME -->
+          <StackPanel Spacing="4">
+            <TextBlock Text="Student Name" FontSize="12" FontWeight="Bold" Foreground="#334155" />
+            <TextBox Text="{Binding ManualCheckInModal.StudentName}" Watermark="e.g. Avery Chen (optional if ID is provided)" FontSize="13" />
+          </StackPanel>
+
+          <!-- STUDENT ID -->
+          <StackPanel Spacing="4">
+            <TextBlock Text="Student ID" FontSize="12" FontWeight="Bold" Foreground="#334155" />
+            <TextBox Text="{Binding ManualCheckInModal.StudentId}" Watermark="e.g. 10482 (optional if Name is provided)" FontSize="13" />
+          </StackPanel>
+
+          <!-- REASON (OPTIONAL) -->
+          <StackPanel Spacing="4">
+            <TextBlock Text="Reason (optional)" FontSize="12" FontWeight="Bold" Foreground="#334155" />
+            <ComboBox ItemsSource="{Binding ManualCheckInModal.ReasonOptions}" SelectedItem="{Binding ManualCheckInModal.Reason}" HorizontalAlignment="Stretch" />
+          </StackPanel>
+
+          <!-- LOCATION (OPTIONAL) -->
+          <StackPanel Spacing="4">
+            <TextBlock Text="Location / Destination (optional)" FontSize="12" FontWeight="Bold" Foreground="#334155" />
+            <TextBox Text="{Binding ManualCheckInModal.Location}" Watermark="e.g. Hallway Restroom, Clinic, Room 204" FontSize="13" />
+          </StackPanel>
+
+          <!-- HELPER HINT -->
+          <Border Background="#F0F9FF" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="8" Padding="10">
+            <TextBlock Text="Provide either a Student Name or Student ID. Submitting starts the pass live timer on the dashboard." FontSize="11" Foreground="#0369A1" TextWrapping="Wrap" />
+          </Border>
+        </StackPanel>
+
+        <!-- FOOTER ACTIONS -->
+        <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
+          <TextBlock Text="{Binding ManualCheckInModal.StatusMessage}" Foreground="#E11D48" FontSize="12" VerticalAlignment="Center" />
+          <Button Grid.Column="1" Classes="secondary" Content="Cancel" Click="OnCancelClick" Padding="14,8" />
+          <Button Grid.Column="2" Classes="hallzee-pill-btn" Click="OnSubmitClick" IsEnabled="{Binding ManualCheckInModal.CanSubmit}" Padding="16,8">
+            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+              <PathIcon Data="{StaticResource IconUserCheck}" Width="14" Height="14" Foreground="White" VerticalAlignment="Center" />
+              <TextBlock Text="Check In Student" FontSize="13" FontWeight="Bold" VerticalAlignment="Center" />
+            </StackPanel>
+          </Button>
+        </Grid>
+
+      </Grid>
+    </Border>
+  </Border>
+</UserControl>

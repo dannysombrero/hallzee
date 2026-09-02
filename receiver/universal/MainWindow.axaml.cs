@@ -25,6 +25,20 @@ public partial class MainWindow : Window {
     if (DataContext is MainViewModel vm) vm.OpenModal("Policies");
   }
 
+  void OnSettingsClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) {
+      vm.TerminalSettingsModal.SelectProfileSubmenu();
+      vm.OpenModal("TerminalSettings");
+    }
+  }
+
+  void OnSettingsDeviceClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) {
+      vm.TerminalSettingsModal.SelectDeviceSubmenu();
+      vm.OpenModal("TerminalSettings");
+    }
+  }
+
   void OnTerminalSettingsClick(object? sender, RoutedEventArgs e) {
     if (DataContext is MainViewModel vm) vm.OpenModal("TerminalSettings");
   }

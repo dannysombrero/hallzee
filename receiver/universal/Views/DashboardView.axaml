@@ -5,54 +5,8 @@
              x:DataType="vm:MainViewModel">
   <ScrollViewer VerticalScrollBarVisibility="Auto">
     <StackPanel Margin="24,20" Spacing="20" MaxWidth="1100">
-      
-      <!-- 1. TOP TERMINAL STATUS STRIP -->
-      <Border Background="White" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="20" BoxShadow="0 4 16 0 #0D0284C7" Padding="18,14">
-        <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
-          
-          <!-- TERMINAL AVATAR / ICON -->
-          <Border Grid.Column="0" Width="48" Height="48" CornerRadius="16" Background="{Binding TerminalAvatarBackground}" VerticalAlignment="Center" Margin="0,0,16,0">
-            <PathIcon Data="{StaticResource IconRadio}" Width="22" Height="22" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" />
-          </Border>
 
-          <!-- TERMINAL DETAILS -->
-          <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
-            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-              <TextBlock Text="{Binding ConnectedTerminalName}" FontSize="16" FontWeight="ExtraBold" Foreground="#0F172A" VerticalAlignment="Center" />
-              <Border Background="{Binding TopStatusBadgeBackground}" CornerRadius="12" Padding="10,2" VerticalAlignment="Center">
-                <TextBlock Text="{Binding TopStatusBadgeText}" FontWeight="ExtraBold" FontSize="10" Foreground="{Binding TopStatusBadgeForeground}" LetterSpacing="0.5" />
-              </Border>
-            </StackPanel>
-            <StackPanel Orientation="Horizontal" Spacing="4">
-              <TextBlock Text="Last successful sync:" FontSize="12" Foreground="#64748B" />
-              <TextBlock Text="{Binding LastSyncTimeText}" FontSize="12" FontWeight="Bold" Foreground="#0F172A" />
-            </StackPanel>
-          </StackPanel>
-
-          <!-- ACTION BUTTONS -->
-          <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-            <!-- Connected Actions -->
-            <Button Classes="hallzee-pill-btn" Click="OnSyncClick" IsEnabled="{Binding !IsSyncing}" IsVisible="{Binding IsConnected}">
-              <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                <PathIcon Data="{StaticResource IconSync}" Width="16" Height="16" VerticalAlignment="Center" Foreground="White" />
-                <TextBlock Text="{Binding SyncButtonText}" FontSize="11" FontWeight="Bold" LineHeight="12" />
-              </StackPanel>
-            </Button>
-            <TextBlock Text="{Binding SyncProgressText}" FontSize="12" Foreground="#0369A1" VerticalAlignment="Center" IsVisible="{Binding IsSyncing}" Margin="12,0,0,0" />
-            <Button Classes="card-outline" Content="Configure Node" Click="OnConfigureNodeClick" IsVisible="{Binding IsConnected}" />
-
-            <!-- Disconnected Action: Scan for devices -->
-            <Button Classes="hallzee-pill-btn" Click="OnScanForDevicesClick" IsVisible="{Binding !IsConnected}">
-              <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-                <PathIcon Data="{StaticResource IconSearch}" Width="16" Height="16" VerticalAlignment="Center" Foreground="White" />
-                <TextBlock Text="Scan for devices" FontSize="13" FontWeight="Bold" VerticalAlignment="Center" />
-              </StackPanel>
-            </Button>
-          </StackPanel>
-        </Grid>
-      </Border>
-
-      <!-- 2. HERO ACTIVE PASS CARD -->
+      <!-- HERO ACTIVE PASS CARD -->
       <Border Background="{Binding ActivePass.HeroCardBackground}" BorderBrush="{Binding ActivePass.HeroCardBorderBrush}" BorderThickness="2" CornerRadius="22" BoxShadow="0 4 20 0 #0D000000" Padding="20">
         <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
           
@@ -75,18 +29,74 @@
             </StackPanel>
           </Grid>
 
-          <!-- RIGHT: FLOATING ELAPSED TIMER CARD -->
-          <Border Grid.Column="1" Background="White" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="18" Padding="18,12" BoxShadow="0 4 12 0 #08000000" MinWidth="260">
-            <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
-              <StackPanel VerticalAlignment="Center" Spacing="2">
-                <TextBlock Text="TRIP ELAPSED" FontSize="10" FontWeight="Bold" Foreground="#94A3B8" LetterSpacing="0.5" />
-                <TextBlock Text="{Binding ActivePass.DurationDisplay}" FontSize="24" FontWeight="Black" FontFamily="Cascadia Mono, Menlo, monospace" Foreground="{Binding ActivePass.TimerTextColor}" />
-                <TextBlock Text="{Binding ActivePass.StudentId, StringFormat='Student ID: #{0}', FallbackValue='Door kiosk live'}" FontSize="11" Foreground="#64748B" FontWeight="SemiBold" />
-              </StackPanel>
+          <!-- RIGHT: DYNAMIC FLOATING CARD BASED ON STATE -->
+          <Panel Grid.Column="1">
+            <!-- STATE A: PASS STATUS UNKNOWN -> SYNC NOW / CONNECT ACTION -->
+            <Border Background="White" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="18" Padding="18,12" BoxShadow="0 4 12 0 #08000000" MinWidth="260" IsVisible="{Binding ActivePass.IsStatusUnknown}">
+              <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                <StackPanel VerticalAlignment="Center" Spacing="2">
+                  <TextBlock Text="TERMINAL STATUS" FontSize="10" FontWeight="Bold" Foreground="#94A3B8" LetterSpacing="0.5" />
+                  <TextBlock Text="{Binding TopStatusBadgeText}" FontSize="18" FontWeight="Black" Foreground="{Binding ConnectionBadgeForeground}" />
+                  <TextBlock Text="{Binding SyncProgressText}" FontSize="11" Foreground="#0369A1" FontWeight="SemiBold" IsVisible="{Binding IsSyncing}" />
+                  <TextBlock Text="Sync to check pass status" FontSize="11" Foreground="#64748B" IsVisible="{Binding !IsSyncing}" />
+                </StackPanel>
 
-              <Button Grid.Column="1" Classes="dark-action" Content="Check In" Click="OnToggleOccupancyClick" IsVisible="{Binding ActivePass.IsOccupied}" Margin="14,0,0,0" VerticalAlignment="Center" />
-            </Grid>
-          </Border>
+                <!-- Sync button if connected -->
+                <Button Grid.Column="1" Classes="hallzee-pill-btn" Click="OnSyncClick" IsEnabled="{Binding !IsSyncing}" IsVisible="{Binding IsConnected}" Margin="14,0,0,0" VerticalAlignment="Center" Padding="14,8">
+                  <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                    <PathIcon Data="{StaticResource IconSync}" Width="14" Height="14" VerticalAlignment="Center" Foreground="White" />
+                    <TextBlock Text="{Binding SyncButtonText}" FontSize="12" FontWeight="Bold" LineHeight="12" VerticalAlignment="Center" />
+                  </StackPanel>
+                </Button>
+
+                <!-- Scan button if disconnected -->
+                <Button Grid.Column="1" Classes="hallzee-pill-btn" Click="OnScanForDevicesClick" IsVisible="{Binding !IsConnected}" Margin="14,0,0,0" VerticalAlignment="Center" Padding="14,8">
+                  <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                    <PathIcon Data="{StaticResource IconSearch}" Width="14" Height="14" VerticalAlignment="Center" Foreground="White" />
+                    <TextBlock Text="Connect" FontSize="12" FontWeight="Bold" VerticalAlignment="Center" />
+                  </StackPanel>
+                </Button>
+              </Grid>
+            </Border>
+
+            <!-- STATE B: PASS OCCUPIED -> LIVE TRIP ELAPSED TIMER + CHECK IN BUTTON -->
+            <Border Background="White" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="18" Padding="18,12" BoxShadow="0 4 12 0 #08000000" MinWidth="260" IsVisible="{Binding ActivePass.IsOccupied}">
+              <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                <StackPanel VerticalAlignment="Center" Spacing="2">
+                  <TextBlock Text="TRIP ELAPSED" FontSize="10" FontWeight="Bold" Foreground="#94A3B8" LetterSpacing="0.5" />
+                  <TextBlock Text="{Binding ActivePass.DurationDisplay}" FontSize="24" FontWeight="Black" FontFamily="Cascadia Mono, Menlo, monospace" Foreground="{Binding ActivePass.TimerTextColor}" />
+                  <TextBlock Text="{Binding ActivePass.StudentId, StringFormat='Student ID: #{0}', FallbackValue='Door kiosk live'}" FontSize="11" Foreground="#64748B" FontWeight="SemiBold" />
+                </StackPanel>
+
+                <Button Grid.Column="1" Classes="dark-action" Content="Check In" Click="OnToggleOccupancyClick" Margin="14,0,0,0" VerticalAlignment="Center" />
+              </Grid>
+            </Border>
+
+            <!-- STATE C: PASS AVAILABLE -> MANUAL CHECK IN BUTTON -->
+            <Border Background="White" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="18" Padding="18,12" BoxShadow="0 4 12 0 #08000000" MinWidth="260">
+              <Border.IsVisible>
+                <MultiBinding Converter="{x:Static BoolConverters.And}">
+                  <Binding Path="!ActivePass.IsStatusUnknown" />
+                  <Binding Path="!ActivePass.IsOccupied" />
+                </MultiBinding>
+              </Border.IsVisible>
+              <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                <StackPanel VerticalAlignment="Center" Spacing="2">
+                  <TextBlock Text="PASS READY" FontSize="10" FontWeight="Bold" Foreground="#10B981" LetterSpacing="0.5" />
+                  <TextBlock Text="Available" FontSize="20" FontWeight="Black" Foreground="#059669" />
+                  <TextBlock Text="Ready for next student" FontSize="11" Foreground="#64748B" FontWeight="SemiBold" />
+                </StackPanel>
+
+                <Button Grid.Column="1" Classes="hallzee-pill-btn" Click="OnManualCheckInClick" Margin="14,0,0,0" VerticalAlignment="Center" Padding="14,8" ToolTip.Tip="Manually check in a student">
+                  <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                    <PathIcon Data="{StaticResource IconPlus}" Width="12" Height="12" Foreground="White" VerticalAlignment="Center" />
+                    <TextBlock Text="Manual Check In" FontSize="12" FontWeight="Bold" VerticalAlignment="Center" />
+                  </StackPanel>
+                </Button>
+              </Grid>
+            </Border>
+          </Panel>
+
         </Grid>
       </Border>
 
@@ -122,7 +132,7 @@
         </ItemsControl.ItemTemplate>
       </ItemsControl>
 
-      <!-- 3. MAIN DASHBOARD 2-COLUMN GRID -->
+      <!-- MAIN DASHBOARD 2-COLUMN GRID -->
       <Grid ColumnDefinitions="1.8*,1.2*" ColumnSpacing="20">
         
         <!-- LEFT COLUMN: RECENT HALL PASS ACTIVITY (2/3 width) -->
@@ -140,7 +150,7 @@
                 <Button Classes="card-outline" Click="OnExportCsvClick" Padding="10,6">
                   <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                     <PathIcon Data="{StaticResource IconDownload}" Width="12" Height="12" Foreground="#0369A1" />
-                    <TextBlock Text="Export CSV" FontSize="12" FontWeight="Bold" VerticalAlignment="Center" />
+                    <TextBlock Text="Export" FontSize="12" FontWeight="Bold" VerticalAlignment="Center" />
                   </StackPanel>
                 </Button>
                 
@@ -202,7 +212,7 @@
 
         <!-- RIGHT COLUMN: ROSTER & PASS POLICY CARD (1/3 width) -->
         <Border Grid.Column="1" Background="White" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="22" BoxShadow="0 4 16 0 #0A0284C7" Padding="20">
-          <Grid RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="14">
+          <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="14">
             
             <!-- HEADER -->
             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" VerticalAlignment="Center">
@@ -230,16 +240,8 @@
               </StackPanel>
             </Border>
 
-            <!-- INSET CONTAINER 2: LOADED ROSTER CSV -->
-            <Border Grid.Row="2" Background="#F0F9FF" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="16" Padding="14">
-              <StackPanel Spacing="3">
-                <TextBlock Text="LOADED ROSTER CSV" FontSize="10" FontWeight="ExtraBold" Foreground="#64748B" LetterSpacing="0.5" />
-                <TextBlock Text="{Binding LoadedRosterFileName}" FontSize="12" FontWeight="Bold" FontFamily="Cascadia Mono, Menlo, monospace" Foreground="#0F172A" TextWrapping="Wrap" />
-              </StackPanel>
-            </Border>
-
             <!-- ACTION BUTTON -->
-            <Button Grid.Row="3" Classes="hallzee-pill-btn" Click="OnManagePoliciesClick" HorizontalAlignment="Stretch" CornerRadius="16" Padding="12,12">
+            <Button Grid.Row="2" Classes="hallzee-pill-btn" Click="OnManagePoliciesClick" HorizontalAlignment="Stretch" CornerRadius="16" Padding="12,12">
               <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center" VerticalAlignment="Center">
                 <PathIcon Data="{StaticResource IconUsers}" Width="14" Height="14" Foreground="White" VerticalAlignment="Center" />
                 <TextBlock Text="Manage Pass Rules" FontSize="12" FontWeight="Bold" VerticalAlignment="Center" />

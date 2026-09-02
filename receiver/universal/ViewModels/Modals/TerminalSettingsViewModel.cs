@@ -19,6 +19,36 @@ public sealed class TerminalSettingsViewModel : INotifyPropertyChanged {
 
   public event PropertyChangedEventHandler? PropertyChanged;
 
+  string selectedSubmenu = "Profile";
+
+  public string SelectedSubmenu {
+    get => selectedSubmenu;
+    set {
+      if (selectedSubmenu != value) {
+        selectedSubmenu = value;
+        OnPropertyChanged();
+        OnPropertyChanged(nameof(IsProfileSelected));
+        OnPropertyChanged(nameof(IsDeviceSelected));
+        OnPropertyChanged(nameof(ProfileTabBackground));
+        OnPropertyChanged(nameof(ProfileTabForeground));
+        OnPropertyChanged(nameof(DeviceTabBackground));
+        OnPropertyChanged(nameof(DeviceTabForeground));
+      }
+    }
+  }
+
+  public bool IsProfileSelected => SelectedSubmenu == "Profile";
+  public bool IsDeviceSelected => SelectedSubmenu == "Device";
+
+  public string ProfileTabBackground => IsProfileSelected ? "#0284C7" : "Transparent";
+  public string ProfileTabForeground => IsProfileSelected ? "White" : "#475569";
+
+  public string DeviceTabBackground => IsDeviceSelected ? "#0284C7" : "Transparent";
+  public string DeviceTabForeground => IsDeviceSelected ? "White" : "#475569";
+
+  public void SelectProfileSubmenu() => SelectedSubmenu = "Profile";
+  public void SelectDeviceSubmenu() => SelectedSubmenu = "Device";
+
   public int MaxStudentIdLength {
     get => maxStudentIdLength;
     set {

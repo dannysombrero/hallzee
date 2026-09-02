@@ -61,12 +61,31 @@ public sealed class ActivePassViewModel : INotifyPropertyChanged {
       ? $"{DisplayName} is Out of Class"
       : "Pass is Available";
 
-  public string SubtitleText =>
-    IsStatusUnknown
-      ? "Connect to the Hallzee terminal to confirm whether a student is out."
-      : IsOccupied
-      ? $"Departed at {DepartTime ?? "recently"} for {Destination}."
-      : "The physical Hallzee terminal is ready for the next student.";
+  string reason = "Restroom";
+  string? location;
+
+  public string Reason {
+    get => reason;
+    set { reason = value; OnPropertyChanged(); OnPropertyChanged(nameof(SubtitleText)); }
+  }
+
+  public string? Location {
+    get => location;
+    set { location = value; OnPropertyChanged(); OnPropertyChanged(nameof(SubtitleText)); }
+  }
+
+  public DateTime? CheckoutTime => checkoutTimestamp;
+
+  public string SubtitleText {
+    get {
+      if (IsStatusUnknown) return "Connect to the Hallzee terminal to confirm whether a student is out.";
+      if (IsOccupied) {
+        var place = string.IsNullOrWhiteSpace(Location) ? Reason : $"{Reason} ({Location})";
+        return $"Departed at {DepartTime ?? "recently"} for {place}.";
+      }
+      return "The physical Hallzee terminal is ready for the next student.";
+    }
+  }
 
   public string? DepartTime {
     get => departTime;
@@ -124,10 +143,12 @@ public sealed class ActivePassViewModel : INotifyPropertyChanged {
   public string TimerTextColor => IsStatusUnknown ? "#64748B" : IsOccupied ? "#D97706" : "#059669";
   public string ActionButtonText => IsOccupied ? "Check In" : "Simulate Tap";
 
-  public void SetOccupied(string id, string? name, DateTime? timestamp = null) {
+  public void SetOccupied(string id, string? name, DateTime? timestamp = null, string? reason = null, string? location = null) {
     isStatusKnown = true;
     StudentId = id;
     StudentName = name;
+    Reason = string.IsNullOrWhiteSpace(reason) ? "Restroom" : reason;
+    Location = location;
     checkoutTimestamp = timestamp ?? DateTime.Now;
     DepartTime = checkoutTimestamp.Value.ToString("h:mm tt");
     var diff = (int)Math.Max(0, (DateTime.Now - checkoutTimestamp.Value).TotalSeconds);
@@ -142,6 +163,8 @@ public sealed class ActivePassViewModel : INotifyPropertyChanged {
     StudentId = null;
     StudentName = null;
     DepartTime = null;
+    Reason = "Restroom";
+    Location = null;
     checkoutTimestamp = null;
     ElapsedSeconds = 0;
     if (wasUnknown) NotifyStatusPresentationChanged();
@@ -153,6 +176,8 @@ public sealed class ActivePassViewModel : INotifyPropertyChanged {
     StudentId = null;
     StudentName = null;
     DepartTime = null;
+    Reason = "Restroom";
+    Location = null;
     checkoutTimestamp = null;
     ElapsedSeconds = 0;
     NotifyStatusPresentationChanged();

@@ -15,6 +15,36 @@ public partial class TerminalSettingsModalView : UserControl {
     }
   }
 
+  void OnProfileTabClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) {
+      vm.TerminalSettingsModal.SelectProfileSubmenu();
+    }
+  }
+
+  void OnDeviceTabClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) {
+      vm.TerminalSettingsModal.SelectDeviceSubmenu();
+    }
+  }
+
+  void OnCreateProfileClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) {
+      vm.CreateProfileFromPolicy();
+    }
+  }
+
+  void OnOpenRosterClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) {
+      vm.OpenModal("Roster");
+    }
+  }
+
+  void OnOpenPoliciesClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) {
+      vm.OpenModal("Policies");
+    }
+  }
+
   async void OnApplyClick(object? sender, RoutedEventArgs e) {
     if (DataContext is MainViewModel vm) {
       await vm.TerminalSettingsModal.ApplySettingsAsync();

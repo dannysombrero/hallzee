@@ -4,10 +4,11 @@
              x:Class="BathroomSync.Universal.Views.TripsModalView"
              x:DataType="vm:MainViewModel">
   <Border Background="#99000000">
-    <Border Background="White" CornerRadius="16" Width="720" MaxHeight="560" VerticalAlignment="Center" HorizontalAlignment="Center" Padding="24" BoxShadow="0 10 30 0 #40000000">
-      <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="16">
+    <Border Background="White" CornerRadius="16" Width="820" MaxHeight="640" VerticalAlignment="Center" HorizontalAlignment="Center" Padding="24" BoxShadow="0 10 30 0 #40000000">
+      <Grid RowDefinitions="Auto,*,Auto">
         
-        <Grid ColumnDefinitions="*,Auto">
+        <!-- HEADER -->
+        <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,16">
           <StackPanel Spacing="2">
             <TextBlock Text="Hall Pass Trip History" FontSize="20" FontWeight="Bold" Foreground="#0F172A" />
             <TextBlock Text="Search, filter, and inspect detailed pass usage." FontSize="13" Foreground="#64748B" />
@@ -15,51 +16,92 @@
           <Button Grid.Column="1" Classes="secondary" Content="✕" Click="OnCloseClick" Width="36" Height="36" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
         </Grid>
 
-        <Grid Grid.Row="1" ColumnDefinitions="2*,*,Auto" ColumnSpacing="12">
-          <TextBox Text="{Binding TripsModal.SearchText}" Watermark="Filter by student name or ID…" />
-          <ComboBox Grid.Column="1"
-                    ItemsSource="{Binding TripsModal.StatusOptions}"
-                    SelectedItem="{Binding TripsModal.SelectedStatus}"
-                    HorizontalAlignment="Stretch" />
-          <Button Grid.Column="2" Classes="hallzee-pill-btn" Content="Refresh" Click="OnFilterClick" Padding="14,6" FontSize="12" />
-        </Grid>
-
-        <Border Grid.Row="2" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8">
-          <ScrollViewer VerticalScrollBarVisibility="Auto">
-            <ListBox ItemsSource="{Binding TripsModal.Trips}">
-              <ListBox.ItemTemplate>
-                <DataTemplate>
-                  <Grid ColumnDefinitions="2*,*,*,*,Auto" Margin="0,4" VerticalAlignment="Center">
-                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                      <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" FontSize="13" Foreground="#0F172A" />
-                      <TextBlock Text="{Binding StudentId, StringFormat='ID: {0}'}" FontSize="11" Foreground="#64748B" />
-                    </StackPanel>
-                    <TextBlock Grid.Column="1" Text="{Binding TripDate}" FontSize="12" Foreground="#334155" VerticalAlignment="Center" />
-                    <TextBlock Grid.Column="2" Text="{Binding TimeOut, StringFormat='Out: {0}'}" FontSize="12" Foreground="#334155" VerticalAlignment="Center" />
-                    <TextBlock Grid.Column="3" Text="{Binding FormattedDuration}" FontWeight="SemiBold" FontSize="12" Foreground="#0F172A" VerticalAlignment="Center" />
-                    <Border Grid.Column="4" Background="#F1F5F9" CornerRadius="4" Padding="6,2" VerticalAlignment="Center" Margin="0,0,6,0">
-                      <TextBlock Text="{Binding Status}" FontSize="10" FontWeight="Bold" Foreground="#475569" />
-                    </Border>
-                  </Grid>
-                </DataTemplate>
-              </ListBox.ItemTemplate>
-            </ListBox>
-          </ScrollViewer>
-        </Border>
-
-        <Grid Grid.Row="3" ColumnDefinitions="*,Auto" VerticalAlignment="Center">
-          <StackPanel Spacing="2" VerticalAlignment="Center">
-            <TextBlock Text="{Binding TripsModal.TotalTrips, StringFormat='Total Records: {0}'}" FontSize="13" Foreground="#64748B" />
-            <TextBlock Text="{Binding TripsModal.ExportStatusMessage}" FontSize="11" FontWeight="SemiBold" Foreground="#166534" IsVisible="{Binding TripsModal.ExportStatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-          </StackPanel>
+        <!-- CONTENT GRID -->
+        <Grid Grid.Row="1" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="12">
           
-          <Button Grid.Column="1" Classes="card-outline" Click="OnExportCsvClick" Padding="12,6">
-            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-              <PathIcon Data="{StaticResource IconDownload}" Width="12" Height="12" Foreground="#0369A1" />
-              <TextBlock Text="Export CSV" FontSize="12" FontWeight="Bold" VerticalAlignment="Center" />
-            </StackPanel>
-          </Button>
+          <!-- ROW 0: CLASSROOM SELECTION & EXPORT ACTION BUTTON -->
+          <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="12" VerticalAlignment="Center">
+            <TextBlock Text="Class:" FontWeight="Bold" FontSize="13" Foreground="#334155" VerticalAlignment="Center" />
+            <ComboBox Grid.Column="1" ItemsSource="{Binding Profiles}" SelectedItem="{Binding ActiveProfile}" DisplayMemberBinding="{Binding Name}" MinWidth="200" VerticalAlignment="Center" />
+            <Border Grid.Column="2" Background="#F1F5F9" CornerRadius="6" Padding="10,4" HorizontalAlignment="Left" VerticalAlignment="Center">
+              <TextBlock Text="{Binding TripsModal.TotalTrips, StringFormat='{}{0} Records'}" FontSize="12" FontWeight="SemiBold" Foreground="#475569" />
+            </Border>
+            <Button Grid.Column="3" Classes="hallzee-pill-btn" Click="OnExportCsvClick" Padding="16,8" FontSize="13">
+              <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                <PathIcon Data="{StaticResource IconDownload}" Width="13" Height="13" Foreground="White" VerticalAlignment="Center" />
+                <TextBlock Text="Export" FontSize="13" FontWeight="Bold" VerticalAlignment="Center" />
+              </StackPanel>
+            </Button>
+          </Grid>
+
+          <!-- ROW 1: SEARCH & FILTER TOOLBAR -->
+          <Border Grid.Row="1" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Padding="12,8">
+            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
+              <TextBox Text="{Binding TripsModal.SearchText}" Watermark="Filter by student name or ID…" FontSize="12" />
+              <ComboBox Grid.Column="1" ItemsSource="{Binding TripsModal.StatusOptions}" SelectedItem="{Binding TripsModal.SelectedStatus}" Width="150" />
+              <Button Grid.Column="2" Classes="secondary" Content="Refresh" Click="OnFilterClick" Padding="14,6" FontSize="12" />
+            </Grid>
+          </Border>
+
+          <!-- ROW 2: TRIPS TABLE (MATCHING ROSTER TABLE STYLE) -->
+          <Border Grid.Row="2" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Background="White" MinHeight="200">
+            <Grid RowDefinitions="Auto,*">
+              <!-- TABLE HEADER -->
+              <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1" Padding="16,8" CornerRadius="8,8,0,0">
+                <Grid ColumnDefinitions="Auto,2*,*,1.4*,*,Auto" VerticalAlignment="Center">
+                  <TextBlock Width="24" Margin="4,0,8,0" />
+                  <TextBlock Grid.Column="1" Text="STUDENT" FontSize="11" FontWeight="Bold" Foreground="#64748B" />
+                  <TextBlock Grid.Column="2" Text="DATE" FontSize="11" FontWeight="Bold" Foreground="#64748B" />
+                  <TextBlock Grid.Column="3" Text="TIME (OUT / IN)" FontSize="11" FontWeight="Bold" Foreground="#64748B" />
+                  <TextBlock Grid.Column="4" Text="DURATION" FontSize="11" FontWeight="Bold" Foreground="#64748B" />
+                  <TextBlock Grid.Column="5" Text="STATUS" FontSize="11" FontWeight="Bold" Foreground="#64748B" Width="70" TextAlignment="Right" Margin="0,0,6,0" />
+                </Grid>
+              </Border>
+
+              <!-- TRIPS LIST -->
+              <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <Panel>
+                  <ListBox ItemsSource="{Binding TripsModal.Trips}" IsVisible="{Binding TripsModal.HasTrips}">
+                    <ListBox.ItemTemplate>
+                      <DataTemplate>
+                        <Grid ColumnDefinitions="Auto,2*,*,1.4*,*,Auto" Margin="0,4" VerticalAlignment="Center">
+                          <PathIcon Data="{StaticResource IconHistory}" Width="16" Height="16" Margin="4,0,8,0" Foreground="#0284C7" VerticalAlignment="Center" />
+                          <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding DisplayName}" FontWeight="SemiBold" FontSize="13" Foreground="#0F172A" />
+                            <TextBlock Text="{Binding StudentId, StringFormat='ID: {0}'}" FontSize="11" Foreground="#64748B" />
+                          </StackPanel>
+                          <TextBlock Grid.Column="2" Text="{Binding TripDate}" FontSize="12" Foreground="#334155" VerticalAlignment="Center" />
+                          
+                          <StackPanel Grid.Column="3" VerticalAlignment="Center" Spacing="1">
+                            <TextBlock Text="{Binding TimeOut, StringFormat='Out: {0}'}" FontSize="11" Foreground="#475569" />
+                            <TextBlock Text="{Binding TimeIn, StringFormat='In: {0}'}" FontSize="11" Foreground="#64748B" />
+                          </StackPanel>
+
+                          <TextBlock Grid.Column="4" Text="{Binding FormattedDuration}" FontWeight="Bold" FontSize="12" Foreground="#0F172A" VerticalAlignment="Center" />
+                          
+                          <Border Grid.Column="5" Background="#F1F5F9" CornerRadius="6" Padding="8,3" VerticalAlignment="Center" Margin="0,0,6,0" HorizontalAlignment="Right">
+                            <TextBlock Text="{Binding Status}" FontSize="10" FontWeight="Bold" Foreground="#475569" />
+                          </Border>
+                        </Grid>
+                      </DataTemplate>
+                    </ListBox.ItemTemplate>
+                  </ListBox>
+
+                  <!-- EMPTY STATE -->
+                  <StackPanel IsVisible="{Binding TripsModal.HasNoTrips}" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8" Margin="32">
+                    <PathIcon Data="{StaticResource IconHistory}" Width="36" Height="36" Foreground="#CBD5E1" HorizontalAlignment="Center" />
+                    <TextBlock Text="No hall pass trips found" FontSize="14" FontWeight="Bold" Foreground="#475569" HorizontalAlignment="Center" />
+                    <TextBlock Text="Completed trips from the kiosk terminal or manual passes will appear here." FontSize="12" Foreground="#94A3B8" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" MaxWidth="380" />
+                  </StackPanel>
+                </Panel>
+              </ScrollViewer>
+            </Grid>
+          </Border>
+
+          <!-- ROW 3: FOOTER STATUS -->
+          <TextBlock Grid.Row="3" Text="{Binding TripsModal.ExportStatusMessage}" FontSize="12" FontWeight="SemiBold" Foreground="#166534" IsVisible="{Binding TripsModal.ExportStatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
         </Grid>
+
       </Grid>
     </Border>
   </Border>

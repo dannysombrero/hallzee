@@ -1,4 +1,4 @@
-nname: Build Universal Sync Client
+name: Build Universal Sync Client
 
 on:
   workflow_dispatch:

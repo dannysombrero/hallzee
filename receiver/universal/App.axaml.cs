@@ -19,6 +19,12 @@ public partial class App : Application {
   }
 
   static BathroomSync.Core.ITerminalConnection CreateConnection() {
-    return new BathroomSync.Universal.Services.UniversalBluetoothConnectionManager();
+#if WINDOWS_BLUETOOTH
+    return new BluetoothConnectionManager();
+#else
+    if (OperatingSystem.IsMacOS())
+      return new BathroomSync.Universal.Services.MacAgentTerminalConnection();
+    return new PreviewTerminalConnection();
+#endif
   }
 }

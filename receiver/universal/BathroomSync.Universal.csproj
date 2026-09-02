@@ -3,8 +3,8 @@
     <OutputType Condition="'$(OS)' == 'Windows_NT'">WinExe</OutputType>
     <OutputType Condition="'$(OS)' != 'Windows_NT'">Exe</OutputType>
     <TargetFramework Condition="'$(OS)' == 'Windows_NT'">net8.0-windows10.0.19041.0</TargetFramework>
-    <TargetFramework Condition="$([MSBuild]::IsOSPlatform('OSX'))">net8.0-macos</TargetFramework>
-    <TargetFramework Condition="'$(OS)' != 'Windows_NT' And !$([MSBuild]::IsOSPlatform('OSX'))">net8.0</TargetFramework>
+    <TargetFramework Condition="'$(OS)' != 'Windows_NT'">net8.0</TargetFramework>
+    <DefineConstants Condition="'$(OS)' == 'Windows_NT'">$(DefineConstants);WINDOWS_BLUETOOTH</DefineConstants>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>HallzeeSync.Universal</AssemblyName>
@@ -15,10 +15,12 @@
     <PackageReference Include="Avalonia.Desktop" Version="11.3.18" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.18" />
     <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.18" />
-    <PackageReference Include="InTheHand.BluetoothLE" Version="4.0.44" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../windows/BathroomSync.Core/BathroomSync.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(OS)' == 'Windows_NT'">
+    <Compile Include="../windows/BluetoothConnectionManager.cs" Link="Platforms/BluetoothConnectionManager.cs" />
   </ItemGroup>
 
   <ItemGroup>

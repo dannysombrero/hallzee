@@ -58,6 +58,7 @@ public class MacAgentTerminalConnection : ITerminalConnection
         await EnsureAgentRunning();
         Console.WriteLine($"[PC -> MAC -> ESP32] {text}");
         SendCommand("Send", new Dictionary<string, string> { { "Data", text } });
+        await Task.Delay(100); // Prevent overflowing the ESP32 UART RX ring buffer
     }
 
     public void Dispose()

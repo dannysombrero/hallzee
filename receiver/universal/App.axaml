@@ -59,10 +59,34 @@
     <StreamGeometry x:Key="IconCheck">M20 6L9 17l-5-5</StreamGeometry>
     <StreamGeometry x:Key="IconEdit">M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z M15 5l4 4</StreamGeometry>
     <StreamGeometry x:Key="IconVolume2">M11 5L6 9H2v6h4l5 4V5z M19.07 4.93a10 10 0 0 1 0 14.14 M15.54 8.46a5 5 0 0 1 0 7.07</StreamGeometry>
+
+    <!-- CANONICAL APPLICATION FONTS (MATCHING WEB CLIENT: DM SANS & NUNITO) -->
+    <FontFamily x:Key="DMSansFont">avares://HallzeeSync.Universal/Assets/Fonts#DM Sans</FontFamily>
+    <FontFamily x:Key="NunitoFont">avares://HallzeeSync.Universal/Assets/Fonts#Nunito</FontFamily>
   </Application.Resources>
 
   <Application.Styles>
     <FluentTheme />
+    
+    <!-- GLOBAL APPLICATION TYPOGRAPHY (MATCHING WEB CLIENT) -->
+    <Style Selector="Window">
+      <Setter Property="FontFamily" Value="{StaticResource DMSansFont}" />
+    </Style>
+    <Style Selector="TextBlock">
+      <Setter Property="FontFamily" Value="{StaticResource DMSansFont}" />
+    </Style>
+    <Style Selector="TextBox">
+      <Setter Property="FontFamily" Value="{StaticResource DMSansFont}" />
+    </Style>
+    <Style Selector="ComboBox">
+      <Setter Property="FontFamily" Value="{StaticResource DMSansFont}" />
+    </Style>
+    <Style Selector="Button">
+      <Setter Property="FontFamily" Value="{StaticResource NunitoFont}" />
+    </Style>
+    <Style Selector="Button TextBlock">
+      <Setter Property="FontFamily" Value="{StaticResource NunitoFont}" />
+    </Style>
     
     <!-- BRAND GRADIENT PILL BUTTON -->
     <Style Selector="Button.hallzee-pill-btn">
@@ -137,8 +161,8 @@
       <Setter Property="BoxShadow" Value="0 1 2 0 #15000000" />
     </Style>
     <Style Selector="Border.status-pill TextBlock">
-      <Setter Property="FontSize" Value="9" />
-      <Setter Property="FontWeight" Value="ExtraBold" />
+      <Setter Property="FontSize" Value="10" />
+      <Setter Property="FontWeight" Value="Normal" />
       <Setter Property="LetterSpacing" Value="0.5" />
       <Setter Property="Foreground" Value="White" />
       <Setter Property="VerticalAlignment" Value="Center" />

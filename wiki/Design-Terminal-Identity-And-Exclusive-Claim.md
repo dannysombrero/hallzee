@@ -11,10 +11,14 @@
 **Implementation checkpoint (2026-09-03):** The v2 protocol/security primitives,
 terminal-scoped SQLite migration, authenticated session boundary, firmware
 identity/claim state, Secure Connections characteristic permissions, one-active-
-central enforcement, and physical claim gesture are implemented and compile
-validated. Desktop platform credential-vault adapters, universal-client wiring,
-owner-reset USB flow, and physical multi-terminal verification remain planned
-work in the agent packages below.
+central enforcement, physical claim gesture, and a single-terminal Universal
+client v2 path are implemented and compile validated. Desktop platform
+credential-vault adapters, owner-reset USB flow, and physical multi-terminal
+verification remain planned work in the agent packages below. The USB owner-reset
+command is implemented, but BLE bond deletion and OS credential-vault
+persistence remain follow-up work. The current
+Universal v2 test path uses an in-memory credential store and is not yet a
+production persistence solution across app restarts.
 
 ---
 

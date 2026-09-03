@@ -65,6 +65,19 @@ public sealed class FindTerminalsViewModel : INotifyPropertyChanged {
     private set { statusText = value; OnPropertyChanged(); }
   }
 
+  public string ClaimKey {
+    get => claimKey;
+    set {
+      if (claimKey == value) return;
+      claimKey = value;
+      OnPropertyChanged();
+    }
+  }
+
+  string claimKey = "";
+
+  public void SetStatus(string message) => StatusText = message;
+
   public async Task ScanAsync() {
     IsScanning = true;
     StatusText = "Searching for devices...";

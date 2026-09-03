@@ -13,6 +13,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
   readonly ProfileAndPolicySqliteRepository profileRepository;
   readonly RosterService rosterService;
   readonly SyncSession syncSession;
+  readonly TerminalSession? terminalSession;
 
   string activeView = "dashboard";
   string activeModal = "None";
@@ -48,6 +49,13 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     profileRepository = new ProfileAndPolicySqliteRepository(dbPath);
     rosterService = new RosterService(rosterRepository);
     syncSession = new SyncSession(tripRepository);
+    if (!isPreviewMode) {
+      terminalSession = new TerminalSession(
+        connection,
+        new InMemoryTerminalCredentialStore(),
+        profileRepository.GetOrCreateClientId()
+      );
+    }
 
     // Load active profile
     var allProfiles = profileRepository.GetAllProfiles();
@@ -287,15 +295,50 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
 
   public async Task ConnectAndSyncAsync() {
     var device = FindTerminalsModal.SelectedDevice;
-    if (device != null) {
+    if (device == null) return;
+
+    if (terminalSession == null) {
       connectedTerminalName = device.Name;
+      var connected = await FindTerminalsModal.ConnectAsync();
+      if (connected) {
+        IsConnected = true;
+        CloseModal();
+        await SyncNowAsync();
+      }
+      return;
     }
 
-    var connected = await FindTerminalsModal.ConnectAsync();
-    if (connected) {
+    FindTerminalsModal.SetStatus($"Connecting to {device.Name} and verifying identity…");
+    try {
+      var identity = await terminalSession.OpenAsync(device);
+      if (!identity.IsClaimed && string.IsNullOrWhiteSpace(FindTerminalsModal.ClaimKey)) {
+        FindTerminalsModal.SetStatus(
+          $"Unclaimed terminal {identity.TerminalId}. Hold * and # on the kiosk for five seconds, then enter its app code above."
+        );
+        return;
+      }
+
+      var authenticated = await terminalSession.AuthenticateAsync(
+        identity.IsClaimed ? null : FindTerminalsModal.ClaimKey
+      );
+      profileRepository.SaveTerminal(new TerminalDeviceConfig(
+        authenticated.TerminalId,
+        authenticated.CustomName,
+        device.Id,
+        DateTime.UtcNow,
+        ProtocolVersion: TerminalIdentityProtocol.ProtocolVersion,
+        ClaimStatus: "CLAIMED",
+        TransportId: device.Id
+      ));
+      profileRepository.AssignTerminalToProfile(ActiveProfile.ProfileId, authenticated.TerminalId);
+      connectedTerminalName = authenticated.CustomName;
+      FindTerminalsModal.ClaimKey = "";
       IsConnected = true;
       CloseModal();
       await SyncNowAsync();
+    } catch (Exception exception) {
+      FindTerminalsModal.SetStatus($"Secure connection failed: {exception.Message}");
+      IsConnected = false;
     }
   }
 
@@ -308,19 +351,31 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     IsSyncing = true;
     SyncProgressText = "Preparing sync...";
     try {
-      syncSession.Start();
-      await connection.SendAsync("HELLO,1");
-      await connection.SendAsync(ActivePassProtocol.BuildGetActivePassesCommand());
-      await connection.SendAsync(KioskSettingsProtocol.QueryCommand + "\n");
-      await connection.SendAsync($"SET,MAX_ACTIVE_PASSES,{PolicyModal.MaxSimultaneousPasses}");
+      var authenticatedTerminalId = terminalSession?.AuthenticatedTerminal?.TerminalId;
+      if (terminalSession != null && authenticatedTerminalId == null) {
+        throw new InvalidOperationException("The terminal session is not authenticated.");
+      }
+      if (authenticatedTerminalId == null) {
+        syncSession.Start();
+        await connection.SendAsync("HELLO,1");
+      } else {
+        syncSession.Start(authenticatedTerminalId);
+      }
+      await SendProtocolAsync(ActivePassProtocol.BuildGetActivePassesCommand());
+      await SendProtocolAsync(terminalSession == null
+        ? KioskSettingsProtocol.QueryCommand + "\n"
+        : KioskSettingsProtocol.QueryCommand);
+      await SendProtocolAsync($"SET,MAX_ACTIVE_PASSES,{PolicyModal.MaxSimultaneousPasses}");
 
       // The kiosk stores its classroom wall-clock time as a UTC-shaped epoch.
       // Send the Mac's local time so the terminal display and its local records
       // match the classroom clock.
       var now = DateTime.Now;
-      var lastTripId = tripRepository.GetRecentTrips(1).FirstOrDefault()?.TripId ?? 0;
+      var lastTripId = authenticatedTerminalId == null
+        ? tripRepository.GetRecentTrips(1).FirstOrDefault()?.TripId ?? 0
+        : tripRepository.GetRecentTrips(authenticatedTerminalId).FirstOrDefault()?.TripId ?? 0;
       var command = $"TIME_CURSOR,{now:yyyy-MM-dd},{now:HH:mm:ss},{lastTripId}\n";
-      await connection.SendAsync(command);
+      await SendProtocolAsync(command);
 
       LastSyncTimeText = $"Today, {DateTime.Now:h:mm tt} (just now)";
     } catch {
@@ -331,7 +386,8 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
   }
 
   public async Task DisconnectAsync() {
-    await connection.DisconnectAsync();
+    if (terminalSession != null) await terminalSession.DisconnectAsync();
+    else await connection.DisconnectAsync();
     IsConnected = false;
     ActivePass.SetUnknown();
     Dashboard.ClearLiveCheckouts();
@@ -369,14 +425,14 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     if (string.IsNullOrWhiteSpace(studentId)) return;
     if (connection is PreviewTerminalConnection preview) {
       preview.SimulateCheckin(studentId);
-    } else {
-      await connection.SendAsync($"MANUAL_CHECKIN,{studentId}");
+      } else {
+        await SendProtocolAsync($"MANUAL_CHECKIN,{studentId}");
     }
   }
 
   public async Task ApplyPolicyCapacityAsync() {
     if (IsConnected) {
-      await connection.SendAsync($"SET,MAX_ACTIVE_PASSES,{PolicyModal.MaxSimultaneousPasses}");
+      await SendProtocolAsync($"SET,MAX_ACTIVE_PASSES,{PolicyModal.MaxSimultaneousPasses}");
     }
   }
 
@@ -455,7 +511,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
       // Send ACKs and any other outbound commands
       _ = Task.Run(async () => {
         foreach (var command in update.OutboundCommands) {
-          try { await connection.SendAsync(command); } catch { }
+          try { await SendProtocolAsync(command); } catch { }
         }
       });
     }
@@ -472,6 +528,13 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     timer?.Dispose();
     connection.TextReceived -= HandleTextReceived;
     connection.ConnectionLost -= HandleConnectionLost;
+    terminalSession?.Dispose();
+  }
+
+  Task SendProtocolAsync(string command) {
+    return terminalSession == null
+      ? connection.SendAsync(command)
+      : terminalSession.SendAuthorizedAsync(command);
   }
 
   void OnPropertyChanged([CallerMemberName] string? propertyName = null) {

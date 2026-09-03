@@ -1,6 +1,10 @@
 #include "BluetoothSync.h"
 
 #include "Config.h"
+#ifdef ARDUINO
+#include "TerminalIdentity.h"
+#include "TerminalSecurity.h"
+#endif
 
 BluetoothSync::BluetoothSync(
   TripStoragePort &tripStorage,
@@ -10,7 +14,9 @@ BluetoothSync::BluetoothSync(
   ActivePassProvider activePassProvider,
   ManualCheckInHandler manualCheckInHandler,
   ActivePassListProvider activePassListProvider,
-  CapacitySetter capacitySetter
+  CapacitySetter capacitySetter,
+  TerminalIdentity *identity,
+  TerminalSecurity *security
 ) : tripStorage(tripStorage),
     clockSetter(clockSetter),
     clockSetHandler(clockSetHandler),
@@ -18,10 +24,12 @@ BluetoothSync::BluetoothSync(
     activePassListProvider(activePassListProvider),
     manualCheckInHandler(manualCheckInHandler),
     capacitySetter(capacitySetter),
-    serial(serial) {}
+    serial(serial),
+    identity(identity),
+    security(security) {}
 
 void BluetoothSync::notifyCheckout(const String &studentId, uint32_t checkoutEpoch) {
-  if (!ready || !serial.hasClient()) return;
+  if (!ready || !serial.hasClient() || !isAuthorized()) return;
   serial.print("EVENT,CHECKOUT,");
   serial.print(studentId);
   serial.print(",");
@@ -29,7 +37,7 @@ void BluetoothSync::notifyCheckout(const String &studentId, uint32_t checkoutEpo
 }
 
 void BluetoothSync::notifyCheckin(const String &studentId, unsigned long durationSeconds) {
-  if (!ready || !serial.hasClient()) return;
+  if (!ready || !serial.hasClient() || !isAuthorized()) return;
   serial.print("EVENT,CHECKIN,");
   serial.print(studentId);
   serial.print(",");
@@ -37,7 +45,7 @@ void BluetoothSync::notifyCheckin(const String &studentId, unsigned long duratio
 }
 
 void BluetoothSync::notifyReset(const String &studentId, unsigned long durationSeconds) {
-  if (!ready || !serial.hasClient()) return;
+  if (!ready || !serial.hasClient() || !isAuthorized()) return;
   serial.print("EVENT,RESET,");
   serial.print(studentId);
   serial.print(",");
@@ -45,13 +53,17 @@ void BluetoothSync::notifyReset(const String &studentId, unsigned long durationS
 }
 
 void BluetoothSync::notifyCompletedTrip(const String &record) {
-  if (!ready || !serial.hasClient() || record.length() == 0) return;
+  if (!ready || !serial.hasClient() || !isAuthorized() || record.length() == 0) return;
   serial.print("LIVE_TRIP,");
   serial.println(record);
 }
 
 void BluetoothSync::begin() {
-  ready = serial.begin(BLUETOOTH_DEVICE_NAME);
+  String advertisedName = BLUETOOTH_DEVICE_NAME;
+#ifdef ARDUINO
+  if (identity) advertisedName = identity->advertisedName();
+#endif
+  ready = serial.begin(advertisedName.c_str());
 
   if (!ready) {
     Serial.println("ERROR: Bluetooth LE could not start.");
@@ -59,11 +71,22 @@ void BluetoothSync::begin() {
   }
 
   Serial.print("Bluetooth LE ready as: ");
-  Serial.println(BLUETOOTH_DEVICE_NAME);
+  Serial.println(advertisedName);
 }
 
 void BluetoothSync::poll() {
   updateConnection();
+#ifdef ARDUINO
+  if (security && serial.hasClient() && authorizationStartedAt != 0 &&
+      static_cast<unsigned long>(millis() - authorizationStartedAt) >= 10000 &&
+      !security->isAuthorized()) {
+    serial.println("ERROR,AUTH_TIMEOUT");
+    security->clearSession();
+    serial.disconnectClient();
+    authorizationStartedAt = 0;
+    return;
+  }
+#endif
   processCommands();
 }
 
@@ -75,11 +98,25 @@ void BluetoothSync::updateConnection() {
   wasConnected = isConnected;
   if (isConnected) {
     Serial.println("Bluetooth LE client connected.");
+#ifdef ARDUINO
+    if (security) {
+      security->clearSession();
+      handshakeNonce = "";
+      commitNonce = "";
+      authorizationStartedAt = 0;
+    } else {
+      serial.println("HALLZEE_READY,1");
+    }
+#else
     serial.println("HALLZEE_READY,1");
+#endif
     return;
   }
 
   Serial.println("Bluetooth LE client disconnected.");
+#ifdef ARDUINO
+  if (security) security->clearSession();
+#endif
   resetSyncState();
 }
 
@@ -90,6 +127,145 @@ void BluetoothSync::resetSyncState() {
   lastStreamedTripID = 0;
   commandBuffer = "";
   discardingInput = false;
+  handshakeNonce = "";
+  commitNonce = "";
+  authorizationStartedAt = 0;
+}
+
+bool BluetoothSync::isAuthorized() const {
+#ifdef ARDUINO
+  return security == nullptr || security->isAuthorized();
+#else
+  (void)identity;
+  (void)security;
+  return true;
+#endif
+}
+
+void BluetoothSync::processAuthenticationCommand(const String &command) {
+#ifndef ARDUINO
+  (void)command;
+  return;
+#else
+  if (!security || !identity) return;
+
+  if (command.startsWith("HELLO,2,")) {
+    const String clientId = command.substring(8);
+    if (!security->beginHandshake(handshakeNonce)) {
+      serial.println("ERROR,AUTH_FAILED");
+      return;
+    }
+    authorizationStartedAt = millis();
+    serial.print("IDENTITY,2,");
+    serial.print(identity->terminalId());
+    serial.print(",");
+    serial.print(identity->terminalSuffix());
+    serial.print(",");
+    serial.print(security->hasOwner() ? "CLAIMED" : "UNCLAIMED");
+    serial.print(",");
+    serial.println(handshakeNonce);
+    return;
+  }
+
+  if (command == "HELLO,1") {
+    serial.println("ERROR,UPGRADE_REQUIRED");
+    serial.disconnectClient();
+    return;
+  }
+
+  const int prefixLength = command.startsWith("CLAIM,2,") ? 8 :
+                           command.startsWith("CLAIM_COMMIT,2,") ? 15 :
+                           command.startsWith("AUTH,2,") ? 7 : 0;
+  if (prefixLength > 0) {
+    const String remainder = command.substring(prefixLength);
+    const int separator = remainder.indexOf(',');
+    if (separator <= 0) {
+      serial.println("ERROR,AUTH_FAILED");
+      return;
+    }
+    const String clientId = remainder.substring(0, separator);
+    const String proof = remainder.substring(separator + 1);
+    String nextNonce;
+    if (prefixLength == 8) {
+      if (security->hasOwner()) {
+        serial.println("ERROR,ALREADY_CLAIMED");
+      } else if (!security->claimModeActive(millis())) {
+        serial.println("ERROR,PAIRING_MODE_REQUIRED");
+      } else if (!security->acceptClaim(clientId, proof, handshakeNonce, nextNonce)) {
+        serial.println("ERROR,AUTH_FAILED");
+      } else {
+        commitNonce = nextNonce;
+        serial.print("CLAIM_OK,2,");
+        serial.print(identity->terminalId());
+        serial.print(",");
+        serial.println(commitNonce);
+      }
+    } else if (prefixLength == 15) {
+      if (!security->commitClaim(clientId, proof, commitNonce)) {
+        serial.println("ERROR,AUTH_FAILED");
+      } else {
+        authorizationStartedAt = 0;
+        commitNonce = "";
+        serial.print("AUTH_OK,2,");
+        serial.print(identity->terminalId());
+        serial.print(",");
+        serial.println(identity->customName());
+      }
+    } else if (!security->acceptAuth(clientId, proof, handshakeNonce)) {
+      serial.println(security->hasOwner() ? "ERROR,AUTH_FAILED" : "ERROR,PAIRING_MODE_REQUIRED");
+    } else {
+      authorizationStartedAt = 0;
+      handshakeNonce = "";
+      serial.print("AUTH_OK,2,");
+      serial.print(identity->terminalId());
+      serial.print(",");
+      serial.println(identity->customName());
+    }
+    return;
+  }
+
+  if (command.startsWith("CLAIM_ABORT,2,")) {
+    security->clearSession();
+    handshakeNonce = "";
+    commitNonce = "";
+    authorizationStartedAt = 0;
+    serial.println("CLAIM_ABORT_OK");
+    return;
+  }
+
+  serial.println("ERROR,AUTH_REQUIRED");
+#endif
+}
+
+bool BluetoothSync::processAuthorizedIdentityCommand(const String &command) {
+#ifndef ARDUINO
+  (void)command;
+  return false;
+#else
+  if (!identity || command == "GET_IDENTITY") {
+    if (command == "GET_IDENTITY" && identity) {
+      serial.print("IDENTITY_INFO,2,");
+      serial.print(identity->terminalId());
+      serial.print(",");
+      serial.println(identity->customName());
+      return true;
+    }
+    return false;
+  }
+
+  const String prefix = "SET,TERMINAL_NAME,";
+  if (!command.startsWith(prefix)) return false;
+  const String requestedName = command.substring(prefix.length());
+  if (!TerminalIdentity::isValidCustomName(requestedName) ||
+      !serial.setDeviceName(requestedName.c_str()) ||
+      !identity->setCustomName(requestedName)) {
+    serial.println("SETTINGS_ERROR,TERMINAL_NAME,INVALID_VALUE");
+    return true;
+  }
+  serial.print("SETTINGS_ACK,TERMINAL_NAME,");
+  serial.println(requestedName);
+  return true;
+#endif
 }
 
 void BluetoothSync::sendNextTrip() {
@@ -288,9 +464,17 @@ void BluetoothSync::processCommands() {
 
     if (received == '\n') {
       if (!discardingInput && commandBuffer.length() > 0) {
-        Serial.print("Bluetooth command: ");
-        Serial.println(commandBuffer);
-        if (commandBuffer == "HELLO,1") {
+        if (security) {
+          Serial.println("Bluetooth command received.");
+        } else {
+          Serial.print("Bluetooth command: ");
+          Serial.println(commandBuffer);
+        }
+        if (!isAuthorized()) {
+          processAuthenticationCommand(commandBuffer);
+        } else if (processAuthorizedIdentityCommand(commandBuffer)) {
+          // Identity command handled.
+        } else if (commandBuffer == "HELLO,1") {
           serial.println("HALLZEE_READY,1");
         } else if (commandBuffer == "GET_ACTIVE_PASS") {
           String activeId;

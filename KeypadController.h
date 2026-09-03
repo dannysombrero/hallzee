@@ -9,6 +9,7 @@ public:
   using IsResetAllowed = bool (*)();
   using KeyHandler = void (*)(char key);
   using ActionHandler = void (*)();
+  using IsPairingAllowed = bool (*)();
 
   KeypadController(
     KeypadPort &keypad,
@@ -19,7 +20,9 @@ public:
     KeyHandler onNumberKey,
     ActionHandler onClear,
     ActionHandler onSubmit,
-    ActionHandler onReset
+    ActionHandler onReset,
+    IsPairingAllowed isPairingAllowed = nullptr,
+    ActionHandler onPairing = nullptr
   );
 
   void begin();
@@ -35,12 +38,16 @@ private:
   ActionHandler onClear;
   ActionHandler onSubmit;
   ActionHandler onReset;
+  IsPairingAllowed isPairingAllowed;
+  ActionHandler onPairing;
 
   bool starPressed = false;
   bool hashPressed = false;
   unsigned long resetHoldStarted = 0;
   bool resetHoldActive = false;
   bool suppressStarHash = false;
+  unsigned long pairingHoldStarted = 0;
+  bool pairingHoldActive = false;
 
   void processEvents();
   void checkResetCombo();

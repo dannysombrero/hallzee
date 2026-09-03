@@ -323,3 +323,61 @@ void TerminalDisplay::showClockSet(const String &date, const String &time) {
   display.println(time);
   display.pause(1800);
 }
+
+void TerminalDisplay::showPairing(
+  const String &suffix,
+  const String &claimKey,
+  uint32_t passkey
+) {
+  display.fillScreen(UI_BACKGROUND);
+  display.setTextColor(UI_TEXT);
+  display.setTextSize(2);
+  display.setCursor(10, 8);
+  display.println("PAIRING");
+  display.setTextSize(1);
+  display.setCursor(10, 31);
+  display.print("Hallzee-");
+  display.println(suffix);
+  display.setCursor(10, 48);
+  display.println("APP CODE");
+  display.setTextSize(2);
+  display.setCursor(10, 61);
+  for (unsigned int index = 0; index < claimKey.length(); index++) {
+    if (index > 0 && index % 4 == 0) display.print("-");
+    display.print(claimKey.charAt(index));
+  }
+  display.setTextSize(1);
+  display.setCursor(10, 91);
+  display.print("BLUETOOTH PASSKEY: ");
+  if (passkey < 100000) display.print("0");
+  display.println(String(passkey));
+  display.setCursor(10, 112);
+  display.println("Enter both in the app");
+}
+
+void TerminalDisplay::showPairingComplete(const String &suffix) {
+  display.fillScreen(DISPLAY_GREEN);
+  display.setTextColor(DISPLAY_BLACK);
+  display.setTextSize(2);
+  display.setCursor(10, 22);
+  display.println("CLAIMED");
+  display.setTextSize(1);
+  display.setCursor(10, 62);
+  display.print("Hallzee-");
+  display.println(suffix);
+  display.setCursor(10, 82);
+  display.println("This terminal is linked.");
+  display.pause(1800);
+}
+
+void TerminalDisplay::showPairingError(const String &message) {
+  display.fillScreen(DISPLAY_RED);
+  display.setTextColor(DISPLAY_WHITE);
+  display.setTextSize(2);
+  display.setCursor(10, 22);
+  display.println("PAIR ERROR");
+  display.setTextSize(1);
+  display.setCursor(10, 64);
+  display.println(message);
+  display.pause(1800);
+}

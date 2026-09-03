@@ -69,7 +69,7 @@ public sealed class DatabaseMigrationTests {
 
       using (var connection = new SqliteConnection($"Data Source={dbPath}")) {
         connection.Open();
-        Assert.Equal(3, DatabaseMigrator.GetCurrentVersion(connection));
+        Assert.Equal(4, DatabaseMigrator.GetCurrentVersion(connection));
 
         // Check legacy data survived intact
         using var checkCmd = connection.CreateCommand();
@@ -77,7 +77,7 @@ public sealed class DatabaseMigrationTests {
         using var reader = checkCmd.ExecuteReader();
         Assert.True(reader.Read());
         Assert.Equal(2L, reader.GetInt64(0));
-        Assert.Equal("DEFAULT", reader.GetString(1));
+        Assert.Equal("LEGACY-DEFAULT", reader.GetString(1));
       }
     } finally {
       if (Directory.Exists(dir)) Directory.Delete(dir, true);

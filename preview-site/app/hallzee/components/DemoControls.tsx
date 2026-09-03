@@ -3,10 +3,21 @@
 import { useHallzee } from "../HallzeeProvider";
 
 export type BackgroundPreset =
+  | "vector-original"
+  | "vector-emerald"
+  | "vector-azure"
+  | "vector-sunlit"
+  | "streamlines"
+  | "glass-crest"
+  | "aurora-ribbon"
+  | "dual-sweep"
   | "waves-corner"
   | "waves-bottom"
   | "waves-dual"
   | "waves-horizon"
+  | "waves-prism"
+  | "waves-halos"
+  | "waves-tide"
   | "default";
 
 interface DemoControlsProps {
@@ -14,7 +25,7 @@ interface DemoControlsProps {
   setBgPreset?: (preset: BackgroundPreset) => void;
 }
 
-export default function DemoControls({ bgPreset = "waves-corner", setBgPreset }: DemoControlsProps) {
+export default function DemoControls({ bgPreset = "vector-emerald", setBgPreset }: DemoControlsProps) {
   const { terminalState, isOccupied, disconnect, findTerminals, toggleOccupancy, toggleStudentName } =
     useHallzee();
 
@@ -57,11 +68,26 @@ export default function DemoControls({ bgPreset = "waves-corner", setBgPreset }:
           onChange={(e) => setBgPreset?.(e.target.value as BackgroundPreset)}
           className="bg-slate-900 border border-slate-700 text-sky-200 rounded-full px-2.5 py-0.5 text-xs font-semibold cursor-pointer focus:outline-none"
         >
-          <option value="waves-corner">1. Top-Right Corner Sweep</option>
-          <option value="waves-bottom">2. Lower-Third Crest Flow</option>
-          <option value="waves-dual">3. Dual-Corner Whispers</option>
-          <option value="waves-horizon">4. Single Horizon Stream</option>
-          <option value="default">Plain Gradient (Original)</option>
+          <optgroup label="Vector Sidebar: Color Gradients (Featured)">
+            <option value="vector-emerald">★ 1. Cyan & Emerald Mint Glow</option>
+            <option value="vector-azure">★ 2. Deep Azure & Electric Cyan</option>
+            <option value="vector-sunlit">★ 3. Sunlit Aqua & Fresh Lime</option>
+            <option value="vector-original">★ Original: Airy Sky Blue & White</option>
+          </optgroup>
+          <optgroup label="Other Wave Options">
+            <option value="streamlines">Fluid Wave Streamlines</option>
+            <option value="glass-crest">Luminous Glass Crest</option>
+            <option value="aurora-ribbon">Soft Aurora Wave</option>
+            <option value="dual-sweep">Crisp Dual Sweep</option>
+            <option value="waves-corner">Top-Right Corner Sweep</option>
+            <option value="waves-bottom">Lower-Third Crest Flow</option>
+            <option value="waves-dual">Dual-Corner Whispers</option>
+            <option value="waves-horizon">Single Horizon Stream</option>
+            <option value="waves-prism">Prismatic Light Beam</option>
+            <option value="waves-halos">Frosted Halos (Corner)</option>
+            <option value="waves-tide">Aqua Tide & Droplets</option>
+            <option value="default">Plain Gradient (Original)</option>
+          </optgroup>
         </select>
       </div>
     </div>

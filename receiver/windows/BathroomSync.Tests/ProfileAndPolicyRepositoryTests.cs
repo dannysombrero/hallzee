@@ -123,7 +123,9 @@ public sealed class ProfileAndPolicyRepositoryTests {
       Directory.CreateDirectory(folder);
       var repo = new ProfileAndPolicySqliteRepository(dbPath);
 
-      Assert.Empty(repo.GetAllTerminals());
+      var legacyTerminals = repo.GetAllTerminals();
+      Assert.Single(legacyTerminals);
+      Assert.Equal("LEGACY-DEFAULT", legacyTerminals[0].TerminalId);
 
       var terminal = new TerminalDeviceConfig(
         TerminalId: "hallzee_01",
@@ -135,9 +137,10 @@ public sealed class ProfileAndPolicyRepositoryTests {
       repo.SaveTerminal(terminal);
 
       var list = repo.GetAllTerminals();
-      Assert.Single(list);
-      Assert.Equal("Door Kiosk 204", list[0].CustomName);
-      Assert.Equal(8, list[0].MaxIdLength);
+      Assert.Equal(2, list.Count);
+      var savedTerminal = Assert.Single(list, item => item.TerminalId == "hallzee_01");
+      Assert.Equal("Door Kiosk 204", savedTerminal.CustomName);
+      Assert.Equal(8, savedTerminal.MaxIdLength);
 
       var fetched = repo.GetTerminal("hallzee_01");
       Assert.NotNull(fetched);
@@ -151,7 +154,8 @@ public sealed class ProfileAndPolicyRepositoryTests {
 
       // Delete terminal
       repo.DeleteTerminal("hallzee_01");
-      Assert.Empty(repo.GetAllTerminals());
+      Assert.Single(repo.GetAllTerminals());
+      Assert.Equal("LEGACY-DEFAULT", repo.GetAllTerminals()[0].TerminalId);
       Assert.Null(repo.GetTerminal("hallzee_01"));
     } finally {
       if (Directory.Exists(folder)) Directory.Delete(folder, true);

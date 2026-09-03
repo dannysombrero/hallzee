@@ -11,7 +11,9 @@ KeypadController::KeypadController(
   KeyHandler onNumberKey,
   ActionHandler onClear,
   ActionHandler onSubmit,
-  ActionHandler onReset
+  ActionHandler onReset,
+  IsPairingAllowed isPairingAllowed,
+  ActionHandler onPairing
 ) : keypad(keypad),
     clock(clock),
     isSetupMode(isSetupMode),
@@ -20,7 +22,9 @@ KeypadController::KeypadController(
     onNumberKey(onNumberKey),
     onClear(onClear),
     onSubmit(onSubmit),
-    onReset(onReset) {}
+    onReset(onReset),
+    isPairingAllowed(isPairingAllowed),
+    onPairing(onPairing) {}
 
 void KeypadController::begin() {
   keypad.configure(20, 500);
@@ -84,6 +88,21 @@ void KeypadController::checkResetCombo() {
     if (!isResetAllowed()) {
       resetHoldStarted = 0;
       resetHoldActive = false;
+      if (!isPairingAllowed || !isPairingAllowed()) {
+        pairingHoldStarted = 0;
+        pairingHoldActive = false;
+        return;
+      }
+      if (!pairingHoldActive) {
+        pairingHoldActive = true;
+        pairingHoldStarted = clock.milliseconds();
+      }
+      if (clock.milliseconds() - pairingHoldStarted >= PAIRING_HOLD_MS) {
+        suppressStarHash = true;
+        pairingHoldActive = false;
+        pairingHoldStarted = 0;
+        if (onPairing) onPairing();
+      }
       return;
     }
 
@@ -103,6 +122,8 @@ void KeypadController::checkResetCombo() {
 
   resetHoldActive = false;
   resetHoldStarted = 0;
+  pairingHoldActive = false;
+  pairingHoldStarted = 0;
   if (suppressStarHash && !starPressed && !hashPressed) {
     suppressStarHash = false;
   }

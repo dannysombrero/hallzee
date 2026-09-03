@@ -4,6 +4,9 @@
 #include "BluetoothSerialPort.h"
 #include "TripStoragePort.h"
 
+class TerminalIdentity;
+class TerminalSecurity;
+
 class BluetoothSync {
 public:
   using ClockSetter = void (*)(int year, int month, int day, int hour,
@@ -22,7 +25,9 @@ public:
     ActivePassProvider activePassProvider = nullptr,
     ManualCheckInHandler manualCheckInHandler = nullptr,
     ActivePassListProvider activePassListProvider = nullptr,
-    CapacitySetter capacitySetter = nullptr
+    CapacitySetter capacitySetter = nullptr,
+    TerminalIdentity *identity = nullptr,
+    TerminalSecurity *security = nullptr
   );
 
   void setActivePassProvider(ActivePassProvider provider) {
@@ -46,6 +51,8 @@ private:
   ManualCheckInHandler manualCheckInHandler;
   CapacitySetter capacitySetter;
   BluetoothSerialPort &serial;
+  TerminalIdentity *identity;
+  TerminalSecurity *security;
 
   bool ready = false;
   bool wasConnected = false;
@@ -55,6 +62,9 @@ private:
   bool streamUsesCursor = false;
   uint32_t pendingTripID = 0;
   uint32_t lastStreamedTripID = 0;
+  String handshakeNonce;
+  String commitNonce;
+  unsigned long authorizationStartedAt = 0;
 
   void updateConnection();
   void processCommands();
@@ -67,6 +77,9 @@ private:
   bool processSettingsCommand(const String &command);
   void sendMaxStudentIdLength();
   void resetSyncState();
+  void processAuthenticationCommand(const String &command);
+  bool processAuthorizedIdentityCommand(const String &command);
+  bool isAuthorized() const;
 
   static bool isLeapYear(int year);
   static int daysInMonth(int month, int year);

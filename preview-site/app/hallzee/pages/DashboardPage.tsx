@@ -42,7 +42,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6 pb-24 max-w-6xl mx-auto">
       {/* 1. Top Terminal Status Strip */}
-      <section className="p-4 sm:p-5 rounded-3xl bg-white/90 border border-sky-200/80 shadow-lg shadow-sky-500/5 flex flex-wrap items-center justify-between gap-4 transition">
+      <section className="p-4 sm:p-5 rounded-3xl bg-white border border-sky-200/80 shadow-lg shadow-sky-500/5 flex flex-wrap items-center justify-between gap-4 transition">
         <div className="flex items-center gap-3.5">
           <div
             className={`h-12 w-12 rounded-2xl flex items-center justify-center text-white shadow-md shrink-0 ${
@@ -120,12 +120,12 @@ export default function DashboardPage() {
 
       {/* 2. Pass Status Hero Card */}
       <section
-        className={`rounded-3xl p-5 sm:p-6 min-h-40 flex flex-wrap items-center justify-between gap-5 border-2 shadow-lg transition-all ${
+        className={`rounded-3xl p-5 sm:p-6 min-h-40 flex flex-wrap items-center justify-between gap-5 border-2 shadow-lg shadow-sky-500/5 transition-all bg-white ${
           disconnected
-            ? "bg-white border-slate-200 shadow-slate-200/50"
+            ? "border-sky-200/80"
             : isOccupied
-              ? "bg-gradient-to-br from-amber-50/90 via-orange-50/50 to-amber-100/30 border-amber-300 shadow-amber-500/10"
-              : "bg-gradient-to-br from-emerald-50/90 via-teal-50/50 to-emerald-100/30 border-emerald-300 shadow-emerald-500/10"
+              ? "border-amber-300"
+              : "border-emerald-300"
         }`}
       >
         <div className="flex items-center gap-4 min-w-0">
@@ -180,7 +180,13 @@ export default function DashboardPage() {
         </div>
 
         {!disconnected && (
-          <div className="w-full sm:w-80 bg-white/95 border border-sky-200/80 rounded-2xl p-4 flex items-center justify-between shadow-md shadow-sky-500/5">
+          <div
+            className={`w-full sm:w-80 border rounded-2xl p-4 flex items-center justify-between shadow-xs ${
+              isOccupied
+                ? "bg-amber-50/70 border-amber-200/80"
+                : "bg-emerald-50/70 border-emerald-200/80"
+            }`}
+          >
             <div>
               <span className="text-[11px] uppercase font-bold text-slate-400 tracking-wider">
                 {isOccupied ? "Trip Elapsed" : "Pass State"}
@@ -210,7 +216,7 @@ export default function DashboardPage() {
       {/* 3. Grid: Recent Activity (2 cols) & Roster/Policy (1 col) */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Left: Recent Hall Pass Activity */}
-        <section className="xl:col-span-2 bg-white/90 border border-sky-200/80 rounded-3xl p-5 shadow-lg shadow-sky-500/5 flex flex-col justify-between">
+        <section className="xl:col-span-2 bg-white border border-sky-200/80 rounded-3xl p-5 shadow-lg shadow-sky-500/5 flex flex-col justify-between">
           <div>
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-sky-100 pb-3.5 mb-3.5">
               <div>
@@ -291,7 +297,7 @@ export default function DashboardPage() {
         </section>
 
         {/* Right: Roster & Pass Policy Card */}
-        <section className="bg-white/90 border border-sky-200/80 rounded-3xl p-5 shadow-lg shadow-sky-500/5 flex flex-col justify-between gap-4">
+        <section className="bg-white border border-sky-200/80 rounded-3xl p-5 shadow-lg shadow-sky-500/5 flex flex-col justify-between gap-4">
           <div>
             <div className="flex items-center gap-2.5 border-b border-sky-100 pb-3.5 mb-3.5">
               <div className="h-8 w-8 rounded-xl bg-sky-100 text-sky-600 flex items-center justify-center shadow-xs shrink-0">

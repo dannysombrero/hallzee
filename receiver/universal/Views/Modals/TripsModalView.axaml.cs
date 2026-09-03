@@ -22,6 +22,10 @@ public partial class TripsModalView : UserControl {
     }
   }
 
+  void OnSortTripIdClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) vm.TripsModal.ToggleSort("TripId");
+  }
+
   async void OnExportCsvClick(object? sender, RoutedEventArgs e) {
     if (DataContext is not MainViewModel vm) return;
 

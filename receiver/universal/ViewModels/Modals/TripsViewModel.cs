@@ -12,6 +12,7 @@ public sealed class TripsViewModel : INotifyPropertyChanged {
   string selectedStatus = "ALL";
   int totalTrips;
   string? exportStatusMessage;
+  string? activeProfileId;
   string sortColumn = "Date";
   bool sortAscending = false;
 
@@ -24,6 +25,7 @@ public sealed class TripsViewModel : INotifyPropertyChanged {
   public string SortColumn => sortColumn;
   public bool SortAscending => sortAscending;
 
+  public string TripIdSortIndicator => sortColumn == "TripId" ? (sortAscending ? " ▲" : " ▼") : "";
   public string StudentSortIndicator => sortColumn == "Student" ? (sortAscending ? " ▲" : " ▼") : "";
   public string DateSortIndicator => sortColumn == "Date" ? (sortAscending ? " ▲" : " ▼") : "";
   public string TimeOutSortIndicator => sortColumn == "TimeOut" ? (sortAscending ? " ▲" : " ▼") : "";
@@ -47,6 +49,7 @@ public sealed class TripsViewModel : INotifyPropertyChanged {
   }
 
   void NotifySortIndicators() {
+    OnPropertyChanged(nameof(TripIdSortIndicator));
     OnPropertyChanged(nameof(StudentSortIndicator));
     OnPropertyChanged(nameof(DateSortIndicator));
     OnPropertyChanged(nameof(TimeOutSortIndicator));
@@ -58,6 +61,7 @@ public sealed class TripsViewModel : INotifyPropertyChanged {
   void ApplySort() {
     var items = Trips.ToList();
     IEnumerable<EnrichedTripRecord> sorted = sortColumn switch {
+      "TripId" => sortAscending ? items.OrderBy(t => t.TripId) : items.OrderByDescending(t => t.TripId),
       "Student" => sortAscending ? items.OrderBy(t => t.DisplayName).ThenBy(t => t.StudentId) : items.OrderByDescending(t => t.DisplayName).ThenByDescending(t => t.StudentId),
       "Date" => sortAscending ? items.OrderBy(t => t.TripDate).ThenBy(t => t.TimeOut) : items.OrderByDescending(t => t.TripDate).ThenByDescending(t => t.TimeOut),
       "TimeOut" => sortAscending ? items.OrderBy(t => t.TimeOut) : items.OrderByDescending(t => t.TimeOut),
@@ -81,6 +85,7 @@ public sealed class TripsViewModel : INotifyPropertyChanged {
       if (searchText != value) {
         searchText = value;
         OnPropertyChanged();
+        RefreshIfLoaded();
       }
     }
   }
@@ -91,6 +96,7 @@ public sealed class TripsViewModel : INotifyPropertyChanged {
       if (selectedStatus != value) {
         selectedStatus = value;
         OnPropertyChanged();
+        RefreshIfLoaded();
       }
     }
   }
@@ -114,6 +120,7 @@ public sealed class TripsViewModel : INotifyPropertyChanged {
   }
 
   public void Refresh(string profileId) {
+    activeProfileId = profileId;
     var filter = new TripQueryFilter(
       SearchText: string.IsNullOrWhiteSpace(SearchText) ? null : SearchText.Trim(),
       Status: SelectedStatus == "ALL" ? null : SelectedStatus,
@@ -129,6 +136,10 @@ public sealed class TripsViewModel : INotifyPropertyChanged {
     }
     ApplySort();
     TotalTrips = tripRepository.CountTrips(filter);
+  }
+
+  void RefreshIfLoaded() {
+    if (!string.IsNullOrWhiteSpace(activeProfileId)) Refresh(activeProfileId);
   }
 
   public string ExportCsv(string profileId, string exportPath) {

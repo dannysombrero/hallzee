@@ -2,8 +2,11 @@
 
 ## BLE transport
 
-Hallzee advertises a Bluetooth Low Energy GATT service under the local name
-`Hallzee`. Pairing is not required and there is no PIN.
+Hallzee advertises a Bluetooth Low Energy GATT service under `Hallzee-XXXX`,
+where `XXXX` is the last four characters of the stable eFuse-derived terminal
+ID. Protocol v2 requires LE Secure Connections with MITM protection and
+bonding. The six-digit Bluetooth passkey is shown on the physical terminal
+only while its physical claim window is open.
 
 | Role | UUID |
 | --- | --- |
@@ -19,8 +22,10 @@ remain UTF-8, newline-delimited text. The Windows client divides writes into
 
 ```text
 Client enables notifications
-Client -> HELLO,1
-Terminal -> HALLZEE_READY,1
+Client -> HELLO,2,<client_id>
+Terminal -> IDENTITY,2,<terminal_id>,<suffix>,<UNCLAIMED|CLAIMED>,<nonce>
+Client -> AUTH,2,<client_id>,<proof>
+Terminal -> AUTH_OK,2,<terminal_id>,<custom_name>
 Client -> GET_SETTINGS
 Terminal -> SETTINGS,MAX_ID_LENGTH,<value>
 Client -> TIME_CURSOR,YYYY-MM-DD,HH:MM:SS,<last_durable_trip_id>
@@ -37,10 +42,13 @@ also delivered immediately as `LIVE_TRIP,<record>`. The desktop stores this
 record without an ACK; a later cursor sync safely retransmits it if the live
 notification was missed.
 
-`HELLO,1` makes readiness deterministic if the connect-time ready notification
-was sent before Windows completed its notification subscription. The client
-cursor is the largest trip ID durably stored in SQLite. A normal sync therefore
-transfers only newer records and does not replay the full history.
+The client must not send application commands until `AUTH_OK`. An unclaimed
+terminal requires the physical claim flow (`CLAIM` followed by
+`CLAIM_COMMIT`) before it can be used. A claimed terminal rejects a different
+client installation, and the terminal disconnects an additional BLE central
+while another central is active. The client cursor is the largest trip ID
+durably stored in SQLite. A normal sync therefore transfers only newer records
+and does not replay the full history.
 
 The terminal advances a cursor stream only after the matching ACK. Cursor ACKs
 do not rewrite the terminal's complete flash log. If the connection drops
@@ -51,7 +59,11 @@ the retry a safe duplicate and ACKs it again.
 
 | Command | Meaning |
 | --- | --- |
-| `HELLO,1` | Request a versioned readiness response |
+| `HELLO,2,<client_id>` | Start the identity handshake |
+| `CLAIM,2,<client_id>,<proof>` | Claim an unowned terminal while its physical claim window is open |
+| `CLAIM_COMMIT,2,<client_id>,<proof>` | Persist the pending claim after the desktop stores its credential |
+| `CLAIM_ABORT,2,<client_id>` | Cancel a pending claim |
+| `AUTH,2,<client_id>,<proof>` | Authenticate the persisted owner |
 | `GET_SETTINGS` | Read all supported persisted kiosk settings |
 | `GET_ACTIVE_PASS` | Query current active in-flight checkout pass status |
 | `MANUAL_CHECKIN` | Teacher check-in of the active pass; records the completed trip with status `MANUAL` |
@@ -63,14 +75,17 @@ the retry a safe duplicate and ACKs it again.
 | `SYNC_ALL` | Explicit recovery: send all records from trip ID zero |
 | `ACK,<trip_id>` | Confirm durable receipt of the pending trip |
 
-Commands longer than 48 characters receive `ERROR,COMMAND_TOO_LONG`.
+Commands longer than 192 characters receive `ERROR,COMMAND_TOO_LONG`.
 Carriage returns are ignored.
 
 ## Messages sent by the terminal
 
 | Message | Meaning |
 | --- | --- |
-| `HALLZEE_READY,1` | BLE notifications and protocol version 1 are usable |
+| `IDENTITY,2,<terminal_id>,<suffix>,<UNCLAIMED\|CLAIMED>,<nonce>` | Stable terminal identity and fresh handshake challenge |
+| `CLAIM_OK,2,<terminal_id>,<commit_nonce>` | Claim proof accepted; desktop may store its derived credential |
+| `AUTH_OK,2,<terminal_id>,<custom_name>` | Ownership committed and application commands are authorized |
+| `IDENTITY_INFO,2,<terminal_id>,<custom_name>` | Authenticated identity reread |
 | `SETTINGS,MAX_ID_LENGTH,<value>` | Current persisted maximum student-ID length |
 | `SETTINGS_ACK,MAX_ID_LENGTH,<value>` | Setting was saved successfully |
 | `SETTINGS_ERROR,MAX_ID_LENGTH,<reason>` | Setting was rejected without changing the stored value |
@@ -89,6 +104,12 @@ Carriage returns are ignored.
 | `ACK_ERROR,UNEXPECTED_ID` | ACK did not match the pending trip |
 | `ACK_ERROR,MARK_FAILED` | Legacy unsynced mode could not persist its sync flag |
 | `ERROR,UNKNOWN_COMMAND` | Command was not recognized |
+| `ERROR,AUTH_REQUIRED` | Application command arrived before authorization |
+| `ERROR,AUTH_FAILED` | Proof was malformed or invalid |
+| `ERROR,AUTH_TIMEOUT` | Authorization was not completed in time |
+| `ERROR,PAIRING_MODE_REQUIRED` | An unclaimed terminal is not in its physical claim window |
+| `ERROR,ALREADY_CLAIMED` | A claim was attempted against an owned terminal |
+| `ERROR,UPGRADE_REQUIRED` | Legacy protocol is not accepted by the secured firmware |
 
 ## Kiosk settings
 

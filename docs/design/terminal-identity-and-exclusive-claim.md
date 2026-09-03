@@ -8,6 +8,14 @@
 
 **Supersedes:** Any assumption that a BLE address, the advertised name Hallzee, or a process-local connection is sufficient terminal identity or authorization
 
+**Implementation checkpoint (2026-09-03):** The v2 protocol/security primitives,
+terminal-scoped SQLite migration, authenticated session boundary, firmware
+identity/claim state, Secure Connections characteristic permissions, one-active-
+central enforcement, and physical claim gesture are implemented and compile
+validated. Desktop platform credential-vault adapters, universal-client wiring,
+owner-reset USB flow, and physical multi-terminal verification remain planned
+work in the agent packages below.
+
 ---
 
 ## 1. Outcome
@@ -745,7 +753,7 @@ hardware identifiers.
 
 Run these repository commands before requesting human hardware verification:
 
-    arduino-cli compile --fqbn esp32:esp32:esp32 .
+    bash scripts/flash-terminal-macos.sh
     make -C test coverage
     dotnet test receiver/windows/BathroomSync.Tests/BathroomSync.Tests.csproj
     dotnet test receiver/universal.tests/BathroomSync.Universal.Tests.csproj

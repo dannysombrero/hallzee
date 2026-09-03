@@ -50,15 +50,9 @@
           </Grid>
 
           <!-- CLASSROOM PROFILE BOX -->
-          <Border Grid.Row="1" Background="#F0F9FF" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="16" Padding="12,10">
+          <Border Grid.Row="1" Background="#F0F9FF" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="16" Padding="14,12" BoxShadow="0 1 3 0 #0A0284C7">
             <StackPanel Spacing="3">
-              <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
-                <TextBlock Text="CLASSROOM PROFILE" FontSize="10" FontWeight="ExtraBold" Foreground="#64748B" LetterSpacing="0.5" />
-                <Border Grid.Column="1" Background="#DCFCE7" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="10" Padding="8,1">
-                  <TextBlock Text="Active" FontSize="10" FontWeight="ExtraBold" Foreground="#166534" />
-                </Border>
-              </Grid>
-
+              <TextBlock Text="CLASSROOM PROFILE" FontSize="10" FontWeight="ExtraBold" Foreground="#64748B" LetterSpacing="0.5" />
               <TextBlock Text="{Binding ActiveProfile.Name}" FontSize="13" FontWeight="Bold" Foreground="#0F172A" Margin="0,2,0,0" />
               <TextBlock Text="{Binding ProfileDetails}" FontSize="11" Foreground="#475569" FontWeight="Medium" />
               <TextBlock Text="{Binding ProfileTeacher}" FontSize="11" Foreground="#64748B" />
@@ -110,25 +104,22 @@
           </StackPanel>
 
           <!-- BOTTOM TERMINAL NODE BOX -->
-          <Border Grid.Row="3" Background="#F0F9FF" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="16" Padding="12,10">
-            <StackPanel Spacing="4">
+          <Border Grid.Row="3" Background="#F0F9FF" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="16" Padding="14" BoxShadow="0 1 3 0 #0A0284C7">
+            <StackPanel Spacing="8">
               <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
-                <TextBlock Text="TERMINAL NODE" FontSize="10" FontWeight="ExtraBold" Foreground="#64748B" LetterSpacing="0.5" />
-                <Border Grid.Column="1" Background="{Binding ConnectionBadgeBackground}" CornerRadius="10" Padding="8,2">
-                  <TextBlock Text="{Binding TopStatusBadgeText}" FontSize="9" FontWeight="ExtraBold" Foreground="{Binding ConnectionBadgeForeground}" />
+                <TextBlock Text="TERMINAL NODE" FontSize="10" FontWeight="ExtraBold" Foreground="#64748B" LetterSpacing="0.5" VerticalAlignment="Center" />
+                <Border Grid.Column="1" Classes="status-pill" Background="{Binding ConnectionBadgeBackground}">
+                  <TextBlock Text="{Binding TopStatusBadgeText}" Foreground="{Binding ConnectionBadgeForeground}" />
                 </Border>
               </Grid>
 
-              <TextBlock Text="{Binding ConnectedTerminalName}" FontSize="11" FontWeight="Bold" FontFamily="Cascadia Mono, Menlo, monospace" Foreground="#0F172A" TextTrimming="CharacterEllipsis" />
-              <StackPanel Orientation="Horizontal" Spacing="4">
-                <TextBlock Text="Last successful sync:" FontSize="10" Foreground="#64748B" />
-                <TextBlock Text="{Binding LastSyncTimeText}" FontSize="10" FontWeight="Bold" Foreground="#0F172A" />
-              </StackPanel>
+              <TextBlock Text="{Binding ConnectedTerminalName}" FontSize="12" FontWeight="Bold" FontFamily="Cascadia Mono, Menlo, monospace" Foreground="#1E293B" TextTrimming="CharacterEllipsis" />
+              <TextBlock Text="Auto-clock synced with Windows RTC" FontSize="11" Foreground="#64748B" />
 
-              <Button Classes="card-outline" Click="OnSettingsDeviceClick" HorizontalAlignment="Stretch" Padding="8,6" Margin="0,4,0,0">
+              <Button Classes="card-outline" Click="OnSettingsDeviceClick" HorizontalAlignment="Stretch" Padding="8,6" Margin="0,2,0,0">
                 <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center">
-                  <PathIcon Data="{StaticResource IconRadio}" Width="12" Height="12" Foreground="#0369A1" VerticalAlignment="Center" />
-                  <TextBlock Text="Configure Node" FontSize="11" FontWeight="Bold" VerticalAlignment="Center" />
+                  <PathIcon Data="{StaticResource IconRadio}" Width="13" Height="13" Foreground="#0369A1" VerticalAlignment="Center" />
+                  <TextBlock Text="Configure Node" FontSize="12" FontWeight="Bold" VerticalAlignment="Center" />
                 </StackPanel>
               </Button>
             </StackPanel>

@@ -126,8 +126,8 @@ public sealed record DashboardActivityItem(
     "—",
     pass.DurationDisplay,
     "Out",
-    "#FEF3C7",
-    "#92400E",
+    "#F59E0B",
+    "White",
     "#FEF3C7"
   ) { SortTimestamp = pass.DepartTime ?? "" };
 
@@ -138,8 +138,8 @@ public sealed record DashboardActivityItem(
     "—",
     "Out",
     "Out",
-    "#FEF3C7",
-    "#92400E",
+    "#F59E0B",
+    "White",
     "#FEF3C7"
   ) { SortTimestamp = (checkoutTime ?? DateTime.Now).ToString("O"), CheckoutTime = checkoutTime ?? DateTime.Now };
 
@@ -150,9 +150,9 @@ public sealed record DashboardActivityItem(
     string.IsNullOrWhiteSpace(trip.TimeIn) ? "—" : trip.TimeIn,
     trip.FormattedDuration,
     "Returned",
-    "#DCFCE7",
-    "#166534",
-    "#DCFCE7"
+    "#10B981",
+    "White",
+    "#E0F2FE"
   );
 }
 

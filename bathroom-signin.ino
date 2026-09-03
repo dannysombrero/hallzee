@@ -72,6 +72,8 @@ uint8_t getActivePassStates(ActiveCheckout *checkouts, uint8_t maximum);
 bool manualCheckInFromDesktop(const String &studentId);
 bool setActivePassCapacity(uint8_t capacity);
 
+void drawStartupLogo();
+
 BluetoothSync bluetoothSync(
   tripStorage,
   bluetoothSerial,
@@ -791,29 +793,44 @@ void setup() {
 
   tft.setRotation(1);
 
-  tft.fillScreen(ST77XX_BLACK);
-  // Compact Hallzee favicon: paired chevrons around the center passage arrow.
-  const uint16_t logoGreen = tft.color565(118, 220, 40);
-  const uint16_t logoBlue = tft.color565(2, 132, 199);
-  tft.fillTriangle(43, 30, 57, 38, 57, 50, logoGreen);
-  tft.fillTriangle(43, 66, 57, 58, 57, 78, logoBlue);
-  tft.fillTriangle(117, 30, 103, 38, 103, 50, logoGreen);
-  tft.fillTriangle(117, 66, 103, 58, 103, 78, logoBlue);
-  tft.fillTriangle(55, 54, 69, 42, 91, 42, ST77XX_WHITE);
-  tft.fillTriangle(105, 54, 91, 42, 69, 42, ST77XX_WHITE);
-  tft.fillTriangle(55, 54, 69, 66, 91, 66, ST77XX_WHITE);
-  tft.fillTriangle(105, 54, 91, 66, 69, 66, ST77XX_WHITE);
-  tft.fillTriangle(63, 54, 74, 47, 74, 52, logoBlue);
-  tft.fillTriangle(97, 54, 86, 47, 86, 52, logoGreen);
-  tft.fillRect(74, 52, 12, 5, logoBlue);
-  tft.fillTriangle(97, 54, 86, 61, 86, 56, logoGreen);
-  tft.fillRect(74, 56, 12, 5, logoGreen);
+  drawStartupLogo();
 
   delay(800);
 
   // Until Bluetooth auto-time is added,
   // every true startup asks for date/time.
   beginClockSetup();
+}
+
+// The source logo is receiver/universal/Assets/hallzee-logo.png. The ESP32
+// cannot load that PNG directly, so this is its display-sized RGB565
+// approximation: the same paired doorway shapes and bidirectional arrow,
+// centered in the complete 160 x 128 landscape viewport.
+void drawStartupLogo() {
+  tft.fillScreen(ST77XX_BLACK);
+
+  const uint16_t logoGreen = tft.color565(118, 220, 40);
+  const uint16_t logoBlue = tft.color565(2, 132, 199);
+  const uint16_t logoMid = tft.color565(27, 185, 137);
+
+  // Left and right doorway halves. Each half is split into two colors to
+  // preserve the source logo's green-to-blue vertical gradient.
+  tft.fillTriangle(50, 20, 68, 33, 68, 49, logoGreen);
+  tft.fillTriangle(50, 20, 50, 64, 68, 49, logoMid);
+  tft.fillTriangle(50, 64, 68, 79, 68, 108, logoBlue);
+  tft.fillTriangle(50, 64, 50, 108, 68, 79, logoBlue);
+  tft.fillTriangle(110, 20, 92, 33, 92, 49, logoGreen);
+  tft.fillTriangle(110, 20, 110, 64, 92, 49, logoMid);
+  tft.fillTriangle(110, 64, 92, 79, 92, 108, logoBlue);
+  tft.fillTriangle(110, 64, 110, 108, 92, 79, logoBlue);
+
+  // The center passage arrow, rendered in the source logo's two accent
+  // colors instead of the old white person-shaped splash.
+  tft.fillTriangle(56, 64, 69, 48, 69, 58, logoGreen);
+  tft.fillTriangle(56, 64, 69, 80, 69, 70, logoGreen);
+  tft.fillRect(69, 58, 22, 12, logoMid);
+  tft.fillTriangle(104, 64, 91, 48, 91, 58, logoBlue);
+  tft.fillTriangle(104, 64, 91, 80, 91, 70, logoBlue);
 }
 
 // ======================================================

@@ -298,6 +298,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     Profiles.Add(profile);
     ActiveProfile = profile;
     PolicyModal.NewProfileName = "";
+    PolicyModal.IsCreatingProfile = false;
   }
 
   public async Task ConnectAndSyncAsync() {

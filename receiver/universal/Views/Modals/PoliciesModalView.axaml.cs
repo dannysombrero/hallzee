@@ -24,6 +24,19 @@ public partial class PoliciesModalView : UserControl {
     }
   }
 
+  void OnToggleCreateProfileClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) {
+      vm.PolicyModal.ToggleCreateProfile();
+    }
+  }
+
+  void OnCancelCreateProfileClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) {
+      vm.PolicyModal.IsCreatingProfile = false;
+      vm.PolicyModal.NewProfileName = "";
+    }
+  }
+
   void OnSaveAsProfileClick(object? sender, RoutedEventArgs e) {
     if (DataContext is MainViewModel vm) {
       vm.CreateProfileFromPolicy();

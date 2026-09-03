@@ -1,6 +1,6 @@
 namespace BathroomSync.Core;
 
-public sealed record TerminalDevice(string Id, string Name, bool IsPaired) {
+public sealed record TerminalDevice(string Id, string Name, bool IsPaired, bool IsInUse = false) {
   public override string ToString() => IsPaired ? $"{Name} (paired)" : Name;
 }
 

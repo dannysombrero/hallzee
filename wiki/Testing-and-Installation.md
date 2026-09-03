@@ -80,6 +80,13 @@ is also available from that workflow run’s **Artifacts** section.
 
 Mac testing using the Universal desktop client now fully supports physical Bluetooth LE discovery and data transfer to the ESP32 terminal. A Windows PC is only needed to test Windows-specific packaging or installation behaviors.
 
+For this pairing/status change, Mac testing is sufficient to validate the
+shared protocol and macOS BLE path, but it is not sufficient to verify the
+Windows BLE adapter. A Windows PC is required to verify the Windows-specific
+passkey prompt, `INUSE` discovery label, and Windows refusal to connect to an
+occupied kiosk. Windows behavior has not yet been verified by automated tests
+or by a second-terminal hardware run.
+
 ## Quick checks on a Mac
 
 ### Browser preview
@@ -126,7 +133,9 @@ dotnet run --project receiver/universal/BathroomSync.Universal.csproj
 The Universal client connects to the physical ESP32 terminal via Bluetooth LE on both macOS and Windows.
 Physical clients use the v2 identity/authentication flow. For an unclaimed
 terminal, hold `*` and `#` for five seconds before connecting, then enter the
-displayed app claim code in the Find Terminals dialog and choose Connect again.
+displayed six-digit Bluetooth passkey in the Find Terminals dialog and choose
+Connect again. The same value may also be requested by the operating system's
+Bluetooth pairing prompt.
 The current test path stores the owner credential only in memory for the
 running app; restarting the app requires the planned OS-vault implementation.
 On macOS, Connect & Sync waits until CoreBluetooth confirms that terminal
@@ -165,20 +174,25 @@ Use a Mac or Windows PC to test actual Bluetooth behavior. Install the .NET 8 SD
 sure the ESP32 terminal is powered on, then use the desktop app to find and
 sync `Hallzee-XXXX`. Initial ownership requires holding `*` and `#` on an
 unclaimed, unoccupied terminal for five seconds and entering the displayed
-Bluetooth passkey and app claim code. Do not treat the advertised name or BLE
-address as proof of terminal identity.
+six-digit Bluetooth passkey. A kiosk with an active checkout advertises `INUSE`,
+is shown as **In Use**, and cannot be selected for connection; use **Scan Again**
+to refresh that status. Do not treat the advertised name or BLE address as
+proof of terminal identity.
 
 Before calling a Windows change complete, check:
 
 1. The terminal can be found within five seconds.
-2. The client subscribes, receives `IDENTITY,2`, and displays the terminal suffix.
-3. On a new terminal, the client cannot sync until the physical claim flow
+2. The client subscribes, receives `IDENTITY,2` with `AVAILABLE` or `IN_USE`, and displays the terminal suffix and availability.
+3. On a new terminal, the client cannot sync until the physical passkey flow
    completes and then reconnects using `AUTH_OK,2`.
 4. A second sync with no new trips completes without replaying history.
 5. A sync with new trips transfers only IDs after the local durable cursor.
 6. Disconnecting mid-transfer and reconnecting produces one durable copy.
-7. A second BLE central is rejected while the authorized client remains connected.
-8. Powering the kiosk off clears the client status; Find terminal works after it returns.
+7. An unexpected drop shows **RECONNECTING**, reconnects to the last authenticated
+   terminal without asking for the passkey, and resumes synchronization.
+8. A second BLE central is rejected while the authorized client remains connected.
+9. Powering the kiosk off shows **RECONNECTING**; restoring the kiosk lets the
+   same owner reconnect, while **Scan Again** remains available.
 
 If a test claim must be cleared, connect the USB serial monitor at 115200 baud
 and send the line `OWNER_RESET`. Confirm `OWNER_RESET,OK`; this clears only the

@@ -194,8 +194,9 @@ public class MacAgentTerminalConnection : ITerminalConnection
                     case "Discovered":
                         var id = data.GetProperty("Id").GetString();
                         var name = data.GetProperty("Name").GetString();
+                        var inUse = data.TryGetProperty("IsInUse", out var inUseValue) && inUseValue.GetBoolean();
                         if (id != null) {
-                            discoveredDevices.Add(new TerminalDevice(id, name ?? "Hallzee", false));
+                            discoveredDevices.Add(new TerminalDevice(id, name ?? "Hallzee", false, inUse));
                         }
                         break;
                     case "DiscoverComplete":

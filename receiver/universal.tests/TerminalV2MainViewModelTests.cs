@@ -19,7 +19,7 @@ public sealed class TerminalV2MainViewModelTests {
     try {
       using var viewModel = new MainViewModel(connection, folder, isPreviewMode: false);
       await viewModel.FindTerminalsModal.ScanAsync();
-      viewModel.FindTerminalsModal.ClaimKey = "0123456789ABCDEF";
+      viewModel.FindTerminalsModal.PairingPasskey = "807481";
 
       await viewModel.ConnectAndSyncAsync();
 
@@ -46,7 +46,7 @@ public sealed class TerminalV2MainViewModelTests {
 
     public Task<IReadOnlyList<TerminalDevice>> DiscoverAsync() {
       IReadOnlyList<TerminalDevice> devices = new[] {
-        new TerminalDevice("transport-v2", "Hallzee-A1B2", false)
+        new TerminalDevice("transport-v2", "Hallzee-A1B2", false, false)
       };
       return Task.FromResult(devices);
     }
@@ -61,7 +61,7 @@ public sealed class TerminalV2MainViewModelTests {
       SentCommands.Add(command);
 
       if (command.StartsWith("HELLO,2,")) {
-        Emit($"IDENTITY,2,{TerminalId},E5F6,UNCLAIMED,{IdentityNonce}\n");
+        Emit($"IDENTITY,2,{TerminalId},E5F6,UNCLAIMED,AVAILABLE,{IdentityNonce}\n");
       } else if (command.StartsWith("CLAIM,2,")) {
         Emit($"CLAIM_OK,2,{TerminalId},{CommitNonce}\n");
       } else if (command.StartsWith("CLAIM_COMMIT,2,")) {

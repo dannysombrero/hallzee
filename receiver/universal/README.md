@@ -8,9 +8,14 @@ authorization handshake before syncing through the shared protocol and SQLite
 store. Preview mode uses the simulated v1 terminal.
 
 For an unclaimed physical terminal, hold `*` and `#` for five seconds, enter
-the displayed app claim code in the Find Terminals dialog, and connect again.
-The current v2 test path keeps the owner credential in memory for the running
-process; OS credential-vault persistence is still a follow-up task.
+the displayed six-digit Bluetooth passkey in the Find Terminals dialog, and
+connect again. A kiosk with an active checkout is shown as **In Use** and
+cannot be selected; use **Scan Again** after it becomes available.
+After a successful connection, an unexpected Bluetooth drop automatically
+retries the same terminal using its owner credential and resumes sync without
+asking for the passkey. The current v2 test path keeps that credential in
+memory for the running process; OS credential-vault persistence is still a
+follow-up task for reconnecting after an app restart.
 
 Run it on a machine with the .NET 8 SDK:
 

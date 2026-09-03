@@ -28,6 +28,11 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
   ClassroomProfile activeProfile;
   string exportFolder;
   Timer? timer;
+  TerminalDevice? lastAuthenticatedDevice;
+  string? lastAuthenticatedTerminalId;
+  CancellationTokenSource? reconnectCancellation;
+  bool reconnectInProgress;
+  bool intentionalDisconnect;
 
   public MainViewModel(
     ITerminalConnection connection,
@@ -199,26 +204,28 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
   public string LoadedRosterFileName => loadedRosterFileName;
 
   public string ConnectionStatusText =>
-    IsSyncing ? "SYNCING" : IsConnected ? "CONNECTED" : "OFFLINE";
+    IsReconnecting ? "RECONNECTING" : IsSyncing ? "SYNCING" : IsConnected ? "CONNECTED" : "OFFLINE";
 
   public string ConnectionStatusColor =>
-    IsSyncing ? "#0284C7" : IsConnected ? "#10B981" : "#94A3B8";
+    IsReconnecting ? "#F59E0B" : IsSyncing ? "#0284C7" : IsConnected ? "#10B981" : "#94A3B8";
 
   public string ConnectionBadgeBackground =>
-    IsSyncing ? "#0284C7" : IsConnected ? "#10B981" : "#94A3B8";
+    IsReconnecting ? "#F59E0B" : IsSyncing ? "#0284C7" : IsConnected ? "#10B981" : "#94A3B8";
 
   public string ConnectionBadgeForeground => "White";
 
   public string TopStatusBadgeText =>
-    !IsConnected ? "OFFLINE" : IsSyncing ? "SYNCING" : "CONNECTED";
+    IsReconnecting ? "RECONNECTING" : !IsConnected ? "OFFLINE" : IsSyncing ? "SYNCING" : "CONNECTED";
 
   public string TopStatusBadgeBackground =>
-    !IsConnected ? "#94A3B8" : IsSyncing ? "#0284C7" : "#10B981";
+    IsReconnecting ? "#F59E0B" : !IsConnected ? "#94A3B8" : IsSyncing ? "#0284C7" : "#10B981";
 
   public string TopStatusBadgeForeground => "White";
 
   public string TerminalAvatarBackground =>
-    !IsConnected ? "#94A3B8" : "#10B981";
+    IsReconnecting ? "#F59E0B" : !IsConnected ? "#94A3B8" : "#10B981";
+
+  public bool IsReconnecting => reconnectInProgress;
 
   public string LastSyncTimeText {
     get => lastSyncTimeText;
@@ -296,6 +303,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
   public async Task ConnectAndSyncAsync() {
     var device = FindTerminalsModal.SelectedDevice;
     if (device == null) return;
+    CancelAutomaticReconnect();
 
     if (terminalSession == null) {
       connectedTerminalName = device.Name;
@@ -311,15 +319,15 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     FindTerminalsModal.SetStatus($"Connecting to {device.Name} and verifying identity…");
     try {
       var identity = await terminalSession.OpenAsync(device);
-      if (!identity.IsClaimed && string.IsNullOrWhiteSpace(FindTerminalsModal.ClaimKey)) {
+      if (!identity.IsClaimed && string.IsNullOrWhiteSpace(FindTerminalsModal.PairingPasskey)) {
         FindTerminalsModal.SetStatus(
-          $"Unclaimed terminal {identity.TerminalId}. Hold * and # on the kiosk for five seconds, then enter its app code above."
+          $"Unclaimed terminal {identity.TerminalId}. Hold * and # on the kiosk for five seconds, then enter its six-digit passkey above."
         );
         return;
       }
 
       var authenticated = await terminalSession.AuthenticateAsync(
-        identity.IsClaimed ? null : FindTerminalsModal.ClaimKey
+        identity.IsClaimed ? null : FindTerminalsModal.PairingPasskey
       );
       profileRepository.SaveTerminal(new TerminalDeviceConfig(
         authenticated.TerminalId,
@@ -332,10 +340,15 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
       ));
       profileRepository.AssignTerminalToProfile(ActiveProfile.ProfileId, authenticated.TerminalId);
       connectedTerminalName = authenticated.CustomName;
-      FindTerminalsModal.ClaimKey = "";
+      lastAuthenticatedDevice = device;
+      lastAuthenticatedTerminalId = authenticated.TerminalId;
+      FindTerminalsModal.PairingPasskey = "";
       IsConnected = true;
       CloseModal();
       await SyncNowAsync();
+    } catch (TerminalInUseException exception) {
+      FindTerminalsModal.SetStatus($"{exception.Message} Scan Again to refresh its status.");
+      IsConnected = false;
     } catch (Exception exception) {
       FindTerminalsModal.SetStatus($"Secure connection failed: {exception.Message}");
       IsConnected = false;
@@ -386,12 +399,18 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
   }
 
   public async Task DisconnectAsync() {
-    if (terminalSession != null) await terminalSession.DisconnectAsync();
-    else await connection.DisconnectAsync();
-    IsConnected = false;
-    ActivePass.SetUnknown();
-    Dashboard.ClearLiveCheckouts();
-    Dashboard.Refresh(ActiveProfile.ProfileId);
+    intentionalDisconnect = true;
+    CancelAutomaticReconnect();
+    try {
+      if (terminalSession != null) await terminalSession.DisconnectAsync();
+      else await connection.DisconnectAsync();
+      IsConnected = false;
+      ActivePass.SetUnknown();
+      Dashboard.ClearLiveCheckouts();
+      Dashboard.Refresh(ActiveProfile.ProfileId);
+    } finally {
+      intentionalDisconnect = false;
+    }
   }
 
   public async Task CheckInActivePassAsync() {
@@ -522,13 +541,113 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     IsSyncing = false;
     ActivePass.SetUnknown();
     Dashboard.ClearLiveCheckouts();
+    if (!intentionalDisconnect && terminalSession != null &&
+        lastAuthenticatedDevice != null && lastAuthenticatedTerminalId != null) {
+      StartAutomaticReconnect();
+    }
   }
 
   public void Dispose() {
+    intentionalDisconnect = true;
+    CancelAutomaticReconnect();
     timer?.Dispose();
     connection.TextReceived -= HandleTextReceived;
     connection.ConnectionLost -= HandleConnectionLost;
     terminalSession?.Dispose();
+  }
+
+  void StartAutomaticReconnect() {
+    if (reconnectInProgress || reconnectCancellation != null ||
+        lastAuthenticatedDevice == null || lastAuthenticatedTerminalId == null) return;
+
+    reconnectCancellation = new CancellationTokenSource();
+    _ = ReconnectLastTerminalAsync(
+      lastAuthenticatedDevice,
+      lastAuthenticatedTerminalId,
+      reconnectCancellation.Token);
+  }
+
+  async Task ReconnectLastTerminalAsync(
+    TerminalDevice device,
+    string terminalId,
+    CancellationToken cancellationToken) {
+    reconnectInProgress = true;
+    OnPropertyChanged(nameof(IsReconnecting));
+    OnPropertyChanged(nameof(ConnectionStatusText));
+    OnPropertyChanged(nameof(ConnectionStatusColor));
+    OnPropertyChanged(nameof(ConnectionBadgeBackground));
+    OnPropertyChanged(nameof(TopStatusBadgeText));
+    OnPropertyChanged(nameof(TopStatusBadgeBackground));
+    OnPropertyChanged(nameof(TerminalAvatarBackground));
+    try {
+      var attempt = 0;
+      while (!cancellationToken.IsCancellationRequested) {
+        attempt++;
+        var delay = TimeSpan.FromSeconds(Math.Min(attempt, 15));
+        try {
+          await Task.Delay(delay, cancellationToken);
+          FindTerminalsModal.SetStatus(
+            $"Connection lost. Reconnecting to {device.Name} (attempt {attempt})…");
+
+          var identity = await terminalSession!.OpenAsync(
+            device, terminalId, cancellationToken);
+          if (!identity.IsClaimed) {
+            FindTerminalsModal.SetStatus(
+              "The last terminal is no longer claimed. Hold * and # on it to start pairing.");
+            return;
+          }
+
+          var authenticated = await terminalSession.AuthenticateAsync(
+            cancellationToken: cancellationToken);
+          profileRepository.SaveTerminal(new TerminalDeviceConfig(
+            authenticated.TerminalId,
+            authenticated.CustomName,
+            device.Id,
+            DateTime.UtcNow,
+            ProtocolVersion: TerminalIdentityProtocol.ProtocolVersion,
+            ClaimStatus: "CLAIMED",
+            TransportId: device.Id));
+          profileRepository.AssignTerminalToProfile(ActiveProfile.ProfileId, authenticated.TerminalId);
+          connectedTerminalName = authenticated.CustomName;
+          IsConnected = true;
+          await SyncNowAsync();
+          if (IsConnected) return;
+        } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+          return;
+        } catch (TerminalInUseException) {
+          FindTerminalsModal.SetStatus(
+            "The last terminal is In Use. Automatic reconnect is paused; use Scan Again when it is available.");
+          return;
+        } catch (TerminalCredentialMissingException) {
+          FindTerminalsModal.SetStatus(
+            "The last terminal is known, but this app has no owner credential. Connect again to pair it.");
+          return;
+        } catch (TerminalIdentityMismatchException exception) {
+          FindTerminalsModal.SetStatus(
+            $"Reconnect stopped: {exception.Message} Select the intended terminal and scan again.");
+          return;
+        } catch {
+          // The terminal may be powered off or temporarily out of range. Keep
+          // retrying with the same verified identity until the user cancels.
+        }
+      }
+    } finally {
+      reconnectInProgress = false;
+      OnPropertyChanged(nameof(IsReconnecting));
+      OnPropertyChanged(nameof(ConnectionStatusText));
+      OnPropertyChanged(nameof(ConnectionStatusColor));
+      OnPropertyChanged(nameof(ConnectionBadgeBackground));
+      OnPropertyChanged(nameof(TopStatusBadgeText));
+      OnPropertyChanged(nameof(TopStatusBadgeBackground));
+      OnPropertyChanged(nameof(TerminalAvatarBackground));
+      reconnectCancellation?.Dispose();
+      reconnectCancellation = null;
+    }
+  }
+
+  void CancelAutomaticReconnect() {
+    reconnectCancellation?.Cancel();
+    reconnectCancellation = null;
   }
 
   Task SendProtocolAsync(string command) {

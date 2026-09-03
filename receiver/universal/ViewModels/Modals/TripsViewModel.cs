@@ -9,7 +9,7 @@ namespace BathroomSync.Universal.ViewModels;
 public sealed class TripsViewModel : INotifyPropertyChanged {
   readonly TripSqliteRepository tripRepository;
   string searchText = "";
-  string selectedStatus = "ALL";
+  string selectedStatus = "All";
   int totalTrips;
   string? exportStatusMessage;
   string? activeProfileId;
@@ -25,13 +25,28 @@ public sealed class TripsViewModel : INotifyPropertyChanged {
   public string SortColumn => sortColumn;
   public bool SortAscending => sortAscending;
 
-  public string TripIdSortIndicator => sortColumn == "TripId" ? (sortAscending ? " ▲" : " ▼") : "";
-  public string StudentSortIndicator => sortColumn == "Student" ? (sortAscending ? " ▲" : " ▼") : "";
-  public string DateSortIndicator => sortColumn == "Date" ? (sortAscending ? " ▲" : " ▼") : "";
-  public string TimeOutSortIndicator => sortColumn == "TimeOut" ? (sortAscending ? " ▲" : " ▼") : "";
-  public string TimeInSortIndicator => sortColumn == "TimeIn" ? (sortAscending ? " ▲" : " ▼") : "";
-  public string DurationSortIndicator => sortColumn == "Duration" ? (sortAscending ? " ▲" : " ▼") : "";
-  public string StatusSortIndicator => sortColumn == "Status" ? (sortAscending ? " ▲" : " ▼") : "";
+  string GetIndicator(string col) {
+    bool isMatch = sortColumn == col
+      || (col == "StudentName" && sortColumn == "Student")
+      || (col == "Student" && sortColumn == "StudentName")
+      || (col == "Departed" && sortColumn == "TimeOut")
+      || (col == "Returned" && sortColumn == "TimeIn");
+    return isMatch ? (sortAscending ? " ▲" : " ▼") : " ⇅";
+  }
+
+  public string TripIdSortIndicator => GetIndicator("TripId");
+  public string StudentIdSortIndicator => GetIndicator("StudentId");
+  public string StudentNameSortIndicator => GetIndicator("StudentName");
+  public string DepartedSortIndicator => GetIndicator("Departed");
+  public string ReturnedSortIndicator => GetIndicator("Returned");
+  public string DurationSortIndicator => GetIndicator("Duration");
+  public string StatusSortIndicator => GetIndicator("Status");
+
+  // Backwards compatibility indicators
+  public string StudentSortIndicator => GetIndicator("Student");
+  public string DateSortIndicator => GetIndicator("Date");
+  public string TimeOutSortIndicator => GetIndicator("TimeOut");
+  public string TimeInSortIndicator => GetIndicator("TimeIn");
 
   public void ToggleSort(string column) {
     if (sortColumn == column) {
@@ -39,6 +54,8 @@ public sealed class TripsViewModel : INotifyPropertyChanged {
     } else {
       sortColumn = column;
       sortAscending = column switch {
+        "StudentId" => true,
+        "StudentName" => true,
         "Student" => true,
         "Status" => true,
         _ => false
@@ -50,22 +67,27 @@ public sealed class TripsViewModel : INotifyPropertyChanged {
 
   void NotifySortIndicators() {
     OnPropertyChanged(nameof(TripIdSortIndicator));
+    OnPropertyChanged(nameof(StudentIdSortIndicator));
+    OnPropertyChanged(nameof(StudentNameSortIndicator));
+    OnPropertyChanged(nameof(DepartedSortIndicator));
+    OnPropertyChanged(nameof(ReturnedSortIndicator));
+    OnPropertyChanged(nameof(DurationSortIndicator));
+    OnPropertyChanged(nameof(StatusSortIndicator));
     OnPropertyChanged(nameof(StudentSortIndicator));
     OnPropertyChanged(nameof(DateSortIndicator));
     OnPropertyChanged(nameof(TimeOutSortIndicator));
     OnPropertyChanged(nameof(TimeInSortIndicator));
-    OnPropertyChanged(nameof(DurationSortIndicator));
-    OnPropertyChanged(nameof(StatusSortIndicator));
   }
 
   void ApplySort() {
     var items = Trips.ToList();
     IEnumerable<EnrichedTripRecord> sorted = sortColumn switch {
       "TripId" => sortAscending ? items.OrderBy(t => t.TripId) : items.OrderByDescending(t => t.TripId),
-      "Student" => sortAscending ? items.OrderBy(t => t.DisplayName).ThenBy(t => t.StudentId) : items.OrderByDescending(t => t.DisplayName).ThenByDescending(t => t.StudentId),
+      "StudentId" => sortAscending ? items.OrderBy(t => t.StudentId) : items.OrderByDescending(t => t.StudentId),
+      "StudentName" or "Student" => sortAscending ? items.OrderBy(t => t.DisplayName).ThenBy(t => t.StudentId) : items.OrderByDescending(t => t.DisplayName).ThenByDescending(t => t.StudentId),
       "Date" => sortAscending ? items.OrderBy(t => t.TripDate).ThenBy(t => t.TimeOut) : items.OrderByDescending(t => t.TripDate).ThenByDescending(t => t.TimeOut),
-      "TimeOut" => sortAscending ? items.OrderBy(t => t.TimeOut) : items.OrderByDescending(t => t.TimeOut),
-      "TimeIn" => sortAscending ? items.OrderBy(t => t.TimeIn) : items.OrderByDescending(t => t.TimeIn),
+      "Departed" or "TimeOut" => sortAscending ? items.OrderBy(t => t.TimeOut) : items.OrderByDescending(t => t.TimeOut),
+      "Returned" or "TimeIn" => sortAscending ? items.OrderBy(t => t.TimeIn) : items.OrderByDescending(t => t.TimeIn),
       "Duration" => sortAscending ? items.OrderBy(t => t.DurationSeconds) : items.OrderByDescending(t => t.DurationSeconds),
       "Status" => sortAscending ? items.OrderBy(t => t.Status) : items.OrderByDescending(t => t.Status),
       _ => items
@@ -76,7 +98,7 @@ public sealed class TripsViewModel : INotifyPropertyChanged {
 
   public ObservableCollection<EnrichedTripRecord> Trips { get; } = new();
   public IReadOnlyList<string> StatusOptions { get; } = new[] {
-    "ALL", "COMPLETED", "MANUAL_RESET"
+    "All", "Completed", "Manual"
   };
 
   public string SearchText {
@@ -121,9 +143,15 @@ public sealed class TripsViewModel : INotifyPropertyChanged {
 
   public void Refresh(string profileId) {
     activeProfileId = profileId;
+    var statusFilter = SelectedStatus switch {
+      "Completed" or "COMPLETED" => "COMPLETED",
+      "Manual" or "MANUAL" or "MANUAL_RESET" => "MANUAL_RESET",
+      _ => null
+    };
+
     var filter = new TripQueryFilter(
       SearchText: string.IsNullOrWhiteSpace(SearchText) ? null : SearchText.Trim(),
-      Status: SelectedStatus == "ALL" ? null : SelectedStatus,
+      Status: statusFilter,
       ProfileId: profileId,
       Limit: 100
     );

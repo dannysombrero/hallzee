@@ -375,3 +375,19 @@ void TerminalDisplay::showPairingError(const String &message) {
   display.println(message);
   display.pause(1800);
 }
+
+void TerminalDisplay::showOwnerReset() {
+  display.fillScreen(DISPLAY_YELLOW);
+  display.setTextColor(DISPLAY_BLACK);
+  display.setTextSize(2);
+  display.setCursor(10, 22);
+  display.println("OWNER RESET");
+  display.setTextSize(1);
+  display.setCursor(10, 64);
+  display.println("Pairing is cleared.");
+  display.setCursor(10, 80);
+  display.println("Hold * + # for 5 sec");
+  display.setCursor(10, 96);
+  display.println("to pair again.");
+  display.pause(2200);
+}

@@ -316,7 +316,14 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
       return;
     }
 
-    FindTerminalsModal.SetStatus($"Connecting to {device.Name} and verifying identity…");
+    var pairingPromptHint = string.IsNullOrWhiteSpace(FindTerminalsModal.PairingPasskey)
+      ? ""
+      : OperatingSystem.IsWindows()
+        ? " Windows pairing will use the six digits entered above."
+        : " If the operating system asks for a Bluetooth passkey, enter the same six digits shown on the kiosk.";
+    FindTerminalsModal.SetStatus($"Connecting to {device.Name} and verifying identity…{pairingPromptHint}");
+    var pairingPasskeySink = connection as ITerminalPairingPasskeySink;
+    pairingPasskeySink?.SetPairingPasskey(FindTerminalsModal.PairingPasskey);
     try {
       var identity = await terminalSession.OpenAsync(device);
       if (!identity.IsClaimed && string.IsNullOrWhiteSpace(FindTerminalsModal.PairingPasskey)) {
@@ -352,6 +359,8 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     } catch (Exception exception) {
       FindTerminalsModal.SetStatus($"Secure connection failed: {exception.Message}");
       IsConnected = false;
+    } finally {
+      pairingPasskeySink?.SetPairingPasskey(null);
     }
   }
 

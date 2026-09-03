@@ -47,7 +47,7 @@ powershell -ExecutionPolicy Bypass -File "$HOME\Downloads\hallzee-mono-main\scri
 
 The script downloads the .NET 8 build tools, then creates the Windows app in
 the downloaded project’s `artifacts\BathroomSync-Windows` folder. Open that
-folder and run `HallzeeSync.exe`.
+folder and run `HallzeeSync.Universal.exe`.
 
 ### Easier: download the latest ready-to-run Windows app
 
@@ -58,7 +58,7 @@ the latest ready-to-run ZIP here:
 https://github.com/dannysombrero/hallzee-mono/releases/download/windows-client-latest/BathroomSync-Windows.zip
 ```
 
-Extract the entire ZIP to a normal folder, then run `HallzeeSync.exe`.
+Extract the entire ZIP to a normal folder, then run `HallzeeSync.Universal.exe`.
 No software installation or local build is needed. If the link has not been
 published yet, open the repository’s **Actions** tab, run **Publish Latest
 Windows Sync App**, then refresh this link when the run completes. The same ZIP
@@ -134,17 +134,21 @@ The Universal client connects to the physical ESP32 terminal via Bluetooth LE on
 Physical clients use the v2 identity/authentication flow. For an unclaimed
 terminal, hold `*` and `#` for five seconds before connecting, then enter the
 displayed six-digit Bluetooth passkey in the Find Terminals dialog and choose
-Connect again. The same value may also be requested by the operating system's
-Bluetooth pairing prompt.
+Connect again. On Windows, the client supplies those digits directly to the
+authenticated pairing ceremony. On macOS, enter the same value if the operating
+system also presents a Bluetooth passkey prompt.
 The current test path stores the owner credential only in memory for the
 running app; restarting the app requires the planned OS-vault implementation.
 On macOS, Connect & Sync waits until CoreBluetooth confirms that terminal
 notifications are enabled before sending any sync commands. If this readiness
 handshake does not complete within 15 seconds, the app reports a connection
 failure instead of silently dropping the first commands.
+Protected macOS writes are acknowledged and allow up to 60 seconds for the
+operating-system passkey prompt to complete before reporting a write failure.
 On Windows, Connect & Sync records whether the terminal advertises with a Random
-or Public BLE address type and applies a 15-second handshake timeout with automatic
-address-type fallback before establishing GATT subscriptions.
+or Public BLE address type and applies a 45-second connection/setup timeout per
+address type with automatic fallback before establishing GATT subscriptions.
+Encrypted writes are acknowledged and allow up to 60 seconds for Windows pairing.
 
 ### Firmware and display behavior
 
@@ -173,8 +177,9 @@ or use the Wokwi setup described in [WOKWI.md](../WOKWI.md).
 Use a Mac or Windows PC to test actual Bluetooth behavior. Install the .NET 8 SDK (along with Xcode if on Mac as documented above), make
 sure the ESP32 terminal is powered on, then use the desktop app to find and
 sync `Hallzee-XXXX`. Initial ownership requires holding `*` and `#` on an
-unclaimed, unoccupied terminal for five seconds and entering the displayed
-six-digit Bluetooth passkey. A kiosk with an active checkout advertises `INUSE`,
+unclaimed, unoccupied terminal for five seconds, releasing both keys, and
+entering the displayed six-digit Bluetooth passkey. One continuous key hold
+starts only one pairing session. A kiosk with an active checkout advertises `INUSE`,
 is shown as **In Use**, and cannot be selected for connection; use **Scan Again**
 to refresh that status. Do not treat the advertised name or BLE address as
 proof of terminal identity.
@@ -197,8 +202,19 @@ Before calling a Windows change complete, check:
 If a test claim must be cleared, connect the USB serial monitor at 115200 baud
 and send the line `OWNER_RESET`. Confirm `OWNER_RESET,OK`; this clears only the
 stored application owner credential and preserves trips, settings, and terminal
-identity. BLE bond removal is not yet automated, so the operating system may
-also need the old Bluetooth pairing removed before starting a fresh claim.
+identity. The terminal also clears its own stale BLE bonds automatically. The
+operating system may still need its old Bluetooth pairing removed before
+starting a fresh claim.
+
+If a serial monitor is unavailable, the same recovery can be performed from the
+keypad while the terminal is physically available. Confirm that no student is
+checked out, then hold `*` and `#` together for 10 seconds, releasing both keys
+when the reset screen appears. The terminal clears
+only its owner state and briefly shows **OWNER RESET**. After it returns to the
+idle screen, hold `*` and `#` together for five seconds, then release both keys
+to enter pairing mode and display a new six-digit passkey. An active checkout deliberately blocks the
+owner reset gesture. Remove the old operating-system Bluetooth pairing if the
+client still cannot reconnect.
 
 ### Verify policy rules and bell schedule editing
 
@@ -254,8 +270,8 @@ runners satisfy the required runner version automatically.
 | :--- | :--- | :--- | :--- |
 | **Validate Firmware and BLE Protocol** (`validate-firmware.yml`) | `pull_request`, `push` (paths: `*.ino`, `*.cpp`, `*.h`, `test/**`), `workflow_dispatch` | macOS (native unit tests & coverage) + Ubuntu (ESP32 Arduino compilation) | Validates firmware builds and BLE protocol tests automatically on changes. |
 | **Build Universal Sync Client** (`build-universal-client.yml`) | `pull_request`, `push` (paths: `receiver/**`), `workflow_dispatch` | macOS & Windows (runs .NET 8 unit tests, builds universal client, uploads Windows artifact) | Ensures cross-platform client builds and test suites pass on both operating systems. |
-| **Publish Latest Windows Sync App** (`publish-latest-windows-client.yml`) | `push` on `main` (paths: `receiver/windows/**`), `workflow_dispatch` | Windows (tests, publishes, packages, and releases latest executable) | Automatically releases the standalone Windows client for easy contributor download. |
-| **Build Windows Sync App (Legacy)** (`build-windows-sync.yml`) | `push` on `windows-sync-client`, `workflow_dispatch` | Windows (.NET 8 test and artifact generation) | Targeted validation for the standalone Windows client branch. |
+| **Publish Latest Windows Sync App** (`publish-latest-windows-client.yml`) | `push` on `main` (paths: `receiver/universal/**`, `receiver/windows/**`), `workflow_dispatch` | Windows (tests, publishes, packages, and releases the Universal v2 executable) | Automatically releases the current passkey-capable Windows client for easy contributor download. |
+| **Build Windows Sync App** (`build-windows-sync.yml`) | `workflow_dispatch` | Windows (.NET 8 core/Universal tests and artifact generation) | Produces an on-demand Universal v2 Windows artifact. |
 | **Regenerate Preview Lockfile & Tests** (`regenerate-lock-and-test.yml`) | `push` on `refactor/react-client-shell`, `workflow_dispatch` | Ubuntu (Node.js 22 install, lint, and test) | Keeps the web preview prototype dependencies locked and tested. |
 
 ## Documentation rule

@@ -18,8 +18,9 @@ authentication.
 | Client → terminal writes | `e80f9559-49eb-47bc-af04-8e92e98ced56` |
 
 The client enables notifications before sending commands. Commands and messages
-remain UTF-8, newline-delimited text. The Windows client divides writes into
-20-byte chunks; the firmware buffers fragments until a newline arrives.
+remain UTF-8, newline-delimited text. Both physical clients divide writes into
+20-byte chunks and use acknowledged writes for the encrypted/authenticated RX
+characteristic. The firmware buffers fragments until a newline arrives.
 
 ## Normal incremental session
 
@@ -142,3 +143,7 @@ advertising; Find terminal discards any stale Windows GATT object before its
 five-second discovery attempt. If a terminal is replaced or factory-reset and
 trip IDs restart, perform a full recovery into a new database rather than
 assuming the old cursor belongs to the new device.
+
+An unclaimed terminal removes stale ESP32 bond records at startup and whenever
+physical pairing mode begins. This ensures the operating system negotiates the
+currently displayed passkey instead of reusing a bond from an earlier claim.

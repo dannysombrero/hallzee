@@ -26,6 +26,7 @@ public class MacAgentTerminalConnection : ITerminalConnection
     private TaskCompletionSource<bool>? connectionTcs;
     private TaskCompletionSource<IReadOnlyList<TerminalDevice>>? discoveryTcs;
     private List<TerminalDevice> discoveredDevices = new();
+    private readonly Dictionary<string, TaskCompletionSource<bool>> pendingWrites = new();
 
     public async Task ConnectAsync(TerminalDevice terminal)
     {
@@ -77,11 +78,27 @@ public class MacAgentTerminalConnection : ITerminalConnection
 
     public async Task SendAsync(string text)
     {
-        if (!isConnected) return;
+        if (!isConnected) throw new InvalidOperationException("Hallzee is not connected.");
         await EnsureAgentRunning();
+        if (agentInput == null) throw new InvalidOperationException("The macOS Bluetooth helper is unavailable.");
+
         Console.WriteLine($"[PC -> MAC -> ESP32] {text}");
-        SendCommand("Send", new Dictionary<string, string> { { "Data", text } });
-        await Task.Delay(100); // Prevent overflowing the ESP32 UART RX ring buffer
+        var requestId = Guid.NewGuid().ToString("N");
+        var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        pendingWrites[requestId] = completion;
+        SendCommand("Send", new Dictionary<string, string> {
+            { "Data", text },
+            { "RequestId", requestId }
+        });
+
+        try
+        {
+            await completion.Task.WaitAsync(TimeSpan.FromSeconds(60));
+        }
+        finally
+        {
+            pendingWrites.Remove(requestId);
+        }
     }
 
     public void Dispose()
@@ -213,6 +230,13 @@ public class MacAgentTerminalConnection : ITerminalConnection
                             TextReceived?.Invoke(this, text);
                         }
                         break;
+                    case "SendComplete":
+                        var completedRequestId = data.GetProperty("RequestId").GetString();
+                        if (completedRequestId != null && pendingWrites.TryGetValue(completedRequestId, out var writeCompletion))
+                        {
+                            writeCompletion.TrySetResult(true);
+                        }
+                        break;
                     case "Connected":
                         if (connectionTcs == null)
                         {
@@ -231,11 +255,20 @@ public class MacAgentTerminalConnection : ITerminalConnection
                         isConnected = false;
                         connectionTcs?.TrySetException(new IOException("Hallzee disconnected while connecting."));
                         connectionTcs = null;
+                        foreach (var pendingWrite in pendingWrites.Values)
+                        {
+                            pendingWrite.TrySetException(new IOException("Hallzee disconnected during a BLE write."));
+                        }
                         break;
                     case "Error":
                         var errMsg = data.GetProperty("Message").GetString() ?? "Unknown error";
+                        var failedRequestId = data.TryGetProperty("RequestId", out var requestIdValue)
+                            ? requestIdValue.GetString()
+                            : null;
                         Console.WriteLine($"Agent Error: {errMsg}");
-                        if (discoveryTcs != null) {
+                        if (failedRequestId != null && pendingWrites.TryGetValue(failedRequestId, out var failedWrite)) {
+                            failedWrite.TrySetException(new IOException(errMsg));
+                        } else if (discoveryTcs != null) {
                             discoveryTcs.TrySetException(new Exception(errMsg));
                             discoveryTcs = null;
                         } else {

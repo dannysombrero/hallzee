@@ -12,6 +12,7 @@ constexpr uint8_t DEFAULT_STUDENT_ID_LENGTH = 10;
 constexpr uint8_t MAX_STUDENT_ID_LENGTH = 16;
 constexpr unsigned long RESET_HOLD_MS = 2000;
 constexpr unsigned long PAIRING_HOLD_MS = 5000;
+constexpr unsigned long OWNER_RESET_HOLD_MS = 10000;
 
 // Display palette
 constexpr uint16_t UI_NAVY = 0x1A4D;

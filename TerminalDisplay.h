@@ -26,6 +26,7 @@ public:
   void showPairing(const String &suffix, uint32_t passkey);
   void showPairingComplete(const String &suffix);
   void showPairingError(const String &message);
+  void showOwnerReset();
 
 private:
   DisplayPort &display;

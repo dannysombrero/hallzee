@@ -16,6 +16,7 @@ public:
   void setPin(const char *pin, size_t length) override;
   bool hasClient() override;
   void disconnectClient() override;
+  bool clearBondedDevices() override;
   void setPairingPasskey(uint32_t passkey) override;
   bool setDeviceName(const char *deviceName) override;
   int available() override;

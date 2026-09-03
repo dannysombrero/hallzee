@@ -13,7 +13,9 @@ KeypadController::KeypadController(
   ActionHandler onSubmit,
   ActionHandler onReset,
   IsPairingAllowed isPairingAllowed,
-  ActionHandler onPairing
+  ActionHandler onPairing,
+  IsPairingAllowed isOwnerResetAllowed,
+  ActionHandler onOwnerReset
 ) : keypad(keypad),
     clock(clock),
     isSetupMode(isSetupMode),
@@ -24,7 +26,9 @@ KeypadController::KeypadController(
     onSubmit(onSubmit),
     onReset(onReset),
     isPairingAllowed(isPairingAllowed),
-    onPairing(onPairing) {}
+    onPairing(onPairing),
+    isOwnerResetAllowed(isOwnerResetAllowed),
+    onOwnerReset(onOwnerReset) {}
 
 void KeypadController::begin() {
   keypad.configure(20, 500);
@@ -84,10 +88,34 @@ void KeypadController::checkResetCombo() {
     return;
   }
 
+  // A reset/pairing action must fire once per key hold. The action callback can
+  // change the screen immediately, but the keypad release events still arrive
+  // later; wait for both keys to be released before accepting another action.
+  if (suppressStarHash && (starPressed || hashPressed)) {
+    return;
+  }
+
   if (starPressed && hashPressed) {
     if (!isResetAllowed()) {
       resetHoldStarted = 0;
       resetHoldActive = false;
+      if (isOwnerResetAllowed && isOwnerResetAllowed()) {
+        pairingHoldStarted = 0;
+        pairingHoldActive = false;
+        if (!ownerResetHoldActive) {
+          ownerResetHoldActive = true;
+          ownerResetHoldStarted = clock.milliseconds();
+        }
+        if (clock.milliseconds() - ownerResetHoldStarted >= OWNER_RESET_HOLD_MS) {
+          suppressStarHash = true;
+          ownerResetHoldActive = false;
+          ownerResetHoldStarted = 0;
+          if (onOwnerReset) onOwnerReset();
+        }
+        return;
+      }
+      ownerResetHoldStarted = 0;
+      ownerResetHoldActive = false;
       if (!isPairingAllowed || !isPairingAllowed()) {
         pairingHoldStarted = 0;
         pairingHoldActive = false;
@@ -124,6 +152,8 @@ void KeypadController::checkResetCombo() {
   resetHoldStarted = 0;
   pairingHoldActive = false;
   pairingHoldStarted = 0;
+  ownerResetHoldActive = false;
+  ownerResetHoldStarted = 0;
   if (suppressStarHash && !starPressed && !hashPressed) {
     suppressStarHash = false;
   }

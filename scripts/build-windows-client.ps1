@@ -17,7 +17,7 @@ if (-not (Test-Path $dotnet)) {
 }
 
 Write-Host "Building the Windows Hallzee Sync app…"
-& $dotnet publish (Join-Path $ProjectRoot "receiver\windows\BathroomSync.Windows.csproj") `
+& $dotnet publish (Join-Path $ProjectRoot "receiver\universal\BathroomSync.Universal.csproj") `
   -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false `
   -o $output
 

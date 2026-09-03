@@ -106,6 +106,32 @@ void ArduinoBluetoothSerialPort::disconnectClient() {
   }
 }
 
+bool ArduinoBluetoothSerialPort::clearBondedDevices() {
+#if defined(CONFIG_BLUEDROID_ENABLED)
+  int deviceCount = esp_ble_get_bond_device_num();
+  if (deviceCount <= 0) return true;
+
+  auto *devices = new esp_ble_bond_dev_t[deviceCount];
+  if (esp_ble_get_bond_device_list(&deviceCount, devices) != ESP_OK) {
+    delete[] devices;
+    return false;
+  }
+
+  bool removedAll = true;
+  for (int index = 0; index < deviceCount; index++) {
+    if (esp_ble_remove_bond_device(devices[index].bd_addr) != ESP_OK) {
+      removedAll = false;
+    }
+  }
+  delete[] devices;
+  return removedAll;
+#else
+  // The currently supported original ESP32 target uses Bluedroid. Do not
+  // report success on another BLE stack until its bond-store reset is wired.
+  return false;
+#endif
+}
+
 void ArduinoBluetoothSerialPort::setPairingPasskey(uint32_t passkey) {
   BLESecurity::setPassKey(true, passkey);
 }

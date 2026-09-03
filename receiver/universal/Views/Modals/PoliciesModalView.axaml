@@ -54,7 +54,7 @@
                   <!-- Row 1: Students Allowed Out Simultaneously -->
                   <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
                     <TextBlock Text="Students allowed out simultaneously:" FontSize="13" Foreground="#475569" VerticalAlignment="Center" />
-                    <NumericUpDown Grid.Column="1" Minimum="1" Maximum="8" Increment="1" FormatString="0" ParsingNumberStyle="Integer" HorizontalContentAlignment="Center" Width="90" Value="{Binding PolicyModal.MaxSimultaneousPasses}" />
+                    <NumericUpDown Grid.Column="1" Minimum="1" Maximum="8" Increment="1" FormatString="0" ParsingNumberStyle="Integer" HorizontalContentAlignment="Center" Width="105" Value="{Binding PolicyModal.MaxSimultaneousPasses}" />
                   </Grid>
 
                   <Rectangle Height="1" Fill="#E0F2FE" />
@@ -63,7 +63,7 @@
                   <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
                     <TextBlock Text="Overdue warning threshold:" FontSize="13" Foreground="#475569" VerticalAlignment="Center" />
                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                      <NumericUpDown Minimum="1" Maximum="60" Increment="1" FormatString="0" ParsingNumberStyle="Integer" HorizontalContentAlignment="Center" Width="90" Value="{Binding PolicyModal.DurationWarningMinutes}" />
+                      <NumericUpDown Minimum="1" Maximum="60" Increment="1" FormatString="0" ParsingNumberStyle="Integer" HorizontalContentAlignment="Center" Width="105" Value="{Binding PolicyModal.DurationWarningMinutes}" />
                       <TextBlock Text="mins" FontSize="12" FontWeight="Bold" Foreground="#D97706" VerticalAlignment="Center" />
                     </StackPanel>
                   </Grid>
@@ -74,7 +74,7 @@
                   <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
                     <TextBlock Text="Daily pass guideline per student:" FontSize="13" Foreground="#475569" VerticalAlignment="Center" />
                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                      <NumericUpDown Minimum="1" Maximum="20" Increment="1" FormatString="0" ParsingNumberStyle="Integer" HorizontalContentAlignment="Center" Width="90" Value="{Binding PolicyModal.MaxDailyPasses}" />
+                      <NumericUpDown Minimum="1" Maximum="20" Increment="1" FormatString="0" ParsingNumberStyle="Integer" HorizontalContentAlignment="Center" Width="105" Value="{Binding PolicyModal.MaxDailyPasses}" />
                       <TextBlock Text="trips" FontSize="12" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center" />
                     </StackPanel>
                   </Grid>
@@ -89,7 +89,7 @@
                   <!-- First Minutes -->
                   <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" VerticalAlignment="Center">
                     <TextBlock Text="First minutes of period:" FontSize="13" Foreground="#475569" VerticalAlignment="Center" />
-                    <NumericUpDown Grid.Column="1" Width="80" Minimum="0" Maximum="30" Increment="1" FormatString="0" ParsingNumberStyle="Integer" HorizontalContentAlignment="Center" Value="{Binding PolicyModal.FirstWindowMinutes}" />
+                    <NumericUpDown Grid.Column="1" Width="95" Minimum="0" Maximum="30" Increment="1" FormatString="0" ParsingNumberStyle="Integer" HorizontalContentAlignment="Center" Value="{Binding PolicyModal.FirstWindowMinutes}" />
                     <ComboBox Grid.Column="2" Width="100" ItemsSource="{Binding PolicyModal.BellActions}" SelectedItem="{Binding PolicyModal.FirstWindowAction}" />
                   </Grid>
 
@@ -98,7 +98,7 @@
                   <!-- Last Minutes -->
                   <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" VerticalAlignment="Center">
                     <TextBlock Text="Last minutes of period:" FontSize="13" Foreground="#475569" VerticalAlignment="Center" />
-                    <NumericUpDown Grid.Column="1" Width="80" Minimum="0" Maximum="30" Increment="1" FormatString="0" ParsingNumberStyle="Integer" HorizontalContentAlignment="Center" Value="{Binding PolicyModal.LastWindowMinutes}" />
+                    <NumericUpDown Grid.Column="1" Width="95" Minimum="0" Maximum="30" Increment="1" FormatString="0" ParsingNumberStyle="Integer" HorizontalContentAlignment="Center" Value="{Binding PolicyModal.LastWindowMinutes}" />
                     <ComboBox Grid.Column="2" Width="100" ItemsSource="{Binding PolicyModal.BellActions}" SelectedItem="{Binding PolicyModal.LastWindowAction}" />
                   </Grid>
 
@@ -135,10 +135,13 @@
             <StackPanel Grid.Column="1" Spacing="14">
               
               <!-- Section Header: Bell Schedule -->
-              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" VerticalAlignment="Center">
+              <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8" VerticalAlignment="Center">
                 <PathIcon Data="{StaticResource IconCalendar}" Width="16" Height="16" Foreground="#0284C7" VerticalAlignment="Center" />
                 <TextBlock Grid.Column="1" Text="Bell Schedule" FontSize="15" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center" />
-                <Button Grid.Column="2" Classes="secondary" Click="OnAddPeriodClick" Padding="10,5" FontSize="12">
+                <Button Grid.Column="2" Classes="secondary" Click="OnTogglePeriodSortClick" Padding="10,5" FontSize="12" ToolTip.Tip="Toggle between earliest and latest period first">
+                  <TextBlock Text="{Binding PolicyModal.SortOrderButtonText}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                </Button>
+                <Button Grid.Column="3" Classes="secondary" Click="OnAddPeriodClick" Padding="10,5" FontSize="12">
                   <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                     <PathIcon Data="{StaticResource IconPlus}" Width="12" Height="12" Foreground="#0284C7" />
                     <TextBlock Text="Add Period" FontWeight="SemiBold" VerticalAlignment="Center" />

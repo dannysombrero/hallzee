@@ -43,6 +43,12 @@ public partial class PoliciesModalView : UserControl {
     }
   }
 
+  void OnTogglePeriodSortClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) {
+      vm.PolicyModal.ToggleSortOrder();
+    }
+  }
+
   void OnAddPeriodClick(object? sender, RoutedEventArgs e) {
     if (DataContext is MainViewModel vm) {
       var nextIndex = vm.PolicyModal.Periods.Count + 1;

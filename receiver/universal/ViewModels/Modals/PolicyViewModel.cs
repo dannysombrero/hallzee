@@ -22,8 +22,12 @@ public sealed class BellPeriodItemViewModel : INotifyPropertyChanged {
   bool isThursday;
   bool isFriday;
   bool isEditing;
+  string editName;
+  string editStartTime;
+  string editEndTime;
+  readonly Action? onSaved;
 
-  public BellPeriodItemViewModel(BellSchedulePeriod period, bool isEditing = false) {
+  public BellPeriodItemViewModel(BellSchedulePeriod period, bool isEditing = false, Action? onSaved = null) {
     scheduleId = period.ScheduleId;
     profileId = period.ProfileId;
     periodName = period.PeriodName;
@@ -31,6 +35,11 @@ public sealed class BellPeriodItemViewModel : INotifyPropertyChanged {
     endTime = period.EndTime;
     scheduleName = string.IsNullOrWhiteSpace(period.ScheduleName) ? "Regular" : period.ScheduleName;
     this.isEditing = isEditing;
+    this.onSaved = onSaved;
+
+    editName = periodName;
+    editStartTime = startTime;
+    editEndTime = endTime;
 
     var days = period.DaysOfWeek ?? "";
     isMonday = days.Contains("Mon", StringComparison.OrdinalIgnoreCase);
@@ -44,6 +53,36 @@ public sealed class BellPeriodItemViewModel : INotifyPropertyChanged {
 
   public string ScheduleId => scheduleId;
   public string ProfileId => profileId;
+
+  public string EditName {
+    get => editName;
+    set {
+      if (editName != value) {
+        editName = value;
+        OnPropertyChanged();
+      }
+    }
+  }
+
+  public string EditStartTime {
+    get => editStartTime;
+    set {
+      if (editStartTime != value) {
+        editStartTime = value;
+        OnPropertyChanged();
+      }
+    }
+  }
+
+  public string EditEndTime {
+    get => editEndTime;
+    set {
+      if (editEndTime != value) {
+        editEndTime = value;
+        OnPropertyChanged();
+      }
+    }
+  }
 
   public string ScheduleName {
     get => scheduleName;
@@ -61,8 +100,10 @@ public sealed class BellPeriodItemViewModel : INotifyPropertyChanged {
     set {
       if (periodName != value) {
         periodName = value;
+        editName = value;
         OnPropertyChanged();
         OnPropertyChanged(nameof(DisplayTitle));
+        OnPropertyChanged(nameof(EditName));
       }
     }
   }
@@ -72,8 +113,10 @@ public sealed class BellPeriodItemViewModel : INotifyPropertyChanged {
     set {
       if (startTime != value) {
         startTime = value;
+        editStartTime = value;
         OnPropertyChanged();
         OnPropertyChanged(nameof(DisplayTimeRange));
+        OnPropertyChanged(nameof(EditStartTime));
       }
     }
   }
@@ -83,8 +126,10 @@ public sealed class BellPeriodItemViewModel : INotifyPropertyChanged {
     set {
       if (endTime != value) {
         endTime = value;
+        editEndTime = value;
         OnPropertyChanged();
         OnPropertyChanged(nameof(DisplayTimeRange));
+        OnPropertyChanged(nameof(EditEndTime));
       }
     }
   }
@@ -192,13 +237,18 @@ public sealed class BellPeriodItemViewModel : INotifyPropertyChanged {
     : $"{ScheduleName} • {PeriodName}";
 
   public void StartEdit() {
+    EditName = PeriodName;
+    EditStartTime = StartTime;
+    EditEndTime = EndTime;
     IsEditing = true;
   }
 
   public void SaveEdit() {
-    if (string.IsNullOrWhiteSpace(PeriodName)) PeriodName = "Period";
-    if (string.IsNullOrWhiteSpace(ScheduleName)) ScheduleName = "Regular";
+    if (!string.IsNullOrWhiteSpace(EditName)) PeriodName = EditName.Trim();
+    if (!string.IsNullOrWhiteSpace(EditStartTime)) StartTime = EditStartTime.Trim();
+    if (!string.IsNullOrWhiteSpace(EditEndTime)) EndTime = EditEndTime.Trim();
     IsEditing = false;
+    onSaved?.Invoke();
   }
 
   public BellSchedulePeriod ToModel() => new(
@@ -307,6 +357,65 @@ public sealed class PolicyViewModel : INotifyPropertyChanged {
     private set { statusMessage = value; OnPropertyChanged(); }
   }
 
+  bool isEarliestFirst = true;
+
+  public bool IsEarliestFirst {
+    get => isEarliestFirst;
+    set {
+      if (isEarliestFirst != value) {
+        isEarliestFirst = value;
+        OnPropertyChanged();
+        OnPropertyChanged(nameof(SortOrderButtonText));
+        SortPeriods();
+      }
+    }
+  }
+
+  public string SortOrderButtonText => isEarliestFirst ? "Earliest First ▲" : "Latest First ▼";
+
+  public void ToggleSortOrder() {
+    IsEarliestFirst = !IsEarliestFirst;
+  }
+
+  public static int ParseTimeToMinutes(string time) {
+    if (string.IsNullOrWhiteSpace(time)) return int.MaxValue;
+    var trimmed = time.Trim();
+    if (DateTime.TryParse(trimmed, out var dt)) {
+      return dt.Hour * 60 + dt.Minute;
+    }
+    if (TimeOnly.TryParse(trimmed, out var to)) {
+      return to.Hour * 60 + to.Minute;
+    }
+    return int.MaxValue;
+  }
+
+  static int ExtractPeriodNumber(string name) {
+    if (string.IsNullOrWhiteSpace(name)) return int.MaxValue;
+    var digits = new string(name.Where(char.IsDigit).ToArray());
+    if (int.TryParse(digits, out var num)) return num;
+    return int.MaxValue;
+  }
+
+  public void SortPeriods() {
+    var list = Periods.ToList();
+    var sorted = isEarliestFirst
+      ? list.OrderBy(p => ParseTimeToMinutes(p.StartTime))
+            .ThenBy(p => ExtractPeriodNumber(p.PeriodName))
+            .ThenBy(p => p.PeriodName, StringComparer.OrdinalIgnoreCase)
+            .ToList()
+      : list.OrderByDescending(p => ParseTimeToMinutes(p.StartTime))
+            .ThenByDescending(p => ExtractPeriodNumber(p.PeriodName))
+            .ThenByDescending(p => p.PeriodName, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+    for (int i = 0; i < sorted.Count; i++) {
+      int oldIndex = Periods.IndexOf(sorted[i]);
+      if (oldIndex >= 0 && oldIndex != i) {
+        Periods.Move(oldIndex, i);
+      }
+    }
+  }
+
   public void PlayAlertSoundPreview() {
     SoundService.Play(AlertSound);
   }
@@ -325,8 +434,9 @@ public sealed class PolicyViewModel : INotifyPropertyChanged {
     var schedule = policyRepository.GetBellSchedule(profileId);
     Periods.Clear();
     foreach (var p in schedule) {
-      Periods.Add(new BellPeriodItemViewModel(p, isEditing: false));
+      Periods.Add(new BellPeriodItemViewModel(p, isEditing: false, onSaved: SortPeriods));
     }
+    SortPeriods();
     StatusMessage = "";
   }
 
@@ -334,6 +444,7 @@ public sealed class PolicyViewModel : INotifyPropertyChanged {
     foreach (var period in Periods) {
       if (period.IsEditing) period.SaveEdit();
     }
+    SortPeriods();
 
     var rule = new PolicyRule(
       RuleId: $"rule-{profileId}",
@@ -353,7 +464,7 @@ public sealed class PolicyViewModel : INotifyPropertyChanged {
   }
 
   public void AddPeriod(string profileId, string name, string start, string end) {
-    Periods.Add(new BellPeriodItemViewModel(new BellSchedulePeriod(
+    var period = new BellPeriodItemViewModel(new BellSchedulePeriod(
       ScheduleId: $"sched-{Guid.NewGuid():N}",
       ProfileId: profileId,
       PeriodName: name,
@@ -361,7 +472,9 @@ public sealed class PolicyViewModel : INotifyPropertyChanged {
       EndTime: end,
       DaysOfWeek: "Mon,Tue,Wed,Thu,Fri",
       ScheduleName: "Regular"
-    ), isEditing: true));
+    ), isEditing: true, onSaved: SortPeriods);
+    Periods.Add(period);
+    SortPeriods();
   }
 
   public void RemovePeriod(BellPeriodItemViewModel period) {

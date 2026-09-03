@@ -8,6 +8,7 @@ $toolsDir = Join-Path $ProjectRoot ".tools"
 $cliDir = Join-Path $toolsDir "arduino-cli"
 $cli = Join-Path $cliDir "arduino-cli.exe"
 $esp32Index = "https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json"
+$esp32Version = "3.3.11"
 
 Write-Host @"
 Hallzee firmware flasher
@@ -44,10 +45,30 @@ if (-not (Test-Path $cli)) {
 
 Write-Host "Installing the ESP32 board support and required libraries if needed…"
 & $cli core update-index --additional-urls $esp32Index
-& $cli core install esp32:esp32 --additional-urls $esp32Index
+& $cli core install "esp32:esp32@$esp32Version" --additional-urls $esp32Index
 & $cli lib install "Adafruit GFX Library" "Adafruit ST7735 and ST7789 Library" Keypad
 
-Write-Host "Building and flashing Hallzee to $Port…"
-& $cli compile --fqbn esp32:esp32:esp32 $ProjectRoot
-& $cli upload --fqbn esp32:esp32:esp32 --port $Port $ProjectRoot
-Write-Host "Done. The Hallzee firmware is now on the ESP32."
+# Arduino requires the sketch directory and its main .ino file to share a
+# basename. The repository name is intentionally independent of that file.
+$sketchFiles = @(Get-ChildItem -Path $ProjectRoot -Filter "*.ino" -File)
+if ($sketchFiles.Count -ne 1) {
+  throw "Expected exactly one .ino sketch in $ProjectRoot."
+}
+$sketchName = $sketchFiles[0].BaseName
+$stagingRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("hallzee-" + [guid]::NewGuid().ToString())
+$stagingSketch = Join-Path $stagingRoot $sketchName
+New-Item -ItemType Directory -Force -Path $stagingSketch | Out-Null
+Copy-Item -Path (Join-Path $ProjectRoot "*.ino") -Destination $stagingSketch
+Copy-Item -Path (Join-Path $ProjectRoot "*.h") -Destination $stagingSketch
+Copy-Item -Path (Join-Path $ProjectRoot "*.cpp") -Destination $stagingSketch
+
+try {
+  Write-Host "Building and flashing Hallzee to $Port…"
+  & $cli compile --fqbn esp32:esp32:esp32 $stagingSketch
+  & $cli upload --fqbn esp32:esp32:esp32 --port $Port $stagingSketch
+  Write-Host "Done. The Hallzee firmware is now on the ESP32."
+} finally {
+  if (Test-Path $stagingRoot) {
+    Remove-Item -Recurse -Force $stagingRoot
+  }
+}

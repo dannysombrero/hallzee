@@ -134,12 +134,19 @@ address-type fallback before establishing GATT subscriptions.
 
 ### Firmware and display behavior
 
-Install the ESP32 Arduino core plus the Adafruit GFX, Adafruit ST7735/ST7789,
-and Keypad libraries. From the repository root, build the firmware with:
+The firmware is pinned to ESP32 Arduino core `3.3.11` and uses the Adafruit GFX,
+Adafruit ST7735/ST7789, and Keypad libraries. From the repository root, compile
+and flash with the platform script (the script stages the Arduino sketch under
+the required matching folder and `.ino` name):
 
 ```sh
-arduino-cli compile --fqbn esp32:esp32:esp32 .
+bash scripts/flash-terminal-macos.sh
 ```
+
+On Windows, use
+`powershell -ExecutionPolicy Bypass -File scripts/flash-terminal-windows.ps1`.
+Pass `-Port COM5` when more than one serial device is attached. CI performs a
+compile-only check without flashing.
 
 At power-on, the terminal shows the centered Hallzee logo briefly before the
 date/time setup screen.
@@ -151,16 +158,22 @@ or use the Wokwi setup described in [WOKWI.md](../WOKWI.md).
 
 Use a Mac or Windows PC to test actual Bluetooth behavior. Install the .NET 8 SDK (along with Xcode if on Mac as documented above), make
 sure the ESP32 terminal is powered on, then use the desktop app to find and
-sync `Hallzee`. BLE discovery and sync do not require a pairing PIN.
+sync `Hallzee-XXXX`. Initial ownership requires holding `*` and `#` on an
+unclaimed, unoccupied terminal for five seconds and entering the displayed
+Bluetooth passkey and app claim code. Do not treat the advertised name or BLE
+address as proof of terminal identity.
 
 Before calling a Windows change complete, check:
 
 1. The terminal can be found within five seconds.
-2. The client subscribes and receives `HALLZEE_READY,1`.
-3. A second sync with no new trips completes without replaying history.
-4. A sync with new trips transfers only IDs after the local durable cursor.
-5. Disconnecting mid-transfer and reconnecting produces one durable copy.
-6. Powering the kiosk off clears the client status; Find terminal works after it returns.
+2. The client subscribes, receives `IDENTITY,2`, and displays the terminal suffix.
+3. On a new terminal, the client cannot sync until the physical claim flow
+   completes and then reconnects using `AUTH_OK,2`.
+4. A second sync with no new trips completes without replaying history.
+5. A sync with new trips transfers only IDs after the local durable cursor.
+6. Disconnecting mid-transfer and reconnecting produces one durable copy.
+7. A second BLE central is rejected while the authorized client remains connected.
+8. Powering the kiosk off clears the client status; Find terminal works after it returns.
 
 ### Verify policy rules and bell schedule editing
 

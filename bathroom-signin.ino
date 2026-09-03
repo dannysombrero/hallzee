@@ -12,6 +12,8 @@
 #include "MonotonicClock.h"
 #include "St7735DisplayPort.h"
 #include "StudentIdPolicy.h"
+#include "TerminalIdentity.h"
+#include "TerminalSecurity.h"
 #include "TerminalDisplay.h"
 #include "TerminalController.h"
 #include "TimeProvider.h"
@@ -57,6 +59,8 @@ ArduinoBluetoothSerialPort bluetoothSerial;
 SystemTimeProvider systemTime;
 TerminalController terminal(tripStorage, systemTime);
 ClockService terminalClock;
+TerminalIdentity terminalIdentity;
+TerminalSecurity terminalSecurity(terminalIdentity);
 
 void setSystemClock24(
   int year,
@@ -71,6 +75,8 @@ bool getActivePassState(String &activeId, uint32_t &checkoutEpoch);
 uint8_t getActivePassStates(ActiveCheckout *checkouts, uint8_t maximum);
 bool manualCheckInFromDesktop(const String &studentId);
 bool setActivePassCapacity(uint8_t capacity);
+bool isPairingAllowed();
+void startPairingMode();
 
 void drawStartupLogo();
 
@@ -82,7 +88,9 @@ BluetoothSync bluetoothSync(
   getActivePassState,
   manualCheckInFromDesktop,
   getActivePassStates,
-  setActivePassCapacity
+  setActivePassCapacity,
+  &terminalIdentity,
+  &terminalSecurity
 );
 
 String enteredID = "";
@@ -114,6 +122,26 @@ void handleSingleStar();
 void handleSingleHash();
 void resetCurrentCheckout();
 
+bool pairingUiActive = false;
+
+bool isPairingAllowed() {
+  return !terminal.hasActivePass() && !terminalSecurity.hasOwner();
+}
+
+void startPairingMode() {
+  if (!isPairingAllowed() ||
+      !terminalSecurity.startClaimMode(monotonicClock.milliseconds())) {
+    return;
+  }
+  bluetoothSerial.setPairingPasskey(terminalSecurity.pairingPasskey());
+  pairingUiActive = true;
+  terminalDisplay.showPairing(
+    terminalIdentity.terminalSuffix(),
+    terminalSecurity.claimKey(),
+    terminalSecurity.pairingPasskey()
+  );
+}
+
 bool isSetupMode() {
   return setupMode;
 }
@@ -131,7 +159,9 @@ KeypadController keypadController(
   handleNormalNumber,
   handleSingleStar,
   handleSingleHash,
-  resetCurrentCheckout
+  resetCurrentCheckout,
+  isPairingAllowed,
+  startPairingMode
 );
 
 void setSystemClock24(
@@ -776,6 +806,10 @@ void setup() {
     "Hallzee Starting..."
   );
 
+  if (!terminalIdentity.begin() || !terminalSecurity.begin()) {
+    Serial.println("ERROR: terminal identity/security storage unavailable.");
+  }
+
   bluetoothSync.begin();
 
   // Storage owns NVS and LittleFS, then restores an active pass before clock
@@ -846,6 +880,16 @@ void loop() {
 
   // Bluetooth is passive in Phase 3; it must never block student workflow.
   bluetoothSync.poll();
+
+  if (pairingUiActive && terminalSecurity.hasOwner()) {
+    pairingUiActive = false;
+    terminalDisplay.showPairingComplete(terminalIdentity.terminalSuffix());
+    drawIdleScreen();
+  } else if (pairingUiActive &&
+             !terminalSecurity.claimModeActive(monotonicClock.milliseconds())) {
+    pairingUiActive = false;
+    drawIdleScreen();
+  }
 
   if (setupMode) {
     return;

@@ -22,6 +22,10 @@ public interface ITerminalRepository {
   TerminalDeviceConfig? GetTerminal(string terminalId);
   void SaveTerminal(TerminalDeviceConfig terminal);
   void DeleteTerminal(string terminalId);
+  string GetOrCreateClientId();
+  void SaveTerminalTransport(string terminalId, string transportId, DateTime lastSeenAt);
+  void AssignTerminalToProfile(string profileId, string terminalId);
+  string? GetAssignedTerminalId(string profileId);
 }
 
 public sealed class ProfileAndPolicySqliteRepository : IProfileRepository, IPolicyRepository, ITerminalRepository {
@@ -260,7 +264,7 @@ public sealed class ProfileAndPolicySqliteRepository : IProfileRepository, IPoli
   public IReadOnlyList<TerminalDeviceConfig> GetAllTerminals() {
     using var connection = OpenConnection();
     using var command = connection.CreateCommand();
-    command.CommandText = "SELECT terminal_id, custom_name, ble_address, last_seen_at, max_id_length FROM terminals ORDER BY custom_name ASC;";
+    command.CommandText = "SELECT terminal_id, custom_name, transport_id, ble_address, protocol_version, claim_status, last_seen_at, max_id_length FROM terminals ORDER BY custom_name ASC;";
 
     var list = new List<TerminalDeviceConfig>();
     using var reader = command.ExecuteReader();
@@ -273,7 +277,7 @@ public sealed class ProfileAndPolicySqliteRepository : IProfileRepository, IPoli
   public TerminalDeviceConfig? GetTerminal(string terminalId) {
     using var connection = OpenConnection();
     using var command = connection.CreateCommand();
-    command.CommandText = "SELECT terminal_id, custom_name, ble_address, last_seen_at, max_id_length FROM terminals WHERE terminal_id = $id LIMIT 1;";
+    command.CommandText = "SELECT terminal_id, custom_name, transport_id, ble_address, protocol_version, claim_status, last_seen_at, max_id_length FROM terminals WHERE terminal_id = $id LIMIT 1;";
     command.Parameters.AddWithValue("$id", terminalId);
 
     using var reader = command.ExecuteReader();
@@ -284,17 +288,23 @@ public sealed class ProfileAndPolicySqliteRepository : IProfileRepository, IPoli
     using var connection = OpenConnection();
     using var command = connection.CreateCommand();
     command.CommandText = """
-      INSERT INTO terminals (terminal_id, custom_name, ble_address, last_seen_at, max_id_length)
-      VALUES ($id, $name, $addr, $lastSeen, $maxLen)
+      INSERT INTO terminals (terminal_id, custom_name, transport_id, ble_address, protocol_version, claim_status, last_seen_at, max_id_length)
+      VALUES ($id, $name, $transportId, $addr, $protocolVersion, $claimStatus, $lastSeen, $maxLen)
       ON CONFLICT(terminal_id) DO UPDATE SET
         custom_name = excluded.custom_name,
+        transport_id = excluded.transport_id,
         ble_address = excluded.ble_address,
+        protocol_version = excluded.protocol_version,
+        claim_status = excluded.claim_status,
         last_seen_at = excluded.last_seen_at,
         max_id_length = excluded.max_id_length;
       """;
     command.Parameters.AddWithValue("$id", terminal.TerminalId);
     command.Parameters.AddWithValue("$name", terminal.CustomName);
+    command.Parameters.AddWithValue("$transportId", (object?)terminal.TransportId ?? DBNull.Value);
     command.Parameters.AddWithValue("$addr", (object?)terminal.BleAddress ?? DBNull.Value);
+    command.Parameters.AddWithValue("$protocolVersion", terminal.ProtocolVersion);
+    command.Parameters.AddWithValue("$claimStatus", terminal.ClaimStatus);
     command.Parameters.AddWithValue("$lastSeen", terminal.LastSeenAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? (object)DBNull.Value);
     command.Parameters.AddWithValue("$maxLen", terminal.MaxIdLength);
     command.ExecuteNonQuery();
@@ -306,6 +316,65 @@ public sealed class ProfileAndPolicySqliteRepository : IProfileRepository, IPoli
     command.CommandText = "DELETE FROM terminals WHERE terminal_id = $id;";
     command.Parameters.AddWithValue("$id", terminalId);
     command.ExecuteNonQuery();
+  }
+
+  public string GetOrCreateClientId() {
+    using var connection = OpenConnection();
+    using (var read = connection.CreateCommand()) {
+      read.CommandText = "SELECT client_id FROM client_installation WHERE singleton = 1 LIMIT 1;";
+      var existing = read.ExecuteScalar() as string;
+      if (!string.IsNullOrWhiteSpace(existing)) return existing;
+    }
+
+    var clientId = Guid.NewGuid().ToString("D").ToUpperInvariant();
+    using var insert = connection.CreateCommand();
+    insert.CommandText = """
+      INSERT OR IGNORE INTO client_installation (singleton, client_id, created_at)
+      VALUES (1, $clientId, datetime('now'));
+      """;
+    insert.Parameters.AddWithValue("$clientId", clientId);
+    insert.ExecuteNonQuery();
+
+    using var reread = connection.CreateCommand();
+    reread.CommandText = "SELECT client_id FROM client_installation WHERE singleton = 1 LIMIT 1;";
+    return (string?)reread.ExecuteScalar() ?? clientId;
+  }
+
+  public void SaveTerminalTransport(string terminalId, string transportId, DateTime lastSeenAt) {
+    using var connection = OpenConnection();
+    using var command = connection.CreateCommand();
+    command.CommandText = """
+      UPDATE terminals
+      SET transport_id = $transportId, last_seen_at = $lastSeenAt
+      WHERE terminal_id = $terminalId;
+      """;
+    command.Parameters.AddWithValue("$terminalId", terminalId);
+    command.Parameters.AddWithValue("$transportId", transportId);
+    command.Parameters.AddWithValue("$lastSeenAt", lastSeenAt.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss"));
+    command.ExecuteNonQuery();
+  }
+
+  public void AssignTerminalToProfile(string profileId, string terminalId) {
+    using var connection = OpenConnection();
+    using var command = connection.CreateCommand();
+    command.CommandText = """
+      INSERT INTO profile_terminal_assignments (profile_id, terminal_id, assigned_at)
+      VALUES ($profileId, $terminalId, datetime('now'))
+      ON CONFLICT(profile_id) DO UPDATE SET
+        terminal_id = excluded.terminal_id,
+        assigned_at = excluded.assigned_at;
+      """;
+    command.Parameters.AddWithValue("$profileId", profileId);
+    command.Parameters.AddWithValue("$terminalId", terminalId);
+    command.ExecuteNonQuery();
+  }
+
+  public string? GetAssignedTerminalId(string profileId) {
+    using var connection = OpenConnection();
+    using var command = connection.CreateCommand();
+    command.CommandText = "SELECT terminal_id FROM profile_terminal_assignments WHERE profile_id = $profileId LIMIT 1;";
+    command.Parameters.AddWithValue("$profileId", profileId);
+    return command.ExecuteScalar() as string;
   }
 
   static ClassroomProfile ReadProfile(SqliteDataReader reader) {
@@ -330,9 +399,12 @@ public sealed class ProfileAndPolicySqliteRepository : IProfileRepository, IPoli
   static TerminalDeviceConfig ReadTerminal(SqliteDataReader reader) {
     var id = reader.GetString(0);
     var name = reader.GetString(1);
-    var addr = reader.IsDBNull(2) ? null : reader.GetString(2);
-    var lastSeenStr = reader.IsDBNull(3) ? null : reader.GetString(3);
-    var maxLen = reader.IsDBNull(4) ? 10 : reader.GetInt32(4);
+    var transportId = reader.IsDBNull(2) ? null : reader.GetString(2);
+    var addr = reader.IsDBNull(3) ? null : reader.GetString(3);
+    var protocolVersion = reader.IsDBNull(4) ? 1 : reader.GetInt32(4);
+    var claimStatus = reader.IsDBNull(5) ? "UNKNOWN" : reader.GetString(5);
+    var lastSeenStr = reader.IsDBNull(6) ? null : reader.GetString(6);
+    var maxLen = reader.IsDBNull(7) ? 10 : reader.GetInt32(7);
 
     DateTime? lastSeen = DateTime.TryParse(lastSeenStr, out var ls) ? ls : null;
 
@@ -341,7 +413,10 @@ public sealed class ProfileAndPolicySqliteRepository : IProfileRepository, IPoli
       CustomName: name,
       BleAddress: addr,
       LastSeenAt: lastSeen,
-      MaxIdLength: maxLen
+      MaxIdLength: maxLen,
+      ProtocolVersion: protocolVersion,
+      ClaimStatus: claimStatus,
+      TransportId: transportId
     );
   }
 

@@ -3,7 +3,7 @@ using Microsoft.Data.Sqlite;
 namespace BathroomSync.Core;
 
 public static class DatabaseMigrator {
-  public const int CurrentSchemaVersion = 3;
+  public const int CurrentSchemaVersion = 4;
 
   public static void Migrate(SqliteConnection connection) {
     EnsureMigrationTable(connection);
@@ -17,6 +17,9 @@ public static class DatabaseMigrator {
     }
     if (currentVersion < 3) {
       ApplyMigration3(connection);
+    }
+    if (currentVersion < 4) {
+      ApplyMigration4(connection);
     }
   }
 
@@ -201,6 +204,117 @@ public static class DatabaseMigrator {
       }
       command.CommandText = "INSERT OR REPLACE INTO schema_migrations (version, applied_at, description) VALUES (3, datetime('now'), 'Bell-window policies, sounds, and named schedules');";
       command.ExecuteNonQuery();
+      transaction.Commit();
+    } catch {
+      transaction.Rollback();
+      throw;
+    }
+  }
+
+  static void ApplyMigration4(SqliteConnection connection) {
+    using var transaction = connection.BeginTransaction();
+    try {
+      using (var command = connection.CreateCommand()) {
+        command.Transaction = transaction;
+        command.CommandText = """
+          CREATE TABLE IF NOT EXISTS terminals_v4 (
+            terminal_id TEXT PRIMARY KEY,
+            custom_name TEXT NOT NULL,
+            transport_id TEXT,
+            ble_address TEXT,
+            protocol_version INTEGER NOT NULL DEFAULT 2,
+            claim_status TEXT NOT NULL DEFAULT 'UNKNOWN',
+            last_seen_at TEXT,
+            max_id_length INTEGER NOT NULL DEFAULT 10
+          );
+
+          INSERT OR IGNORE INTO terminals_v4
+            (terminal_id, custom_name, transport_id, ble_address, protocol_version, claim_status, last_seen_at, max_id_length)
+          SELECT terminal_id, custom_name, NULL, ble_address, 1, 'LEGACY', last_seen_at, COALESCE(max_id_length, 10)
+          FROM terminals;
+
+          INSERT OR IGNORE INTO terminals_v4
+            (terminal_id, custom_name, protocol_version, claim_status, max_id_length)
+          VALUES ('LEGACY-DEFAULT', 'Legacy imported trips', 1, 'LEGACY', 10);
+
+          DROP TABLE terminals;
+          ALTER TABLE terminals_v4 RENAME TO terminals;
+
+          CREATE INDEX IF NOT EXISTS idx_terminals_transport_id ON terminals(transport_id);
+          """;
+        command.ExecuteNonQuery();
+      }
+
+      var tripColumns = GetColumnNames(connection, transaction, "trips");
+      if (!tripColumns.Contains("terminal_id")) {
+        using var addTerminalId = connection.CreateCommand();
+        addTerminalId.Transaction = transaction;
+        addTerminalId.CommandText = "ALTER TABLE trips ADD COLUMN terminal_id TEXT NOT NULL DEFAULT 'LEGACY-DEFAULT';";
+        addTerminalId.ExecuteNonQuery();
+      }
+
+      using (var command = connection.CreateCommand()) {
+        command.Transaction = transaction;
+        command.CommandText = """
+          CREATE TABLE trips_v4 (
+            terminal_id TEXT NOT NULL,
+            trip_id INTEGER NOT NULL,
+            student_id TEXT NOT NULL,
+            trip_date TEXT NOT NULL,
+            time_out TEXT NOT NULL,
+            time_in TEXT NOT NULL,
+            duration_seconds TEXT NOT NULL,
+            status TEXT NOT NULL,
+            synced_at TEXT NOT NULL,
+            PRIMARY KEY (terminal_id, trip_id)
+          );
+
+          INSERT OR IGNORE INTO trips_v4
+            (terminal_id, trip_id, student_id, trip_date, time_out, time_in, duration_seconds, status, synced_at)
+          SELECT
+            CASE
+              WHEN terminal_id IS NULL OR trim(terminal_id) = '' OR terminal_id = 'DEFAULT'
+              THEN 'LEGACY-DEFAULT'
+              ELSE terminal_id
+            END,
+            trip_id,
+            student_id,
+            trip_date,
+            time_out,
+            time_in,
+            duration_seconds,
+            status,
+            COALESCE(NULLIF(synced_at, ''), datetime('now'))
+          FROM trips;
+
+          DROP TABLE trips;
+          ALTER TABLE trips_v4 RENAME TO trips;
+          CREATE INDEX IF NOT EXISTS idx_trips_date ON trips(trip_date);
+          CREATE INDEX IF NOT EXISTS idx_trips_student ON trips(student_id);
+          CREATE INDEX IF NOT EXISTS idx_trips_terminal_id ON trips(terminal_id);
+
+          CREATE TABLE IF NOT EXISTS client_installation (
+            singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+            client_id TEXT NOT NULL UNIQUE,
+            created_at TEXT NOT NULL
+          );
+
+          CREATE TABLE IF NOT EXISTS profile_terminal_assignments (
+            profile_id TEXT PRIMARY KEY,
+            terminal_id TEXT NOT NULL,
+            assigned_at TEXT NOT NULL,
+            FOREIGN KEY (profile_id) REFERENCES profiles(profile_id) ON DELETE CASCADE,
+            FOREIGN KEY (terminal_id) REFERENCES terminals(terminal_id) ON DELETE RESTRICT
+          );
+          CREATE INDEX IF NOT EXISTS idx_profile_terminal_terminal
+            ON profile_terminal_assignments(terminal_id);
+
+          INSERT OR REPLACE INTO schema_migrations (version, applied_at, description)
+          VALUES (4, datetime('now'), 'Stable terminal identity, exclusive claim metadata, and terminal-scoped trips');
+          """;
+        command.ExecuteNonQuery();
+      }
+
       transaction.Commit();
     } catch {
       transaction.Rollback();

@@ -121,6 +121,19 @@ public sealed class SyncSessionTests {
   }
 
   [Fact]
+  public void TerminalScopedSessionStoresIncomingTripsUnderAuthenticatedIdentity() {
+    var repository = new RecordingRepository();
+    var session = new SyncSession(repository);
+    session.Start("HZ-A1B2C3D4E5F6");
+
+    var update = session.ProcessReceivedData(
+      "TRIP,7,10482,2026-09-02,09:00:00,09:06:00,360,COMPLETE\n");
+
+    Assert.Equal(new[] { "ACK,7" }, update.OutboundCommands);
+    Assert.Equal("HZ-A1B2C3D4E5F6", repository.StoredTerminalIds.Single());
+  }
+
+  [Fact]
   public void RepositoryImportsLegacyCsvAndExportsSortedRecords() {
     var folder = Path.Combine(Path.GetTempPath(), "BathroomSyncTests", Guid.NewGuid().ToString("N"));
     var csv = Path.Combine(folder, "trips.csv");
@@ -177,6 +190,7 @@ public sealed class SyncSessionTests {
   sealed class RecordingRepository : ITripRepository {
     readonly HashSet<string> ids = new();
     public List<string> StoredPayloads { get; } = new();
+    public List<string> StoredTerminalIds { get; } = new();
 
     public TripStoreResult Store(string payload) {
       var separator = payload.IndexOf(',');
@@ -187,9 +201,18 @@ public sealed class SyncSessionTests {
       StoredPayloads.Add(payload);
       return TripStoreResult.Saved;
     }
+
+    public TripStoreResult Store(string terminalId, string payload) {
+      var result = Store(payload);
+      if (result is TripStoreResult.Saved or TripStoreResult.Duplicate) {
+        StoredTerminalIds.Add(terminalId);
+      }
+      return result;
+    }
   }
 
   sealed class UnavailableRepository : ITripRepository {
     public TripStoreResult Store(string payload) => TripStoreResult.Unavailable;
+    public TripStoreResult Store(string terminalId, string payload) => TripStoreResult.Unavailable;
   }
 }

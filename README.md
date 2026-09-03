@@ -53,11 +53,17 @@ available. Install the ESP32 Arduino core and these libraries:
 - Adafruit ST7735 and ST7789 Library
 - Keypad
 
-Compile from the repository root:
+Use the repository flasher so the Arduino sketch is staged with the required
+matching folder and `.ino` names:
 
 ```sh
-arduino-cli compile --fqbn esp32:esp32:esp32 .
+bash scripts/flash-terminal-macos.sh /dev/cu.usbserial-XXXX
 ```
+
+The supported firmware build uses the `esp32:esp32` Arduino core version
+3.3.11. The Windows equivalent is
+`scripts/flash-terminal-windows.ps1 -Port COM5`; both scripts install the
+board package and libraries when needed.
 
 Upload only after selecting the correct board and serial port for the physical
 terminal. The terminal starts by asking for the local date and time; this is
@@ -72,15 +78,19 @@ also set automatically when the receiver sends a valid `TIME` command.
 - Press `*` to clear the in-progress ID.
 - Hold `*` and `#` together for two seconds to record a manual reset of an
   occupied pass.
+- When the terminal is unoccupied and unclaimed, hold `*` and `#` for five
+  seconds to show the physical claim code and Bluetooth passkey. This is the
+  only way to start ownership claim.
 - Enter `1234#` to set the terminal clock manually.
 - Enter `9999#` to show the local trip-log summary.
 - Send `p` or `P` over USB Serial Monitor to print the stored trip log.
 
 ## Desktop sync
 
-The desktop transport is Bluetooth Low Energy GATT. On Windows, the published .NET 8
-WinForms receiver scans for Hallzee's service UUID, subscribes to notifications,
-and synchronizes directly without a COM port or pairing PIN. Normal syncs use
+The desktop transport is Bluetooth Low Energy GATT. The terminal advertises a
+stable suffix, requires Secure Connections/MITM pairing, and allows one active
+central. The receiver identifies the terminal through the v2 handshake and
+authorizes it with the installation's owner credential. Normal syncs use
 the latest trip ID durably stored in the local SQLite database, so only newer
 records are transferred. Full history remains an explicit recovery operation.
 
@@ -89,10 +99,11 @@ See [Bluetooth protocol](docs/bluetooth-protocol.md) and
 
 ## Validation
 
-For each firmware change, run:
+For each firmware change, compile using the staged flasher or the CI workflow.
+The repository folder is not itself a valid Arduino sketch directory; use:
 
 ```sh
-arduino-cli compile --fqbn esp32:esp32:esp32 .
+bash scripts/flash-terminal-macos.sh
 ```
 
 Run the deterministic native test suite and its coverage report with:

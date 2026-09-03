@@ -1,0 +1,363 @@
+#include "TerminalSecurity.h"
+
+#include <esp_system.h>
+#include <mbedtls/hkdf.h>
+#include <mbedtls/md.h>
+
+namespace {
+constexpr char OWNER_NAMESPACE[] = "hallzee_owner";
+constexpr char OWNER_CLIENT_KEY[] = "client_id";
+constexpr char OWNER_KEY_KEY[] = "owner_key";
+constexpr char CLAIM_ALPHABET[] = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+}
+
+TerminalSecurity::TerminalSecurity(TerminalIdentity &identity)
+  : identity(identity) {}
+
+bool TerminalSecurity::begin() {
+  if (!preferences.begin(OWNER_NAMESPACE, false)) return false;
+  ownerClientId = preferences.getString(OWNER_CLIENT_KEY, "");
+  const size_t storedLength = preferences.getBytesLength(OWNER_KEY_KEY);
+  if (ownerClientId.length() == 0 || storedLength != OWNER_KEY_BYTES) {
+    ownerClientId = "";
+    memset(ownerKey, 0, sizeof(ownerKey));
+    return true;
+  }
+
+  if (preferences.getBytes(OWNER_KEY_KEY, ownerKey, OWNER_KEY_BYTES) != OWNER_KEY_BYTES) {
+    ownerClientId = "";
+    memset(ownerKey, 0, sizeof(ownerKey));
+  }
+  return true;
+}
+
+bool TerminalSecurity::startClaimMode(unsigned long now) {
+  if (hasOwner()) return false;
+  pendingClaimKey = randomClaimKey();
+  pendingPasskey = 100000 + (esp_random() % 900000);
+  claimModeStarted = now;
+  claimFailures = 0;
+  pendingClaim = false;
+  memset(pendingOwnerKey, 0, sizeof(pendingOwnerKey));
+  claimMode = true;
+  return true;
+}
+
+void TerminalSecurity::stopClaimMode() {
+  claimMode = false;
+  claimModeStarted = 0;
+  claimFailures = 0;
+  pendingClaimKey = "";
+  pendingPasskey = 0;
+  handshakeNonce = "";
+  clearPendingClaim();
+}
+
+bool TerminalSecurity::claimModeActive(unsigned long now) const {
+  return claimMode && !hasOwner() &&
+         static_cast<unsigned long>(now - claimModeStarted) < CLAIM_WINDOW_MS;
+}
+
+bool TerminalSecurity::beginHandshake(String &nonce) {
+  authorized = false;
+  sessionClientId = "";
+  clearPendingClaim();
+  handshakeNonce = randomHex(NONCE_BYTES);
+  nonce = handshakeNonce;
+  return nonce.length() == NONCE_BYTES * 2;
+}
+
+bool TerminalSecurity::acceptClaim(
+  const String &clientId,
+  const String &proof,
+  const String &claimNonce,
+  String &nextCommitNonce
+) {
+  nextCommitNonce = "";
+  if (hasOwner() || !claimModeActive(millis()) || pendingClaim ||
+      claimNonce != handshakeNonce) {
+    return false;
+  }
+
+  const String normalizedClientId = normalizeClientId(clientId);
+  if (normalizedClientId.length() == 0 || !isValidHex(proof, 64)) return false;
+
+  String expected;
+  const String message = claimMessage(
+    identity.terminalId(), normalizedClientId, claimNonce);
+  if (!computeHmacHex(
+        reinterpret_cast<const uint8_t *>(pendingClaimKey.c_str()),
+        pendingClaimKey.length(),
+        message,
+        expected) ||
+      !constantTimeHexEquals(expected, proof)) {
+    claimFailures++;
+    handshakeNonce = "";
+    if (claimFailures >= MAX_CLAIM_FAILURES) stopClaimMode();
+    return false;
+  }
+
+  if (!deriveOwnerKey(
+        pendingClaimKey, identity.terminalId(), normalizedClientId, pendingOwnerKey)) {
+    return false;
+  }
+
+  pendingClientId = normalizedClientId;
+  commitNonce = randomHex(NONCE_BYTES);
+  handshakeNonce = "";
+  pendingClaim = true;
+  nextCommitNonce = commitNonce;
+  return true;
+}
+
+bool TerminalSecurity::commitClaim(
+  const String &clientId,
+  const String &proof,
+  const String &requestedCommitNonce
+) {
+  if (!pendingClaim || requestedCommitNonce != commitNonce ||
+      normalizeClientId(clientId) != pendingClientId ||
+      !isValidHex(proof, 64)) {
+    clearPendingClaim();
+    return false;
+  }
+
+  String expected;
+  const String message = authMessage(
+    identity.terminalId(), pendingClientId, requestedCommitNonce);
+  if (!computeHmacHex(pendingOwnerKey, OWNER_KEY_BYTES, message, expected) ||
+      !constantTimeHexEquals(expected, proof)) {
+    clearPendingClaim();
+    return false;
+  }
+
+  if (!persistOwner(pendingClientId, pendingOwnerKey)) {
+    clearPendingClaim();
+    return false;
+  }
+
+  ownerClientId = pendingClientId;
+  memcpy(ownerKey, pendingOwnerKey, OWNER_KEY_BYTES);
+  sessionClientId = ownerClientId;
+  authorized = true;
+  stopClaimMode();
+  return true;
+}
+
+bool TerminalSecurity::acceptAuth(
+  const String &clientId,
+  const String &proof,
+  const String &authNonce
+) {
+  const String normalizedClientId = normalizeClientId(clientId);
+  if (!hasOwner() || normalizedClientId != ownerClientId ||
+      authNonce != handshakeNonce || !isValidHex(proof, 64)) {
+    return false;
+  }
+
+  String expected;
+  const String message = authMessage(
+    identity.terminalId(), normalizedClientId, authNonce);
+  if (!computeHmacHex(ownerKey, OWNER_KEY_BYTES, message, expected) ||
+      !constantTimeHexEquals(expected, proof)) {
+    handshakeNonce = "";
+    return false;
+  }
+
+  handshakeNonce = "";
+  sessionClientId = normalizedClientId;
+  authorized = true;
+  return true;
+}
+
+void TerminalSecurity::clearSession() {
+  authorized = false;
+  sessionClientId = "";
+  handshakeNonce = "";
+  clearPendingClaim();
+}
+
+bool TerminalSecurity::resetOwner() {
+  if (hasOwner() &&
+      (preferences.remove(OWNER_CLIENT_KEY) == 0 ||
+       preferences.remove(OWNER_KEY_KEY) == 0)) {
+    return false;
+  }
+  ownerClientId = "";
+  memset(ownerKey, 0, sizeof(ownerKey));
+  stopClaimMode();
+  clearSession();
+  return true;
+}
+
+String TerminalSecurity::randomHex(uint8_t byteCount) {
+  uint8_t bytes[NONCE_BYTES] = {};
+  if (byteCount > sizeof(bytes)) return "";
+  esp_fill_random(bytes, byteCount);
+  String output;
+  output.reserve(byteCount * 2);
+  for (uint8_t index = 0; index < byteCount; index++) {
+    if (bytes[index] < 16) output += "0";
+    output += String(bytes[index], HEX);
+  }
+  output.toUpperCase();
+  return output;
+}
+
+String TerminalSecurity::randomClaimKey() {
+  uint8_t bytes[CLAIM_KEY_CHARS] = {};
+  esp_fill_random(bytes, sizeof(bytes));
+  String output;
+  output.reserve(CLAIM_KEY_CHARS);
+  for (uint8_t index = 0; index < CLAIM_KEY_CHARS; index++) {
+    output += CLAIM_ALPHABET[bytes[index] & 31];
+  }
+  return output;
+}
+
+String TerminalSecurity::normalizeClientId(const String &clientId) {
+  String normalized = clientId;
+  normalized.trim();
+  normalized.toUpperCase();
+  if (normalized.length() != 36) return "";
+  for (unsigned int index = 0; index < normalized.length(); index++) {
+    const char character = normalized.charAt(index);
+    const bool hyphenPosition =
+      index == 8 || index == 13 || index == 18 || index == 23;
+    if (hyphenPosition) {
+      if (character != '-') return "";
+    } else if (!((character >= '0' && character <= '9') ||
+                 (character >= 'A' && character <= 'F'))) {
+      return "";
+    }
+  }
+  return normalized;
+}
+
+String TerminalSecurity::normalizeClaimKey(const String &claimKey) {
+  String normalized = claimKey;
+  normalized.replace("-", "");
+  normalized.trim();
+  normalized.toUpperCase();
+  if (normalized.length() != CLAIM_KEY_CHARS) return "";
+  for (unsigned int index = 0; index < normalized.length(); index++) {
+    if (strchr(CLAIM_ALPHABET, normalized.charAt(index)) == nullptr) return "";
+  }
+  return normalized;
+}
+
+bool TerminalSecurity::isValidHex(const String &value, size_t expectedLength) {
+  if (value.length() != expectedLength) return false;
+  for (unsigned int index = 0; index < value.length(); index++) {
+    const char character = value.charAt(index);
+    if (!((character >= '0' && character <= '9') ||
+          (character >= 'a' && character <= 'f') ||
+          (character >= 'A' && character <= 'F'))) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool TerminalSecurity::constantTimeHexEquals(
+  const String &expected,
+  const String &actual
+) {
+  if (!isValidHex(expected, 64) || !isValidHex(actual, 64)) return false;
+  uint8_t difference = 0;
+  for (unsigned int index = 0; index < 64; index++) {
+    char expectedCharacter = expected.charAt(index);
+    char actualCharacter = actual.charAt(index);
+    if (expectedCharacter >= 'a' && expectedCharacter <= 'f') {
+      expectedCharacter -= 'a' - 'A';
+    }
+    if (actualCharacter >= 'a' && actualCharacter <= 'f') {
+      actualCharacter -= 'a' - 'A';
+    }
+    difference |= static_cast<uint8_t>(expectedCharacter ^ actualCharacter);
+  }
+  return difference == 0;
+}
+
+bool TerminalSecurity::computeHmacHex(
+  const uint8_t *key,
+  size_t keyLength,
+  const String &message,
+  String &output
+) {
+  const mbedtls_md_info_t *mdInfo = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
+  if (mdInfo == nullptr) return false;
+
+  uint8_t digest[32] = {};
+  if (mbedtls_md_hmac(
+        mdInfo,
+        key,
+        keyLength,
+        reinterpret_cast<const uint8_t *>(message.c_str()),
+        message.length(),
+        digest) != 0) {
+    return false;
+  }
+  output = "";
+  output.reserve(64);
+  for (uint8_t index = 0; index < sizeof(digest); index++) {
+    if (digest[index] < 16) output += "0";
+    output += String(digest[index], HEX);
+  }
+  output.toUpperCase();
+  return true;
+}
+
+bool TerminalSecurity::deriveOwnerKey(
+  const String &claimKey,
+  const String &terminalId,
+  const String &clientId,
+  uint8_t *output
+) {
+  const String normalizedClaimKey = normalizeClaimKey(claimKey);
+  if (normalizedClaimKey.length() == 0 || output == nullptr) return false;
+  const mbedtls_md_info_t *mdInfo = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
+  if (mdInfo == nullptr) return false;
+
+  const String info = String("Hallzee owner v2|") + clientId;
+  return mbedtls_hkdf(
+    mdInfo,
+    reinterpret_cast<const uint8_t *>(terminalId.c_str()),
+    terminalId.length(),
+    reinterpret_cast<const uint8_t *>(normalizedClaimKey.c_str()),
+    normalizedClaimKey.length(),
+    reinterpret_cast<const uint8_t *>(info.c_str()),
+    info.length(),
+    output,
+    OWNER_KEY_BYTES
+  ) == 0;
+}
+
+String TerminalSecurity::claimMessage(
+  const String &terminalId,
+  const String &clientId,
+  const String &nonce
+) {
+  return String("CLAIM|2|") + terminalId + "|" + clientId + "|" + nonce;
+}
+
+String TerminalSecurity::authMessage(
+  const String &terminalId,
+  const String &clientId,
+  const String &nonce
+) {
+  return String("AUTH|2|") + terminalId + "|" + clientId + "|" + nonce;
+}
+
+void TerminalSecurity::clearPendingClaim() {
+  pendingClaim = false;
+  pendingClientId = "";
+  commitNonce = "";
+  memset(pendingOwnerKey, 0, sizeof(pendingOwnerKey));
+}
+
+bool TerminalSecurity::persistOwner(const String &clientId, const uint8_t *key) {
+  if (clientId.length() == 0 || key == nullptr) return false;
+  if (preferences.putString(OWNER_CLIENT_KEY, clientId) == 0) return false;
+  return preferences.putBytes(OWNER_KEY_KEY, key, OWNER_KEY_BYTES) == OWNER_KEY_BYTES;
+}

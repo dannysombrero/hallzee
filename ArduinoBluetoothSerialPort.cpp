@@ -1,4 +1,11 @@
 #include "ArduinoBluetoothSerialPort.h"
+#include <BLESecurity.h>
+#if defined(CONFIG_BLUEDROID_ENABLED)
+#include <esp_gap_ble_api.h>
+#elif defined(CONFIG_NIMBLE_ENABLED)
+#include <host/ble_hs.h>
+#include <services/gap/ble_svc_gap.h>
+#endif
 
 #if __has_include(<esp_arduino_version.h>)
 #include <esp_arduino_version.h>
@@ -13,11 +20,26 @@ constexpr char RX_UUID[] = "e80f9559-49eb-47bc-af04-8e92e98ced56";
 class ArduinoBluetoothSerialPort::ServerCallbacks : public BLEServerCallbacks {
 public:
   explicit ServerCallbacks(ArduinoBluetoothSerialPort &owner) : owner(owner) {}
-  void onConnect(BLEServer *) override { owner.connected = true; }
-  void onDisconnect(BLEServer *) override {
-    owner.connected = false;
-    owner.restartAdvertising();
+#if defined(CONFIG_BLUEDROID_ENABLED)
+  void onConnect(BLEServer *) override {}
+  void onDisconnect(BLEServer *) override {}
+  void onConnect(BLEServer *, esp_ble_gatts_cb_param_t *param) override {
+    owner.handleConnect(param->connect.conn_id);
   }
+  void onDisconnect(BLEServer *, esp_ble_gatts_cb_param_t *param) override {
+    owner.handleDisconnect(param->disconnect.conn_id);
+  }
+#elif defined(CONFIG_NIMBLE_ENABLED)
+  void onConnect(BLEServer *, ble_gap_conn_desc *desc) override {
+    owner.handleConnect(desc->conn_handle);
+  }
+  void onDisconnect(BLEServer *, ble_gap_conn_desc *desc) override {
+    owner.handleDisconnect(desc->conn_handle);
+  }
+#else
+  void onConnect(BLEServer *) override { owner.handleConnect(0xFFFF); }
+  void onDisconnect(BLEServer *) override { owner.handleDisconnect(0xFFFF); }
+#endif
 private:
   ArduinoBluetoothSerialPort &owner;
 };
@@ -40,6 +62,9 @@ private:
 
 bool ArduinoBluetoothSerialPort::begin(const char *deviceName) {
   BLEDevice::init(deviceName);
+  BLESecurity::setAuthenticationMode(ESP_LE_AUTH_REQ_SC_MITM_BOND);
+  BLESecurity::setCapability(ESP_IO_CAP_OUT);
+  BLESecurity::setKeySize(16);
   server = BLEDevice::createServer();
   if (!server) return false;
   server->setCallbacks(new ServerCallbacks(*this));
@@ -56,6 +81,8 @@ bool ArduinoBluetoothSerialPort::begin(const char *deviceName) {
     BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_WRITE_NR
   );
   if (!txCharacteristic || !rxCharacteristic) return false;
+  txCharacteristic->setAccessPermissions(ESP_GATT_PERM_READ_ENC_MITM);
+  rxCharacteristic->setAccessPermissions(ESP_GATT_PERM_WRITE_ENC_MITM);
   // Windows enables notifications by writing the standard Client Characteristic
   // Configuration Descriptor (CCCD). The ESP32 library does not add it for us.
   txCharacteristic->addDescriptor(new BLE2902());
@@ -73,6 +100,27 @@ void ArduinoBluetoothSerialPort::setPin(const char *, size_t) {
   // BLE GATT is intentionally connection-without-legacy-PIN for the kiosk sync flow.
 }
 
+void ArduinoBluetoothSerialPort::disconnectClient() {
+  if (server && connected && activeConnectionId != 0xFFFF) {
+    server->disconnect(activeConnectionId);
+  }
+}
+
+void ArduinoBluetoothSerialPort::setPairingPasskey(uint32_t passkey) {
+  BLESecurity::setPassKey(true, passkey);
+}
+
+bool ArduinoBluetoothSerialPort::setDeviceName(const char *deviceName) {
+  if (!deviceName || !server) return false;
+#if defined(CONFIG_BLUEDROID_ENABLED)
+  return esp_ble_gap_set_device_name(const_cast<char *>(deviceName)) == ESP_OK;
+#elif defined(CONFIG_NIMBLE_ENABLED)
+  return ble_svc_gap_device_name_set(deviceName) == 0;
+#else
+  return false;
+#endif
+}
+
 bool ArduinoBluetoothSerialPort::hasClient() { return connected; }
 int ArduinoBluetoothSerialPort::available() { return static_cast<int>(receiveBuffer.size()); }
 
@@ -85,6 +133,24 @@ int ArduinoBluetoothSerialPort::read() {
 
 void ArduinoBluetoothSerialPort::enqueue(const uint8_t *data, size_t length) {
   for (size_t i = 0; i < length; ++i) receiveBuffer.push_back(data[i]);
+}
+
+void ArduinoBluetoothSerialPort::handleConnect(uint16_t connectionId) {
+  if (connected) {
+    if (server && connectionId != 0xFFFF) server->disconnect(connectionId);
+    return;
+  }
+  connected = true;
+  activeConnectionId = connectionId;
+}
+
+void ArduinoBluetoothSerialPort::handleDisconnect(uint16_t connectionId) {
+  if (!connected || activeConnectionId == 0xFFFF ||
+      connectionId == activeConnectionId || connectionId == 0xFFFF) {
+    connected = false;
+    activeConnectionId = 0xFFFF;
+    restartAdvertising();
+  }
 }
 
 void ArduinoBluetoothSerialPort::send(const String &text) {

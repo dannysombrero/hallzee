@@ -15,6 +15,9 @@ public:
   bool begin(const char *deviceName) override;
   void setPin(const char *pin, size_t length) override;
   bool hasClient() override;
+  void disconnectClient() override;
+  void setPairingPasskey(uint32_t passkey) override;
+  bool setDeviceName(const char *deviceName) override;
   int available() override;
   int read() override;
   void print(const char *text) override;
@@ -31,10 +34,13 @@ private:
   void enqueue(const uint8_t *data, size_t length);
   void send(const String &text);
   void restartAdvertising();
+  void handleConnect(uint16_t connectionId);
+  void handleDisconnect(uint16_t connectionId);
 
   BLEServer *server = nullptr;
   BLECharacteristic *txCharacteristic = nullptr;
   BLECharacteristic *rxCharacteristic = nullptr;
   std::deque<uint8_t> receiveBuffer;
   bool connected = false;
+  uint16_t activeConnectionId = 0xFFFF;
 };

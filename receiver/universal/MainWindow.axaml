@@ -68,7 +68,7 @@
             <!-- Dashboard (Active) -->
             <Button Classes="sidebar-nav-active" Click="OnDashboardClick">
               <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                <PathIcon Data="{StaticResource IconLaptop}" Width="16" Height="16" Foreground="White" VerticalAlignment="Center" />
+                <Path Data="{StaticResource IconLaptop}" Width="24" Height="24" Stroke="White" StrokeThickness="2.2" StrokeLineCap="Round" VerticalAlignment="Center" />
                 <TextBlock Text="Dashboard Overview" FontWeight="Bold" VerticalAlignment="Center" />
               </StackPanel>
             </Button>
@@ -76,7 +76,7 @@
             <!-- Trip History -->
             <Button Classes="sidebar-nav" Click="OnTripsClick">
               <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                <PathIcon Data="{StaticResource IconHistory}" Width="16" Height="16" Foreground="#0F172A" VerticalAlignment="Center" />
+                <Path Data="{StaticResource IconHistory}" Width="24" Height="24" Stroke="#0F172A" StrokeThickness="2.2" StrokeLineCap="Round" VerticalAlignment="Center" />
                 <TextBlock Text="Trip History Log" FontWeight="Bold" VerticalAlignment="Center" />
               </StackPanel>
             </Button>
@@ -84,7 +84,7 @@
             <!-- Student Roster -->
             <Button Classes="sidebar-nav" Click="OnRosterClick">
               <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                <PathIcon Data="{StaticResource IconUsers}" Width="16" Height="16" Foreground="#0F172A" VerticalAlignment="Center" />
+                <Path Data="{StaticResource IconUsers}" Width="24" Height="24" Stroke="#0F172A" StrokeThickness="2.2" StrokeLineCap="Round" VerticalAlignment="Center" />
                 <TextBlock Text="Student Roster" FontWeight="Bold" VerticalAlignment="Center" />
               </StackPanel>
             </Button>
@@ -92,7 +92,7 @@
             <!-- Policies & Bell Times -->
             <Button Classes="sidebar-nav" Click="OnPoliciesClick">
               <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                <PathIcon Data="{StaticResource IconCalendar}" Width="16" Height="16" Foreground="#0F172A" VerticalAlignment="Center" />
+                <Path Data="{StaticResource IconCalendar}" Width="24" Height="24" Stroke="#0F172A" StrokeThickness="2.2" StrokeLineCap="Round" VerticalAlignment="Center" />
                 <TextBlock Text="Policies &amp; Bell Times" FontWeight="Bold" VerticalAlignment="Center" />
               </StackPanel>
             </Button>
@@ -100,7 +100,7 @@
             <!-- Settings -->
             <Button Classes="sidebar-nav" Click="OnSettingsClick">
               <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                <PathIcon Data="{StaticResource IconSettings}" Width="16" Height="16" Foreground="#0F172A" VerticalAlignment="Center" />
+                <Path Data="{StaticResource IconSettings}" Width="24" Height="24" Stroke="#0F172A" StrokeThickness="2.2" StrokeLineCap="Round" VerticalAlignment="Center" />
                 <TextBlock Text="Settings" FontWeight="Bold" VerticalAlignment="Center" />
               </StackPanel>
             </Button>

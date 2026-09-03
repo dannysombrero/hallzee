@@ -23,6 +23,9 @@ public:
   void drawClockSetupScreen(ClockSetupStep step, const String &entry);
   void showInvalidClockValue(const String &message);
   void showClockSet(const String &date, const String &time);
+  void showPairing(const String &suffix, const String &claimKey, uint32_t passkey);
+  void showPairingComplete(const String &suffix);
+  void showPairingError(const String &message);
 
 private:
   DisplayPort &display;

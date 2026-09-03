@@ -12,12 +12,16 @@ public enum TripStoreResult {
 
 public interface ITripStore {
   TripStoreResult Store(string payload);
+  TripStoreResult Store(string terminalId, string payload) => Store(payload);
 }
 
 public interface ITripRepository : ITripStore {
   long GetLatestTripId() => 0L;
+  long GetLatestTripId(string terminalId) => GetLatestTripId();
   void ExportCsv(string destinationPath) { }
   IReadOnlyList<EnrichedTripRecord> GetRecentTrips(int count = 10, string? profileId = null) => Array.Empty<EnrichedTripRecord>();
+  IReadOnlyList<EnrichedTripRecord> GetRecentTrips(string terminalId, int count = 10, string? profileId = null) =>
+    GetRecentTrips(count, profileId);
   IReadOnlyList<EnrichedTripRecord> QueryTrips(TripQueryFilter filter) => Array.Empty<EnrichedTripRecord>();
   int CountTrips(TripQueryFilter filter) => 0;
   TripSummary GetTripSummary(string? startDate = null, string? endDate = null, string? profileId = null) => new(0, 0, 0, 0, 0.0);
@@ -52,8 +56,24 @@ public sealed class TripSqliteRepository : ITripRepository {
       return TripStoreResult.Invalid;
     }
 
-    // Optional 9th field for terminal_id if present, else DEFAULT
-    var terminalId = fields.Length >= 9 && !string.IsNullOrWhiteSpace(fields[8]) ? fields[8] : "DEFAULT";
+    // Legacy callers may include a terminal ID as the ninth field. New sync
+    // callers must use Store(terminalId, payload) so identity comes from the
+    // authenticated session instead of an untrusted payload field.
+    var terminalId = fields.Length >= 9 && !string.IsNullOrWhiteSpace(fields[8]) ? fields[8] : "LEGACY-DEFAULT";
+    if (string.Equals(terminalId, "DEFAULT", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(terminalId, "0", StringComparison.Ordinal)) {
+      terminalId = "LEGACY-DEFAULT";
+    }
+    return Store(terminalId, payload);
+  }
+
+  public TripStoreResult Store(string terminalId, string payload) {
+    if (string.IsNullOrWhiteSpace(terminalId)) return TripStoreResult.Invalid;
+
+    var fields = payload.Split(',');
+    if (fields.Length < 7 || !long.TryParse(fields[0], out var tripId) || tripId <= 0) {
+      return TripStoreResult.Invalid;
+    }
 
     try {
       using var connection = OpenConnection();
@@ -88,11 +108,31 @@ public sealed class TripSqliteRepository : ITripRepository {
     return (long)(command.ExecuteScalar() ?? 0L);
   }
 
+  public long GetLatestTripId(string terminalId) {
+    if (string.IsNullOrWhiteSpace(terminalId)) return 0L;
+    using var connection = OpenConnection();
+    using var command = connection.CreateCommand();
+    command.CommandText = "SELECT COALESCE(MAX(trip_id), 0) FROM trips WHERE terminal_id = $terminalId;";
+    command.Parameters.AddWithValue("$terminalId", terminalId);
+    return (long)(command.ExecuteScalar() ?? 0L);
+  }
+
   public IReadOnlyList<EnrichedTripRecord> GetRecentTrips(int count = 10, string? profileId = null) {
     return QueryTrips(new TripQueryFilter(
       Limit: count,
       Offset: 0,
       ProfileId: profileId,
+      OrderBy: "trip_id DESC"
+    ));
+  }
+
+  public IReadOnlyList<EnrichedTripRecord> GetRecentTrips(string terminalId, int count = 10, string? profileId = null) {
+    if (string.IsNullOrWhiteSpace(terminalId)) return Array.Empty<EnrichedTripRecord>();
+    return QueryTrips(new TripQueryFilter(
+      Limit: count,
+      Offset: 0,
+      ProfileId: profileId,
+      TerminalId: terminalId,
       OrderBy: "trip_id DESC"
     ));
   }
@@ -390,7 +430,7 @@ public sealed class TripSqliteRepository : ITripRepository {
         command.CommandText = """
           INSERT OR IGNORE INTO trips
             (trip_id, student_id, trip_date, time_out, time_in, duration_seconds, status, terminal_id, synced_at)
-          VALUES ($id, $studentId, $date, $timeOut, $timeIn, $duration, $status, 'DEFAULT', datetime('now'));
+          VALUES ($id, $studentId, $date, $timeOut, $timeIn, $duration, $status, 'LEGACY-DEFAULT', datetime('now'));
           """;
         command.Parameters.AddWithValue("$id", tripId);
         command.Parameters.AddWithValue("$studentId", fields[1]);

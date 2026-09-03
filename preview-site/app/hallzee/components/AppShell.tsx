@@ -39,7 +39,108 @@ const navigation: NavItem[] = [
   { id: "settings", label: "App Settings", icon: Settings },
 ];
 
+const bgStyles: Record<BackgroundPreset, CSSProperties> = {
+  "vector-original": {
+    backgroundImage: "url('/backgrounds/waves-sidebar.jpg')",
+    backgroundSize: "cover",
+    backgroundPosition: "left center",
+    backgroundRepeat: "no-repeat",
+  },
+  "vector-emerald": {
+    backgroundImage: "url('/backgrounds/vector-emerald.jpg')",
+    backgroundSize: "cover",
+    backgroundPosition: "left center",
+    backgroundRepeat: "no-repeat",
+  },
+  "vector-azure": {
+    backgroundImage: "url('/backgrounds/vector-azure.jpg')",
+    backgroundSize: "cover",
+    backgroundPosition: "left center",
+    backgroundRepeat: "no-repeat",
+  },
+  "vector-sunlit": {
+    backgroundImage: "url('/backgrounds/vector-sunlit.jpg')",
+    backgroundSize: "cover",
+    backgroundPosition: "left center",
+    backgroundRepeat: "no-repeat",
+  },
+  "streamlines": {
+    backgroundImage: "url('/backgrounds/waves-streamlines.jpg')",
+    backgroundSize: "cover",
+    backgroundPosition: "left center",
+    backgroundRepeat: "no-repeat",
+  },
+  "glass-crest": {
+    backgroundImage: "url('/backgrounds/waves-glass-crest.jpg')",
+    backgroundSize: "cover",
+    backgroundPosition: "left center",
+    backgroundRepeat: "no-repeat",
+  },
+  "aurora-ribbon": {
+    backgroundImage: "url('/backgrounds/waves-aurora-ribbon.jpg')",
+    backgroundSize: "cover",
+    backgroundPosition: "left center",
+    backgroundRepeat: "no-repeat",
+  },
+  "dual-sweep": {
+    backgroundImage: "url('/backgrounds/waves-dual-sweep.jpg')",
+    backgroundSize: "cover",
+    backgroundPosition: "left center",
+    backgroundRepeat: "no-repeat",
+  },
+  "waves-corner": {
+    backgroundImage: "url('/backgrounds/waves-corner.jpg')",
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    backgroundRepeat: "no-repeat",
+  },
+  "waves-bottom": {
+    backgroundImage: "url('/backgrounds/waves-bottom.jpg')",
+    backgroundSize: "cover",
+    backgroundPosition: "bottom center",
+    backgroundRepeat: "no-repeat",
+  },
+  "waves-dual": {
+    backgroundImage: "url('/backgrounds/waves-dual.jpg')",
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    backgroundRepeat: "no-repeat",
+  },
+  "waves-horizon": {
+    backgroundImage: "url('/backgrounds/waves-horizon.jpg')",
+    backgroundSize: "cover",
+    backgroundPosition: "top center",
+    backgroundRepeat: "no-repeat",
+  },
+  "waves-prism": {
+    backgroundImage: "url('/backgrounds/waves-prism.jpg')",
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    backgroundRepeat: "no-repeat",
+  },
+  "waves-sidebar": {
+    backgroundImage: "url('/backgrounds/waves-sidebar.jpg')",
+    backgroundSize: "cover",
+    backgroundPosition: "left center",
+    backgroundRepeat: "no-repeat",
+  },
+  "waves-halos": {
+    backgroundImage: "url('/backgrounds/waves-halos.jpg')",
+    backgroundSize: "cover",
+    backgroundPosition: "top right",
+    backgroundRepeat: "no-repeat",
+  },
+  "waves-tide": {
+    backgroundImage: "url('/backgrounds/waves-tide.jpg')",
+    backgroundSize: "cover",
+    backgroundPosition: "bottom right",
+    backgroundRepeat: "no-repeat",
+  },
+  default: {},
+};
+
 export default function AppShell() {
+  const [bgPreset, setBgPreset] = useState<BackgroundPreset>("vector-emerald");
   const {
     view,
     setView,
@@ -56,7 +157,10 @@ export default function AppShell() {
   const connected = terminalState === "connected" || terminalState === "syncing";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#DDF2FD] via-[#EDF9FE] to-[#D5F3F2] flex flex-col text-slate-900 select-none">
+    <div
+      style={bgStyles[bgPreset]}
+      className="min-h-screen bg-gradient-to-br from-[#DDF2FD] via-[#EDF9FE] to-[#D5F3F2] flex flex-col text-slate-900 select-none transition-all duration-300"
+    >
       {/* 1. Desktop Window Top Bar */}
       <div className="bg-gradient-to-r from-[#0284C7] via-[#0369A1] to-[#075985] text-white border-b border-sky-400/40 px-4 py-1.5 flex items-center justify-between text-xs select-none shadow-xs">
         <div className="flex items-center gap-2">
@@ -227,7 +331,7 @@ export default function AppShell() {
       <TerminalSearchDialog />
 
       {/* 5. Demo Controls Bar */}
-      <DemoControls />
+      <DemoControls bgPreset={bgPreset} setBgPreset={setBgPreset} />
     </div>
   );
 }

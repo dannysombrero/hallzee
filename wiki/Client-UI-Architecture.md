@@ -525,7 +525,11 @@ Order:
 
 These require individual feature designs before implementation.
 
-## 17. Pull-request rules
+## 17. Current native modal behavior
+
+The Avalonia trip-history modal follows the web client’s light-blue table treatment. Its search field and status selector apply filters immediately as their values change; no separate Refresh action is required. Full history rows include a sortable Trip ID column. The Policies & Bell Times modal uses the same pale-blue card, navy text, and rounded schedule-row styling.
+
+## 18. Pull-request rules
 
 1. Do not combine componentization with a backend feature.
 2. Do not intentionally restyle during behavior-preserving refactors.
@@ -535,7 +539,7 @@ These require individual feature designs before implementation.
 6. Keep current WinForms publishing intact until the replacement client is explicitly approved.
 7. Never migrate/delete teacher data as part of a UI refactor.
 
-## 18. Decisions still requiring approval
+## 19. Decisions still requiring approval
 
 | Decision | Recommendation | Needed by |
 | --- | --- | --- |
@@ -548,7 +552,7 @@ These require individual feature designs before implementation.
 | Continuous Bluetooth connection | Only when future live auto-sync is enabled | Before issue #23 implementation |
 | Trip edit/delete behavior | Require audit trail and clear terminal/client ownership | Before issue #15 design |
 
-## 19. Definition of done for the first refactor
+## 20. Definition of done for the first refactor
 
 The first componentization is complete when:
 
@@ -562,6 +566,6 @@ The first componentization is complete when:
 - the original uploaded file remains recoverable through version control or an archived reference during review;
 - the resulting structure can be mapped clearly to native Views/ViewModels.
 
-## 20. Immediate next action after approval
+## 21. Immediate next action after approval
 
 After this documentation PR merges, create a fresh Phase 1 branch from updated `main`. First add characterization tests for the existing React shell, then move it into `preview-site` and componentize it behind mock services without intentional visual or behavioral changes. Do not add real BLE, SQLite, firmware, active-pass, or other product features in that refactor PR.

@@ -54,5 +54,8 @@ public record TerminalDeviceConfig(
   string CustomName,
   string? BleAddress = null,
   DateTime? LastSeenAt = null,
-  int MaxIdLength = 10
+  int MaxIdLength = 10,
+  int ProtocolVersion = 2,
+  string ClaimStatus = "UNKNOWN",
+  string? TransportId = null
 );

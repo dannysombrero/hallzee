@@ -30,6 +30,7 @@ public sealed class SyncSession {
   private readonly StringBuilder input = new();
   private int savedTripCount;
   private int transferredTripCount;
+  private string? terminalId;
 
   public SyncSession(ITripRepository repository) {
     this.repository = repository;
@@ -39,6 +40,17 @@ public sealed class SyncSession {
     input.Clear();
     savedTripCount = 0;
     transferredTripCount = 0;
+    terminalId = null;
+  }
+
+  public void Start(string authenticatedTerminalId) {
+    if (string.IsNullOrWhiteSpace(authenticatedTerminalId)) {
+      throw new ArgumentException("An authenticated terminal ID is required.", nameof(authenticatedTerminalId));
+    }
+    input.Clear();
+    savedTripCount = 0;
+    transferredTripCount = 0;
+    terminalId = authenticatedTerminalId;
   }
 
   public SyncUpdate ProcessReceivedData(string text) {
@@ -126,7 +138,9 @@ public sealed class SyncSession {
   }
 
   private void StoreTrip(string payload, SyncUpdate update, bool acknowledge = true, bool isLiveTrip = false) {
-    var result = repository.Store(payload);
+    var result = terminalId is null
+      ? repository.Store(payload)
+      : repository.Store(terminalId, payload);
     if (result == TripStoreResult.Invalid) {
       update.Logs.Add("Ignored malformed trip record.");
       return;

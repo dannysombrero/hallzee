@@ -6,6 +6,7 @@ tools_dir="$project_root/.tools"
 cli_dir="$tools_dir/arduino-cli"
 cli="$cli_dir/bin/arduino-cli"
 esp32_index="https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json"
+esp32_version="3.3.11"
 port="${1:-}"
 
 # Arduino sketches must live in a directory with the same name as their .ino
@@ -61,7 +62,7 @@ fi
 
 echo "Installing the ESP32 board support and required libraries if needed…"
 "$cli" core update-index --additional-urls "$esp32_index"
-"$cli" core install esp32:esp32 --additional-urls "$esp32_index"
+"$cli" core install "esp32:esp32@$esp32_version" --additional-urls "$esp32_index"
 "$cli" lib install "Adafruit GFX Library" "Adafruit ST7735 and ST7789 Library" Keypad
 
 echo "Building and flashing Hallzee to ${port}…"

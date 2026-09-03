@@ -25,7 +25,7 @@ interface DemoControlsProps {
   setBgPreset?: (preset: BackgroundPreset) => void;
 }
 
-export default function DemoControls({ bgPreset = "vector-emerald", setBgPreset }: DemoControlsProps) {
+export default function DemoControls({ bgPreset = "vector-azure", setBgPreset }: DemoControlsProps) {
   const { terminalState, isOccupied, disconnect, findTerminals, toggleOccupancy, toggleStudentName } =
     useHallzee();
 

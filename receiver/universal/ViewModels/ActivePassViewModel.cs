@@ -136,7 +136,7 @@ public sealed class ActivePassViewModel : INotifyPropertyChanged {
   public string StatusColor => IsStatusUnknown ? "#64748B" : IsOccupied ? "#D97706" : "#059669";
   public string BadgeColor => IsStatusUnknown ? "#64748B" : IsOccupied ? "#F59E0B" : "#10B981";
   public string BadgeText => IsStatusUnknown ? "STATUS UNKNOWN" : IsOccupied ? "PASS OCCUPIED" : "PASS AVAILABLE";
-  public string HeroCardBackground => IsStatusUnknown ? "#F8FAFC" : IsOccupied ? "#FFFBEB" : "#ECFDF5";
+  public string HeroCardBackground => IsStatusUnknown ? "#F8FAFC" : "White";
   public string HeroCardBorderBrush => IsStatusUnknown ? "#CBD5E1" : IsOccupied ? "#FCD34D" : "#6EE7B7";
   public string AvatarBackground => IsStatusUnknown ? "#64748B" : IsOccupied ? "#F59E0B" : "#10B981";
   public string AvatarIconResource => IsOccupied ? "IconUserX" : "IconUserCheck";

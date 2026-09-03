@@ -140,7 +140,7 @@ const bgStyles: Record<BackgroundPreset, CSSProperties> = {
 };
 
 export default function AppShell() {
-  const [bgPreset, setBgPreset] = useState<BackgroundPreset>("vector-emerald");
+  const [bgPreset, setBgPreset] = useState<BackgroundPreset>("vector-azure");
   const {
     view,
     setView,

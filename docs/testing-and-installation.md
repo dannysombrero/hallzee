@@ -141,6 +141,9 @@ and Keypad libraries. From the repository root, build the firmware with:
 arduino-cli compile --fqbn esp32:esp32:esp32 .
 ```
 
+At power-on, the terminal shows the centered Hallzee logo briefly before the
+date/time setup screen.
+
 For keypad and display-flow checks, open `display-emulator.html` in a browser
 or use the Wokwi setup described in [WOKWI.md](../WOKWI.md).
 

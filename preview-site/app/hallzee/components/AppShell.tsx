@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, type CSSProperties } from "react";
 import Image from "next/image";
 import {
   Calendar,
@@ -21,7 +22,7 @@ import PoliciesModal from "./PoliciesModal";
 import TerminalSettingsModal from "./TerminalSettingsModal";
 import SettingsModal from "./SettingsModal";
 import TerminalSearchDialog from "./TerminalSearchDialog";
-import DemoControls from "./DemoControls";
+import DemoControls, { type BackgroundPreset } from "./DemoControls";
 
 interface NavItem {
   id: "dashboard" | ModalView;

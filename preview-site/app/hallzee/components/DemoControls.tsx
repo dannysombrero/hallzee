@@ -2,7 +2,19 @@
 
 import { useHallzee } from "../HallzeeProvider";
 
-export default function DemoControls() {
+export type BackgroundPreset =
+  | "waves-corner"
+  | "waves-bottom"
+  | "waves-dual"
+  | "waves-horizon"
+  | "default";
+
+interface DemoControlsProps {
+  bgPreset?: BackgroundPreset;
+  setBgPreset?: (preset: BackgroundPreset) => void;
+}
+
+export default function DemoControls({ bgPreset = "waves-corner", setBgPreset }: DemoControlsProps) {
   const { terminalState, isOccupied, disconnect, findTerminals, toggleOccupancy, toggleStudentName } =
     useHallzee();
 
@@ -33,6 +45,25 @@ export default function DemoControls() {
       >
         🏷️ Toggle Name
       </button>
+
+      <div className="h-4 w-px bg-slate-700 mx-1" />
+
+      <div className="flex items-center gap-1.5">
+        <span className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-400">
+          Background:
+        </span>
+        <select
+          value={bgPreset}
+          onChange={(e) => setBgPreset?.(e.target.value as BackgroundPreset)}
+          className="bg-slate-900 border border-slate-700 text-sky-200 rounded-full px-2.5 py-0.5 text-xs font-semibold cursor-pointer focus:outline-none"
+        >
+          <option value="waves-corner">1. Top-Right Corner Sweep</option>
+          <option value="waves-bottom">2. Lower-Third Crest Flow</option>
+          <option value="waves-dual">3. Dual-Corner Whispers</option>
+          <option value="waves-horizon">4. Single Horizon Stream</option>
+          <option value="default">Plain Gradient (Original)</option>
+        </select>
+      </div>
     </div>
   );
 }

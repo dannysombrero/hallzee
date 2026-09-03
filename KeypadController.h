@@ -22,7 +22,9 @@ public:
     ActionHandler onSubmit,
     ActionHandler onReset,
     IsPairingAllowed isPairingAllowed = nullptr,
-    ActionHandler onPairing = nullptr
+    ActionHandler onPairing = nullptr,
+    IsPairingAllowed isOwnerResetAllowed = nullptr,
+    ActionHandler onOwnerReset = nullptr
   );
 
   void begin();
@@ -40,6 +42,8 @@ private:
   ActionHandler onReset;
   IsPairingAllowed isPairingAllowed;
   ActionHandler onPairing;
+  IsPairingAllowed isOwnerResetAllowed;
+  ActionHandler onOwnerReset;
 
   bool starPressed = false;
   bool hashPressed = false;
@@ -48,6 +52,8 @@ private:
   bool suppressStarHash = false;
   unsigned long pairingHoldStarted = 0;
   bool pairingHoldActive = false;
+  unsigned long ownerResetHoldStarted = 0;
+  bool ownerResetHoldActive = false;
 
   void processEvents();
   void checkResetCombo();

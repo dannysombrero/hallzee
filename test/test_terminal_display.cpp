@@ -210,28 +210,38 @@ public:
 
 bool keypadSetupMode = false;
 bool keypadResetAllowed = false;
+bool keypadOwnerResetAllowed = false;
 std::vector<char> setupKeys;
 std::vector<char> numberKeys;
 int clearCount = 0;
 int submitCount = 0;
 int resetCount = 0;
+int ownerResetCount = 0;
+int pairingCount = 0;
 
 bool isKeypadSetupMode() { return keypadSetupMode; }
 bool isKeypadResetAllowed() { return keypadResetAllowed; }
+bool isKeypadOwnerResetAllowed() { return keypadOwnerResetAllowed; }
+bool isKeypadPairingAllowed() { return true; }
 void onSetupKey(char key) { setupKeys.push_back(key); }
 void onNumberKey(char key) { numberKeys.push_back(key); }
 void onClear() { clearCount++; }
 void onSubmit() { submitCount++; }
 void onReset() { resetCount++; }
+void onOwnerReset() { ownerResetCount++; }
+void onPairing() { pairingCount++; }
 
 void resetKeypadCallbacks() {
   keypadSetupMode = false;
   keypadResetAllowed = false;
+  keypadOwnerResetAllowed = false;
   setupKeys.clear();
   numberKeys.clear();
   clearCount = 0;
   submitCount = 0;
   resetCount = 0;
+  ownerResetCount = 0;
+  pairingCount = 0;
 }
 
 void expectAction(TerminalAction actual, TerminalAction expected, const char *testName) {
@@ -593,6 +603,54 @@ void testKeypadControllerInterpretsKeysAndResetGesture() {
   keypad.batches.push_back({{'*', KeypadEventState::Released}});
   controller.poll();
   expectTrue(clearCount == 2, "clear resumes after reset keys release");
+
+  keypadResetAllowed = false;
+  keypadOwnerResetAllowed = true;
+  clock.currentMilliseconds = 3000;
+  KeypadController ownerResetController(
+    keypad, clock, isKeypadSetupMode, isKeypadResetAllowed, onSetupKey,
+    onNumberKey, onClear, onSubmit, onReset, nullptr, nullptr,
+    isKeypadOwnerResetAllowed, onOwnerReset
+  );
+  keypad.batches.push_back({
+    {'*', KeypadEventState::Pressed}, {'#', KeypadEventState::Pressed}
+  });
+  ownerResetController.poll();
+  clock.currentMilliseconds = 12999;
+  ownerResetController.poll();
+  expectTrue(ownerResetCount == 0, "owner reset waits for full hold duration");
+  clock.currentMilliseconds = 13000;
+  ownerResetController.poll();
+  expectTrue(ownerResetCount == 1, "owner reset triggers at configured duration");
+  ownerResetController.poll();
+  expectTrue(ownerResetCount == 1, "owner reset triggers only once per hold");
+  keypad.batches.push_back({
+    {'*', KeypadEventState::Released}, {'#', KeypadEventState::Released}
+  });
+  ownerResetController.poll();
+  expectTrue(clearCount == 2 && submitCount == 1, "owner reset suppresses release actions");
+
+  KeypadController pairingController(
+    keypad, clock, isKeypadSetupMode, isKeypadResetAllowed, onSetupKey,
+    onNumberKey, onClear, onSubmit, onReset, isKeypadPairingAllowed,
+    onPairing
+  );
+  keypadOwnerResetAllowed = false;
+  clock.currentMilliseconds = 14000;
+  keypad.batches.push_back({
+    {'*', KeypadEventState::Pressed}, {'#', KeypadEventState::Pressed}
+  });
+  pairingController.poll();
+  clock.currentMilliseconds = 19000;
+  pairingController.poll();
+  expectTrue(pairingCount == 1, "pairing triggers at configured duration");
+  clock.currentMilliseconds = 24000;
+  pairingController.poll();
+  expectTrue(pairingCount == 1, "pairing triggers only once per hold");
+  keypad.batches.push_back({
+    {'*', KeypadEventState::Released}, {'#', KeypadEventState::Released}
+  });
+  pairingController.poll();
 }
 
 static bool fakeHasActivePass = false;

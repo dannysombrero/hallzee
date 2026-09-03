@@ -14,11 +14,12 @@ identity/claim state, Secure Connections characteristic permissions, one-active-
 central enforcement, physical claim gesture, and a single-terminal Universal
 central enforcement, physical claim gesture, six-digit passkey claim flow,
 availability reporting, same-client automatic reconnect, and a single-terminal
-Universal client v2 path are implemented and compile validated. Desktop platform
-credential-vault adapters, owner-reset USB flow, and physical multi-terminal
-verification remain planned work in the agent packages below. The USB owner-reset
-command is implemented, but BLE bond deletion and OS credential-vault
-persistence remain follow-up work. The current
+Universal client v2 path are implemented and compile validated. The physical
+keypad owner-reset gesture and USB owner-reset command are implemented. Desktop
+platform credential-vault adapters and physical multi-terminal verification
+remain planned work in the agent packages below. Unclaimed startup, pairing,
+and owner reset clear stale terminal-side BLE bonds.
+The current
 Universal v2 test path uses an in-memory credential store and is not yet a
 production persistence solution across app restarts.
 
@@ -129,8 +130,12 @@ The implementation must preserve these invariants:
 - cloud account identity or school-wide fleet administration;
 - sharing one terminal between independent desktop owners.
 
-Physical USB access is the recovery boundary. Losing the owner desktop requires a
-USB ownership reset; it must not require deleting LittleFS trip history.
+Physical access to an unoccupied terminal is the recovery boundary. Losing the
+owner desktop requires an ownership reset; it must not require deleting LittleFS
+trip history. The reset can be initiated through the USB diagnostic channel or
+by holding `*` and `#` for 10 seconds on the physical keypad. The keypad path is
+available only when no checkout is active and requires physical possession of
+the terminal.
 
 ---
 
@@ -201,9 +206,10 @@ HKDF-SHA-256 on firmware and System.Security.Cryptography on desktop.
   unchanged when a pass is active.
 - The kiosk displays PAIR Hallzee-XXXX and one random six-digit pairing passkey.
 - The same six-digit value is supplied to the app after the secure BLE link is
-  established. The BLE operating system may also request that value while
-  establishing its MITM-protected bond; that OS prompt is separate from the
-  app field.
+  established. On Windows, the client supplies that value directly to WinRT's
+  authenticated pairing ceremony, so the app field is the only expected entry.
+  macOS may still present its own passkey prompt while establishing the bond;
+  enter the same displayed value if it does.
 - The passkey is held in RAM only and regenerated whenever claim mode restarts.
 - Claim mode closes immediately after a successful claim or when the timer
   expires. Expiration clears the key and any pending nonce.
@@ -576,7 +582,8 @@ record the required library migration as a separate prerequisite.
 
 ## 11. Ownership Recovery
 
-Ownership reset is physical-USB-only:
+Ownership reset is physical-only. The preferred recovery path when serial access
+is available is:
 
 1. Add a newline command OWNER_RESET to the USB serial diagnostic channel.
 2. Clear only the owner client ID, owner key, BLE bond, and pending claim state.
@@ -588,6 +595,14 @@ Ownership reset is physical-USB-only:
    detection conventions from the flash scripts.
 6. Refuse automatic selection when multiple serial devices are present unless a
    port is supplied explicitly.
+
+When serial access is unavailable, the same owner-only state can be cleared from
+the keypad. With no active checkout, hold `*` and `#` together for 10 seconds.
+The firmware clears the owner record, disconnects the current Bluetooth client,
+shows **OWNER RESET**, and returns to idle. Holding the same keys for five
+seconds afterward starts the normal unclaimed pairing mode. This path preserves
+trips, settings, the terminal name, and the stable terminal ID. It must not be
+available while a student is checked out.
 
 There is no BLE ownership-reset command. A later transfer feature may add an
 owner-authorized transfer window, but it is outside this design.
@@ -695,7 +710,7 @@ Files: Bluetooth transport/sync modules and their native tests.
 Exit criteria: tests prove every existing command is denied before AUTH_OK, and
 an authenticated session retains all existing protocol behavior.
 
-### Package 5 — Physical pairing and USB recovery
+### Package 5 — Physical pairing and owner recovery
 
 Files: keypad, display, composition root, reset scripts, and native tests.
 
@@ -703,11 +718,12 @@ Files: keypad, display, composition root, reset scripts, and native tests.
 - Preserve the occupied-pass reset gesture exactly.
 - Add two-minute claim timeout and visual suffix matching.
 - Add USB owner reset and both one-command scripts.
-- Test that owner reset preserves trips/settings and that claimed kiosks cannot
-  reopen pairing mode from the keypad.
+- Add the claimed, unoccupied 10-second keypad owner-reset gesture.
+- Test that owner reset preserves trips/settings and that an occupied kiosk
+  cannot clear ownership or reopen pairing mode from the keypad.
 
-Exit criteria: automated gesture/state tests pass and USB reset is manually
-verified without erasing trip history.
+Exit criteria: automated gesture/state tests pass and either recovery path is
+manually verified without erasing trip history.
 
 ### Package 6 — Desktop terminal session and credential vaults
 
@@ -828,7 +844,7 @@ The feature is complete only when all statements are true:
   an identity mismatch;
 - a second central cannot become an authorized session;
 - replayed or expired proofs fail without side effects;
-- ownership reset requires USB and preserves classroom data;
+- ownership reset requires physical access and preserves classroom data;
 - terminal rename is implemented end-to-end or removed from shipped UI/docs;
 - no credential appears in SQLite, logs, exports, screenshots, or test output;
 - all automated tests pass;

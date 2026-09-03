@@ -70,7 +70,8 @@ class Program
                     else if (action == "Send" && cmd.ContainsKey("Data"))
                     {
                         var data = cmd["Data"];
-                        DispatchQueue.MainQueue.DispatchAsync(() => managerDelegate.Send(data));
+                        cmd.TryGetValue("RequestId", out var requestId);
+                        DispatchQueue.MainQueue.DispatchAsync(() => managerDelegate.Send(data, requestId));
                     }
                     else if (action == "Disconnect")
                     {
@@ -106,6 +107,10 @@ class Program
         private NSTimer? scanTimer;
         private CBPeripheralDelegate? peripheralDelegate;
         private bool pendingDiscover;
+        private readonly Queue<(byte[] Data, string? RequestId, bool IsFinal)> pendingWriteChunks = new();
+        private bool writeInProgress;
+        private string? currentWriteRequestId;
+        private bool currentWriteCompletesRequest;
         
         public override void UpdatedState(CBCentralManager central)
         {
@@ -181,7 +186,7 @@ class Program
             if (peripherals.Length > 0)
             {
                 targetPeripheral = peripherals[0];
-                peripheralDelegate = new PeripheralDelegate();
+                peripheralDelegate = new PeripheralDelegate(this);
                 targetPeripheral.Delegate = peripheralDelegate;
                 centralManager.ConnectPeripheral(targetPeripheral);
             }
@@ -221,13 +226,20 @@ class Program
             txCharacteristic = null;
             rxCharacteristic = null;
             peripheralDelegate = null;
+            pendingWriteChunks.Clear();
+            writeInProgress = false;
+            currentWriteRequestId = null;
+            currentWriteCompletesRequest = false;
         }
         
-        public void Send(string data)
+        public void Send(string data, string? requestId)
         {
             if (targetPeripheral == null || rxCharacteristic == null)
             {
-                EmitEvent("Error", new { Message = "BLE write requested before the terminal was ready." });
+                EmitEvent("Error", new {
+                    Message = "BLE write requested before the terminal was ready.",
+                    RequestId = requestId
+                });
                 return;
             }
 
@@ -237,16 +249,69 @@ class Program
             for (var offset = 0; offset < bytes.Length; offset += 20)
             {
                 var length = Math.Min(20, bytes.Length - offset);
-                var chunk = bytes.Skip(offset).Take(length).ToArray();
-                var nsData = NSData.FromArray(chunk);
-                
-                targetPeripheral.WriteValue(nsData, rxCharacteristic, CBCharacteristicWriteType.WithoutResponse);
+                var finalChunk = offset + length >= bytes.Length;
+                pendingWriteChunks.Enqueue((
+                    bytes.Skip(offset).Take(length).ToArray(),
+                    requestId,
+                    finalChunk
+                ));
             }
+
+            WriteNextChunk();
+        }
+
+        private void WriteNextChunk()
+        {
+            if (writeInProgress || pendingWriteChunks.Count == 0 ||
+                targetPeripheral == null || rxCharacteristic == null) return;
+
+            writeInProgress = true;
+            var pending = pendingWriteChunks.Dequeue();
+            currentWriteRequestId = pending.RequestId;
+            currentWriteCompletesRequest = pending.IsFinal;
+            var nsData = NSData.FromArray(pending.Data);
+            // The firmware requires an encrypted, authenticated link. A write
+            // with response triggers that negotiation and gives us a callback
+            // instead of allowing protected writes to disappear silently.
+            targetPeripheral.WriteValue(
+                nsData, rxCharacteristic, CBCharacteristicWriteType.WithResponse);
+        }
+
+        public void HandleWriteCompleted(NSError? error)
+        {
+            writeInProgress = false;
+            var completedRequestId = currentWriteRequestId;
+            var completesRequest = currentWriteCompletesRequest;
+            currentWriteRequestId = null;
+            currentWriteCompletesRequest = false;
+            if (error != null)
+            {
+                pendingWriteChunks.Clear();
+                EmitEvent("Error", new {
+                    Message = $"BLE write failed: {error.LocalizedDescription}",
+                    RequestId = completedRequestId
+                });
+                return;
+            }
+
+            if (completesRequest && !string.IsNullOrWhiteSpace(completedRequestId))
+            {
+                EmitEvent("SendComplete", new { RequestId = completedRequestId });
+            }
+
+            WriteNextChunk();
         }
     }
     
     class PeripheralDelegate : CBPeripheralDelegate
     {
+        private readonly CentralManagerDelegate owner;
+
+        public PeripheralDelegate(CentralManagerDelegate owner)
+        {
+            this.owner = owner;
+        }
+
         public override void DiscoveredService(CBPeripheral peripheral, NSError? error)
         {
             if (error != null)
@@ -324,6 +389,14 @@ class Program
                 var bytes = characteristic.Value.ToArray();
                 var text = Encoding.UTF8.GetString(bytes);
                 EmitEvent("TextReceived", new { Text = text });
+            }
+        }
+
+        public override void WroteCharacteristicValue(CBPeripheral peripheral, CBCharacteristic characteristic, NSError? error)
+        {
+            if (characteristic.UUID.Equals(RxUuid))
+            {
+                owner.HandleWriteCompleted(error);
             }
         }
     }

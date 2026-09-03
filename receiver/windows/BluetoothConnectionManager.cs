@@ -9,15 +9,17 @@ using BathroomSync.Core;
 using Windows.Devices.Bluetooth;
 using Windows.Devices.Bluetooth.Advertisement;
 using Windows.Devices.Bluetooth.GenericAttributeProfile;
+using Windows.Devices.Enumeration;
 using Windows.Storage.Streams;
 
-sealed class BluetoothConnectionManager : ITerminalConnection {
+sealed class BluetoothConnectionManager : ITerminalConnection, ITerminalPairingPasskeySink {
   const string TerminalName = "Hallzee";
   static readonly Guid ServiceUuid = Guid.Parse("005924a2-c6e5-4340-9bb8-22d9dd37a283");
   static readonly Guid TxUuid = Guid.Parse("44a359f3-9215-4189-a3cb-e7ce18ad40d6");
   static readonly Guid RxUuid = Guid.Parse("e80f9559-49eb-47bc-af04-8e92e98ced56");
   static readonly TimeSpan DiscoveryWindow = TimeSpan.FromSeconds(4);
-  static readonly TimeSpan HandshakeTimeout = TimeSpan.FromSeconds(15);
+  static readonly TimeSpan HandshakeTimeout = TimeSpan.FromSeconds(45);
+  static readonly TimeSpan ProtectedWriteTimeout = TimeSpan.FromSeconds(60);
 
   static readonly ConcurrentDictionary<ulong, BluetoothAddressType> DiscoveredAddressTypes = new();
 
@@ -28,10 +30,17 @@ sealed class BluetoothConnectionManager : ITerminalConnection {
   GattCharacteristic? rxCharacteristic;
   bool isDisconnecting;
   bool isConnecting;
+  string? pairingPasskey;
 
   public event EventHandler<string>? TextReceived;
   public event EventHandler<string>? ConnectionLost;
   public bool IsConnected => bluetoothDevice?.ConnectionStatus == BluetoothConnectionStatus.Connected;
+
+  public void SetPairingPasskey(string? value) {
+    pairingPasskey = string.IsNullOrWhiteSpace(value)
+      ? null
+      : TerminalIdentityProtocol.NormalizePairingPasskey(value);
+  }
 
   public async Task<IReadOnlyList<TerminalDevice>> DiscoverAsync() {
     await DisconnectAsync();
@@ -123,6 +132,13 @@ sealed class BluetoothConnectionManager : ITerminalConnection {
   async Task AttemptConnectAsync(ulong address, BluetoothAddressType addressType, CancellationToken cancellationToken) {
     var dev = await BluetoothLEDevice.FromBluetoothAddressAsync(address, addressType).AsTask(cancellationToken)
       ?? throw new InvalidOperationException($"Windows could not open Hallzee device ({addressType}).");
+
+    if (pairingPasskey is not null) {
+      await PairWithDisplayedPasskeyAsync(dev, pairingPasskey, cancellationToken);
+      dev.Dispose();
+      dev = await BluetoothLEDevice.FromBluetoothAddressAsync(address, addressType).AsTask(cancellationToken)
+        ?? throw new InvalidOperationException($"Windows could not reopen Hallzee after pairing ({addressType}).");
+    }
     bluetoothDevice = dev;
 
     // The advertisement is available before Windows has populated its GATT cache.
@@ -147,12 +163,49 @@ sealed class BluetoothConnectionManager : ITerminalConnection {
 
     txCharacteristic = txResult.Characteristics[0];
     rxCharacteristic = rxResult.Characteristics[0];
+    txCharacteristic.ProtectionLevel = GattProtectionLevel.EncryptionAndAuthenticationRequired;
+    rxCharacteristic.ProtectionLevel = GattProtectionLevel.EncryptionAndAuthenticationRequired;
     txCharacteristic.ValueChanged += HandleValueChanged;
     var notifyStatus = await txCharacteristic.WriteClientCharacteristicConfigurationDescriptorAsync(
       GattClientCharacteristicConfigurationDescriptorValue.Notify
     ).AsTask(cancellationToken);
     if (notifyStatus != GattCommunicationStatus.Success)
       throw new InvalidOperationException($"Windows could not subscribe to Hallzee updates ({notifyStatus}). Check that the terminal firmware includes the BLE notification descriptor.");
+  }
+
+  static async Task PairWithDisplayedPasskeyAsync(
+    BluetoothLEDevice device,
+    string passkey,
+    CancellationToken cancellationToken) {
+    var pairing = device.DeviceInformation.Pairing;
+    if (pairing.IsPaired) {
+      var unpairResult = await pairing.UnpairAsync().AsTask(cancellationToken);
+      if (unpairResult.Status is not (DeviceUnpairingResultStatus.Unpaired or DeviceUnpairingResultStatus.AlreadyUnpaired)) {
+        throw new InvalidOperationException($"Windows could not remove the stale Hallzee pairing ({unpairResult.Status}).");
+      }
+    }
+
+    var custom = pairing.Custom;
+    void HandlePairingRequested(DeviceInformationCustomPairing _, DevicePairingRequestedEventArgs args) {
+      if (args.PairingKind == DevicePairingKinds.ProvidePin) {
+        args.Accept(passkey);
+      } else if (args.PairingKind == DevicePairingKinds.ConfirmOnly) {
+        args.Accept();
+      }
+    }
+
+    custom.PairingRequested += HandlePairingRequested;
+    try {
+      var result = await custom.PairAsync(
+        DevicePairingKinds.ProvidePin | DevicePairingKinds.ConfirmOnly,
+        DevicePairingProtectionLevel.EncryptionAndAuthentication
+      ).AsTask(cancellationToken);
+      if (result.Status is not (DevicePairingResultStatus.Paired or DevicePairingResultStatus.AlreadyPaired)) {
+        throw new InvalidOperationException($"Windows rejected the Hallzee passkey ({result.Status}).");
+      }
+    } finally {
+      custom.PairingRequested -= HandlePairingRequested;
+    }
   }
 
   Task CleanupFailedConnectionAsync() {
@@ -189,15 +242,16 @@ sealed class BluetoothConnectionManager : ITerminalConnection {
         var length = Math.Min(20, bytes.Length - offset);
         using var writer = new DataWriter();
         writer.WriteBytes(bytes.AsSpan(offset, length).ToArray());
+        // Authentication commands are sent over an encrypted/MITM-protected
+        // characteristic. An acknowledged write makes Windows negotiate that
+        // protection and reports a failure instead of silently dropping data.
+        using var writeTimeout = new CancellationTokenSource(ProtectedWriteTimeout);
         var result = await rxCharacteristic.WriteValueWithResultAsync(
-          writer.DetachBuffer(), GattWriteOption.WriteWithoutResponse
-        );
+          writer.DetachBuffer(), GattWriteOption.WriteWithResponse
+        ).AsTask(writeTimeout.Token);
         if (result.Status != GattCommunicationStatus.Success)
           throw new InvalidOperationException($"BLE write failed ({result.Status}).");
 
-        if (offset + 20 < bytes.Length) {
-          await Task.Delay(15);
-        }
       }
     } finally {
       writeLock.Release();

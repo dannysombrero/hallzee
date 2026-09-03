@@ -59,6 +59,10 @@ public record EnrichedTripRecord(
 
   public string DisplayName => FullName ?? $"#{StudentId}";
 
+  public bool HasKnownName => !string.IsNullOrWhiteSpace(FullName);
+
+  public string TimeInDisplay => string.IsNullOrWhiteSpace(TimeIn) || TimeIn == "—" ? "--:--" : TimeIn;
+
   public string FormattedDuration => FormatDuration(DurationSeconds);
 
   public static string FormatDuration(int totalSeconds) {

@@ -13,3 +13,7 @@ public interface ITerminalConnection : IDisposable {
   Task SendAsync(string command);
   Task DisconnectAsync();
 }
+
+public interface ITerminalPairingPasskeySink {
+  void SetPairingPasskey(string? pairingPasskey);
+}

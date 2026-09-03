@@ -82,6 +82,7 @@ void BluetoothSync::updateAvailability(bool inUse) {
   serial.setDeviceName(advertisedName.c_str());
 #else
   (void)inUse;
+  (void)advertisedInUse;
 #endif
 }
 

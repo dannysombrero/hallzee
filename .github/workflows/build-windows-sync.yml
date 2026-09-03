@@ -9,7 +9,8 @@ jobs:
       - uses: actions/setup-dotnet@v5
         with: { dotnet-version: 8.0.x }
       - run: dotnet test receiver/windows/BathroomSync.Tests/BathroomSync.Tests.csproj --configuration Release -p:CollectCoverage=true -p:Threshold=80 -p:ThresholdType=line -p:ThresholdStat=total
-      - run: dotnet publish receiver/windows/BathroomSync.Windows.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -o publish
+      - run: dotnet test receiver/universal.tests/BathroomSync.Universal.Tests.csproj --configuration Release
+      - run: dotnet publish receiver/universal/BathroomSync.Universal.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -o publish
       - uses: actions/upload-artifact@v6
         with:
           name: HallzeeSync-Windows

@@ -3,8 +3,10 @@
              xmlns:vm="clr-namespace:BathroomSync.Universal.ViewModels;assembly=HallzeeSync.Universal"
              x:Class="BathroomSync.Universal.Views.TripsModalView"
              x:DataType="vm:MainViewModel">
-  <Border Background="#99000000">
-    <Border Background="White" CornerRadius="22" Width="980" MaxHeight="680" VerticalAlignment="Center" HorizontalAlignment="Center" Padding="24" BoxShadow="0 10 30 0 #40000000">
+
+  <!-- OVERLAY WITH GUARANTEED PADDING SO MODAL NEVER CLIPS WINDOW BOUNDS -->
+  <Border Background="#99000000" Padding="32,24">
+    <Border Background="White" CornerRadius="24" MaxWidth="1040" MaxHeight="640" VerticalAlignment="Center" HorizontalAlignment="Stretch" Padding="24" BoxShadow="0 10 30 0 #40000000">
       <Grid RowDefinitions="Auto,*,Auto">
         
         <!-- HEADER -->
@@ -17,84 +19,87 @@
         </Grid>
 
         <!-- CONTENT GRID -->
-        <Grid Grid.Row="1" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="12">
+        <Grid Grid.Row="1" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="14">
           
           <!-- ROW 0: CLASSROOM SELECTION & EXPORT ACTION BUTTON -->
           <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="12" VerticalAlignment="Center">
             <TextBlock Text="Class:" FontWeight="Bold" FontSize="13" Foreground="#334155" VerticalAlignment="Center" />
-            <ComboBox Grid.Column="1" ItemsSource="{Binding Profiles}" SelectedItem="{Binding ActiveProfile}" DisplayMemberBinding="{Binding Name}" MinWidth="200" VerticalAlignment="Center" />
-            <Border Grid.Column="2" Background="#F1F5F9" CornerRadius="6" Padding="10,4" HorizontalAlignment="Left" VerticalAlignment="Center">
+            <ComboBox Grid.Column="1" Classes="filter-dropdown" ItemsSource="{Binding Profiles}" SelectedItem="{Binding ActiveProfile}" DisplayMemberBinding="{Binding Name}" MinWidth="200" VerticalAlignment="Center" />
+            <Border Grid.Column="2" Background="#F1F5F9" CornerRadius="8" Padding="10,4" HorizontalAlignment="Left" VerticalAlignment="Center">
               <TextBlock Text="{Binding TripsModal.TotalTrips, StringFormat='{}{0} Records'}" FontSize="12" FontWeight="SemiBold" Foreground="#475569" />
             </Border>
             <Button Grid.Column="3" Classes="hallzee-pill-btn" Click="OnExportCsvClick" Padding="16,8" FontSize="13">
               <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                 <PathIcon Data="{StaticResource IconDownload}" Width="13" Height="13" Foreground="White" VerticalAlignment="Center" />
-                <TextBlock Text="Export" FontSize="13" FontWeight="Bold" VerticalAlignment="Center" />
+                <TextBlock Text="Export CSV" FontSize="13" FontWeight="Bold" VerticalAlignment="Center" />
               </StackPanel>
             </Button>
           </Grid>
 
-          <!-- ROW 1: SEARCH & FILTER TOOLBAR -->
-          <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="10" VerticalAlignment="Center">
+          <!-- ROW 1: SEARCH & THEMED FILTER TOOLBAR -->
+          <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="12" VerticalAlignment="Center">
             <Border Background="#F0F9FF" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="24" Padding="14,6">
               <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
-                <PathIcon Data="{StaticResource IconSearch}" Width="20" Height="20" Foreground="#8AA4C2" VerticalAlignment="Center" />
-                <TextBox Grid.Column="1" Text="{Binding TripsModal.SearchText, UpdateSourceTrigger=PropertyChanged}" Watermark="Filter student name, ID, or trip…" FontSize="14" Padding="0,6" Background="Transparent" BorderThickness="0" />
+                <PathIcon Data="{StaticResource IconSearch}" Width="18" Height="18" Foreground="#0284C7" VerticalAlignment="Center" />
+                <TextBox Grid.Column="1" Text="{Binding TripsModal.SearchText, UpdateSourceTrigger=PropertyChanged}" Watermark="Filter student name, ID, or trip…" FontSize="13" Padding="0,6" Background="Transparent" BorderThickness="0" />
               </Grid>
             </Border>
-            <ComboBox Grid.Column="1" ItemsSource="{Binding TripsModal.StatusOptions}" SelectedItem="{Binding TripsModal.SelectedStatus}" Width="160" />
+            <ComboBox Grid.Column="1" Classes="filter-dropdown" ItemsSource="{Binding TripsModal.StatusOptions}" SelectedItem="{Binding TripsModal.SelectedStatus}" Width="140" VerticalAlignment="Center" />
           </Grid>
 
-          <!-- ROW 2: TRIPS TABLE (WITH SEPARATE TIME OUT & TIME IN COLUMNS AND COMPACT DURATION) -->
-          <Border Grid.Row="2" BorderBrush="#D8EDF8" BorderThickness="1" CornerRadius="18" Background="White" MinHeight="260" ClipToBounds="True">
+          <!-- ROW 2: TRIPS TABLE WITH UNIFIED TABLE STYLES -->
+          <Border Grid.Row="2" Classes="hallzee-table-container">
             <Grid RowDefinitions="Auto,*">
               
               <!-- TABLE HEADER -->
-              <Border Background="#F0F9FF" BorderBrush="#E1F1F8" BorderThickness="0,0,0,1" Padding="16,14" CornerRadius="18,18,0,0">
-                <Grid ColumnDefinitions="1.25*,2.2*,1.1*,1.1*,1.1*,0.9*,90" VerticalAlignment="Center">
+              <Border Classes="hallzee-table-header">
+                <Grid ColumnDefinitions="1.1*,1*,1.8*,1*,1*,1*,95" VerticalAlignment="Center">
                   <Button Classes="table-header-btn" Click="OnSortTripIdClick">
-                    <StackPanel Orientation="Horizontal" Spacing="4"><TextBlock Text="TRIP ID" FontSize="11" FontWeight="Bold" Foreground="#0C3554" /><TextBlock Text="{Binding TripsModal.TripIdSortIndicator}" FontSize="11" Foreground="#8AA4C2" /></StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                      <TextBlock Text="Trip ID" FontSize="12" FontWeight="Bold" Foreground="#0369A1" />
+                      <TextBlock Text="{Binding TripsModal.TripIdSortIndicator}" FontSize="12" Foreground="#94A3B8" />
+                    </StackPanel>
                   </Button>
                   
-                  <Button Grid.Column="1" Classes="table-header-btn" Click="OnSortStudentClick">
-                    <StackPanel Orientation="Horizontal" Spacing="2">
-                      <TextBlock Text="STUDENT" FontSize="11" FontWeight="Bold" Foreground="#0C3554" />
-                      <TextBlock Text="{Binding TripsModal.StudentSortIndicator}" FontSize="11" FontWeight="Bold" Foreground="#0284C7" />
+                  <Button Grid.Column="1" Classes="table-header-btn" Click="OnSortStudentIdClick">
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                      <TextBlock Text="Student ID" FontSize="12" FontWeight="Bold" Foreground="#0369A1" />
+                      <TextBlock Text="{Binding TripsModal.StudentIdSortIndicator}" FontSize="12" Foreground="#94A3B8" />
                     </StackPanel>
                   </Button>
 
-                  <Button Grid.Column="2" Classes="table-header-btn" Click="OnSortDateClick">
-                    <StackPanel Orientation="Horizontal" Spacing="2">
-                      <TextBlock Text="DATE" FontSize="11" FontWeight="Bold" Foreground="#0C3554" />
-                      <TextBlock Text="{Binding TripsModal.DateSortIndicator}" FontSize="11" FontWeight="Bold" Foreground="#0284C7" />
+                  <Button Grid.Column="2" Classes="table-header-btn" Click="OnSortStudentNameClick">
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                      <TextBlock Text="Student Name" FontSize="12" FontWeight="Bold" Foreground="#0369A1" />
+                      <TextBlock Text="{Binding TripsModal.StudentNameSortIndicator}" FontSize="12" Foreground="#94A3B8" />
                     </StackPanel>
                   </Button>
 
-                  <Button Grid.Column="3" Classes="table-header-btn" Click="OnSortTimeOutClick">
-                    <StackPanel Orientation="Horizontal" Spacing="2">
-                      <TextBlock Text="TIME OUT" FontSize="11" FontWeight="Bold" Foreground="#0C3554" />
-                      <TextBlock Text="{Binding TripsModal.TimeOutSortIndicator}" FontSize="11" FontWeight="Bold" Foreground="#0284C7" />
+                  <Button Grid.Column="3" Classes="table-header-btn" Click="OnSortDepartedClick">
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                      <TextBlock Text="Departed" FontSize="12" FontWeight="Bold" Foreground="#0369A1" />
+                      <TextBlock Text="{Binding TripsModal.DepartedSortIndicator}" FontSize="12" Foreground="#94A3B8" />
                     </StackPanel>
                   </Button>
 
-                  <Button Grid.Column="4" Classes="table-header-btn" Click="OnSortTimeInClick">
-                    <StackPanel Orientation="Horizontal" Spacing="2">
-                      <TextBlock Text="TIME IN" FontSize="11" FontWeight="Bold" Foreground="#0C3554" />
-                      <TextBlock Text="{Binding TripsModal.TimeInSortIndicator}" FontSize="11" FontWeight="Bold" Foreground="#0284C7" />
+                  <Button Grid.Column="4" Classes="table-header-btn" Click="OnSortReturnedClick">
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                      <TextBlock Text="Returned" FontSize="12" FontWeight="Bold" Foreground="#0369A1" />
+                      <TextBlock Text="{Binding TripsModal.ReturnedSortIndicator}" FontSize="12" Foreground="#94A3B8" />
                     </StackPanel>
                   </Button>
 
                   <Button Grid.Column="5" Classes="table-header-btn" Click="OnSortDurationClick">
-                    <StackPanel Orientation="Horizontal" Spacing="2">
-                      <TextBlock Text="DURATION" FontSize="11" FontWeight="Bold" Foreground="#0C3554" />
-                      <TextBlock Text="{Binding TripsModal.DurationSortIndicator}" FontSize="11" FontWeight="Bold" Foreground="#0284C7" />
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                      <TextBlock Text="Duration" FontSize="12" FontWeight="Bold" Foreground="#0369A1" />
+                      <TextBlock Text="{Binding TripsModal.DurationSortIndicator}" FontSize="12" Foreground="#94A3B8" />
                     </StackPanel>
                   </Button>
 
                   <Button Grid.Column="6" Classes="table-header-btn" Click="OnSortStatusClick" HorizontalAlignment="Right">
-                    <StackPanel Orientation="Horizontal" Spacing="2">
-                      <TextBlock Text="STATUS" FontSize="11" FontWeight="Bold" Foreground="#0C3554" />
-                      <TextBlock Text="{Binding TripsModal.StatusSortIndicator}" FontSize="11" FontWeight="Bold" Foreground="#0284C7" />
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                      <TextBlock Text="Status" FontSize="12" FontWeight="Bold" Foreground="#0369A1" />
+                      <TextBlock Text="{Binding TripsModal.StatusSortIndicator}" FontSize="12" Foreground="#94A3B8" />
                     </StackPanel>
                   </Button>
                 </Grid>
@@ -103,36 +108,37 @@
               <!-- TRIPS LIST -->
               <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                 <Panel>
-                  <ListBox ItemsSource="{Binding TripsModal.Trips}" IsVisible="{Binding TripsModal.HasTrips}">
+                  <ListBox ItemsSource="{Binding TripsModal.Trips}" IsVisible="{Binding TripsModal.HasTrips}" Classes="hallzee-table-list">
                     <ListBox.ItemTemplate>
                       <DataTemplate>
-                        <Border BorderBrush="#EDF6FB" BorderThickness="0,0,0,1" Padding="16,14">
-                        <Grid ColumnDefinitions="1.25*,2.2*,1.1*,1.1*,1.1*,0.9*,90" VerticalAlignment="Center">
-                          <TextBlock Text="{Binding TripId, StringFormat='TRIP-{0:D4}'}" FontFamily="Cascadia Mono, Menlo, monospace" FontWeight="Bold" FontSize="12" Foreground="#617694" VerticalAlignment="Center" />
-                          
-                          <!-- STUDENT -->
-                          <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                            <TextBlock Text="{Binding DisplayName}" FontWeight="Bold" FontSize="14" Foreground="#111B33" />
-                            <TextBlock Text="{Binding StudentId, StringFormat='#{0}'}" FontSize="11" Foreground="#617694" />
-                          </StackPanel>
+                        <Border Classes="hallzee-table-row">
+                          <Grid ColumnDefinitions="1.1*,1*,1.8*,1*,1*,1*,95" VerticalAlignment="Center">
+                            <!-- Trip ID -->
+                            <TextBlock Text="{Binding TripId, StringFormat='TRIP-{0:D4}'}" FontFamily="Cascadia Mono, Menlo, monospace" FontWeight="Bold" FontSize="12" Foreground="#64748B" VerticalAlignment="Center" />
+                            
+                            <!-- Student ID -->
+                            <TextBlock Grid.Column="1" Text="{Binding StudentId, StringFormat='#{0}'}" FontWeight="Bold" FontSize="13" Foreground="#0F172A" VerticalAlignment="Center" />
 
-                          <!-- DATE -->
-                          <TextBlock Grid.Column="2" Text="{Binding TripDate}" FontSize="13" Foreground="#4A5E7A" VerticalAlignment="Center" />
-                          
-                          <!-- TIME OUT -->
-                          <TextBlock Grid.Column="3" Text="{Binding TimeOut}" FontSize="13" Foreground="#4A5E7A" VerticalAlignment="Center" />
+                            <!-- Student Name -->
+                            <Panel Grid.Column="2" VerticalAlignment="Center">
+                              <TextBlock Text="{Binding DisplayName}" FontWeight="Bold" FontSize="13" Foreground="#0F172A" IsVisible="{Binding HasKnownName}" />
+                              <TextBlock Text="{Binding StudentId, StringFormat='Student ID #{0} (Unmapped)'}" FontStyle="Italic" FontSize="12" Foreground="#94A3B8" IsVisible="{Binding !HasKnownName}" />
+                            </Panel>
 
-                          <!-- TIME IN -->
-                          <TextBlock Grid.Column="4" Text="{Binding TimeIn, FallbackValue='--'}" FontSize="13" Foreground="#4A5E7A" VerticalAlignment="Center" />
+                            <!-- Departed -->
+                            <TextBlock Grid.Column="3" Text="{Binding TimeOut}" FontSize="13" Foreground="#475569" VerticalAlignment="Center" />
 
-                          <!-- DURATION -->
-                          <TextBlock Grid.Column="5" Text="{Binding FormattedDuration}" FontWeight="Bold" FontSize="13" Foreground="#111B33" VerticalAlignment="Center" />
-                          
-                          <!-- STATUS -->
-                          <Border Grid.Column="6" Classes="status-pill" Background="{Binding StatusBackground}" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,4,0">
-                            <TextBlock Text="{Binding StatusDisplay}" Foreground="{Binding StatusForeground}" />
-                          </Border>
-                        </Grid>
+                            <!-- Returned -->
+                            <TextBlock Grid.Column="4" Text="{Binding TimeInDisplay}" FontSize="13" Foreground="#475569" VerticalAlignment="Center" />
+
+                            <!-- Duration -->
+                            <TextBlock Grid.Column="5" Text="{Binding FormattedDuration}" FontWeight="Bold" FontSize="13" Foreground="#0F172A" VerticalAlignment="Center" />
+                            
+                            <!-- Status -->
+                            <Border Grid.Column="6" Classes="status-pill" Background="{Binding StatusBackground}" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,4,0">
+                              <TextBlock Text="{Binding StatusDisplay}" Foreground="{Binding StatusForeground}" />
+                            </Border>
+                          </Grid>
                         </Border>
                       </DataTemplate>
                     </ListBox.ItemTemplate>

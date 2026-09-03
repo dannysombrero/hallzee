@@ -131,7 +131,14 @@ public sealed class TerminalSession : IAsyncDisposable, IDisposable {
         if (!identity.IsClaimed) {
           claimCompletion = NewCompletion<(string TerminalId, string CommitNonce)>();
           await connection.SendAsync(TerminalIdentityProtocol.BuildClaim(clientId, pairingPasskey!, identity));
-          var claimResult = await WaitAsync(claimCompletion.Task, cancellationToken);
+          (string TerminalId, string CommitNonce) claimResult;
+          try {
+            claimResult = await WaitAsync(claimCompletion.Task, cancellationToken);
+          } catch (TimeoutException exception) {
+            throw new TimeoutException(
+              "Timed out waiting for the terminal to accept the pairing passkey (CLAIM_OK).",
+              exception);
+          }
           if (!string.Equals(claimResult.TerminalId, identity.TerminalId, StringComparison.OrdinalIgnoreCase)) {
             throw new TerminalIdentityMismatchException(identity.TerminalId, claimResult.TerminalId);
           }
@@ -164,7 +171,14 @@ public sealed class TerminalSession : IAsyncDisposable, IDisposable {
           }
         }
 
-        var authenticated = await WaitAsync(authCompletion.Task, cancellationToken);
+        AuthenticatedTerminalSession authenticated;
+        try {
+          authenticated = await WaitAsync(authCompletion.Task, cancellationToken);
+        } catch (TimeoutException exception) {
+          throw new TimeoutException(
+            "Timed out waiting for the terminal to finish authentication (AUTH_OK).",
+            exception);
+        }
         AuthenticatedTerminal = authenticated;
         SetState(TerminalSessionState.Authenticated);
         return authenticated;

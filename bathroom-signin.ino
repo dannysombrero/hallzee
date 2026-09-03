@@ -77,6 +77,8 @@ bool manualCheckInFromDesktop(const String &studentId);
 bool setActivePassCapacity(uint8_t capacity);
 bool isPairingAllowed();
 void startPairingMode();
+bool isOwnerResetAllowed();
+void resetOwnerFromKeypad();
 
 void drawStartupLogo();
 
@@ -122,6 +124,7 @@ void handleNormalNumber(char key);
 void handleSingleStar();
 void handleSingleHash();
 void resetCurrentCheckout();
+void drawIdleScreen();
 
 bool pairingUiActive = false;
 
@@ -129,9 +132,31 @@ bool isPairingAllowed() {
   return !terminal.hasActivePass() && !terminalSecurity.hasOwner();
 }
 
+bool isOwnerResetAllowed() {
+  return !terminal.hasActivePass() && terminalSecurity.hasOwner();
+}
+
+void resetOwnerFromKeypad() {
+  bluetoothSerial.disconnectClient();
+  if (terminalSecurity.resetOwner() && bluetoothSerial.clearBondedDevices()) {
+    terminalDisplay.showOwnerReset();
+    drawIdleScreen();
+  } else {
+    terminalDisplay.showPairingError("RESET FAILED");
+    drawIdleScreen();
+  }
+}
+
 void startPairingMode() {
   if (!isPairingAllowed() ||
       !terminalSecurity.startClaimMode(monotonicClock.milliseconds())) {
+    return;
+  }
+  bluetoothSerial.disconnectClient();
+  if (!bluetoothSerial.clearBondedDevices()) {
+    terminalSecurity.stopClaimMode();
+    terminalDisplay.showPairingError("PAIR RESET FAILED");
+    drawIdleScreen();
     return;
   }
   bluetoothSerial.setPairingPasskey(terminalSecurity.pairingPasskey());
@@ -161,7 +186,9 @@ KeypadController keypadController(
   handleSingleHash,
   resetCurrentCheckout,
   isPairingAllowed,
-  startPairingMode
+  startPairingMode,
+  isOwnerResetAllowed,
+  resetOwnerFromKeypad
 );
 
 void setSystemClock24(
@@ -783,7 +810,7 @@ void processSerialCommands() {
       tripStorage.printTripLog();
       } else if (serialCommandBuffer == "OWNER_RESET") {
         bluetoothSerial.disconnectClient();
-        if (terminalSecurity.resetOwner()) {
+        if (terminalSecurity.resetOwner() && bluetoothSerial.clearBondedDevices()) {
           Serial.println("OWNER_RESET,OK");
         } else {
           Serial.println("OWNER_RESET,FAILED");
@@ -827,6 +854,9 @@ void setup() {
   }
 
   bluetoothSync.begin();
+  if (!terminalSecurity.hasOwner() && !bluetoothSerial.clearBondedDevices()) {
+    Serial.println("WARNING: stale Bluetooth bonds could not be cleared.");
+  }
 
   // Storage owns NVS and LittleFS, then restores an active pass before clock
   // setup. The display is intentionally deferred until the clock is set.

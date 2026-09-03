@@ -49,8 +49,24 @@ public partial class TripsModalView : UserControl {
     }
   }
 
+  void OnSortStudentIdClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) vm.TripsModal.ToggleSort("StudentId");
+  }
+
+  void OnSortStudentNameClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) vm.TripsModal.ToggleSort("StudentName");
+  }
+
+  void OnSortDepartedClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) vm.TripsModal.ToggleSort("Departed");
+  }
+
+  void OnSortReturnedClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) vm.TripsModal.ToggleSort("Returned");
+  }
+
   void OnSortStudentClick(object? sender, RoutedEventArgs e) {
-    if (DataContext is MainViewModel vm) vm.TripsModal.ToggleSort("Student");
+    if (DataContext is MainViewModel vm) vm.TripsModal.ToggleSort("StudentName");
   }
 
   void OnSortDateClick(object? sender, RoutedEventArgs e) {
@@ -58,11 +74,11 @@ public partial class TripsModalView : UserControl {
   }
 
   void OnSortTimeOutClick(object? sender, RoutedEventArgs e) {
-    if (DataContext is MainViewModel vm) vm.TripsModal.ToggleSort("TimeOut");
+    if (DataContext is MainViewModel vm) vm.TripsModal.ToggleSort("Departed");
   }
 
   void OnSortTimeInClick(object? sender, RoutedEventArgs e) {
-    if (DataContext is MainViewModel vm) vm.TripsModal.ToggleSort("TimeIn");
+    if (DataContext is MainViewModel vm) vm.TripsModal.ToggleSort("Returned");
   }
 
   void OnSortDurationClick(object? sender, RoutedEventArgs e) {

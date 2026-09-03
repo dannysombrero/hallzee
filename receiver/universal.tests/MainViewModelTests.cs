@@ -87,4 +87,21 @@ public sealed class MainViewModelTests : IDisposable {
     Assert.False(viewModel.IsConnected);
     Assert.Equal("OFFLINE", viewModel.ConnectionStatusText);
   }
+
+  [Fact]
+  public void HeaderLocationTextReflectsClassroomInfoAndFallsBackToActiveProfile() {
+    // Initial fallback
+    Assert.Equal(viewModel.ActiveProfile.Name, viewModel.HeaderLocationText);
+
+    // Set Classroom Info
+    viewModel.TerminalSettingsModal.Room = "Room 2-207";
+    viewModel.TerminalSettingsModal.TeacherName = "Herrero";
+    viewModel.TerminalSettingsModal.School = "HRMS";
+
+    Assert.Equal("Room 2-207 - Herrero - HRMS", viewModel.HeaderLocationText);
+
+    // Test Room without prefix
+    viewModel.TerminalSettingsModal.Room = "2-207";
+    Assert.Equal("Room 2-207 - Herrero - HRMS", viewModel.HeaderLocationText);
+  }
 }

@@ -35,41 +35,48 @@
           </StackPanel>
         </Border>
 
-        <!-- TAB 1: PROFILE SETTINGS -->
+        <!-- TAB 1: PROFILE / CLASSROOM SETTINGS -->
         <StackPanel Grid.Row="2" Spacing="16" IsVisible="{Binding TerminalSettingsModal.IsProfileSelected}">
           
-          <!-- ACTIVE CLASSROOM PROFILE SELECTOR -->
-          <Border Classes="hallzee-section">
-            <StackPanel Spacing="10">
-              <TextBlock Text="ACTIVE CLASSROOM PROFILE" FontSize="11" FontWeight="Bold" Foreground="#64748B" />
-              <TextBlock Text="Choose which classroom profile is currently active on this device." FontSize="12" Foreground="#475569" TextWrapping="Wrap" />
+          <Border Classes="hallzee-section" Padding="20">
+            <StackPanel Spacing="14">
+              <TextBlock Text="CLASSROOM &amp; TEACHER INFORMATION" FontSize="11" FontWeight="Bold" Foreground="#64748B" />
+              <TextBlock Text="Set your classroom details to display in the application header." FontSize="12" Foreground="#475569" TextWrapping="Wrap" />
 
-              <ComboBox ItemsSource="{Binding Profiles}" SelectedItem="{Binding ActiveProfile}" DisplayMemberBinding="{Binding Name}" HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="0,4,0,0" />
-            </StackPanel>
-          </Border>
+              <StackPanel Spacing="12" Margin="0,4,0,0">
+                <!-- Teacher Name -->
+                <Grid ColumnDefinitions="130,*" VerticalAlignment="Center">
+                  <TextBlock Text="Teacher Name:" FontSize="13" FontWeight="SemiBold" Foreground="#334155" VerticalAlignment="Center" />
+                  <TextBox Grid.Column="1" Text="{Binding TerminalSettingsModal.TeacherName}" Watermark="e.g. Herrero" FontSize="13" />
+                </Grid>
 
-          <!-- ADD NEW PROFILE -->
-          <Border Classes="hallzee-section">
-            <StackPanel Spacing="10">
-              <TextBlock Text="CREATE NEW PROFILE" FontSize="11" FontWeight="Bold" Foreground="#64748B" />
-              <TextBlock Text="Create an additional profile for another period, class, or subject block." FontSize="12" Foreground="#475569" TextWrapping="Wrap" />
+                <Rectangle Height="1" Fill="#E0F2FE" />
 
-              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10" Margin="0,4,0,0" VerticalAlignment="Center">
-                <TextBox Text="{Binding PolicyModal.NewProfileName}" Watermark="New profile name (e.g. Period 4 Biology)" FontSize="13" />
-                <Button Grid.Column="1" Classes="secondary" Content="+ Create Profile" Click="OnCreateProfileClick" Padding="14,8" FontSize="12" />
-              </Grid>
-            </StackPanel>
-          </Border>
+                <!-- School -->
+                <Grid ColumnDefinitions="130,*" VerticalAlignment="Center">
+                  <TextBlock Text="School:" FontSize="13" FontWeight="SemiBold" Foreground="#334155" VerticalAlignment="Center" />
+                  <TextBox Grid.Column="1" Text="{Binding TerminalSettingsModal.School}" Watermark="e.g. HRMS" FontSize="13" />
+                </Grid>
 
-          <!-- QUICK LINKS -->
-          <Border Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="16" Padding="14">
-            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
-              <StackPanel Spacing="2">
-                <TextBlock Text="Classroom Rosters &amp; Pass Limits" FontSize="12" FontWeight="Bold" Foreground="#166534" />
-                <TextBlock Text="Customize student list or pass limits for this profile." FontSize="11" Foreground="#15803D" />
+                <Rectangle Height="1" Fill="#E0F2FE" />
+
+                <!-- Room -->
+                <Grid ColumnDefinitions="130,*" VerticalAlignment="Center">
+                  <TextBlock Text="Room:" FontSize="13" FontWeight="SemiBold" Foreground="#334155" VerticalAlignment="Center" />
+                  <TextBox Grid.Column="1" Text="{Binding TerminalSettingsModal.Room}" Watermark="e.g. Room 2-207" FontSize="13" />
+                </Grid>
               </StackPanel>
-              <Button Grid.Column="1" Classes="secondary" Content="Manage Roster" Click="OnOpenRosterClick" Padding="12,6" FontSize="12" />
-              <Button Grid.Column="2" Classes="secondary" Content="Manage Policies" Click="OnOpenPoliciesClick" Padding="12,6" FontSize="12" />
+            </StackPanel>
+          </Border>
+
+          <!-- HEADER PREVIEW CARD -->
+          <Border Background="#F0F9FF" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="16" Padding="14">
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" VerticalAlignment="Center">
+              <PathIcon Data="{StaticResource IconShieldCheck}" Width="16" Height="16" Foreground="#0284C7" VerticalAlignment="Center" />
+              <StackPanel Grid.Column="1" Spacing="2">
+                <TextBlock Text="Header Bar Display:" FontSize="11" FontWeight="Bold" Foreground="#0369A1" />
+                <TextBlock Text="{Binding HeaderLocationText, StringFormat='Hallzee Desktop Client | {0}'}" FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" />
+              </StackPanel>
             </Grid>
           </Border>
         </StackPanel>
@@ -107,9 +114,10 @@
         </StackPanel>
 
         <!-- FOOTER ACTIONS -->
-        <Grid Grid.Row="3" ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+        <Grid Grid.Row="3" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
           <TextBlock Text="{Binding TerminalSettingsModal.StatusMessage}" Foreground="{Binding TerminalSettingsModal.StatusColor}" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center" />
-          <Button Grid.Column="1" Classes="hallzee-pill-btn" Content="Apply Setting to Kiosk" Click="OnApplyClick" Padding="16,8" FontSize="13" IsVisible="{Binding TerminalSettingsModal.IsDeviceSelected}" />
+          <Button Grid.Column="1" Classes="hallzee-pill-btn" Content="Save Classroom Info" Click="OnSaveClassroomInfoClick" Padding="16,8" FontSize="13" IsVisible="{Binding TerminalSettingsModal.IsProfileSelected}" />
+          <Button Grid.Column="2" Classes="hallzee-pill-btn" Content="Apply Setting to Kiosk" Click="OnApplyClick" Padding="16,8" FontSize="13" IsVisible="{Binding TerminalSettingsModal.IsDeviceSelected}" />
         </Grid>
       </Grid>
     </Border>

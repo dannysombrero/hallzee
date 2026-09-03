@@ -27,21 +27,9 @@ public partial class TerminalSettingsModalView : UserControl {
     }
   }
 
-  void OnCreateProfileClick(object? sender, RoutedEventArgs e) {
+  void OnSaveClassroomInfoClick(object? sender, RoutedEventArgs e) {
     if (DataContext is MainViewModel vm) {
-      vm.CreateProfileFromPolicy();
-    }
-  }
-
-  void OnOpenRosterClick(object? sender, RoutedEventArgs e) {
-    if (DataContext is MainViewModel vm) {
-      vm.OpenModal("Roster");
-    }
-  }
-
-  void OnOpenPoliciesClick(object? sender, RoutedEventArgs e) {
-    if (DataContext is MainViewModel vm) {
-      vm.OpenModal("Policies");
+      vm.TerminalSettingsModal.SaveClassroomInfo();
     }
   }
 

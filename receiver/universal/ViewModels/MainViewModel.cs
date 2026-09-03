@@ -75,7 +75,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     TripsModal = new TripsViewModel(tripRepository, rosterService);
     RosterModal = new RosterViewModel(rosterService);
     PolicyModal = new PolicyViewModel(profileRepository);
-    TerminalSettingsModal = new TerminalSettingsViewModel(profileRepository, connection);
+    TerminalSettingsModal = new TerminalSettingsViewModel(profileRepository, connection, appData, () => OnPropertyChanged(nameof(HeaderLocationText)));
     FindTerminalsModal = new FindTerminalsViewModel(connection);
     ManualCheckInModal = new ManualCheckInViewModel(rosterService);
 
@@ -239,9 +239,35 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
         activeProfile = value;
         profileRepository.SetActiveProfile(value.ProfileId);
         OnPropertyChanged();
+        OnPropertyChanged(nameof(HeaderLocationText));
         Dashboard.ClearLiveCheckouts();
         RefreshActiveProfileData();
       }
+    }
+  }
+
+  public string HeaderLocationText {
+    get {
+      var parts = new List<string>(3);
+      if (!string.IsNullOrWhiteSpace(TerminalSettingsModal?.Room)) {
+        var r = TerminalSettingsModal.Room.Trim();
+        if (!r.StartsWith("Room", StringComparison.OrdinalIgnoreCase)) {
+          r = "Room " + r;
+        }
+        parts.Add(r);
+      }
+      if (!string.IsNullOrWhiteSpace(TerminalSettingsModal?.TeacherName)) {
+        parts.Add(TerminalSettingsModal.TeacherName.Trim());
+      }
+      if (!string.IsNullOrWhiteSpace(TerminalSettingsModal?.School)) {
+        parts.Add(TerminalSettingsModal.School.Trim());
+      }
+
+      if (parts.Count > 0) {
+        return string.Join(" - ", parts);
+      }
+
+      return ActiveProfile?.Name ?? "Default Classroom";
     }
   }
 

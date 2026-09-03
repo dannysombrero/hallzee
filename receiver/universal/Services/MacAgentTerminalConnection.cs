@@ -14,7 +14,6 @@ namespace BathroomSync.Universal.Services;
 
 public class MacAgentTerminalConnection : ITerminalConnection
 {
-    public event EventHandler<string>? TerminalDiscovered;
     public event EventHandler<string>? TextReceived;
     public event EventHandler<string>? ConnectionLost;
 

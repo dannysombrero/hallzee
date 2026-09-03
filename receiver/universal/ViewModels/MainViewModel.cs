@@ -197,19 +197,17 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     IsSyncing ? "#0284C7" : IsConnected ? "#10B981" : "#94A3B8";
 
   public string ConnectionBadgeBackground =>
-    IsSyncing ? "#E0F2FE" : IsConnected ? "#DCFCE7" : "#F1F5F9";
+    IsSyncing ? "#0284C7" : IsConnected ? "#10B981" : "#94A3B8";
 
-  public string ConnectionBadgeForeground =>
-    IsSyncing ? "#0369A1" : IsConnected ? "#166534" : "#475569";
+  public string ConnectionBadgeForeground => "White";
 
   public string TopStatusBadgeText =>
     !IsConnected ? "OFFLINE" : IsSyncing ? "SYNCING" : "CONNECTED";
 
   public string TopStatusBadgeBackground =>
-    !IsConnected ? "#E2E8F0" : IsSyncing ? "#E0F2FE" : "#DCFCE7";
+    !IsConnected ? "#94A3B8" : IsSyncing ? "#0284C7" : "#10B981";
 
-  public string TopStatusBadgeForeground =>
-    !IsConnected ? "#475569" : IsSyncing ? "#0369A1" : "#166534";
+  public string TopStatusBadgeForeground => "White";
 
   public string TerminalAvatarBackground =>
     !IsConnected ? "#94A3B8" : "#10B981";

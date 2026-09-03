@@ -119,14 +119,42 @@
       <Setter Property="BorderBrush" Value="#BAE6FD" />
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="FontWeight" Value="Bold" />
-      <Setter Property="FontSize" Value="13" />
-      <Setter Property="CornerRadius" Value="14" />
-      <Setter Property="Padding" Value="14,8" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Padding" Value="12,6" />
     </Style>
     <Style Selector="Button.card-outline:pointerover /template/ ContentPresenter">
       <Setter Property="Background" Value="#F0F9FF" />
       <Setter Property="BorderBrush" Value="#7DD3FC" />
       <Setter Property="Foreground" Value="#0284C7" />
+    </Style>
+
+    <!-- REUSABLE VIBRANT STATUS PILL (CONNECTED, COMPLETED, MANUAL, ETC.) -->
+    <Style Selector="Border.status-pill">
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="Padding" Value="8,2" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="BoxShadow" Value="0 1 2 0 #15000000" />
+    </Style>
+    <Style Selector="Border.status-pill TextBlock">
+      <Setter Property="FontSize" Value="9" />
+      <Setter Property="FontWeight" Value="ExtraBold" />
+      <Setter Property="LetterSpacing" Value="0.5" />
+      <Setter Property="Foreground" Value="White" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.status-pill.success">
+      <Setter Property="Background" Value="#10B981" />
+    </Style>
+    <Style Selector="Border.status-pill.warning">
+      <Setter Property="Background" Value="#F59E0B" />
+    </Style>
+    <Style Selector="Border.status-pill.info">
+      <Setter Property="Background" Value="#0284C7" />
+    </Style>
+    <Style Selector="Border.status-pill.neutral">
+      <Setter Property="Background" Value="#64748B" />
     </Style>
 
     <!-- DARK ACTION BUTTON (e.g. Check In) -->

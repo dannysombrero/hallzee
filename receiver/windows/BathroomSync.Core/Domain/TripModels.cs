@@ -71,6 +71,22 @@ public record EnrichedTripRecord(
     }
     return $"{minutes}m {seconds:D2}s";
   }
+
+  public string StatusDisplay =>
+    string.Equals(Status, "MANUAL_RESET", StringComparison.OrdinalIgnoreCase) || string.Equals(Status, "MANUAL", StringComparison.OrdinalIgnoreCase)
+      ? "MANUAL"
+      : string.Equals(Status, "COMPLETED", StringComparison.OrdinalIgnoreCase) || string.Equals(Status, "COMPLETE", StringComparison.OrdinalIgnoreCase)
+        ? "COMPLETE"
+        : Status.ToUpperInvariant();
+
+  public string StatusBackground =>
+    string.Equals(Status, "MANUAL_RESET", StringComparison.OrdinalIgnoreCase) || string.Equals(Status, "MANUAL", StringComparison.OrdinalIgnoreCase)
+      ? "#64748B"
+      : string.Equals(Status, "COMPLETED", StringComparison.OrdinalIgnoreCase) || string.Equals(Status, "COMPLETE", StringComparison.OrdinalIgnoreCase)
+        ? "#10B981"
+        : "#0284C7";
+
+  public string StatusForeground => "White";
 }
 
 public record TripQueryFilter(

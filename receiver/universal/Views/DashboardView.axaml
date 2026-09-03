@@ -20,8 +20,8 @@
             </Border>
 
             <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
-              <Border Background="{Binding ActivePass.BadgeColor}" CornerRadius="12" Padding="10,2" HorizontalAlignment="Left">
-                <TextBlock Text="{Binding ActivePass.BadgeText}" FontWeight="ExtraBold" FontSize="10" Foreground="White" LetterSpacing="0.5" />
+              <Border Classes="status-pill" Background="{Binding ActivePass.BadgeColor}" HorizontalAlignment="Left">
+                <TextBlock Text="{Binding ActivePass.BadgeText}" Foreground="White" />
               </Border>
 
               <TextBlock Text="{Binding ActivePass.HeadingText}" FontSize="22" FontWeight="Black" Foreground="#0F172A" />
@@ -110,8 +110,8 @@
                   <PathIcon Data="{StaticResource IconUserX}" Width="26" Height="26" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" />
                 </Border>
                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
-                  <Border Background="#F59E0B" CornerRadius="12" Padding="10,2" HorizontalAlignment="Left">
-                    <TextBlock Text="PASS OCCUPIED" FontWeight="ExtraBold" FontSize="10" Foreground="White" LetterSpacing="0.5" />
+                  <Border Classes="status-pill" Background="#F59E0B" HorizontalAlignment="Left">
+                    <TextBlock Text="PASS OCCUPIED" Foreground="White" />
                   </Border>
                   <TextBlock Text="{Binding DisplayName, StringFormat='{}{0} is Out of Class'}" FontSize="22" FontWeight="Black" Foreground="#0F172A" />
                   <TextBlock Text="{Binding TimeOut, StringFormat='Departed at {0}.'}" FontSize="13" Foreground="#475569" FontWeight="Medium" />
@@ -197,8 +197,8 @@
                         <!-- DURATION & STATUS PILL -->
                         <StackPanel Grid.Column="3" HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="2">
                           <TextBlock Text="{Binding DurationText}" FontWeight="Bold" FontSize="12" Foreground="#0F172A" HorizontalAlignment="Right" />
-                          <Border Background="{Binding StatusBackground}" CornerRadius="10" Padding="8,2" HorizontalAlignment="Right">
-                            <TextBlock Text="{Binding StatusText}" FontSize="9" FontWeight="ExtraBold" Foreground="{Binding StatusForeground}" />
+                          <Border Classes="status-pill" Background="{Binding StatusBackground}" HorizontalAlignment="Right">
+                            <TextBlock Text="{Binding StatusText}" Foreground="{Binding StatusForeground}" />
                           </Border>
                         </StackPanel>
                       </Grid>

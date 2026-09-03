@@ -35,20 +35,14 @@
           </Grid>
 
           <!-- ROW 1: SEARCH & FILTER TOOLBAR -->
-          <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
+          <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="10" VerticalAlignment="Center">
             <Border Background="#F0F9FF" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="24" Padding="14,6">
               <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
                 <PathIcon Data="{StaticResource IconSearch}" Width="20" Height="20" Foreground="#8AA4C2" VerticalAlignment="Center" />
                 <TextBox Grid.Column="1" Text="{Binding TripsModal.SearchText, UpdateSourceTrigger=PropertyChanged}" Watermark="Filter student name, ID, or trip…" FontSize="14" Padding="0,6" Background="Transparent" BorderThickness="0" />
               </Grid>
             </Border>
-              <ComboBox Grid.Column="1" ItemsSource="{Binding TripsModal.StatusOptions}" SelectedItem="{Binding TripsModal.SelectedStatus}" Width="160" />
-              <Button Grid.Column="2" Classes="hallzee-pill-btn" Click="OnExportCsvClick" Padding="14,7" FontSize="12">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                  <PathIcon Data="{StaticResource IconDownload}" Width="14" Height="14" Foreground="White" />
-                  <TextBlock Text="Export CSV" FontWeight="Bold" />
-                </StackPanel>
-              </Button>
+            <ComboBox Grid.Column="1" ItemsSource="{Binding TripsModal.StatusOptions}" SelectedItem="{Binding TripsModal.SelectedStatus}" Width="160" />
           </Grid>
 
           <!-- ROW 2: TRIPS TABLE (WITH SEPARATE TIME OUT & TIME IN COLUMNS AND COMPACT DURATION) -->
@@ -135,8 +129,8 @@
                           <TextBlock Grid.Column="5" Text="{Binding FormattedDuration}" FontWeight="Bold" FontSize="13" Foreground="#111B33" VerticalAlignment="Center" />
                           
                           <!-- STATUS -->
-                          <Border Grid.Column="6" Background="#D1FAE5" BorderBrush="#86EFAC" BorderThickness="1" CornerRadius="18" Padding="12,5" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,4,0">
-                            <TextBlock Text="{Binding Status}" FontSize="11" FontWeight="Bold" Foreground="#047857" />
+                          <Border Grid.Column="6" Classes="status-pill" Background="{Binding StatusBackground}" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,0,4,0">
+                            <TextBlock Text="{Binding StatusDisplay}" Foreground="{Binding StatusForeground}" />
                           </Border>
                         </Grid>
                         </Border>

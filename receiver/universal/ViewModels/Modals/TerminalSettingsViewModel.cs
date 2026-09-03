@@ -7,14 +7,99 @@ namespace BathroomSync.Universal.ViewModels;
 public sealed class TerminalSettingsViewModel : INotifyPropertyChanged {
   readonly ITerminalRepository terminalRepository;
   readonly ITerminalConnection connection;
+  readonly string classroomInfoFilePath;
+  readonly Action? onClassroomInfoChanged;
   int maxStudentIdLength = 10;
   string terminalName = "Hallzee (Room 204)";
   string statusMessage = "";
   string statusColor = "#64748B";
 
-  public TerminalSettingsViewModel(ITerminalRepository terminalRepository, ITerminalConnection connection) {
+  string teacherName = "";
+  string school = "";
+  string room = "";
+
+  public TerminalSettingsViewModel(
+    ITerminalRepository terminalRepository,
+    ITerminalConnection connection,
+    string? appDataPath = null,
+    Action? onClassroomInfoChanged = null
+  ) {
     this.terminalRepository = terminalRepository;
     this.connection = connection;
+    this.onClassroomInfoChanged = onClassroomInfoChanged;
+
+    classroomInfoFilePath = string.IsNullOrEmpty(appDataPath)
+      ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Hallzee", "classroom-info.json")
+      : Path.Combine(appDataPath, "classroom-info.json");
+
+    LoadClassroomInfo();
+  }
+
+  public string TeacherName {
+    get => teacherName;
+    set {
+      if (teacherName != value) {
+        teacherName = value;
+        OnPropertyChanged();
+        SaveClassroomInfo();
+      }
+    }
+  }
+
+  public string School {
+    get => school;
+    set {
+      if (school != value) {
+        school = value;
+        OnPropertyChanged();
+        SaveClassroomInfo();
+      }
+    }
+  }
+
+  public string Room {
+    get => room;
+    set {
+      if (room != value) {
+        room = value;
+        OnPropertyChanged();
+        SaveClassroomInfo();
+      }
+    }
+  }
+
+  void LoadClassroomInfo() {
+    try {
+      if (File.Exists(classroomInfoFilePath)) {
+        var json = File.ReadAllText(classroomInfoFilePath);
+        using var doc = System.Text.Json.JsonDocument.Parse(json);
+        var root = doc.RootElement;
+        if (root.TryGetProperty("TeacherName", out var t)) teacherName = t.GetString() ?? "";
+        if (root.TryGetProperty("School", out var s)) school = s.GetString() ?? "";
+        if (root.TryGetProperty("Room", out var r)) room = r.GetString() ?? "";
+      }
+    } catch {
+      // Best effort load
+    }
+  }
+
+  public void SaveClassroomInfo() {
+    try {
+      var dir = Path.GetDirectoryName(classroomInfoFilePath);
+      if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+      var payload = new {
+        TeacherName = TeacherName,
+        School = School,
+        Room = Room
+      };
+      File.WriteAllText(classroomInfoFilePath, System.Text.Json.JsonSerializer.Serialize(payload));
+      StatusMessage = "Classroom details saved.";
+      StatusColor = "#10B981";
+      onClassroomInfoChanged?.Invoke();
+    } catch (Exception ex) {
+      StatusMessage = $"Failed to save: {ex.Message}";
+      StatusColor = "#EF4444";
+    }
   }
 
   public event PropertyChangedEventHandler? PropertyChanged;

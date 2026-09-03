@@ -402,8 +402,15 @@ bool TerminalSecurity::persistOwner(const String &clientId, const uint8_t *key) 
   // clear() may report false when the namespace is already empty. That is
   // harmless; the write results below are the authoritative check.
   preferences.clear();
-  if (preferences.putString(OWNER_CLIENT_KEY, clientId) == 0 ||
-      preferences.putBytes(OWNER_KEY_KEY, key, OWNER_KEY_BYTES) != OWNER_KEY_BYTES) {
+  const size_t clientBytes = preferences.putString(OWNER_CLIENT_KEY, clientId);
+  if (clientBytes == 0) {
+    claimCommitFailure = "STORAGE_CLIENT";
+    preferences.clear();
+    return false;
+  }
+  const size_t keyBytes = preferences.putBytes(OWNER_KEY_KEY, key, OWNER_KEY_BYTES);
+  if (keyBytes != OWNER_KEY_BYTES) {
+    claimCommitFailure = "STORAGE_KEY";
     preferences.clear();
     return false;
   }

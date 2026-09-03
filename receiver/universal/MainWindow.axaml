@@ -20,7 +20,7 @@
           <Image Source="avares://HallzeeSync.Universal/Assets/hallzee-logo.png" Width="18" Height="18" VerticalAlignment="Center" />
           <TextBlock Text="Hallzee Desktop Client" FontWeight="Bold" FontSize="12" Foreground="White" VerticalAlignment="Center" />
           <TextBlock Text="|" Foreground="#7DD3FC" VerticalAlignment="Center" Margin="4,0" />
-          <TextBlock Text="{Binding ActiveProfile.Name}" FontSize="12" Foreground="#F0F9FF" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <TextBlock Text="{Binding HeaderLocationText}" FontSize="12" Foreground="#F0F9FF" FontWeight="SemiBold" VerticalAlignment="Center" />
         </StackPanel>
 
         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">

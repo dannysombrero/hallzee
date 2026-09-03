@@ -114,7 +114,7 @@ Carriage returns are ignored.
 | `ERROR,AUTH_REQUIRED` | Application command arrived before authorization |
 | `ERROR,AUTH_FAILED_CLAIM` | Initial claim proof was malformed or invalid |
 | `ERROR,AUTH_FAILED_CLAIM_COMMIT` | Final claim commit proof was malformed or invalid |
-| `ERROR,AUTH_FAILED_CLAIM_COMMIT_<reason>` | Final claim commit failed; reason is `STATE`, `NONCE`, `CLIENT`, `PROOF_FORMAT`, `PROOF`, or `STORAGE` |
+| `ERROR,AUTH_FAILED_CLAIM_COMMIT_<reason>` | Final claim commit failed; reason is `STATE`, `NONCE`, `CLIENT`, `PROOF_FORMAT`, `PROOF`, `STORAGE_CLIENT`, or `STORAGE_KEY` |
 | `ERROR,AUTH_FAILED_AUTH` | Reconnection proof was malformed or invalid |
 | `ERROR,AUTH_TIMEOUT` | Authorization was not completed in time |
 | `ERROR,PAIRING_MODE_REQUIRED` | An unclaimed terminal is not in its physical claim window |

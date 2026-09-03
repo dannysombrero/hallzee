@@ -345,7 +345,7 @@ Errors are explicit and terminal state is unchanged:
 | ERROR,OWNER_MISMATCH | client_id differs from the persisted owner. |
 | ERROR,AUTH_FAILED_CLAIM | Initial claim proof is malformed or invalid. |
 | ERROR,AUTH_FAILED_CLAIM_COMMIT | Final claim commit proof is malformed or invalid. |
-| ERROR,AUTH_FAILED_CLAIM_COMMIT_<reason> | Final claim commit failed with a diagnostic reason: STATE, NONCE, CLIENT, PROOF_FORMAT, PROOF, or STORAGE. |
+| ERROR,AUTH_FAILED_CLAIM_COMMIT_<reason> | Final claim commit failed with a diagnostic reason: STATE, NONCE, CLIENT, PROOF_FORMAT, PROOF, STORAGE_CLIENT, or STORAGE_KEY. |
 | ERROR,AUTH_FAILED_AUTH | Reconnection proof is malformed or invalid. |
 | ERROR,AUTH_TIMEOUT | Authorization was not completed within 10 seconds. |
 | ERROR,UPGRADE_REQUIRED | A claimed v2 terminal received legacy protocol. |

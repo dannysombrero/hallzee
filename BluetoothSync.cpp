@@ -74,6 +74,17 @@ void BluetoothSync::begin() {
   Serial.println(advertisedName);
 }
 
+void BluetoothSync::updateAvailability(bool inUse) {
+#ifdef ARDUINO
+  if (!identity || advertisedInUse == inUse) return;
+  advertisedInUse = inUse;
+  String advertisedName = identity->advertisedName(inUse);
+  serial.setDeviceName(advertisedName.c_str());
+#else
+  (void)inUse;
+#endif
+}
+
 void BluetoothSync::poll() {
   updateConnection();
 #ifdef ARDUINO
@@ -163,6 +174,14 @@ void BluetoothSync::processAuthenticationCommand(const String &command) {
     serial.print(",");
     serial.print(security->hasOwner() ? "CLAIMED" : "UNCLAIMED");
     serial.print(",");
+    bool inUse = false;
+    if (activePassProvider) {
+      String activeId;
+      uint32_t checkoutEpoch = 0;
+      inUse = activePassProvider(activeId, checkoutEpoch);
+    }
+    serial.print(inUse ? "IN_USE" : "AVAILABLE");
+    serial.print(",");
     serial.println(handshakeNonce);
     return;
   }
@@ -185,6 +204,14 @@ void BluetoothSync::processAuthenticationCommand(const String &command) {
     }
     const String clientId = remainder.substring(0, separator);
     const String proof = remainder.substring(separator + 1);
+    if (activePassProvider) {
+      String activeId;
+      uint32_t checkoutEpoch = 0;
+      if (activePassProvider(activeId, checkoutEpoch)) {
+        serial.println("ERROR,TERMINAL_IN_USE");
+        return;
+      }
+    }
     String nextNonce;
     if (prefixLength == 8) {
       if (security->hasOwner()) {

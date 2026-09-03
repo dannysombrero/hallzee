@@ -10,23 +10,22 @@ public static partial class TerminalIdentityProtocol {
   public const int NonceByteLength = 16;
   public const int NonceHexLength = NonceByteLength * 2;
   public const int ProofHexLength = 64;
-  public const int ClaimKeyLength = 16;
+  public const int PairingPasskeyLength = 6;
 
   static readonly Regex TerminalIdPattern = TerminalIdRegex();
   static readonly Regex HexPattern = HexRegex();
   static readonly Regex OwnerKeyPattern = OwnerKeyHexRegex();
-  const string CrockfordAlphabet = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 
   public static string BuildHello(string clientId) {
     var normalizedClientId = NormalizeClientId(clientId);
     return $"HELLO,{ProtocolVersion},{normalizedClientId}";
   }
 
-  public static string BuildClaim(string clientId, string claimKey, TerminalIdentity identity) {
+  public static string BuildClaim(string clientId, string pairingPasskey, TerminalIdentity identity) {
     var normalizedClientId = NormalizeClientId(clientId);
-    var normalizedKey = NormalizeClaimKey(claimKey);
+    var normalizedPasskey = NormalizePairingPasskey(pairingPasskey);
     ValidateIdentity(identity);
-    return $"CLAIM,{ProtocolVersion},{normalizedClientId},{ComputeClaimProof(normalizedKey, normalizedClientId, identity)}";
+    return $"CLAIM,{ProtocolVersion},{normalizedClientId},{ComputeClaimProof(normalizedPasskey, normalizedClientId, identity)}";
   }
 
   public static string BuildClaimCommit(string clientId, string ownerKey, string terminalId, string commitNonce) {
@@ -49,20 +48,23 @@ public static partial class TerminalIdentityProtocol {
   public static bool TryParseIdentity(string message, out TerminalIdentity? identity) {
     identity = null;
     var fields = Split(message);
-    if (fields.Length != 6 ||
+    if (fields.Length != 7 ||
         fields[0] != "IDENTITY" ||
         fields[1] != ProtocolVersion.ToString() ||
         !TryNormalizeTerminalId(fields[2], out var terminalId) ||
-        !TryNormalizeNonce(fields[5], out var nonce)) {
+        !TryNormalizeNonce(fields[6], out var nonce)) {
       return false;
     }
 
     var suffix = fields[3].ToUpperInvariant();
-    if (suffix != terminalId[^4..] || (fields[4] != "UNCLAIMED" && fields[4] != "CLAIMED")) {
+    if (suffix != terminalId[^4..] ||
+        (fields[4] != "UNCLAIMED" && fields[4] != "CLAIMED") ||
+        (fields[5] != "AVAILABLE" && fields[5] != "IN_USE")) {
       return false;
     }
 
-    identity = new TerminalIdentity(terminalId, suffix, fields[4] == "CLAIMED", nonce);
+    identity = new TerminalIdentity(
+      terminalId, suffix, fields[4] == "CLAIMED", nonce, fields[5] == "IN_USE");
     return true;
   }
 
@@ -100,12 +102,12 @@ public static partial class TerminalIdentityProtocol {
     return true;
   }
 
-  public static string ComputeClaimProof(string claimKey, string clientId, TerminalIdentity identity) {
-    var normalizedKey = NormalizeClaimKey(claimKey);
+  public static string ComputeClaimProof(string pairingPasskey, string clientId, TerminalIdentity identity) {
+    var normalizedPasskey = NormalizePairingPasskey(pairingPasskey);
     var normalizedClientId = NormalizeClientId(clientId);
     ValidateIdentity(identity);
     return HmacHex(
-      Encoding.UTF8.GetBytes(normalizedKey),
+      Encoding.UTF8.GetBytes(normalizedPasskey),
       $"CLAIM|{ProtocolVersion}|{identity.TerminalId}|{normalizedClientId}|{identity.Nonce}"
     );
   }
@@ -121,13 +123,13 @@ public static partial class TerminalIdentityProtocol {
     );
   }
 
-  public static byte[] DeriveOwnerKey(string claimKey, string terminalId, string clientId) {
-    var normalizedKey = NormalizeClaimKey(claimKey);
+  public static byte[] DeriveOwnerKey(string pairingPasskey, string terminalId, string clientId) {
+    var normalizedPasskey = NormalizePairingPasskey(pairingPasskey);
     var normalizedTerminalId = NormalizeTerminalId(terminalId);
     var normalizedClientId = NormalizeClientId(clientId);
     var salt = Encoding.UTF8.GetBytes(normalizedTerminalId);
     var info = Encoding.UTF8.GetBytes($"Hallzee owner v{ProtocolVersion}|{normalizedClientId}");
-    return HkdfSha256(Encoding.UTF8.GetBytes(normalizedKey), salt, info, 32);
+    return HkdfSha256(Encoding.UTF8.GetBytes(normalizedPasskey), salt, info, 32);
   }
 
   public static string NormalizeClientId(string clientId) {
@@ -151,11 +153,11 @@ public static partial class TerminalIdentityProtocol {
     return normalized;
   }
 
-  public static string NormalizeClaimKey(string claimKey) {
-    var normalized = claimKey.Replace("-", "", StringComparison.Ordinal).Trim().ToUpperInvariant();
-    if (normalized.Length != ClaimKeyLength ||
-        normalized.Any(character => !CrockfordAlphabet.Contains(character))) {
-      throw new FormatException($"Claim key must contain {ClaimKeyLength} Crockford Base32 characters.");
+  public static string NormalizePairingPasskey(string pairingPasskey) {
+    var normalized = pairingPasskey.Trim();
+    if (normalized.Length != PairingPasskeyLength ||
+        normalized.Any(character => character < '0' || character > '9')) {
+      throw new FormatException($"Bluetooth passkey must contain {PairingPasskeyLength} digits.");
     }
     return normalized;
   }

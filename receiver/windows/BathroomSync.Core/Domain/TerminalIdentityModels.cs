@@ -16,7 +16,8 @@ public sealed record TerminalIdentity(
   string TerminalId,
   string TerminalSuffix,
   bool IsClaimed,
-  string Nonce
+  string Nonce,
+  bool IsInUse = false
 );
 
 public sealed record AuthenticatedTerminalSession(
@@ -35,4 +36,13 @@ public sealed class TerminalIdentityMismatchException : InvalidOperationExceptio
 
   public string ExpectedTerminalId { get; }
   public string ObservedTerminalId { get; }
+}
+
+public sealed class TerminalInUseException : InvalidOperationException {
+  public TerminalInUseException(string terminalId)
+    : base($"Terminal {terminalId} is currently in use and cannot accept a desktop connection.") {
+    TerminalId = terminalId;
+  }
+
+  public string TerminalId { get; }
 }

@@ -36,6 +36,7 @@ public:
 
   void begin();
   void poll();
+  void updateAvailability(bool inUse);
 
   void notifyCheckout(const String &studentId, uint32_t checkoutEpoch);
   void notifyCheckin(const String &studentId, unsigned long durationSeconds);
@@ -65,6 +66,7 @@ private:
   String handshakeNonce;
   String commitNonce;
   unsigned long authorizationStartedAt = 0;
+  bool advertisedInUse = false;
 
   void updateConnection();
   void processCommands();

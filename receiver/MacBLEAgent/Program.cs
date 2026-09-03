@@ -162,10 +162,12 @@ class Program
         {
             var idStr = peripheral.Identifier.ToString();
             var name = peripheral.Name ?? "Hallzee";
+            var inUse = name.EndsWith("-INUSE", StringComparison.OrdinalIgnoreCase);
+            if (inUse) name = name[..^6];
             if (!foundDevices.ContainsKey(idStr))
             {
                 foundDevices[idStr] = name;
-                EmitEvent("Discovered", new { Id = idStr, Name = name });
+                EmitEvent("Discovered", new { Id = idStr, Name = name, IsInUse = inUse });
             }
         }
         

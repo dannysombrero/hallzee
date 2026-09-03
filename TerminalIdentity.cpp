@@ -31,9 +31,14 @@ String TerminalIdentity::terminalSuffix() const {
   return id.length() >= 4 ? id.substring(id.length() - 4) : id;
 }
 
-String TerminalIdentity::advertisedName() const {
-  if (name.length() > 0 && name != DEFAULT_NAME) return name;
-  return String(DEFAULT_NAME) + "-" + terminalSuffix();
+String TerminalIdentity::advertisedName(bool inUse) const {
+  String baseName;
+  if (name.length() > 0 && name != DEFAULT_NAME) {
+    baseName = name;
+  } else {
+    baseName = String(DEFAULT_NAME) + "-" + terminalSuffix();
+  }
+  return inUse ? baseName + "-INUSE" : baseName;
 }
 
 bool TerminalIdentity::setCustomName(const String &requestedName) {

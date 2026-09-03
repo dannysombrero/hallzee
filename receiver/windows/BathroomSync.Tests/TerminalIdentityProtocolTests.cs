@@ -7,10 +7,10 @@ public sealed class TerminalIdentityProtocolTests {
   const string ClientId = "12345678-1234-1234-1234-1234567890ab";
   const string TerminalId = "HZ-A1B2C3D4E5F6";
   const string Nonce = "00112233445566778899AABBCCDDEEFF";
-  const string ClaimKey = "0123456789ABCDEF";
+  const string PairingPasskey = "807481";
 
   static TerminalIdentity Identity(bool claimed = false) =>
-    new(TerminalId, "E5F6", claimed, Nonce);
+    new(TerminalId, "E5F6", claimed, Nonce, false);
 
   [Fact]
   public void BuildsAndParsesHelloAndIdentity() {
@@ -18,11 +18,12 @@ public sealed class TerminalIdentityProtocolTests {
     Assert.Equal("HELLO,2,12345678-1234-1234-1234-1234567890AB", hello);
 
     Assert.True(TerminalIdentityProtocol.TryParseIdentity(
-      $"IDENTITY,2,{TerminalId},E5F6,UNCLAIMED,{Nonce}", out var identity));
+      $"IDENTITY,2,{TerminalId},E5F6,UNCLAIMED,AVAILABLE,{Nonce}", out var identity));
     Assert.NotNull(identity);
     Assert.Equal(TerminalId, identity!.TerminalId);
     Assert.Equal("E5F6", identity.TerminalSuffix);
     Assert.False(identity.IsClaimed);
+    Assert.False(identity.IsInUse);
   }
 
   [Theory]
@@ -36,32 +37,49 @@ public sealed class TerminalIdentityProtocolTests {
   [Fact]
   public void RejectsIdentityWhenSuffixOrNonceDoesNotMatch() {
     Assert.False(TerminalIdentityProtocol.TryParseIdentity(
-      $"IDENTITY,2,{TerminalId},0000,CLAIMED,{Nonce}", out _));
+      $"IDENTITY,2,{TerminalId},0000,CLAIMED,AVAILABLE,{Nonce}", out _));
     Assert.False(TerminalIdentityProtocol.TryParseIdentity(
-      $"IDENTITY,2,{TerminalId},E5F6,CLAIMED,not-a-nonce", out _));
+      $"IDENTITY,2,{TerminalId},E5F6,CLAIMED,AVAILABLE,not-a-nonce", out _));
+  }
+
+  [Fact]
+  public void ParsesInUseIdentity() {
+    Assert.True(TerminalIdentityProtocol.TryParseIdentity(
+      $"IDENTITY,2,{TerminalId},E5F6,CLAIMED,IN_USE,{Nonce}", out var identity));
+    Assert.True(identity!.IsInUse);
+  }
+
+  [Theory]
+  [InlineData("")]
+  [InlineData("12345")]
+  [InlineData("1234567")]
+  [InlineData("12A456")]
+  public void RejectsInvalidPairingPasskeys(string passkey) {
+    Assert.Throws<FormatException>(() =>
+      TerminalIdentityProtocol.NormalizePairingPasskey(passkey));
   }
 
   [Fact]
   public void ClaimAndAuthProofsAreDeterministicAndUseExpectedLengths() {
-    var claimProof = TerminalIdentityProtocol.ComputeClaimProof(ClaimKey, ClientId, Identity());
-    var ownerKey = TerminalIdentityProtocol.DeriveOwnerKey(ClaimKey, TerminalId, ClientId);
+    var claimProof = TerminalIdentityProtocol.ComputeClaimProof(PairingPasskey, ClientId, Identity());
+    var ownerKey = TerminalIdentityProtocol.DeriveOwnerKey(PairingPasskey, TerminalId, ClientId);
     var ownerKeyHex = Convert.ToHexString(ownerKey);
     var authProof = TerminalIdentityProtocol.ComputeAuthProof(ownerKeyHex, TerminalId, ClientId, Nonce);
 
     Assert.Equal(64, claimProof.Length);
     Assert.Equal(64, authProof.Length);
-    Assert.Equal(claimProof, TerminalIdentityProtocol.ComputeClaimProof(ClaimKey, ClientId, Identity()));
+    Assert.Equal(claimProof, TerminalIdentityProtocol.ComputeClaimProof(PairingPasskey, ClientId, Identity()));
     Assert.Equal(authProof, TerminalIdentityProtocol.ComputeAuthProof(ownerKeyHex, TerminalId, ClientId, Nonce));
     Assert.NotEqual(claimProof, authProof);
   }
 
   [Fact]
   public void ClaimAndAuthCommandsContainNormalizedProtocolFields() {
-    var claim = TerminalIdentityProtocol.BuildClaim(ClientId.ToLowerInvariant(), ClaimKey.ToLowerInvariant(), Identity());
+    var claim = TerminalIdentityProtocol.BuildClaim(ClientId.ToLowerInvariant(), PairingPasskey, Identity());
     Assert.StartsWith("CLAIM,2,12345678-1234-1234-1234-1234567890AB,", claim);
 
     var ownerKey = Convert.ToHexString(
-      TerminalIdentityProtocol.DeriveOwnerKey(ClaimKey, TerminalId, ClientId));
+      TerminalIdentityProtocol.DeriveOwnerKey(PairingPasskey, TerminalId, ClientId));
     var auth = TerminalIdentityProtocol.BuildAuth(ClientId, ownerKey.ToLowerInvariant(), Identity(true));
     Assert.StartsWith("AUTH,2,12345678-1234-1234-1234-1234567890AB,", auth);
     Assert.Equal(64, auth.Split(',')[3].Length);

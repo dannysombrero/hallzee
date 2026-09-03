@@ -326,33 +326,27 @@ void TerminalDisplay::showClockSet(const String &date, const String &time) {
 
 void TerminalDisplay::showPairing(
   const String &suffix,
-  const String &claimKey,
   uint32_t passkey
 ) {
   display.fillScreen(UI_BACKGROUND);
+  display.setTextWrap(false);
   display.setTextColor(UI_TEXT);
   display.setTextSize(2);
   display.setCursor(10, 8);
   display.println("PAIRING");
   display.setTextSize(1);
-  display.setCursor(10, 31);
+  display.setCursor(10, 29);
   display.print("Hallzee-");
   display.println(suffix);
-  display.setCursor(10, 48);
-  display.println("APP CODE");
+  display.setCursor(10, 49);
+  display.println("ENTER THIS PASSKEY");
   display.setTextSize(2);
-  display.setCursor(10, 61);
-  for (unsigned int index = 0; index < claimKey.length(); index++) {
-    if (index > 0 && index % 4 == 0) display.print("-");
-    display.print(claimKey.charAt(index));
-  }
-  display.setTextSize(1);
-  display.setCursor(10, 91);
-  display.print("BLUETOOTH PASSKEY: ");
+  display.setCursor(10, 68);
   if (passkey < 100000) display.print("0");
   display.println(String(passkey));
-  display.setCursor(10, 112);
-  display.println("Enter both in the app");
+  display.setCursor(10, 101);
+  display.setTextSize(1);
+  display.println("Enter passkey in app");
 }
 
 void TerminalDisplay::showPairingComplete(const String &suffix) {

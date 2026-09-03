@@ -7,7 +7,13 @@ cli_dir="$tools_dir/arduino-cli"
 cli="$cli_dir/bin/arduino-cli"
 esp32_index="https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json"
 esp32_version="3.3.11"
+compile_only=false
 port="${1:-}"
+
+if [[ "$port" == "--compile-only" ]]; then
+  compile_only=true
+  port=""
+fi
 
 # Arduino sketches must live in a directory with the same name as their .ino
 # file. The repository directory is named independently, so stage the sketch
@@ -67,5 +73,9 @@ echo "Installing the ESP32 board support and required libraries if needed…"
 
 echo "Building and flashing Hallzee to ${port}…"
 "$cli" compile --fqbn esp32:esp32:esp32 "$staging_sketch"
+if $compile_only; then
+  echo "Compile-only check passed; the ESP32 was not changed."
+  exit 0
+fi
 "$cli" upload --fqbn esp32:esp32:esp32 --port "$port" "$staging_sketch"
 echo "Done. The Hallzee firmware is now on the ESP32."

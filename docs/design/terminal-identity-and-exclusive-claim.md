@@ -12,7 +12,9 @@
 terminal-scoped SQLite migration, authenticated session boundary, firmware
 identity/claim state, Secure Connections characteristic permissions, one-active-
 central enforcement, physical claim gesture, and a single-terminal Universal
-client v2 path are implemented and compile validated. Desktop platform
+central enforcement, physical claim gesture, six-digit passkey claim flow,
+availability reporting, same-client automatic reconnect, and a single-terminal
+Universal client v2 path are implemented and compile validated. Desktop platform
 credential-vault adapters, owner-reset USB flow, and physical multi-terminal
 verification remain planned work in the agent packages below. The USB owner-reset
 command is implemented, but BLE bond deletion and OS credential-vault
@@ -84,8 +86,9 @@ second computer or app instance from connecting later.
 | transport_id | Windows BLE address or macOS CoreBluetooth UUID used to open the current radio connection. It may change and is not trusted as identity. |
 | terminal_id | Stable firmware identity in the form HZ- plus the ESP32 eFuse MAC as 12 uppercase hexadecimal digits, for example HZ-A1B2C3D4E5F6. It is not a secret. |
 | terminal_suffix | Last four characters of terminal_id, used in the advertised name and physical matching UX. |
+| availability | `AVAILABLE` when no student checkout is active; `IN_USE` when the terminal has an active checkout. This is advisory in discovery and authoritative in the v2 identity response. |
 | client_id | Random UUID generated once per desktop installation and stored locally. It identifies the claimant but is not itself a secret. |
-| claim_key | Random 80-bit, 16-character Crockford Base32 code displayed only on the physical kiosk while claim mode is active. |
+| pairing_passkey | Random six-digit value displayed only on the physical kiosk while claim mode is active. It is used once to derive the owner key; it is not stored as the owner credential. |
 | owner_key | 256-bit key derived during claim and stored by the terminal and in the desktop OS credential vault. It is never transmitted. |
 | owner | The one desktop installation whose client_id and owner_key match the terminal's persisted claim. |
 | associated profile | A local classroom profile configured to use a terminal. Association does not grant ownership. |
@@ -96,6 +99,7 @@ The implementation must preserve these invariants:
 - a claimed terminal fails closed when authentication is absent or invalid;
 - only the authenticated session may issue application commands;
 - a second BLE central is rejected while another connection is active;
+- an active checkout makes the terminal unavailable for desktop connection;
 - an unauthenticated connection is disconnected after 10 seconds;
 - the authenticated terminal_id, never a discovery result or UI label, scopes
   every cursor lookup and trip write;
@@ -195,14 +199,12 @@ HKDF-SHA-256 on firmware and System.Security.Cryptography on desktop.
 - From the idle screen, holding * and # for five seconds starts a two-minute
   claim window. The existing two-second active-pass reset behavior remains
   unchanged when a pass is active.
-- The kiosk displays PAIR Hallzee-XXXX and a randomly generated 16-character
-  Crockford Base32 claim_key, grouped as XXXX-XXXX-XXXX-XXXX.
-- The kiosk also displays a separate random six-digit Bluetooth passkey. The
-  operating system requests this passkey while establishing the MITM-protected
-  bond; the Hallzee app requests claim_key after the secure link is open. Label
-  the two values distinctly and alternate them on the small display if they do
-  not fit together.
-- The key is held in RAM only and regenerated whenever claim mode restarts.
+- The kiosk displays PAIR Hallzee-XXXX and one random six-digit pairing passkey.
+- The same six-digit value is supplied to the app after the secure BLE link is
+  established. The BLE operating system may also request that value while
+  establishing its MITM-protected bond; that OS prompt is separate from the
+  app field.
+- The passkey is held in RAM only and regenerated whenever claim mode restarts.
 - Claim mode closes immediately after a successful claim or when the timer
   expires. Expiration clears the key and any pending nonce.
 - Once claimed, the keypad cannot open claim mode and no BLE command can replace
@@ -213,7 +215,7 @@ HKDF-SHA-256 on firmware and System.Security.Cryptography on desktop.
 Both sides derive the same owner key after validating the physical claim proof:
 
     owner_key = HKDF-SHA256(
-      input_key_material = UTF8(claim_key_without_hyphens),
+      input_key_material = UTF8(pairing_passkey),
       salt = UTF8(terminal_id),
       info = UTF8("Hallzee owner v2|" + client_id),
       output_length = 32 bytes
@@ -231,7 +233,7 @@ Fields are ASCII and joined exactly with |; no locale-sensitive formatting is
 allowed.
 
     claim_proof = HMAC-SHA256(
-      key = UTF8(claim_key_without_hyphens),
+      key = UTF8(pairing_passkey),
       message = UTF8("CLAIM|2|" + terminal_id + "|" + client_id + "|" + nonce)
     )
 
@@ -294,16 +296,17 @@ terminal receiving HELLO,1 responds ERROR,UPGRADE_REQUIRED and disconnects.
 
 For each valid HELLO,2, firmware creates a fresh nonce and sends:
 
-    IDENTITY,2,<terminal_id>,<terminal_suffix>,<UNCLAIMED|CLAIMED>,<nonce>
+    IDENTITY,2,<terminal_id>,<terminal_suffix>,<UNCLAIMED|CLAIMED>,<AVAILABLE|IN_USE>,<nonce>
 
 The response intentionally does not assert that the caller is the owner. The
-caller proves that separately with AUTH.
+caller proves that separately with AUTH. `IN_USE` is included so the client can
+fail closed if the kiosk became occupied after discovery.
 
 ### 7.3 First claim
 
     Desktop  -> HELLO,2,<client_id>
-    Terminal -> IDENTITY,2,<terminal_id>,<suffix>,UNCLAIMED,<nonce>
-    Desktop  -> CLAIM,2,<client_id>,<claim_proof>
+    Terminal -> IDENTITY,2,<terminal_id>,<suffix>,UNCLAIMED,AVAILABLE,<nonce>
+    Desktop  -> CLAIM,2,<client_id>,<HMAC proof derived from pairing_passkey>
     Terminal -> CLAIM_OK,2,<terminal_id>,<commit_nonce>
 
 The terminal derives an owner key but holds it in RAM. The desktop derives and
@@ -323,7 +326,7 @@ section 6.3 with commit_nonce; returning AUTH uses the fresh nonce from IDENTITY
 ### 7.4 Returning owner
 
     Desktop  -> HELLO,2,<client_id>
-    Terminal -> IDENTITY,2,<terminal_id>,<suffix>,CLAIMED,<nonce>
+    Terminal -> IDENTITY,2,<terminal_id>,<suffix>,CLAIMED,AVAILABLE,<nonce>
     Desktop  -> AUTH,2,<client_id>,<auth_proof>
     Terminal -> AUTH_OK,2,<terminal_id>,<custom_name>
 
@@ -818,8 +821,11 @@ The feature is complete only when all statements are true:
 - each terminal resumes from its own durable cursor;
 - the desktop verifies stable identity before sending any application command;
 - a saved profile cannot silently operate a different terminal;
-- an unowned terminal requires its physically displayed claim key;
+- an unowned terminal requires its physically displayed six-digit pairing passkey;
 - a claimed terminal accepts only its owner and rejects legacy clients;
+- an unexpected drop retries only the last authenticated terminal with the
+  existing owner credential; it stops when that terminal reports `IN_USE` or
+  an identity mismatch;
 - a second central cannot become an authorized session;
 - replayed or expired proofs fail without side effects;
 - ownership reset requires USB and preserves classroom data;

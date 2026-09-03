@@ -138,7 +138,6 @@ void startPairingMode() {
   pairingUiActive = true;
   terminalDisplay.showPairing(
     terminalIdentity.terminalSuffix(),
-    terminalSecurity.claimKey(),
     terminalSecurity.pairingPasskey()
   );
 }
@@ -897,6 +896,7 @@ void loop() {
 
   // Bluetooth is passive in Phase 3; it must never block student workflow.
   bluetoothSync.poll();
+  bluetoothSync.updateAvailability(terminal.hasActivePass());
 
   if (pairingUiActive && terminalSecurity.hasOwner()) {
     pairingUiActive = false;

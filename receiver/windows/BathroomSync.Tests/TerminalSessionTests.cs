@@ -27,7 +27,7 @@ public sealed class TerminalSessionTests {
   public async Task AuthenticatedSessionForwardsApplicationData() {
     var connection = new FakeTerminalConnection(claimed: true);
     var credentials = new InMemoryTerminalCredentialStore();
-    var ownerKey = TerminalIdentityProtocol.DeriveOwnerKey("0123456789ABCDEF", TerminalId, ClientId);
+    var ownerKey = TerminalIdentityProtocol.DeriveOwnerKey("807481", TerminalId, ClientId);
     credentials.SaveOwnerKey(TerminalId, ownerKey);
     using var session = new TerminalSession(connection, credentials, ClientId);
     var received = new List<string>();
@@ -40,6 +40,26 @@ public sealed class TerminalSessionTests {
     Assert.Single(received);
     Assert.StartsWith("TRIP,1,", received[0]);
     Assert.Equal(TerminalSessionState.Authenticated, session.State);
+  }
+
+  [Fact]
+  public async Task SameOwnerReconnectsWithoutThePhysicalPasskey() {
+    var connection = new FakeTerminalConnection(claimed: true);
+    var credentials = new InMemoryTerminalCredentialStore();
+    var ownerKey = TerminalIdentityProtocol.DeriveOwnerKey("807481", TerminalId, ClientId);
+    credentials.SaveOwnerKey(TerminalId, ownerKey);
+    using var session = new TerminalSession(connection, credentials, ClientId);
+    var device = new TerminalDevice("transport-1", "Hallzee-E5F6", false);
+
+    await session.OpenAsync(device, TerminalId);
+    await session.AuthenticateAsync();
+    await session.DisconnectAsync();
+    await session.OpenAsync(device, TerminalId);
+    await session.AuthenticateAsync();
+
+    Assert.Equal(TerminalSessionState.Authenticated, session.State);
+    Assert.Equal(2, connection.SentCommands.Count(command => command.StartsWith("AUTH,2,")));
+    Assert.DoesNotContain(connection.SentCommands, command => command.StartsWith("CLAIM,2,"));
   }
 
   [Fact]
@@ -60,6 +80,20 @@ public sealed class TerminalSessionTests {
   }
 
   [Fact]
+  public async Task RefusesAConnectionWhenTheTerminalReportsInUse() {
+    var connection = new FakeTerminalConnection(claimed: true, inUse: true);
+    using var session = new TerminalSession(
+      connection,
+      new InMemoryTerminalCredentialStore(),
+      ClientId);
+
+    await Assert.ThrowsAsync<TerminalInUseException>(() =>
+      session.OpenAsync(new TerminalDevice("transport-1", "Hallzee-E5F6", false), TerminalId));
+
+    Assert.Equal(TerminalSessionState.Failed, session.State);
+  }
+
+  [Fact]
   public async Task ClaimRequiredLeavesTheVerifiedConnectionOpenForTheClaimFlow() {
     var connection = new FakeTerminalConnection(claimed: false);
     using var session = new TerminalSession(
@@ -72,7 +106,7 @@ public sealed class TerminalSessionTests {
     Assert.Equal(TerminalSessionState.ClaimRequired, session.State);
     Assert.Equal(1, connection.DisconnectCount);
 
-    await session.AuthenticateAsync("0123456789ABCDEF");
+    await session.AuthenticateAsync("807481");
     Assert.Equal(TerminalSessionState.Authenticated, session.State);
     Assert.Contains(connection.SentCommands, command => command.StartsWith("CLAIM,2,", StringComparison.Ordinal));
     Assert.Contains(connection.SentCommands, command => command.StartsWith("CLAIM_COMMIT,2,", StringComparison.Ordinal));
@@ -80,14 +114,17 @@ public sealed class TerminalSessionTests {
 
   sealed class FakeTerminalConnection : ITerminalConnection {
     readonly bool claimed;
+    readonly bool inUse;
     readonly string terminalId;
     readonly string nonce;
 
     public FakeTerminalConnection(
       bool claimed,
       string terminalId = TerminalId,
-      string nonce = Nonce) {
+      string nonce = Nonce,
+      bool inUse = false) {
       this.claimed = claimed;
+      this.inUse = inUse;
       this.terminalId = terminalId;
       this.nonce = nonce;
     }
@@ -109,7 +146,7 @@ public sealed class TerminalSessionTests {
       SentCommands.Add(command);
       if (command.StartsWith("HELLO,2,", StringComparison.Ordinal)) {
         var state = claimed ? "CLAIMED" : "UNCLAIMED";
-        Emit($"IDENTITY,2,{terminalId},{terminalId[^4..]},{state},{nonce}\n");
+        Emit($"IDENTITY,2,{terminalId},{terminalId[^4..]},{state},{(inUse ? "IN_USE" : "AVAILABLE")},{nonce}\n");
       } else if (command.StartsWith("CLAIM,2,", StringComparison.Ordinal)) {
         Emit($"CLAIM_OK,2,{terminalId},FFEEDDCCBBAA99887766554433221100\n");
       } else if (command.StartsWith("CLAIM_COMMIT,2,", StringComparison.Ordinal) ||

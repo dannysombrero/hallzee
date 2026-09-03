@@ -28,9 +28,14 @@
                       <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="14" Foreground="#0F172A" />
                       <TextBlock Text="{Binding Id, StringFormat='ID: {0}'}" FontSize="11" Foreground="#64748B" />
                     </StackPanel>
-                    <Border Grid.Column="2" Background="#DCFCE7" CornerRadius="6" Padding="8,3" VerticalAlignment="Center">
-                      <TextBlock Text="READY" FontSize="10" FontWeight="Bold" Foreground="#166534" />
-                    </Border>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                      <Border Background="#FEF3C7" CornerRadius="6" Padding="8,3" VerticalAlignment="Center" IsVisible="{Binding IsInUse}">
+                        <TextBlock Text="IN USE" FontSize="10" FontWeight="Bold" Foreground="#92400E" />
+                      </Border>
+                      <Border Background="#DCFCE7" CornerRadius="6" Padding="8,3" VerticalAlignment="Center" IsVisible="{Binding !IsInUse}">
+                        <TextBlock Text="READY" FontSize="10" FontWeight="Bold" Foreground="#166534" />
+                      </Border>
+                    </StackPanel>
                   </Grid>
                 </DataTemplate>
               </ListBox.ItemTemplate>
@@ -39,8 +44,8 @@
         </Border>
 
         <StackPanel Grid.Row="3" Spacing="5">
-          <TextBlock Text="Physical claim code (unclaimed terminals only)" FontSize="12" Foreground="#475569" />
-          <TextBox Text="{Binding FindTerminalsModal.ClaimKey}" Watermark="XXXX-XXXX-XXXX-XXXX" MaxLength="19" />
+          <TextBlock Text="Bluetooth passkey (unclaimed terminals only)" FontSize="12" Foreground="#475569" />
+          <TextBox Text="{Binding FindTerminalsModal.PairingPasskey}" Watermark="6 digits shown on the kiosk" MaxLength="6" />
         </StackPanel>
 
         <Grid Grid.Row="4" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">

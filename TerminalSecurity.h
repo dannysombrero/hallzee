@@ -17,7 +17,6 @@ public:
   bool startClaimMode(unsigned long now);
   void stopClaimMode();
   bool claimModeActive(unsigned long now) const;
-  const String &claimKey() const { return pendingClaimKey; }
   uint32_t pairingPasskey() const { return pendingPasskey; }
 
   bool beginHandshake(String &nonce);
@@ -46,13 +45,11 @@ private:
   static constexpr uint8_t MAX_CLAIM_FAILURES = 3;
   static constexpr uint8_t OWNER_KEY_BYTES = 32;
   static constexpr uint8_t NONCE_BYTES = 16;
-  static constexpr uint8_t CLAIM_KEY_CHARS = 16;
 
   TerminalIdentity &identity;
   Preferences preferences;
   String ownerClientId;
   uint8_t ownerKey[OWNER_KEY_BYTES] = {};
-  String pendingClaimKey;
   uint32_t pendingPasskey = 0;
   String pendingClientId;
   uint8_t pendingOwnerKey[OWNER_KEY_BYTES] = {};
@@ -66,9 +63,8 @@ private:
   bool authorized = false;
 
   static String randomHex(uint8_t byteCount);
-  static String randomClaimKey();
   static String normalizeClientId(const String &clientId);
-  static String normalizeClaimKey(const String &claimKey);
+  static String normalizePairingPasskey(const String &passkey);
   static bool isValidHex(const String &value, size_t expectedLength);
   static bool constantTimeHexEquals(const String &expected, const String &actual);
   static bool computeHmacHex(
@@ -78,7 +74,7 @@ private:
     String &output
   );
   static bool deriveOwnerKey(
-    const String &claimKey,
+    const String &pairingPasskey,
     const String &terminalId,
     const String &clientId,
     uint8_t *output

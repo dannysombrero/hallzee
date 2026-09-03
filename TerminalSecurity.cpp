@@ -8,7 +8,6 @@ namespace {
 constexpr char OWNER_NAMESPACE[] = "hallzee_owner";
 constexpr char OWNER_CLIENT_KEY[] = "client_id";
 constexpr char OWNER_KEY_KEY[] = "owner_key";
-constexpr char CLAIM_ALPHABET[] = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 }
 
 TerminalSecurity::TerminalSecurity(TerminalIdentity &identity)
@@ -33,7 +32,6 @@ bool TerminalSecurity::begin() {
 
 bool TerminalSecurity::startClaimMode(unsigned long now) {
   if (hasOwner()) return false;
-  pendingClaimKey = randomClaimKey();
   pendingPasskey = 100000 + (esp_random() % 900000);
   claimModeStarted = now;
   claimFailures = 0;
@@ -47,7 +45,6 @@ void TerminalSecurity::stopClaimMode() {
   claimMode = false;
   claimModeStarted = 0;
   claimFailures = 0;
-  pendingClaimKey = "";
   pendingPasskey = 0;
   handshakeNonce = "";
   clearPendingClaim();
@@ -81,13 +78,14 @@ bool TerminalSecurity::acceptClaim(
 
   const String normalizedClientId = normalizeClientId(clientId);
   if (normalizedClientId.length() == 0 || !isValidHex(proof, 64)) return false;
+  const String pairingPasskey = String(pendingPasskey);
 
   String expected;
   const String message = claimMessage(
     identity.terminalId(), normalizedClientId, claimNonce);
   if (!computeHmacHex(
-        reinterpret_cast<const uint8_t *>(pendingClaimKey.c_str()),
-        pendingClaimKey.length(),
+        reinterpret_cast<const uint8_t *>(pairingPasskey.c_str()),
+        pairingPasskey.length(),
         message,
         expected) ||
       !constantTimeHexEquals(expected, proof)) {
@@ -98,7 +96,7 @@ bool TerminalSecurity::acceptClaim(
   }
 
   if (!deriveOwnerKey(
-        pendingClaimKey, identity.terminalId(), normalizedClientId, pendingOwnerKey)) {
+        pairingPasskey, identity.terminalId(), normalizedClientId, pendingOwnerKey)) {
     return false;
   }
 
@@ -204,17 +202,6 @@ String TerminalSecurity::randomHex(uint8_t byteCount) {
   return output;
 }
 
-String TerminalSecurity::randomClaimKey() {
-  uint8_t bytes[CLAIM_KEY_CHARS] = {};
-  esp_fill_random(bytes, sizeof(bytes));
-  String output;
-  output.reserve(CLAIM_KEY_CHARS);
-  for (uint8_t index = 0; index < CLAIM_KEY_CHARS; index++) {
-    output += CLAIM_ALPHABET[bytes[index] & 31];
-  }
-  return output;
-}
-
 String TerminalSecurity::normalizeClientId(const String &clientId) {
   String normalized = clientId;
   normalized.trim();
@@ -234,14 +221,12 @@ String TerminalSecurity::normalizeClientId(const String &clientId) {
   return normalized;
 }
 
-String TerminalSecurity::normalizeClaimKey(const String &claimKey) {
-  String normalized = claimKey;
-  normalized.replace("-", "");
+String TerminalSecurity::normalizePairingPasskey(const String &passkey) {
+  String normalized = passkey;
   normalized.trim();
-  normalized.toUpperCase();
-  if (normalized.length() != CLAIM_KEY_CHARS) return "";
+  if (normalized.length() != 6) return "";
   for (unsigned int index = 0; index < normalized.length(); index++) {
-    if (strchr(CLAIM_ALPHABET, normalized.charAt(index)) == nullptr) return "";
+    if (normalized.charAt(index) < '0' || normalized.charAt(index) > '9') return "";
   }
   return normalized;
 }
@@ -309,13 +294,13 @@ bool TerminalSecurity::computeHmacHex(
 }
 
 bool TerminalSecurity::deriveOwnerKey(
-  const String &claimKey,
+  const String &pairingPasskey,
   const String &terminalId,
   const String &clientId,
   uint8_t *output
 ) {
-  const String normalizedClaimKey = normalizeClaimKey(claimKey);
-  if (normalizedClaimKey.length() == 0 || output == nullptr) return false;
+  const String normalizedPasskey = normalizePairingPasskey(pairingPasskey);
+  if (normalizedPasskey.length() == 0 || output == nullptr) return false;
   const mbedtls_md_info_t *mdInfo = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
   if (mdInfo == nullptr) return false;
 
@@ -324,8 +309,8 @@ bool TerminalSecurity::deriveOwnerKey(
     mdInfo,
     reinterpret_cast<const uint8_t *>(terminalId.c_str()),
     terminalId.length(),
-    reinterpret_cast<const uint8_t *>(normalizedClaimKey.c_str()),
-    normalizedClaimKey.length(),
+    reinterpret_cast<const uint8_t *>(normalizedPasskey.c_str()),
+    normalizedPasskey.length(),
     reinterpret_cast<const uint8_t *>(info.c_str()),
     info.length(),
     output,

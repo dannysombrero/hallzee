@@ -5,8 +5,11 @@
 Hallzee advertises a Bluetooth Low Energy GATT service under `Hallzee-XXXX`,
 where `XXXX` is the last four characters of the stable eFuse-derived terminal
 ID. Protocol v2 requires LE Secure Connections with MITM protection and
-bonding. The six-digit Bluetooth passkey is shown on the physical terminal
-only while its physical claim window is open.
+bonding. The six-digit Bluetooth passkey is shown on the physical terminal only
+while its physical claim window is open. During first claim, the same passkey
+is used by the app to create the one-time claim proof; the desktop then derives
+a 32-byte owner credential and does not reuse the six-digit value for returning
+authentication.
 
 | Role | UUID |
 | --- | --- |
@@ -23,7 +26,7 @@ remain UTF-8, newline-delimited text. The Windows client divides writes into
 ```text
 Client enables notifications
 Client -> HELLO,2,<client_id>
-Terminal -> IDENTITY,2,<terminal_id>,<suffix>,<UNCLAIMED|CLAIMED>,<nonce>
+Terminal -> IDENTITY,2,<terminal_id>,<suffix>,<UNCLAIMED|CLAIMED>,<AVAILABLE|IN_USE>,<nonce>
 Client -> AUTH,2,<client_id>,<proof>
 Terminal -> AUTH_OK,2,<terminal_id>,<custom_name>
 Client -> GET_SETTINGS
@@ -44,7 +47,10 @@ notification was missed.
 
 The client must not send application commands until `AUTH_OK`. An unclaimed
 terminal requires the physical claim flow (`CLAIM` followed by
-`CLAIM_COMMIT`) before it can be used. A claimed terminal rejects a different
+`CLAIM_COMMIT`) before it can be used. The physical passkey is valid only
+while the terminal is unclaimed, unoccupied, and inside its physical claim
+window. A terminal reporting `IN_USE` rejects the connection before auth and
+the client must show it as unavailable. A claimed terminal rejects a different
 client installation, and the terminal disconnects an additional BLE central
 while another central is active. The client cursor is the largest trip ID
 durably stored in SQLite. A normal sync therefore transfers only newer records
@@ -60,7 +66,7 @@ the retry a safe duplicate and ACKs it again.
 | Command | Meaning |
 | --- | --- |
 | `HELLO,2,<client_id>` | Start the identity handshake |
-| `CLAIM,2,<client_id>,<proof>` | Claim an unowned terminal while its physical claim window is open |
+| `CLAIM,2,<client_id>,<proof>` | Claim an unowned, available terminal using an HMAC proof derived from the six-digit physical passkey |
 | `CLAIM_COMMIT,2,<client_id>,<proof>` | Persist the pending claim after the desktop stores its credential |
 | `CLAIM_ABORT,2,<client_id>` | Cancel a pending claim |
 | `AUTH,2,<client_id>,<proof>` | Authenticate the persisted owner |
@@ -82,7 +88,7 @@ Carriage returns are ignored.
 
 | Message | Meaning |
 | --- | --- |
-| `IDENTITY,2,<terminal_id>,<suffix>,<UNCLAIMED\|CLAIMED>,<nonce>` | Stable terminal identity and fresh handshake challenge |
+| `IDENTITY,2,<terminal_id>,<suffix>,<UNCLAIMED\|CLAIMED>,<AVAILABLE\|IN_USE>,<nonce>` | Stable terminal identity, availability, and fresh handshake challenge |
 | `CLAIM_OK,2,<terminal_id>,<commit_nonce>` | Claim proof accepted; desktop may store its derived credential |
 | `AUTH_OK,2,<terminal_id>,<custom_name>` | Ownership committed and application commands are authorized |
 | `IDENTITY_INFO,2,<terminal_id>,<custom_name>` | Authenticated identity reread |
@@ -109,6 +115,7 @@ Carriage returns are ignored.
 | `ERROR,AUTH_TIMEOUT` | Authorization was not completed in time |
 | `ERROR,PAIRING_MODE_REQUIRED` | An unclaimed terminal is not in its physical claim window |
 | `ERROR,ALREADY_CLAIMED` | A claim was attempted against an owned terminal |
+| `ERROR,TERMINAL_IN_USE` | The kiosk currently has an active checkout and cannot accept a desktop connection |
 | `ERROR,UPGRADE_REQUIRED` | Legacy protocol is not accepted by the secured firmware |
 
 ## Kiosk settings

@@ -79,7 +79,7 @@ also set automatically when the receiver sends a valid `TIME` command.
 - Hold `*` and `#` together for two seconds to record a manual reset of an
   occupied pass.
 - When the terminal is unoccupied and unclaimed, hold `*` and `#` for five
-  seconds to show the physical claim code and Bluetooth passkey. This is the
+  seconds to show the six-digit Bluetooth passkey. This is the
   only way to start ownership claim.
 - Enter `1234#` to set the terminal clock manually.
 - Enter `9999#` to show the local trip-log summary.

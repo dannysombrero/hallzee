@@ -12,7 +12,7 @@ public enum TerminalSessionState {
 
 public sealed class TerminalClaimRequiredException : InvalidOperationException {
   public TerminalClaimRequiredException(string terminalId)
-    : base($"Terminal {terminalId} is unclaimed and requires the physical claim key.") {
+    : base($"Terminal {terminalId} is unclaimed and requires the physical Bluetooth passkey.") {
     TerminalId = terminalId;
   }
 
@@ -93,6 +93,9 @@ public sealed class TerminalSession : IAsyncDisposable, IDisposable {
             !string.Equals(this.expectedTerminalId, observed.TerminalId, StringComparison.OrdinalIgnoreCase)) {
           throw new TerminalIdentityMismatchException(this.expectedTerminalId, observed.TerminalId);
         }
+        if (observed.IsInUse) {
+          throw new TerminalInUseException(observed.TerminalId);
+        }
         identity = observed;
         SetState(observed.IsClaimed
           ? TerminalSessionState.AwaitingAuthentication
@@ -112,14 +115,14 @@ public sealed class TerminalSession : IAsyncDisposable, IDisposable {
   }
 
   public async Task<AuthenticatedTerminalSession> AuthenticateAsync(
-    string? claimKey = null,
+    string? pairingPasskey = null,
     CancellationToken cancellationToken = default) {
     await operationLock.WaitAsync(cancellationToken);
     try {
       if (identity is null || State is not (TerminalSessionState.ClaimRequired or TerminalSessionState.AwaitingAuthentication)) {
         throw new InvalidOperationException("The terminal must be opened before authentication.");
       }
-      if (!identity.IsClaimed && string.IsNullOrWhiteSpace(claimKey)) {
+      if (!identity.IsClaimed && string.IsNullOrWhiteSpace(pairingPasskey)) {
         throw new TerminalClaimRequiredException(identity.TerminalId);
       }
 
@@ -127,14 +130,14 @@ public sealed class TerminalSession : IAsyncDisposable, IDisposable {
       try {
         if (!identity.IsClaimed) {
           claimCompletion = NewCompletion<(string TerminalId, string CommitNonce)>();
-          await connection.SendAsync(TerminalIdentityProtocol.BuildClaim(clientId, claimKey!, identity));
+          await connection.SendAsync(TerminalIdentityProtocol.BuildClaim(clientId, pairingPasskey!, identity));
           var claimResult = await WaitAsync(claimCompletion.Task, cancellationToken);
           if (!string.Equals(claimResult.TerminalId, identity.TerminalId, StringComparison.OrdinalIgnoreCase)) {
             throw new TerminalIdentityMismatchException(identity.TerminalId, claimResult.TerminalId);
           }
 
           var ownerKey = TerminalIdentityProtocol.DeriveOwnerKey(
-            claimKey!, identity.TerminalId, clientId);
+            pairingPasskey!, identity.TerminalId, clientId);
           try {
             credentialStore.SaveOwnerKey(identity.TerminalId, ownerKey);
             await connection.SendAsync(TerminalIdentityProtocol.BuildClaimCommit(

@@ -200,7 +200,9 @@ void BluetoothSync::processAuthenticationCommand(const String &command) {
     const String remainder = command.substring(prefixLength);
     const int separator = remainder.indexOf(',');
     if (separator <= 0) {
-      serial.println("ERROR,AUTH_FAILED");
+      serial.println(prefixLength == 8 ? "ERROR,AUTH_FAILED_CLAIM" :
+                     prefixLength == 15 ? "ERROR,AUTH_FAILED_CLAIM_COMMIT" :
+                     "ERROR,AUTH_FAILED_AUTH");
       return;
     }
     const String clientId = remainder.substring(0, separator);
@@ -220,7 +222,7 @@ void BluetoothSync::processAuthenticationCommand(const String &command) {
       } else if (!security->claimModeActive(millis())) {
         serial.println("ERROR,PAIRING_MODE_REQUIRED");
       } else if (!security->acceptClaim(clientId, proof, handshakeNonce, nextNonce)) {
-        serial.println("ERROR,AUTH_FAILED");
+        serial.println("ERROR,AUTH_FAILED_CLAIM");
       } else {
         commitNonce = nextNonce;
         serial.print("CLAIM_OK,2,");
@@ -230,7 +232,7 @@ void BluetoothSync::processAuthenticationCommand(const String &command) {
       }
     } else if (prefixLength == 15) {
       if (!security->commitClaim(clientId, proof, commitNonce)) {
-        serial.println("ERROR,AUTH_FAILED");
+        serial.println("ERROR,AUTH_FAILED_CLAIM_COMMIT");
       } else {
         authorizationStartedAt = 0;
         commitNonce = "";
@@ -240,7 +242,7 @@ void BluetoothSync::processAuthenticationCommand(const String &command) {
         serial.println(identity->customName());
       }
     } else if (!security->acceptAuth(clientId, proof, handshakeNonce)) {
-      serial.println(security->hasOwner() ? "ERROR,AUTH_FAILED" : "ERROR,PAIRING_MODE_REQUIRED");
+      serial.println(security->hasOwner() ? "ERROR,AUTH_FAILED_AUTH" : "ERROR,PAIRING_MODE_REQUIRED");
     } else {
       authorizationStartedAt = 0;
       handshakeNonce = "";

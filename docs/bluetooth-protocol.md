@@ -112,7 +112,9 @@ Carriage returns are ignored.
 | `ACK_ERROR,MARK_FAILED` | Legacy unsynced mode could not persist its sync flag |
 | `ERROR,UNKNOWN_COMMAND` | Command was not recognized |
 | `ERROR,AUTH_REQUIRED` | Application command arrived before authorization |
-| `ERROR,AUTH_FAILED` | Proof was malformed or invalid |
+| `ERROR,AUTH_FAILED_CLAIM` | Initial claim proof was malformed or invalid |
+| `ERROR,AUTH_FAILED_CLAIM_COMMIT` | Final claim commit proof was malformed or invalid |
+| `ERROR,AUTH_FAILED_AUTH` | Reconnection proof was malformed or invalid |
 | `ERROR,AUTH_TIMEOUT` | Authorization was not completed in time |
 | `ERROR,PAIRING_MODE_REQUIRED` | An unclaimed terminal is not in its physical claim window |
 | `ERROR,ALREADY_CLAIMED` | A claim was attempted against an owned terminal |

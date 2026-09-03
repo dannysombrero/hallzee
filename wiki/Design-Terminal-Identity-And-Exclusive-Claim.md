@@ -343,7 +343,9 @@ Errors are explicit and terminal state is unchanged:
 | ERROR,PAIRING_MODE_REQUIRED | Terminal is unclaimed but its physical claim window is closed. |
 | ERROR,ALREADY_CLAIMED | A claim was attempted against an owned terminal. |
 | ERROR,OWNER_MISMATCH | client_id differs from the persisted owner. |
-| ERROR,AUTH_FAILED | Proof is malformed or invalid. |
+| ERROR,AUTH_FAILED_CLAIM | Initial claim proof is malformed or invalid. |
+| ERROR,AUTH_FAILED_CLAIM_COMMIT | Final claim commit proof is malformed or invalid. |
+| ERROR,AUTH_FAILED_AUTH | Reconnection proof is malformed or invalid. |
 | ERROR,AUTH_TIMEOUT | Authorization was not completed within 10 seconds. |
 | ERROR,UPGRADE_REQUIRED | A claimed v2 terminal received legacy protocol. |
 

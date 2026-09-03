@@ -232,6 +232,10 @@ dotnet test receiver/universal.tests/BathroomSync.Universal.Tests.csproj
 
 The repository maintains automated GitHub Actions workflows to validate pull requests and publish builds:
 
+The workflows use the Node 24-compatible major versions of the standard GitHub
+Actions (`checkout@v6`, `setup-dotnet@v5`, and `upload-artifact@v6`). GitHub-hosted
+runners satisfy the required runner version automatically.
+
 | Workflow | Triggers | Platform / Steps | Purpose |
 | :--- | :--- | :--- | :--- |
 | **Validate Firmware and BLE Protocol** (`validate-firmware.yml`) | `pull_request`, `push` (paths: `*.ino`, `*.cpp`, `*.h`, `test/**`), `workflow_dispatch` | macOS (native unit tests & coverage) + Ubuntu (ESP32 Arduino compilation) | Validates firmware builds and BLE protocol tests automatically on changes. |

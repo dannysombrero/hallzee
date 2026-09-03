@@ -17,13 +17,13 @@ jobs:
   native_tests:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - run: make -C test coverage
 
   firmware_build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: arduino/setup-arduino-cli@v2
       - name: Install ESP32 core
         run: |

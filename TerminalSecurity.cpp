@@ -1,7 +1,6 @@
 #include "TerminalSecurity.h"
 
 #include <esp_system.h>
-#include <mbedtls/hkdf.h>
 #include <mbedtls/md.h>
 
 namespace {
@@ -113,9 +112,24 @@ bool TerminalSecurity::commitClaim(
   const String &proof,
   const String &requestedCommitNonce
 ) {
-  if (!pendingClaim || requestedCommitNonce != commitNonce ||
-      normalizeClientId(clientId) != pendingClientId ||
-      !isValidHex(proof, 64)) {
+  claimCommitFailure = "NONE";
+  if (!pendingClaim) {
+    claimCommitFailure = "STATE";
+    clearPendingClaim();
+    return false;
+  }
+  if (requestedCommitNonce != commitNonce) {
+    claimCommitFailure = "NONCE";
+    clearPendingClaim();
+    return false;
+  }
+  if (normalizeClientId(clientId) != pendingClientId) {
+    claimCommitFailure = "CLIENT";
+    clearPendingClaim();
+    return false;
+  }
+  if (!isValidHex(proof, 64)) {
+    claimCommitFailure = "PROOF_FORMAT";
     clearPendingClaim();
     return false;
   }
@@ -125,11 +139,13 @@ bool TerminalSecurity::commitClaim(
     identity.terminalId(), pendingClientId, requestedCommitNonce);
   if (!computeHmacHex(pendingOwnerKey, OWNER_KEY_BYTES, message, expected) ||
       !constantTimeHexEquals(expected, proof)) {
+    claimCommitFailure = "PROOF";
     clearPendingClaim();
     return false;
   }
 
   if (!persistOwner(pendingClientId, pendingOwnerKey)) {
+    claimCommitFailure = "STORAGE";
     clearPendingClaim();
     return false;
   }
@@ -305,17 +321,52 @@ bool TerminalSecurity::deriveOwnerKey(
   if (mdInfo == nullptr) return false;
 
   const String info = String("Hallzee owner v2|") + clientId;
-  return mbedtls_hkdf(
-    mdInfo,
-    reinterpret_cast<const uint8_t *>(terminalId.c_str()),
-    terminalId.length(),
-    reinterpret_cast<const uint8_t *>(normalizedPasskey.c_str()),
-    normalizedPasskey.length(),
-    reinterpret_cast<const uint8_t *>(info.c_str()),
-    info.length(),
-    output,
-    OWNER_KEY_BYTES
-  ) == 0;
+  // Keep this implementation structurally identical to the desktop HKDF:
+  // RFC 5869-Extract with terminalId as salt, followed by RFC 5869-Expand.
+  // Using the primitive HMAC operation here avoids platform-specific wrapper
+  // differences between the ESP32 and .NET implementations.
+  uint8_t pseudorandomKey[32] = {};
+  if (mbedtls_md_hmac(
+        mdInfo,
+        reinterpret_cast<const uint8_t *>(terminalId.c_str()),
+        terminalId.length(),
+        reinterpret_cast<const uint8_t *>(normalizedPasskey.c_str()),
+        normalizedPasskey.length(),
+        pseudorandomKey) != 0) {
+    return false;
+  }
+
+  uint8_t previous[32] = {};
+  size_t previousLength = 0;
+  size_t written = 0;
+  uint8_t counter = 1;
+  while (written < OWNER_KEY_BYTES) {
+    uint8_t blockInput[32 + 64 + 1] = {};
+    size_t blockInputLength = 0;
+    memcpy(blockInput + blockInputLength, previous, previousLength);
+    blockInputLength += previousLength;
+    memcpy(blockInput + blockInputLength, info.c_str(), info.length());
+    blockInputLength += info.length();
+    blockInput[blockInputLength++] = counter++;
+
+    uint8_t block[32] = {};
+    if (mbedtls_md_hmac(
+          mdInfo,
+          pseudorandomKey,
+          sizeof(pseudorandomKey),
+          blockInput,
+          blockInputLength,
+          block) != 0) {
+      return false;
+    }
+    memcpy(previous, block, sizeof(previous));
+    previousLength = sizeof(previous);
+    const size_t copyLength = min(
+      sizeof(block), static_cast<size_t>(OWNER_KEY_BYTES) - written);
+    memcpy(output + written, block, copyLength);
+    written += copyLength;
+  }
+  return true;
 }
 
 String TerminalSecurity::claimMessage(

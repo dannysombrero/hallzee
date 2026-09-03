@@ -232,7 +232,8 @@ void BluetoothSync::processAuthenticationCommand(const String &command) {
       }
     } else if (prefixLength == 15) {
       if (!security->commitClaim(clientId, proof, commitNonce)) {
-        serial.println("ERROR,AUTH_FAILED_CLAIM_COMMIT");
+        serial.print("ERROR,AUTH_FAILED_CLAIM_COMMIT_");
+        serial.println(security->lastClaimCommitFailure());
       } else {
         authorizationStartedAt = 0;
         commitNonce = "";

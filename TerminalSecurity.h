@@ -31,6 +31,7 @@ public:
     const String &proof,
     const String &commitNonce
   );
+  const char *lastClaimCommitFailure() const { return claimCommitFailure; }
   bool acceptAuth(
     const String &clientId,
     const String &proof,
@@ -61,6 +62,7 @@ private:
   bool claimMode = false;
   bool pendingClaim = false;
   bool authorized = false;
+  const char *claimCommitFailure = "NONE";
 
   static String randomHex(uint8_t byteCount);
   static String normalizeClientId(const String &clientId);

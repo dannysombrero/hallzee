@@ -84,6 +84,8 @@ also set automatically when the receiver sends a valid `TIME` command.
 - Enter `1234#` to set the terminal clock manually.
 - Enter `9999#` to show the local trip-log summary.
 - Send `p` or `P` over USB Serial Monitor to print the stored trip log.
+- Send `OWNER_RESET` over USB Serial Monitor to clear terminal ownership after
+  a test; this preserves trips, settings, and the stable terminal ID.
 
 ## Desktop sync
 

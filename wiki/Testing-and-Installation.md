@@ -124,6 +124,11 @@ dotnet run --project receiver/universal/BathroomSync.Universal.csproj
 ```
 
 The Universal client connects to the physical ESP32 terminal via Bluetooth LE on both macOS and Windows.
+Physical clients use the v2 identity/authentication flow. For an unclaimed
+terminal, hold `*` and `#` for five seconds before connecting, then enter the
+displayed app claim code in the Find Terminals dialog and choose Connect again.
+The current test path stores the owner credential only in memory for the
+running app; restarting the app requires the planned OS-vault implementation.
 On macOS, Connect & Sync waits until CoreBluetooth confirms that terminal
 notifications are enabled before sending any sync commands. If this readiness
 handshake does not complete within 15 seconds, the app reports a connection
@@ -174,6 +179,12 @@ Before calling a Windows change complete, check:
 6. Disconnecting mid-transfer and reconnecting produces one durable copy.
 7. A second BLE central is rejected while the authorized client remains connected.
 8. Powering the kiosk off clears the client status; Find terminal works after it returns.
+
+If a test claim must be cleared, connect the USB serial monitor at 115200 baud
+and send the line `OWNER_RESET`. Confirm `OWNER_RESET,OK`; this clears only the
+stored application owner credential and preserves trips, settings, and terminal
+identity. BLE bond removal is not yet automated, so the operating system may
+also need the old Bluetooth pairing removed before starting a fresh claim.
 
 ### Verify policy rules and bell schedule editing
 

@@ -94,6 +94,7 @@ BluetoothSync bluetoothSync(
 );
 
 String enteredID = "";
+String serialCommandBuffer = "";
 
 // Used so clock only visually refreshes when minute changes
 int lastDisplayedMinute = -1;
@@ -774,13 +775,29 @@ void handleSingleHash() {
 // ======================================================
 
 void processSerialCommands() {
-
   while (Serial.available()) {
-
-    char command = (char)Serial.read();
-
-    if (command == 'p' || command == 'P') {
+    const char command = static_cast<char>(Serial.read());
+    if (command == '\r') continue;
+    if (command == '\n') {
+      serialCommandBuffer.trim();
+      if (serialCommandBuffer == "p" || serialCommandBuffer == "P") {
       tripStorage.printTripLog();
+      } else if (serialCommandBuffer == "OWNER_RESET") {
+        bluetoothSerial.disconnectClient();
+        if (terminalSecurity.resetOwner()) {
+          Serial.println("OWNER_RESET,OK");
+        } else {
+          Serial.println("OWNER_RESET,FAILED");
+        }
+      }
+      serialCommandBuffer = "";
+      continue;
+    }
+
+    if (serialCommandBuffer.length() < MAX_BLUETOOTH_COMMAND_LENGTH) {
+      serialCommandBuffer += command;
+    } else {
+      serialCommandBuffer = "";
     }
   }
 }
@@ -818,7 +835,7 @@ void setup() {
   terminal.setCapacity(tripStorage.getMaxActivePasses());
   terminal.restoreActivePass();
 
-  Serial.println("Serial command: p = print trip log");
+  Serial.println("Serial commands: p = print trip log; OWNER_RESET = clear terminal owner");
 
   keypadController.begin();
 

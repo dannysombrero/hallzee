@@ -47,6 +47,7 @@
     <StreamGeometry x:Key="IconUserCheck">M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M16 11l2 2 4-4</StreamGeometry>
     <StreamGeometry x:Key="IconUserX">M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M17 8l5 5 M22 8l-5 5</StreamGeometry>
     <StreamGeometry x:Key="IconClock">M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z M12 6v6l4 2</StreamGeometry>
+    <StreamGeometry x:Key="IconPauseCircle">M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z M10 15V9 M14 15V9</StreamGeometry>
     <StreamGeometry x:Key="IconShieldCheck">M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z M9 12l2 2 4-4</StreamGeometry>
     <StreamGeometry x:Key="IconDownload">M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4 M7 10l5 5 5-5 M12 15V3</StreamGeometry>
     <StreamGeometry x:Key="IconChevronRight">M9 18l6-6-6-6</StreamGeometry>

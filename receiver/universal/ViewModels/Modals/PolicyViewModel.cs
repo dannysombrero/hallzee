@@ -228,6 +228,24 @@ public sealed class PolicyViewModel : INotifyPropertyChanged {
   string alertSound = "Chime";
   string newProfileName = "";
   string statusMessage = "";
+  bool isCreatingProfile;
+
+  public bool IsCreatingProfile {
+    get => isCreatingProfile;
+    set {
+      if (isCreatingProfile != value) {
+        isCreatingProfile = value;
+        OnPropertyChanged();
+      }
+    }
+  }
+
+  public void ToggleCreateProfile() {
+    IsCreatingProfile = !IsCreatingProfile;
+    if (!IsCreatingProfile) {
+      NewProfileName = "";
+    }
+  }
 
   public PolicyViewModel(IPolicyRepository policyRepository) {
     this.policyRepository = policyRepository;

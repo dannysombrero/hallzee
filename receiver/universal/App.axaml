@@ -336,23 +336,73 @@
       <Setter Property="BorderBrush" Value="#7DD3FC" />
     </Style>
 
+    <!-- RESET INTERNAL TEXTBOX INSIDE NUMERICUPDOWN -->
+    <Style Selector="NumericUpDown /template/ TextBox#PART_TextBox">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="0" />
+      <Setter Property="Padding" Value="8,2" />
+      <Setter Property="MinHeight" Value="0" />
+    </Style>
+    <Style Selector="NumericUpDown /template/ TextBox#PART_TextBox /template/ Border#PART_BorderElement">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="0" />
+    </Style>
+    <Style Selector="NumericUpDown /template/ TextBox#PART_TextBox:pointerover /template/ Border#PART_BorderElement">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="NumericUpDown /template/ TextBox#PART_TextBox:focus /template/ Border#PART_BorderElement">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+
     <Style Selector="NumericUpDown">
       <Setter Property="Background" Value="#F0F9FF" />
       <Setter Property="BorderBrush" Value="#BAE6FD" />
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="CornerRadius" Value="16" />
-      <Setter Property="Padding" Value="12,6" />
+      <Setter Property="ClipToBounds" Value="True" />
+      <Setter Property="Padding" Value="4,2" />
       <Setter Property="FontSize" Value="13" />
       <Setter Property="Foreground" Value="#0F172A" />
       <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="MinHeight" Value="34" />
     </Style>
-    <Style Selector="NumericUpDown:pointerover /template/ Border#PART_BorderElement">
+    <Style Selector="NumericUpDown:pointerover">
       <Setter Property="Background" Value="#E0F2FE" />
       <Setter Property="BorderBrush" Value="#7DD3FC" />
     </Style>
-    <Style Selector="NumericUpDown:focus /template/ Border#PART_BorderElement">
+    <Style Selector="NumericUpDown:focus-within">
       <Setter Property="Background" Value="White" />
       <Setter Property="BorderBrush" Value="#0284C7" />
+    </Style>
+    <Style Selector="NumericUpDown /template/ ButtonSpinner#PART_Spinner">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="16" />
+    </Style>
+    <Style Selector="NumericUpDown /template/ ButtonSpinner /template/ Border#PART_BorderElement">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="16" />
+    </Style>
+    <Style Selector="NumericUpDown /template/ ButtonSpinner /template/ RepeatButton">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Foreground" Value="#0369A1" />
+    </Style>
+    <Style Selector="NumericUpDown /template/ ButtonSpinner /template/ RepeatButton:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="#BAE6FD" />
+      <Setter Property="Foreground" Value="#0369A1" />
     </Style>
 
     <!-- UNIFIED CARD & SECTION CONTAINERS -->

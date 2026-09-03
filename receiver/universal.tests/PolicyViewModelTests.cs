@@ -155,4 +155,49 @@ public sealed class PolicyViewModelTests : IDisposable {
   public void EnrichedTripRecordFormatsDurationAccurately(int seconds, string expected) {
     Assert.Equal(expected, EnrichedTripRecord.FormatDuration(seconds));
   }
+
+  [Fact]
+  public void CustomPeriodNameAndTimesSaveThroughEditProperties() {
+    var period = new BellSchedulePeriod("p-1", "prof-1", "Period 1", "08:00 AM", "08:50 AM");
+    var item = new BellPeriodItemViewModel(period);
+    item.StartEdit();
+
+    item.EditName = "Period 3 (Chemistry AP)";
+    item.EditStartTime = "09:15 AM";
+    item.EditEndTime = "10:05 AM";
+    item.SaveEdit();
+
+    Assert.Equal("Period 3 (Chemistry AP)", item.PeriodName);
+    Assert.Equal("09:15 AM", item.StartTime);
+    Assert.Equal("10:05 AM", item.EndTime);
+    Assert.Equal("09:15 AM – 10:05 AM", item.DisplayTimeRange);
+  }
+
+  [Fact]
+  public void PeriodsAutomaticallySortChronologicallyAndToggleOrder() {
+    policyRepository.SaveProfile(new ClassroomProfile("prof-1", "Room 101"));
+    
+    // Add out-of-order periods
+    viewModel.AddPeriod("prof-1", "Period 3", "10:10 AM", "11:00 AM");
+    viewModel.AddPeriod("prof-1", "Period 1", "08:00 AM", "08:50 AM");
+    viewModel.AddPeriod("prof-1", "Period 2", "09:00 AM", "09:50 AM");
+
+    // Default: earliest first
+    Assert.True(viewModel.IsEarliestFirst);
+    Assert.Equal("Period 1", viewModel.Periods[0].PeriodName);
+    Assert.Equal("Period 2", viewModel.Periods[1].PeriodName);
+    Assert.Equal("Period 3", viewModel.Periods[2].PeriodName);
+
+    // Toggle: latest first
+    viewModel.ToggleSortOrder();
+    Assert.False(viewModel.IsEarliestFirst);
+    Assert.Equal("Period 3", viewModel.Periods[0].PeriodName);
+    Assert.Equal("Period 2", viewModel.Periods[1].PeriodName);
+    Assert.Equal("Period 1", viewModel.Periods[2].PeriodName);
+
+    // Toggle back
+    viewModel.ToggleSortOrder();
+    Assert.True(viewModel.IsEarliestFirst);
+    Assert.Equal("Period 1", viewModel.Periods[0].PeriodName);
+  }
 }

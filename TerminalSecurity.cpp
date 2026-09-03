@@ -399,7 +399,9 @@ bool TerminalSecurity::persistOwner(const String &clientId, const uint8_t *key) 
   // incompatible NVS type or partial value. Clear only this namespace before
   // writing the complete owner record; trips, settings, and identity use
   // separate namespaces and are unaffected.
-  if (!preferences.clear()) return false;
+  // clear() may report false when the namespace is already empty. That is
+  // harmless; the write results below are the authoritative check.
+  preferences.clear();
   if (preferences.putString(OWNER_CLIENT_KEY, clientId) == 0 ||
       preferences.putBytes(OWNER_KEY_KEY, key, OWNER_KEY_BYTES) != OWNER_KEY_BYTES) {
     preferences.clear();

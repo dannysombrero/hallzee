@@ -394,6 +394,16 @@ void TerminalSecurity::clearPendingClaim() {
 
 bool TerminalSecurity::persistOwner(const String &clientId, const uint8_t *key) {
   if (clientId.length() == 0 || key == nullptr) return false;
-  if (preferences.putString(OWNER_CLIENT_KEY, clientId) == 0) return false;
-  return preferences.putBytes(OWNER_KEY_KEY, key, OWNER_KEY_BYTES) == OWNER_KEY_BYTES;
+
+  // A previous interrupted claim can leave one owner key behind with an
+  // incompatible NVS type or partial value. Clear only this namespace before
+  // writing the complete owner record; trips, settings, and identity use
+  // separate namespaces and are unaffected.
+  if (!preferences.clear()) return false;
+  if (preferences.putString(OWNER_CLIENT_KEY, clientId) == 0 ||
+      preferences.putBytes(OWNER_KEY_KEY, key, OWNER_KEY_BYTES) != OWNER_KEY_BYTES) {
+    preferences.clear();
+    return false;
+  }
+  return true;
 }

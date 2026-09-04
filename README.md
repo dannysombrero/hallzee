@@ -40,14 +40,17 @@ records locally and can synchronize them to a desktop receiver over Bluetooth Lo
 
 ## Hardware
 
-- ESP32 with Bluetooth Low Energy support
+- Original ESP32/WROOM-32 board with BLE peripheral support, the Bluedroid
+  stack, 4 MB or more of flash, at least 12 usable signal GPIOs, 3.3 V logic,
+  and a USB-UART bootloader path. The known-good board is an ESP32 DevKit V1.
 - ST7735 TFT display (the default firmware profile)
 - Optional ILI9341 TFT display at 240×320 (the `ili9341` firmware profile)
 - 3×4 matrix keypad
 
 The complete physical wiring and fresh-machine flashing checklist is in the
 [installation and testing guide](docs/testing-and-installation.md). The
-configured pins are also mirrored in `Config.h` and [WOKWI.md](WOKWI.md).
+configured pins, the 12 required GPIOs, and unsupported board variants are
+also documented there and mirrored in `Config.h` and [WOKWI.md](WOKWI.md).
 
 ## Firmware build
 

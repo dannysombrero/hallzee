@@ -43,7 +43,9 @@ records locally and can synchronize them to a desktop receiver over Bluetooth Lo
 - Optional ILI9341 TFT display at 240×320 (the `ili9341` firmware profile)
 - 3×4 matrix keypad
 
-The configured pins are documented in `Config.h` and in [WOKWI.md](WOKWI.md).
+The complete physical wiring and fresh-machine flashing checklist is in the
+[installation and testing guide](docs/testing-and-installation.md). The
+configured pins are also mirrored in `Config.h` and [WOKWI.md](WOKWI.md).
 
 ## Firmware build
 

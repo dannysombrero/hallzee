@@ -21,9 +21,11 @@ records locally and can synchronize them to a desktop receiver over Bluetooth Lo
 | `receiver/` | Legacy/native macOS receiver |
 | `docs/` | Architecture and Bluetooth protocol references |
 
-## Contributor guides & design documentation
+## Getting started, contributor guides & design documentation
 
-- [Installation and testing guide](docs/testing-and-installation.md) — Contributor setup, Mac vs. Windows verification rules, and one-command bootstraps.
+- [Getting started: normal users](docs/getting-started-users.md) — Download the latest Universal app, pair a terminal, and sync trips.
+- [Getting started: developers](docs/getting-started-developers.md) — Set up a clean computer, wire/flash hardware, run the app locally, and test changes.
+- [Installation and testing guide](docs/testing-and-installation.md) — Detailed hardware wiring, Mac vs. Windows verification rules, and one-command bootstraps.
 - **Level 1 (PRD):** [Product & Requirements Document](docs/product-requirements.md) — Product vision, personas, classroom workflows, and FERPA privacy boundaries.
 - **Level 2 (Architecture):**
   - [System Technical Architecture](docs/architecture.md) — Topology, state ownership decision matrix, SQLite schema, and layer boundaries.

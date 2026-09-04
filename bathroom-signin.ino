@@ -859,9 +859,12 @@ void setup() {
   }
 
   bluetoothSync.begin();
-  if (!terminalSecurity.hasOwner() && !bluetoothSerial.clearBondedDevices()) {
-    Serial.println("WARNING: stale Bluetooth bonds could not be cleared.");
-  }
+  // Do not clear BLE bonds merely because the owner record is unavailable at
+  // boot. A transient NVS read failure must not make macOS report
+  // "Peer removed pairing information" on the next reconnect. Bond removal is
+  // reserved for explicit pairing mode and owner reset.
+  Serial.print("Terminal owner: ");
+  Serial.println(terminalSecurity.hasOwner() ? "CLAIMED" : "UNCLAIMED");
 
   // Storage owns NVS and LittleFS, then restores an active pass before clock
   // setup. The display is intentionally deferred until the clock is set.

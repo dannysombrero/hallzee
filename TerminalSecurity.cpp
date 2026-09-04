@@ -394,33 +394,42 @@ void TerminalSecurity::clearPendingClaim() {
 bool TerminalSecurity::persistOwner(const String &clientId, const uint8_t *key) {
   if (clientId.length() == 0 || key == nullptr) return false;
 
-  // A previous interrupted claim can leave one owner key behind with an
-  // incompatible NVS type or partial value. Clear only this namespace before
-  // writing the complete owner record; trips, settings, and identity use
-  // separate namespaces and are unaffected.
-  // clear() may report false when the namespace is already empty. That is
-  // harmless; the write results below are the authoritative check.
-  Preferences ownerStorage;
-  if (!ownerStorage.begin(OWNER_NAMESPACE, false)) {
+  // Refresh the namespace handle before writing. A claim can happen after a
+  // prior interrupted claim or reset, and ESP32 Preferences may otherwise
+  // retain a stale handle after keys were cleared.
+  preferences.end();
+  if (!preferences.begin(OWNER_NAMESPACE, false)) {
     claimCommitFailure = "STORAGE_OPEN";
     return false;
   }
-
-  ownerStorage.clear();
-  const size_t clientBytes = ownerStorage.putString(OWNER_CLIENT_KEY, clientId);
+  preferences.clear();
+  const size_t clientBytes = preferences.putString(OWNER_CLIENT_KEY, clientId);
   if (clientBytes == 0) {
     claimCommitFailure = "STORAGE_CLIENT";
-    ownerStorage.clear();
-    ownerStorage.end();
+    preferences.clear();
     return false;
   }
-  const size_t keyBytes = ownerStorage.putBytes(OWNER_KEY_KEY, key, OWNER_KEY_BYTES);
+  const size_t keyBytes = preferences.putBytes(OWNER_KEY_KEY, key, OWNER_KEY_BYTES);
   if (keyBytes != OWNER_KEY_BYTES) {
     claimCommitFailure = "STORAGE_KEY";
-    ownerStorage.clear();
-    ownerStorage.end();
+    preferences.clear();
     return false;
   }
-  ownerStorage.end();
+
+  // Verify both values through the same handle before AUTH_OK is emitted.
+  // This turns a storage failure into CLAIM_COMMIT_STORAGE instead of leaving
+  // the desktop believing the terminal is claimed when the next boot will
+  // report UNCLAIMED.
+  uint8_t storedKey[OWNER_KEY_BYTES] = {};
+  const bool verified = preferences.getString(OWNER_CLIENT_KEY, "") == clientId &&
+    preferences.getBytesLength(OWNER_KEY_KEY) == OWNER_KEY_BYTES &&
+    preferences.getBytes(OWNER_KEY_KEY, storedKey, OWNER_KEY_BYTES) == OWNER_KEY_BYTES &&
+    memcmp(storedKey, key, OWNER_KEY_BYTES) == 0;
+  memset(storedKey, 0, sizeof(storedKey));
+  if (!verified) {
+    claimCommitFailure = "STORAGE_VERIFY";
+    preferences.clear();
+    return false;
+  }
   return true;
 }

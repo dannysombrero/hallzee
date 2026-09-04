@@ -27,6 +27,7 @@ class Program
     static readonly CBUUID RxUuid = CBUUID.FromString("e80f9559-49eb-47bc-af04-8e92e98ced56");
     
     static readonly Dictionary<string, string> foundDevices = new();
+    static readonly Dictionary<string, CBPeripheral> foundPeripherals = new();
 
     static void Main(string[] args)
     {
@@ -152,6 +153,7 @@ class Program
             }
             
             foundDevices.Clear();
+            foundPeripherals.Clear();
             centralManager.StopScan();
             centralManager.ScanForPeripherals(new[] { ServiceUuid });
             
@@ -172,6 +174,7 @@ class Program
             if (!foundDevices.ContainsKey(idStr))
             {
                 foundDevices[idStr] = name;
+                foundPeripherals[idStr] = peripheral;
                 EmitEvent("Discovered", new { Id = idStr, Name = name, IsInUse = inUse });
             }
         }
@@ -181,18 +184,30 @@ class Program
             Disconnect();
             if (centralManager == null) return;
             
-            var uuid = new NSUuid(id);
-            var peripherals = centralManager.RetrievePeripheralsWithIdentifiers(uuid);
-            if (peripherals.Length > 0)
+            // Prefer the peripheral returned by the current scan. Reusing a
+            // CoreBluetooth-retrieved object after the terminal or macOS has
+            // removed pairing information can produce a stale bond error
+            // before the Hallzee protocol gets a chance to authenticate.
+            if (foundPeripherals.TryGetValue(id, out var scannedPeripheral))
             {
-                targetPeripheral = peripherals[0];
+                targetPeripheral = scannedPeripheral;
                 peripheralDelegate = new PeripheralDelegate(this);
                 targetPeripheral.Delegate = peripheralDelegate;
                 centralManager.ConnectPeripheral(targetPeripheral);
             }
             else
             {
-                EmitEvent("Error", new { Message = "Peripheral not found." });
+                var uuid = new NSUuid(id);
+                var peripherals = centralManager.RetrievePeripheralsWithIdentifiers(uuid);
+                if (peripherals.Length == 0)
+                {
+                    EmitEvent("Error", new { Message = "Peripheral not found." });
+                    return;
+                }
+                targetPeripheral = peripherals[0];
+                peripheralDelegate = new PeripheralDelegate(this);
+                targetPeripheral.Delegate = peripheralDelegate;
+                centralManager.ConnectPeripheral(targetPeripheral);
             }
         }
         

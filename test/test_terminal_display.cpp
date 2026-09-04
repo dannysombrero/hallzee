@@ -576,9 +576,9 @@ void testKeypadControllerInterpretsKeysAndResetGesture() {
   keypadSetupMode = true;
   keypad.batches.push_back({{'#', KeypadEventState::Pressed}});
   controller.poll();
-  expectTrue(setupKeys.empty(), "setup mode reserves hash for owner reset");
   keypad.batches.push_back({{'#', KeypadEventState::Released}});
   controller.poll();
+  expectTrue(setupKeys == std::vector<char>{'#'}, "setup mode accepts hash confirmation");
   keypadSetupMode = false;
 
   keypadResetAllowed = true;

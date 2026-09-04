@@ -47,6 +47,7 @@ private:
 
   bool starPressed = false;
   bool hashPressed = false;
+  bool setupChordActive = false;
   unsigned long resetHoldStarted = 0;
   bool resetHoldActive = false;
   bool suppressStarHash = false;

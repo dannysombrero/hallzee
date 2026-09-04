@@ -46,22 +46,28 @@ void KeypadController::processEvents() {
     const char key = events[index].key;
     const KeypadEventState state = events[index].state;
     if (isSetupMode()) {
-      // Keep tracking the owner-reset chord during clock setup, but do not
-      // allow normal setup input or unclaimed pairing to run concurrently.
-      if (isOwnerResetAllowed && isOwnerResetAllowed()) {
-        if (key == '*') {
-          if (state == KeypadEventState::Pressed) starPressed = true;
-          else if (state == KeypadEventState::Released) starPressed = false;
-        } else if (key == '#') {
-          if (state == KeypadEventState::Pressed) hashPressed = true;
-          else if (state == KeypadEventState::Released) hashPressed = false;
+      // Single * and # remain available for manual clock setup. When both
+      // keys are held, defer their actions so the owner-reset chord can win.
+      if (key == '*') {
+        if (state == KeypadEventState::Pressed) {
+          starPressed = true;
+          if (hashPressed) setupChordActive = true;
+        } else if (state == KeypadEventState::Released) {
+          starPressed = false;
+          if (!setupChordActive && !suppressStarHash) onSetupKey('*');
         }
-      } else if (key == '*') {
-        starPressed = false;
       } else if (key == '#') {
-        hashPressed = false;
+        if (state == KeypadEventState::Pressed) {
+          hashPressed = true;
+          if (starPressed) setupChordActive = true;
+        } else if (state == KeypadEventState::Released) {
+          hashPressed = false;
+          if (!setupChordActive && !suppressStarHash) onSetupKey('#');
+        }
+      } else if (state == KeypadEventState::Pressed) {
+        onSetupKey(key);
       }
-      if (key != '*' && key != '#' && state == KeypadEventState::Pressed) onSetupKey(key);
+      if (!starPressed && !hashPressed) setupChordActive = false;
       continue;
     }
 

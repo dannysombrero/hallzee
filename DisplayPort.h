@@ -4,10 +4,13 @@
 
 enum class DisplayFont {
   BuiltIn,
-  SansBold9,
-  SansBold12,
-  SansBold18,
-  SansBold24
+  DMSansRegular9,
+  DMSansRegular12,
+  DMSansRegular18,
+  DMSansBold9,
+  DMSansBold12,
+  DMSansBold18,
+  DMSansBold24
 };
 
 class DisplayPort {

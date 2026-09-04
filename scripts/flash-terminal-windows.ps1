@@ -81,7 +81,9 @@ try {
   if ($CompileOnly) {
     Write-Host "Compile-only check passed; the ESP32 was not changed."
   } else {
-    & $cli upload --fqbn esp32:esp32:esp32 --port $Port --input-dir $buildDir
+    # Use a conservative upload speed because the larger ILI9341 build takes
+    # longer to transfer through common USB-UART adapters.
+    & $cli upload --fqbn esp32:esp32:esp32 --port $Port --input-dir $buildDir --upload-property upload.speed=460800
     Write-Host "Done. The Hallzee firmware is now on the ESP32."
   }
 } finally {

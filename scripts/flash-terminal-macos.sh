@@ -105,5 +105,9 @@ if $compile_only; then
   echo "Compile-only check passed; the ESP32 was not changed."
   exit 0
 fi
-"$cli" upload --fqbn esp32:esp32:esp32 --port "$port" --input-dir "$build_dir"
+# The larger ILI9341 build is close to the app partition limit and takes
+# longer to transfer. Use a conservative serial speed for reliable uploads
+# through common USB-UART adapters.
+"$cli" upload --fqbn esp32:esp32:esp32 --port "$port" --input-dir "$build_dir" \
+  --upload-property upload.speed=460800
 echo "Done. The Hallzee firmware is now on the ESP32."

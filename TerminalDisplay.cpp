@@ -183,7 +183,7 @@ void TerminalDisplay::drawIdEntry(const String &entry) {
   display.fillRoundRect(10, 139, 300, 50, 4, UI_FIELD);
   display.drawRoundRect(10, 139, 300, 50, 4, UI_FIELD_BORDER);
   display.setTextColor(UI_TEXT);
-  display.setFont(entry.length() > 12 ? DisplayFont::SansBold18 : DisplayFont::SansBold24);
+  display.setFont(entry.length() > 12 ? DisplayFont::DMSansBold18 : DisplayFont::DMSansBold24);
   display.setCursor(20, entry.length() > 12 ? 149 : 164);
   display.print(entry.length() == 0 ? "-" : entry);
   return;
@@ -200,7 +200,7 @@ void TerminalDisplay::drawClock(const String &time) {
   if (display.isNative320x240()) {
   display.fillRect(222, 5, 98, 35, UI_HEADER_NAVY);
   display.setTextColor(DISPLAY_WHITE);
-  display.setFont(DisplayFont::SansBold12);
+  display.setFont(DisplayFont::DMSansBold12);
   display.setCursor(222, 29);
   display.print(time);
   return;
@@ -234,11 +234,11 @@ void TerminalDisplay::drawIdleScreen(const String &currentOutId, const String &e
   display.setTextWrap(false);
   display.fillRect(0, 0, 320, 45, UI_HEADER_NAVY);
   display.setTextColor(DISPLAY_WHITE);
-  display.setFont(DisplayFont::SansBold18);
+  display.setFont(DisplayFont::DMSansBold18);
   display.setCursor(12, 26);
   display.println("HALLZEE");
   display.setTextColor(UI_FIELD);
-  display.setFont(DisplayFont::SansBold9);
+  display.setFont(DisplayFont::DMSansRegular9);
   display.setCursor(14, 43);
   display.println("TERMINAL");
   display.setTextColor(UI_TEXT);
@@ -249,11 +249,11 @@ void TerminalDisplay::drawIdleScreen(const String &currentOutId, const String &e
   display.fillRoundRect(10, 52, 300, 60, 8, panel);
   display.fillRect(10, 52, 7, 60, accent);
   display.setTextColor(accent);
-  display.setFont(DisplayFont::SansBold24);
+  display.setFont(DisplayFont::DMSansBold24);
   display.setCursor(27, 88);
   display.println(available ? "AVAILABLE" : "OCCUPIED");
   display.setTextColor(UI_MUTED);
-  display.setFont(DisplayFont::SansBold12);
+  display.setFont(DisplayFont::DMSansRegular12);
   display.setCursor(28, 108);
   if (available) display.println("READY FOR STUDENT ID");
   else {
@@ -262,24 +262,24 @@ void TerminalDisplay::drawIdleScreen(const String &currentOutId, const String &e
   }
 
   display.setTextColor(UI_TEXT);
-  display.setFont(DisplayFont::SansBold12);
+  display.setFont(DisplayFont::DMSansBold12);
   display.setCursor(10, 136);
   display.println("STUDENT ID");
   drawIdEntry(entry);
 
   display.setTextColor(UI_TEXT);
-  display.setFont(DisplayFont::SansBold24);
+  display.setFont(DisplayFont::DMSansBold24);
   display.setCursor(31, 226);
   display.print("*");
   display.setTextSize(2);
-  display.setFont(DisplayFont::SansBold12);
+  display.setFont(DisplayFont::DMSansBold12);
   display.setCursor(57, 224);
   display.print("CLEAR");
   display.drawLine(159, 202, 159, 232, UI_FIELD_BORDER);
-  display.setFont(DisplayFont::SansBold24);
+  display.setFont(DisplayFont::DMSansBold24);
   display.setCursor(178, 226);
   display.print("#");
-  display.setFont(DisplayFont::SansBold12);
+  display.setFont(DisplayFont::DMSansBold12);
   display.setCursor(206, 224);
   display.print("SUBMIT");
   return;
@@ -337,7 +337,7 @@ void TerminalDisplay::drawClockSetupEntry(const String &entry) {
     display.fillRoundRect(10, 139, 300, 50, 4, UI_FIELD);
     display.drawRoundRect(10, 139, 300, 50, 4, UI_FIELD_BORDER);
     display.setTextColor(UI_TEXT);
-    display.setFont(DisplayFont::SansBold24);
+    display.setFont(DisplayFont::DMSansBold24);
     display.setCursor(20, 164);
     display.print(entry.length() == 0 ? "-" : entry);
     return;
@@ -355,15 +355,15 @@ void TerminalDisplay::drawClockSetupScreen(ClockSetupStep step, const String &en
     display.setTextWrap(false);
     display.fillRect(0, 0, 320, 45, UI_HEADER_NAVY);
     display.setTextColor(DISPLAY_WHITE);
-    display.setFont(DisplayFont::SansBold18);
+    display.setFont(DisplayFont::DMSansBold18);
     display.setCursor(12, 26);
     display.println("HALLZEE");
     display.setTextColor(UI_FIELD);
-    display.setFont(DisplayFont::SansBold9);
+    display.setFont(DisplayFont::DMSansRegular9);
     display.setCursor(14, 43);
     display.println("TERMINAL");
     display.setTextColor(DISPLAY_WHITE);
-    display.setFont(DisplayFont::SansBold12);
+    display.setFont(DisplayFont::DMSansBold12);
     display.setCursor(218, 25);
     display.print("SET TIME");
 
@@ -374,36 +374,36 @@ void TerminalDisplay::drawClockSetupScreen(ClockSetupStep step, const String &en
     display.fillRoundRect(10, 52, 300, 60, 8, UI_PANEL);
     display.fillRect(10, 52, 7, 60, UI_HALLZEE_BLUE);
     display.setTextColor(UI_TEXT);
-    display.setFont(DisplayFont::SansBold12);
+    display.setFont(DisplayFont::DMSansBold12);
     display.setCursor(28, 72);
     display.println("SET DATE & TIME");
     display.setTextColor(UI_HALLZEE_BLUE);
-    display.setFont(DisplayFont::SansBold18);
+    display.setFont(DisplayFont::DMSansBold18);
     display.setCursor(28, 103);
     display.println(prompts[index]);
     display.setTextColor(UI_MUTED);
-    display.setFont(DisplayFont::SansBold12);
+    display.setFont(DisplayFont::DMSansRegular12);
     display.setCursor(245, 101);
     display.println(hints[index]);
 
     display.setTextColor(UI_TEXT);
-    display.setFont(DisplayFont::SansBold12);
+    display.setFont(DisplayFont::DMSansBold12);
     display.setCursor(10, 136);
     display.println("ENTER VALUE");
     drawClockSetupEntry(entry);
 
     display.setTextColor(UI_TEXT);
-    display.setFont(DisplayFont::SansBold24);
+    display.setFont(DisplayFont::DMSansBold24);
     display.setCursor(31, 226);
     display.print("*");
-    display.setFont(DisplayFont::SansBold12);
+    display.setFont(DisplayFont::DMSansBold12);
     display.setCursor(57, 224);
     display.print("CLEAR");
     display.drawLine(159, 202, 159, 232, UI_FIELD_BORDER);
-    display.setFont(DisplayFont::SansBold24);
+    display.setFont(DisplayFont::DMSansBold24);
     display.setCursor(178, 226);
     display.print("#");
-    display.setFont(DisplayFont::SansBold12);
+    display.setFont(DisplayFont::DMSansBold12);
     display.setCursor(206, 224);
     display.print("NEXT");
     return;

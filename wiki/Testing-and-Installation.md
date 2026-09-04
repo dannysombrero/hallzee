@@ -27,6 +27,32 @@ The firmware does not support an ESP32-C3, ESP32-S2, or ESP32-S3 profile at
 this time. Confirm the board family before wiring a new batch. The TFT and
 keypad use 3.3 V ESP32 logic; do not feed 5 V into a signal pin.
 
+### ESP32 board requirements
+
+The board must meet all of the following minimum requirements:
+
+| Requirement | Minimum / expected value | Why it matters |
+| --- | --- | --- |
+| MCU | Original ESP32/WROOM-32 family using the `esp32:esp32` Arduino target | The firmware currently requires the original ESP32 Bluetooth stack and board definition |
+| Bluetooth | Bluetooth Low Energy peripheral support with the ESP32 Bluedroid stack | The terminal advertises a secure BLE GATT service and supports passkey/bonding |
+| Available GPIO | At least 12 freely usable GPIOs in addition to the USB-UART connection | Seven GPIOs scan the keypad and five drive the TFT |
+| Flash | 4 MB or more | The firmware uses program flash plus NVS and LittleFS trip-log storage |
+| RAM | Standard original ESP32 SRAM; no PSRAM is required | The current firmware does not depend on external PSRAM |
+| Logic level | 3.3 V GPIO and 3.3 V-compatible peripherals | The keypad and TFT signals connect directly to ESP32 GPIOs |
+| USB programming | USB data connection, USB-UART bridge, and bootloader/reset support | The platform flashers upload through the board's serial bootloader |
+| 3.3 V supply | A regulated 3.3 V rail capable of powering the ESP32 and TFT backlight | An underpowered rail causes resets, upload failures, or display corruption |
+
+The current known-good board is the common **ESP32 DevKit V1 with ESP-WROOM-32
+module and 4 MB flash**. The exact pin numbers matter: the board must expose
+GPIO 5, 13, 14, 18, 21, 22, 23, 25, 26, 27, 32, and 33. Do not count the
+`VIN`, `3V3`, `GND`, or USB-UART pins as usable signal GPIOs. GPIO 1 and 3 are
+reserved for the USB serial console/upload path.
+
+Do not substitute an ESP32-C3, ESP32-S2, ESP32-S3, ESP32-H2, an Arduino Nano,
+or a generic Bluetooth-only serial board without first adding a new board
+port. Boards with fewer than 4 MB flash, no USB-UART/bootloader path, or a
+3.3 V rail that cannot power the TFT are also not supported by this build.
+
 ### Physical wiring
 
 Wire by the labels printed on the modules. The keypad has no VCC or GND wire:
@@ -166,20 +192,23 @@ The script downloads the .NET 8 build tools, then creates the Windows app in
 the downloaded project’s `artifacts\BathroomSync-Windows` folder. Open that
 folder and run `HallzeeSync.Universal.exe`.
 
-### Easier: download the latest ready-to-run Windows app
+### Download the latest ready-to-run Windows app
 
-Once the **Publish Latest Windows Sync App** GitHub Action has run, download
-the latest ready-to-run ZIP here:
+The latest ready-to-run Windows build is published as an artifact by the
+**Build Universal Sync Client** GitHub Action:
 
-```text
-https://github.com/dannysombrero/hallzee-mono/releases/download/windows-client-latest/BathroomSync-Windows.zip
-```
+1. Open the repository’s **Actions** tab and choose **Build Universal Sync
+   Client**.
+2. Open the latest successful run, or choose **Run workflow** and wait for it
+   to finish.
+3. Download the `HallzeeSync-Universal-Windows` artifact.
+4. Extract the entire ZIP to a normal folder, then run
+   `HallzeeSync.Universal.exe`.
 
-Extract the entire ZIP to a normal folder, then run `HallzeeSync.Universal.exe`.
-No software installation or local build is needed. If the link has not been
-published yet, open the repository’s **Actions** tab, run **Publish Latest
-Windows Sync App**, then refresh this link when the run completes. The same ZIP
-is also available from that workflow run’s **Artifacts** section.
+No .NET installation or local build is needed. The artifact is a self-contained
+Windows x64 app. The workflow validates a macOS build but does not currently
+publish a ready-to-run Mac package. See [Getting started: normal users](Getting-Started-Users.md)
+for the user-facing pairing and operation steps.
 
 > The Windows build and physical Bluetooth sync require a Windows PC. The Mac
 > command flashes the terminal, but does not verify Windows Bluetooth discovery.

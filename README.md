@@ -21,9 +21,11 @@ records locally and can synchronize them to a desktop receiver over Bluetooth Lo
 | `receiver/` | Legacy/native macOS receiver |
 | `docs/` | Architecture and Bluetooth protocol references |
 
-## Contributor guides & design documentation
+## Getting started, contributor guides & design documentation
 
-- [Installation and testing guide](docs/testing-and-installation.md) — Contributor setup, Mac vs. Windows verification rules, and one-command bootstraps.
+- [Getting started: normal users](docs/getting-started-users.md) — Download the latest Universal app, pair a terminal, and sync trips.
+- [Getting started: developers](docs/getting-started-developers.md) — Set up a clean computer, wire/flash hardware, run the app locally, and test changes.
+- [Installation and testing guide](docs/testing-and-installation.md) — Detailed hardware wiring, Mac vs. Windows verification rules, and one-command bootstraps.
 - **Level 1 (PRD):** [Product & Requirements Document](docs/product-requirements.md) — Product vision, personas, classroom workflows, and FERPA privacy boundaries.
 - **Level 2 (Architecture):**
   - [System Technical Architecture](docs/architecture.md) — Topology, state ownership decision matrix, SQLite schema, and layer boundaries.
@@ -38,14 +40,17 @@ records locally and can synchronize them to a desktop receiver over Bluetooth Lo
 
 ## Hardware
 
-- ESP32 with Bluetooth Low Energy support
+- Original ESP32/WROOM-32 board with BLE peripheral support, the Bluedroid
+  stack, 4 MB or more of flash, at least 12 usable signal GPIOs, 3.3 V logic,
+  and a USB-UART bootloader path. The known-good board is an ESP32 DevKit V1.
 - ST7735 TFT display (the default firmware profile)
 - Optional ILI9341 TFT display at 240×320 (the `ili9341` firmware profile)
 - 3×4 matrix keypad
 
 The complete physical wiring and fresh-machine flashing checklist is in the
 [installation and testing guide](docs/testing-and-installation.md). The
-configured pins are also mirrored in `Config.h` and [WOKWI.md](WOKWI.md).
+configured pins, the 12 required GPIOs, and unsupported board variants are
+also documented there and mirrored in `Config.h` and [WOKWI.md](WOKWI.md).
 
 ## Firmware build
 

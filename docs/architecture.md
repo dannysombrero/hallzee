@@ -9,7 +9,7 @@
 ## 1. System Overview & Topology
 
 Hallzee is structured into three primary architectural tiers:
-1. **Embedded Physical Terminal (Kiosk):** An ESP32 microcontroller with a 1.8" ST7735 color TFT display and 4x4 matrix keypad placed at the classroom exit door.
+1. **Embedded Physical Terminal (Kiosk):** An ESP32 microcontroller with a color TFT display and 3x4 matrix keypad placed at the classroom exit door. The default hardware profile uses an ST7735 display; an alternate ILI9341 profile supports 240×320 modules.
 2. **Bluetooth Low Energy (BLE) Synchronization Transport:** A connectionless/paired GATT service facilitating encrypted/authenticated local transfer between the kiosk and desktop.
 3. **Local Desktop Client (Teacher Workstation):** A native .NET 8 / Avalonia client backed by an embedded SQLite database, responsible for roster mapping, live pass oversight, historical search, and data export.
 
@@ -134,7 +134,9 @@ The firmware composition root is `bathroom-signin.ino`. It instantiates modular 
    - Tracks wall-clock time using ESP32 system time.
    - Synchronizes time with the desktop client upon BLE handshake.
 5. **`TerminalDisplay`:**
-   - Manages ST7735 128x160 TFT graphics rendering.
+   - Manages TFT graphics rendering through `DisplayPort`. The default ST7735
+     profile uses the original 160×128 landscape canvas; the alternate ILI9341
+     profile maps that shared UI into a portrait 240×320 panel.
    - Decoupled from business logic; accepts view models and draw commands.
 6. **`KeypadController`:**
    - Implements debounce, long-press detection, and keystroke buffering for 4x4 matrix keypads.

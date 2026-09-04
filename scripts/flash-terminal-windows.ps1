@@ -1,5 +1,8 @@
 param(
   [string]$Port,
+  [ValidateSet("st7735", "ili9341")]
+  [string]$Display = "st7735",
+  [switch]$CompileOnly,
   [string]$ProjectRoot = (Split-Path -Parent $PSScriptRoot)
 )
 
@@ -46,7 +49,7 @@ if (-not (Test-Path $cli)) {
 Write-Host "Installing the ESP32 board support and required libraries if needed…"
 & $cli core update-index --additional-urls $esp32Index
 & $cli core install "esp32:esp32@$esp32Version" --additional-urls $esp32Index
-& $cli lib install "Adafruit GFX Library" "Adafruit ST7735 and ST7789 Library" Keypad
+& $cli lib install "Adafruit GFX Library" "Adafruit ST7735 and ST7789 Library" "Adafruit ILI9341" Keypad
 
 # Arduino requires the sketch directory and its main .ino file to share a
 # basename. The repository name is intentionally independent of that file.
@@ -64,9 +67,17 @@ Copy-Item -Path (Join-Path $ProjectRoot "*.cpp") -Destination $stagingSketch
 
 try {
   Write-Host "Building and flashing Hallzee to $Port…"
-  & $cli compile --fqbn esp32:esp32:esp32 $stagingSketch
-  & $cli upload --fqbn esp32:esp32:esp32 --port $Port $stagingSketch
-  Write-Host "Done. The Hallzee firmware is now on the ESP32."
+  $buildProperties = @()
+  if ($Display -eq "ili9341") {
+    $buildProperties = @("--build-property", "compiler.cpp.extra_flags=-DHALLZEE_ILI9341")
+  }
+  & $cli compile --fqbn esp32:esp32:esp32 $stagingSketch @buildProperties
+  if ($CompileOnly) {
+    Write-Host "Compile-only check passed; the ESP32 was not changed."
+  } else {
+    & $cli upload --fqbn esp32:esp32:esp32 --port $Port $stagingSketch @buildProperties
+    Write-Host "Done. The Hallzee firmware is now on the ESP32."
+  }
 } finally {
   if (Test-Path $stagingRoot) {
     Remove-Item -Recurse -Force $stagingRoot

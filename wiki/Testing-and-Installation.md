@@ -158,7 +158,7 @@ Encrypted writes are acknowledged and allow up to 60 seconds for Windows pairing
 ### Firmware and display behavior
 
 The firmware is pinned to ESP32 Arduino core `3.3.11` and uses the Adafruit GFX,
-Adafruit ST7735/ST7789, and Keypad libraries. From the repository root, compile
+Adafruit ST7735/ST7789, Adafruit ILI9341, and Keypad libraries. From the repository root, compile
 and flash with the platform script (the script stages the Arduino sketch under
 the required matching folder and `.ino` name):
 
@@ -173,6 +173,18 @@ compile-only check without flashing.
 
 At power-on, the terminal shows the centered Hallzee logo briefly before the
 date/time setup screen.
+
+The default firmware profile targets the original ST7735 160×128 display. For
+the 240×320 red module, select the ILI9341 profile:
+
+```sh
+bash scripts/flash-terminal-macos.sh --display ili9341 /dev/cu.usbserial-XXXX
+```
+
+On Windows, pass `-Display ili9341 -Port COM5` to the PowerShell flasher. This
+profile uses the Adafruit ILI9341 driver, rotates the panel to portrait, and
+scales the shared UI. Keypad behavior, Bluetooth, storage, and terminal
+protocol behavior are shared. Do not flash it to an ST7735 module.
 
 For keypad and display-flow checks, open `display-emulator.html` in a browser
 or use the Wokwi setup described in [WOKWI.md](../WOKWI.md).

@@ -39,7 +39,8 @@ records locally and can synchronize them to a desktop receiver over Bluetooth Lo
 ## Hardware
 
 - ESP32 with Bluetooth Low Energy support
-- ST7735 TFT display
+- ST7735 TFT display (the default firmware profile)
+- Optional ILI9341 TFT display at 240×320 (the `ili9341` firmware profile)
 - 3×4 matrix keypad
 
 The configured pins are documented in `Config.h` and in [WOKWI.md](WOKWI.md).
@@ -51,6 +52,7 @@ available. Install the ESP32 Arduino core and these libraries:
 
 - Adafruit GFX Library
 - Adafruit ST7735 and ST7789 Library
+- Adafruit ILI9341
 - Keypad
 
 Use the repository flasher so the Arduino sketch is staged with the required
@@ -59,6 +61,18 @@ matching folder and `.ino` names:
 ```sh
 bash scripts/flash-terminal-macos.sh /dev/cu.usbserial-XXXX
 ```
+
+The original 160×128 display remains the default. For the 240×320 ILI9341
+module, use the alternate profile:
+
+```sh
+bash scripts/flash-terminal-macos.sh --display ili9341 /dev/cu.usbserial-XXXX
+```
+
+The ILI9341 profile uses the same keypad, Bluetooth, storage, and terminal
+behavior. Its portrait UI is the shared logical layout scaled to fit the
+larger screen. On Windows, use
+`powershell -ExecutionPolicy Bypass -File scripts/flash-terminal-windows.ps1 -Display ili9341 -Port COM5`.
 
 The supported firmware build uses the `esp32:esp32` Arduino core version
 3.3.11. The Windows equivalent is

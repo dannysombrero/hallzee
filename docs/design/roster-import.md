@@ -18,8 +18,10 @@ import intentionally reads CSV text rather than spreadsheet-workbook internals.
 ### User Flow & Two-Phase Import Architecture
 1. Teacher opens **Roster Management** from the desktop sidebar or settings.
 2. Clicks **Import Roster (CSV)** and selects a CSV file.
+   - **Dialog Concurrency & Yielding:** The client yields to the UI message loop (`Task.Yield()`) before invoking the native file dialog to ensure clean pointer capture release on Windows, guards against re-entrant multi-clicks, and yields (`Task.Delay(100)`) after dialog return so the native COM window handle detaches cleanly.
+   - **Shared Read Streams:** The file stream is opened with `FileShare.ReadWrite` to allow seamless import even if the CSV file is actively open in Microsoft Excel or another viewer on Windows.
 3. **Phase 1: Preview & Column Auto-Detection (`AnalyzeRosterCsv`)**:
-   - The engine tokenizes the CSV according to RFC-4180.
+   - The engine offloads CSV reading and tokenization to a background task (`Task.Run`), keeping the desktop UI completely responsive even on large district rosters (thousands of rows).
    - Extracts sample preview rows (e.g. first 3–5 rows) and total row count.
    - Auto-detects suggested column mappings for `Student ID`, `First Name`, `Last Name`, `Full Name`, `Grade`, and `Period` using SIS synonyms (PowerSchool, Infinite Campus, Skyward, Google Classroom, Canvas).
    - Displays a preview table showing sample values under each header so the teacher can verify the suggested mapping.
@@ -28,6 +30,7 @@ import intentionally reads CSV text rather than spreadsheet-workbook internals.
    - The engine validates rows, splits names if full name format is selected (`"Last, First"` or `"First Last"`), and batch upserts valid students into `roster_students` scoped to the profile.
    - Surfaces an import report summary with total rows, imported count, skipped count, and row-level error diagnostics.
 5. The dashboard and trip tables immediately enrich matching student IDs with full names and periods.
+
 
 ---
 
@@ -97,3 +100,5 @@ ORDER BY t.trip_id DESC;
 | SQLite insert/upsert & profile scoping tests | **Yes** | No | No |
 | Join query performance (<10ms for 10,000 trips) | **Yes** | No | No |
 | Desktop UI import dialog & fallback rendering | **Yes** | No | No |
+| Windows native COM file picker & concurrent file read | No | **Yes** | No |
+

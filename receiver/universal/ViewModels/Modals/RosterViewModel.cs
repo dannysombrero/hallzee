@@ -10,6 +10,7 @@ public sealed class RosterViewModel : INotifyPropertyChanged {
   readonly IRosterService rosterService;
   string? currentImportFilePath;
   bool isImportPreviewActive;
+  bool isImportBusy;
   RosterPreviewData? previewData;
   string? selectedIdColumn;
   string? selectedFirstNameColumn;
@@ -22,6 +23,7 @@ public sealed class RosterViewModel : INotifyPropertyChanged {
   int totalStudents;
   string sortColumn = "Student";
   bool sortAscending = true;
+
 
   public RosterViewModel(IRosterService rosterService) {
     this.rosterService = rosterService;
@@ -80,6 +82,12 @@ public sealed class RosterViewModel : INotifyPropertyChanged {
     get => isImportPreviewActive;
     private set { isImportPreviewActive = value; OnPropertyChanged(); }
   }
+
+  public bool IsImportBusy {
+    get => isImportBusy;
+    private set { isImportBusy = value; OnPropertyChanged(); }
+  }
+
 
   public RosterPreviewData? PreviewData {
     get => previewData;
@@ -145,7 +153,12 @@ public sealed class RosterViewModel : INotifyPropertyChanged {
     TotalStudents = Students.Count;
   }
 
-  public bool StartCsvImport(string filePath) {
+  public void SetErrorMessage(string message) {
+    ImportStatusMessage = message;
+    ImportStatusColor = "#EF4444";
+  }
+
+  public async Task<bool> StartCsvImportAsync(string filePath) {
     if (!File.Exists(filePath)) {
       ImportStatusMessage = $"File not found: {filePath}";
       ImportStatusColor = "#EF4444";
@@ -162,31 +175,50 @@ public sealed class RosterViewModel : INotifyPropertyChanged {
     }
 
     currentImportFilePath = filePath;
-    using var reader = new StreamReader(filePath);
-    var preview = rosterService.PreviewRosterCsv(reader, sampleSize: 3);
+    IsImportBusy = true;
+    ImportStatusMessage = "Analyzing CSV file...";
+    ImportStatusColor = "#0284C7";
 
-    if (preview.Headers.Count == 0 || preview.TotalRowCount == 0) {
-      ImportStatusMessage = "CSV file is empty or contains no valid rows.";
+    try {
+      var preview = await Task.Run(() => {
+        using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var reader = new StreamReader(stream);
+        return rosterService.PreviewRosterCsv(reader, sampleSize: 3);
+      });
+
+      if (preview.Headers.Count == 0 || preview.TotalRowCount == 0) {
+        ImportStatusMessage = "CSV file is empty or contains no valid rows.";
+        ImportStatusColor = "#EF4444";
+        return false;
+      }
+
+      PreviewData = preview;
+      AvailableHeaders.Clear();
+      AvailableHeaders.Add("(None)");
+      foreach (var h in preview.Headers) AvailableHeaders.Add(h);
+
+      SelectedIdColumn = preview.SuggestedMapping.StudentIdColumn;
+      SelectedFirstNameColumn = preview.SuggestedMapping.FirstNameColumn;
+      SelectedLastNameColumn = preview.SuggestedMapping.LastNameColumn;
+      SelectedFullNameColumn = preview.SuggestedMapping.FullNameColumn;
+      SelectedGradeColumn = preview.SuggestedMapping.GradeColumn;
+      SelectedPeriodColumn = preview.SuggestedMapping.ClassPeriodColumn;
+
+      IsImportPreviewActive = true;
+      ImportStatusMessage = $"Found {preview.TotalRowCount} student rows. Verify column bindings below.";
+      ImportStatusColor = "#0284C7";
+      return true;
+    } catch (Exception ex) {
+      ImportStatusMessage = $"Failed to read CSV: {ex.Message}";
       ImportStatusColor = "#EF4444";
       return false;
+    } finally {
+      IsImportBusy = false;
     }
+  }
 
-    PreviewData = preview;
-    AvailableHeaders.Clear();
-    AvailableHeaders.Add("(None)");
-    foreach (var h in preview.Headers) AvailableHeaders.Add(h);
-
-    SelectedIdColumn = preview.SuggestedMapping.StudentIdColumn;
-    SelectedFirstNameColumn = preview.SuggestedMapping.FirstNameColumn;
-    SelectedLastNameColumn = preview.SuggestedMapping.LastNameColumn;
-    SelectedFullNameColumn = preview.SuggestedMapping.FullNameColumn;
-    SelectedGradeColumn = preview.SuggestedMapping.GradeColumn;
-    SelectedPeriodColumn = preview.SuggestedMapping.ClassPeriodColumn;
-
-    IsImportPreviewActive = true;
-    ImportStatusMessage = $"Found {preview.TotalRowCount} student rows. Verify column bindings below.";
-    ImportStatusColor = "#0284C7";
-    return true;
+  public bool StartCsvImport(string filePath) {
+    return StartCsvImportAsync(filePath).GetAwaiter().GetResult();
   }
 
   public RosterImportResult? ConfirmImport(string profileId, bool clearExisting = false) {
@@ -205,22 +237,30 @@ public sealed class RosterViewModel : INotifyPropertyChanged {
       ClassPeriodColumn: SelectedPeriodColumn == "(None)" ? null : SelectedPeriodColumn
     );
 
-    using var reader = new StreamReader(currentImportFilePath);
-    var result = rosterService.ImportRoster(profileId, reader, mapping, clearExisting);
+    try {
+      using var stream = new FileStream(currentImportFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+      using var reader = new StreamReader(stream);
+      var result = rosterService.ImportRoster(profileId, reader, mapping, clearExisting);
 
-    if (result.Success || result.ImportedCount > 0) {
-      ImportStatusMessage = $"Successfully imported {result.ImportedCount} students. ({result.SkippedCount} skipped)";
-      ImportStatusColor = "#10B981";
-      IsImportPreviewActive = false;
-      currentImportFilePath = null;
-      Refresh(profileId);
-    } else {
-      ImportStatusMessage = $"Import failed: {result.Errors.FirstOrDefault()?.ErrorMessage ?? "Unknown error"}";
+      if (result.Success || result.ImportedCount > 0) {
+        ImportStatusMessage = $"Successfully imported {result.ImportedCount} students. ({result.SkippedCount} skipped)";
+        ImportStatusColor = "#10B981";
+        IsImportPreviewActive = false;
+        currentImportFilePath = null;
+        Refresh(profileId);
+      } else {
+        ImportStatusMessage = $"Import failed: {result.Errors.FirstOrDefault()?.ErrorMessage ?? "Unknown error"}";
+        ImportStatusColor = "#EF4444";
+      }
+
+      return result;
+    } catch (Exception ex) {
+      ImportStatusMessage = $"Import failed: {ex.Message}";
       ImportStatusColor = "#EF4444";
+      return null;
     }
-
-    return result;
   }
+
 
   public void CancelImport() {
     IsImportPreviewActive = false;

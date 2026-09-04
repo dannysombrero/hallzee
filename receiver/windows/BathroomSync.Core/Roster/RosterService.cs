@@ -72,7 +72,8 @@ public sealed class RosterService : IRosterService {
       );
     }
 
-    using var reader = new StreamReader(filePath);
+    using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+    using var reader = new StreamReader(stream);
     return mapping != null && mapping.IsValid
       ? ImportRoster(profileId, reader, mapping, clearExisting)
       : ImportRosterAuto(profileId, reader, clearExisting);

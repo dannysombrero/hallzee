@@ -60,6 +60,8 @@
     <StreamGeometry x:Key="IconCheck">M20 6L9 17l-5-5</StreamGeometry>
     <StreamGeometry x:Key="IconEdit">M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z M15 5l4 4</StreamGeometry>
     <StreamGeometry x:Key="IconVolume2">M11 5L6 9H2v6h4l5 4V5z M19.07 4.93a10 10 0 0 1 0 14.14 M15.54 8.46a5 5 0 0 1 0 7.07</StreamGeometry>
+    <StreamGeometry x:Key="IconChevronDown">M6 9l6 6 6-6</StreamGeometry>
+
 
     <!-- CANONICAL APPLICATION FONTS (MATCHING WEB CLIENT: DM SANS) -->
     <FontFamily x:Key="DMSansFont">avares://HallzeeSync.Universal/Assets/Fonts#DM Sans</FontFamily>
@@ -206,6 +208,34 @@
       <Setter Property="Background" Value="#64748B" />
     </Style>
 
+    <!-- INTERACTIVE STATUS PILL BUTTON (e.g. Filter Threshold Badge) -->
+    <Style Selector="Button.status-pill">
+      <Setter Property="CornerRadius" Value="12" />
+      <Setter Property="Padding" Value="9,3" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+
+    <Style Selector="Button.status-pill:pointerover">
+      <Setter Property="RenderTransform" Value="scale(1.04)" />
+    </Style>
+    <Style Selector="Button.status-pill TextBlock">
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="FontWeight" Value="ExtraBold" />
+      <Setter Property="LetterSpacing" Value="0.3" />
+      <Setter Property="Foreground" Value="White" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="HorizontalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.status-pill.warning">
+      <Setter Property="Background" Value="#F59E0B" />
+    </Style>
+    <Style Selector="Button.status-pill.warning:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="#D97706" />
+    </Style>
+
+
     <!-- DARK ACTION BUTTON (e.g. Check In) -->
     <Style Selector="Button.dark-action">
       <Setter Property="Background" Value="{StaticResource HallzeeDarkGradient}" />
@@ -276,8 +306,9 @@
       <Setter Property="BorderBrush" Value="#BAE6FD" />
       <Setter Property="BorderThickness" Value="0,0,0,1" />
       <Setter Property="Padding" Value="16,13" />
-      <Setter Property="CornerRadius" Value="18,18,0,0" />
+      <Setter Property="CornerRadius" Value="17,17,0,0" />
     </Style>
+
 
     <Style Selector="ListBox.hallzee-table-list">
       <Setter Property="Background" Value="Transparent" />
@@ -410,14 +441,37 @@
       <Setter Property="FontSize" Value="11" />
     </Style>
 
-    <!-- RESET INTERNAL TEXTBOX INSIDE NUMERICUPDOWN -->
+    <!-- NUMERICUPDOWN & BUTTONSPINNER THEMED STYLES -->
+    <Style Selector="NumericUpDown">
+      <Setter Property="Background" Value="#F0F9FF" />
+      <Setter Property="BorderBrush" Value="#BAE6FD" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="ClipToBounds" Value="True" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="Foreground" Value="#0F172A" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="MinHeight" Value="32" />
+    </Style>
+    <Style Selector="NumericUpDown:pointerover">
+      <Setter Property="Background" Value="#E0F2FE" />
+      <Setter Property="BorderBrush" Value="#7DD3FC" />
+    </Style>
+    <Style Selector="NumericUpDown:focus-within">
+      <Setter Property="Background" Value="White" />
+      <Setter Property="BorderBrush" Value="#0284C7" />
+    </Style>
+
+    <!-- STRIP INTERNAL TEXTBOX BORDERS & MARGINS IN NUMERICUPDOWN -->
     <Style Selector="NumericUpDown /template/ TextBox#PART_TextBox">
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderBrush" Value="Transparent" />
       <Setter Property="BorderThickness" Value="0" />
       <Setter Property="CornerRadius" Value="0" />
-      <Setter Property="Padding" Value="8,2" />
+      <Setter Property="Padding" Value="8,4" />
       <Setter Property="MinHeight" Value="0" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
     </Style>
     <Style Selector="NumericUpDown /template/ TextBox#PART_TextBox /template/ Border#PART_BorderElement">
       <Setter Property="Background" Value="Transparent" />
@@ -429,55 +483,63 @@
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderBrush" Value="Transparent" />
       <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="0" />
     </Style>
     <Style Selector="NumericUpDown /template/ TextBox#PART_TextBox:focus /template/ Border#PART_BorderElement">
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderBrush" Value="Transparent" />
       <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="0" />
     </Style>
 
-    <Style Selector="NumericUpDown">
-      <Setter Property="Background" Value="#F0F9FF" />
-      <Setter Property="BorderBrush" Value="#BAE6FD" />
-      <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="16" />
-      <Setter Property="ClipToBounds" Value="True" />
-      <Setter Property="Padding" Value="4,2" />
-      <Setter Property="FontSize" Value="13" />
-      <Setter Property="Foreground" Value="#0F172A" />
-      <Setter Property="VerticalAlignment" Value="Center" />
-      <Setter Property="MinHeight" Value="34" />
-    </Style>
-    <Style Selector="NumericUpDown:pointerover">
-      <Setter Property="Background" Value="#E0F2FE" />
-      <Setter Property="BorderBrush" Value="#7DD3FC" />
-    </Style>
-    <Style Selector="NumericUpDown:focus-within">
-      <Setter Property="Background" Value="White" />
-      <Setter Property="BorderBrush" Value="#0284C7" />
-    </Style>
+    <!-- STRIP INTERNAL BUTTONSPINNER BORDERS & GAP ARTIFACTS -->
     <Style Selector="NumericUpDown /template/ ButtonSpinner#PART_Spinner">
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderBrush" Value="Transparent" />
       <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="CornerRadius" Value="16" />
+      <Setter Property="Padding" Value="0" />
     </Style>
-    <Style Selector="NumericUpDown /template/ ButtonSpinner /template/ Border#PART_BorderElement">
+    <Style Selector="ButtonSpinner">
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderBrush" Value="Transparent" />
       <Setter Property="BorderThickness" Value="0" />
-      <Setter Property="CornerRadius" Value="16" />
+      <Setter Property="Padding" Value="0" />
     </Style>
-    <Style Selector="NumericUpDown /template/ ButtonSpinner /template/ RepeatButton">
+    <Style Selector="ButtonSpinner /template/ Border#PART_BorderElement">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="0" />
+    </Style>
+
+    <!-- NUMERICUPDOWN SPINNER BUTTONS -->
+    <Style Selector="ButtonSpinner RepeatButton">
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderBrush" Value="Transparent" />
       <Setter Property="BorderThickness" Value="0" />
       <Setter Property="Foreground" Value="#0369A1" />
+      <Setter Property="Padding" Value="4,0" />
+      <Setter Property="MinWidth" Value="22" />
+      <Setter Property="CornerRadius" Value="0" />
     </Style>
-    <Style Selector="NumericUpDown /template/ ButtonSpinner /template/ RepeatButton:pointerover /template/ ContentPresenter">
+    <Style Selector="ButtonSpinner RepeatButton /template/ ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="0" />
+    </Style>
+    <Style Selector="ButtonSpinner RepeatButton:pointerover /template/ ContentPresenter">
       <Setter Property="Background" Value="#BAE6FD" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
       <Setter Property="Foreground" Value="#0369A1" />
     </Style>
+    <Style Selector="ButtonSpinner RepeatButton:pressed /template/ ContentPresenter">
+      <Setter Property="Background" Value="#7DD3FC" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+
 
     <!-- UNIFIED CARD & SECTION CONTAINERS -->
     <Style Selector="Border.hallzee-card, Border.hallzee-section">

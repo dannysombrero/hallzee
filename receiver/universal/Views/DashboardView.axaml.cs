@@ -98,4 +98,17 @@ public partial class DashboardView : UserControl {
   void OnSortExceededCountClick(object? sender, RoutedEventArgs e) {
     if (DataContext is MainViewModel vm) vm.Dashboard.SetSortBy("Count");
   }
+
+  void OnPresetThresholdClick(object? sender, RoutedEventArgs e) {
+    if (sender is Button btn && btn.Tag is string tagStr && int.TryParse(tagStr, out var minutes) && DataContext is MainViewModel vm) {
+      vm.Dashboard.SetThreshold(minutes);
+    }
+  }
+
+  void OnResetThresholdClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) {
+      vm.Dashboard.ResetThresholdToPolicy(vm.PolicyModal.DurationWarningMinutes);
+    }
+  }
 }
+

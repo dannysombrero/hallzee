@@ -316,35 +316,41 @@
                               <!-- TIMES BADGE WITH HOVER OVERDUE TRIPS TABLE -->
                               <Border Background="#FEF2F2" BorderBrush="#FECACA" BorderThickness="1" CornerRadius="8" Padding="6,2" HorizontalAlignment="Right" Cursor="Hand" ToolTip.ShowDelay="100">
                                 <ToolTip.Tip>
-                                  <StackPanel Spacing="6" MinWidth="255">
-                                    <Grid ColumnDefinitions="*,Auto">
-                                      <TextBlock Text="Overdue Trips" FontWeight="Bold" FontSize="11" Foreground="#0F172A" />
-                                      <TextBlock Grid.Column="1" Text="{Binding ExceededCountText}" FontWeight="Bold" FontSize="11" Foreground="#DC2626" />
-                                    </Grid>
-                                    <Border Height="1" Background="#E2E8F0" />
-                                    <!-- Table Header -->
-                                    <Grid ColumnDefinitions="60,65,65,*" Margin="0,2">
-                                      <TextBlock Text="Date" FontSize="10" FontWeight="Bold" Foreground="#64748B" />
-                                      <TextBlock Grid.Column="1" Text="Out" FontSize="10" FontWeight="Bold" Foreground="#64748B" />
-                                      <TextBlock Grid.Column="2" Text="In" FontSize="10" FontWeight="Bold" Foreground="#64748B" />
-                                      <TextBlock Grid.Column="3" Text="Duration" FontSize="10" FontWeight="Bold" Foreground="#64748B" HorizontalAlignment="Right" />
-                                    </Grid>
-                                    <!-- Table Rows -->
-                                    <ScrollViewer MaxHeight="180" VerticalScrollBarVisibility="Auto">
-                                      <ItemsControl ItemsSource="{Binding Trips}">
-                                        <ItemsControl.ItemTemplate>
-                                          <DataTemplate>
-                                            <Grid ColumnDefinitions="60,65,65,*" Margin="0,2">
-                                              <TextBlock Text="{Binding Date}" FontSize="10" Foreground="#334155" />
-                                              <TextBlock Grid.Column="1" Text="{Binding TimeOut}" FontSize="10" Foreground="#475569" />
-                                              <TextBlock Grid.Column="2" Text="{Binding TimeIn}" FontSize="10" Foreground="#475569" />
-                                              <TextBlock Grid.Column="3" Text="{Binding FormattedDuration}" FontSize="10" FontWeight="Bold" Foreground="#DC2626" HorizontalAlignment="Right" />
-                                            </Grid>
-                                          </DataTemplate>
-                                        </ItemsControl.ItemTemplate>
-                                      </ItemsControl>
-                                    </ScrollViewer>
-                                  </StackPanel>
+                                  <ToolTip Padding="0" Background="White" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="14">
+                                    <Border CornerRadius="13" ClipToBounds="True">
+                                      <StackPanel MinWidth="275">
+                                        <!-- TABLE HEADER -->
+                                        <Border Background="#F0F9FF" BorderBrush="#BAE6FD" BorderThickness="0,0,0,1" Padding="14,9">
+                                          <Grid ColumnDefinitions="70,65,65,*">
+                                            <TextBlock Text="Date" FontSize="11" FontWeight="Bold" Foreground="#0369A1" />
+                                            <TextBlock Grid.Column="1" Text="Out" FontSize="11" FontWeight="Bold" Foreground="#0369A1" />
+                                            <TextBlock Grid.Column="2" Text="In" FontSize="11" FontWeight="Bold" Foreground="#0369A1" />
+                                            <TextBlock Grid.Column="3" Text="Duration" FontSize="11" FontWeight="Bold" Foreground="#0369A1" HorizontalAlignment="Right" />
+                                          </Grid>
+                                        </Border>
+
+                                        <!-- TABLE ROWS -->
+                                        <ScrollViewer MaxHeight="180" VerticalScrollBarVisibility="Auto">
+                                          <ItemsControl ItemsSource="{Binding Trips}">
+                                            <ItemsControl.ItemTemplate>
+                                              <DataTemplate>
+                                                <Border BorderBrush="#EDF6FB" BorderThickness="0,0,0,1" Padding="14,8" Background="White">
+                                                  <Grid ColumnDefinitions="70,65,65,*">
+                                                    <TextBlock Text="{Binding Date}" FontSize="11" FontWeight="SemiBold" Foreground="#0F172A" VerticalAlignment="Center" />
+                                                    <TextBlock Grid.Column="1" Text="{Binding TimeOut}" FontSize="11" Foreground="#475569" VerticalAlignment="Center" />
+                                                    <TextBlock Grid.Column="2" Text="{Binding TimeIn}" FontSize="11" Foreground="#475569" VerticalAlignment="Center" />
+                                                    <Border Grid.Column="3" Background="#FEF2F2" BorderBrush="#FECACA" BorderThickness="1" CornerRadius="6" Padding="6,2" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                                      <TextBlock Text="{Binding FormattedDuration}" FontSize="10" FontWeight="Bold" Foreground="#DC2626" />
+                                                    </Border>
+                                                  </Grid>
+                                                </Border>
+                                              </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                          </ItemsControl>
+                                        </ScrollViewer>
+                                      </StackPanel>
+                                    </Border>
+                                  </ToolTip>
                                 </ToolTip.Tip>
                                 <TextBlock Text="{Binding ExceededCountText}" FontSize="10" FontWeight="Bold" Foreground="#DC2626" />
                               </Border>

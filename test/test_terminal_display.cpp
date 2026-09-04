@@ -576,7 +576,9 @@ void testKeypadControllerInterpretsKeysAndResetGesture() {
   keypadSetupMode = true;
   keypad.batches.push_back({{'#', KeypadEventState::Pressed}});
   controller.poll();
-  expectTrue(setupKeys == std::vector<char>{'#'}, "setup mode delegates every key");
+  expectTrue(setupKeys.empty(), "setup mode reserves hash for owner reset");
+  keypad.batches.push_back({{'#', KeypadEventState::Released}});
+  controller.poll();
   keypadSetupMode = false;
 
   keypadResetAllowed = true;
@@ -612,6 +614,24 @@ void testKeypadControllerInterpretsKeysAndResetGesture() {
     onNumberKey, onClear, onSubmit, onReset, nullptr, nullptr,
     isKeypadOwnerResetAllowed, onOwnerReset
   );
+  keypadSetupMode = true;
+  keypad.batches.push_back({
+    {'*', KeypadEventState::Pressed}, {'#', KeypadEventState::Pressed}
+  });
+  ownerResetController.poll();
+  clock.currentMilliseconds = 12999;
+  ownerResetController.poll();
+  expectTrue(ownerResetCount == 0, "owner reset waits during clock setup");
+  clock.currentMilliseconds = 13000;
+  ownerResetController.poll();
+  expectTrue(ownerResetCount == 1, "owner reset triggers during clock setup");
+  keypad.batches.push_back({
+    {'*', KeypadEventState::Released}, {'#', KeypadEventState::Released}
+  });
+  ownerResetController.poll();
+  keypadSetupMode = false;
+  clock.currentMilliseconds = 3000;
+  ownerResetCount = 0;
   keypad.batches.push_back({
     {'*', KeypadEventState::Pressed}, {'#', KeypadEventState::Pressed}
   });

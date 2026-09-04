@@ -139,6 +139,11 @@ bool isOwnerResetAllowed() {
 void resetOwnerFromKeypad() {
   bluetoothSerial.disconnectClient();
   if (terminalSecurity.resetOwner() && bluetoothSerial.clearBondedDevices()) {
+    // Clock setup can be active immediately after boot. Leave setup mode so
+    // the reset result is not stranded on the setup screen and the terminal
+    // can return to normal operation after the owner is cleared.
+    setupMode = false;
+    setupEntry = "";
     terminalDisplay.showOwnerReset();
     drawIdleScreen();
   } else {

@@ -46,9 +46,22 @@ void KeypadController::processEvents() {
     const char key = events[index].key;
     const KeypadEventState state = events[index].state;
     if (isSetupMode()) {
-      if (state == KeypadEventState::Pressed) {
-        onSetupKey(key);
+      // Keep tracking the owner-reset chord during clock setup, but do not
+      // allow normal setup input or unclaimed pairing to run concurrently.
+      if (isOwnerResetAllowed && isOwnerResetAllowed()) {
+        if (key == '*') {
+          if (state == KeypadEventState::Pressed) starPressed = true;
+          else if (state == KeypadEventState::Released) starPressed = false;
+        } else if (key == '#') {
+          if (state == KeypadEventState::Pressed) hashPressed = true;
+          else if (state == KeypadEventState::Released) hashPressed = false;
+        }
+      } else if (key == '*') {
+        starPressed = false;
+      } else if (key == '#') {
+        hashPressed = false;
       }
+      if (key != '*' && key != '#' && state == KeypadEventState::Pressed) onSetupKey(key);
       continue;
     }
 
@@ -84,7 +97,7 @@ void KeypadController::processEvents() {
 }
 
 void KeypadController::checkResetCombo() {
-  if (isSetupMode()) {
+  if (isSetupMode() && (!isOwnerResetAllowed || !isOwnerResetAllowed())) {
     return;
   }
 

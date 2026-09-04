@@ -191,7 +191,11 @@ Windows if the panel is mounted upside down. Rotations `0` and `2` are portrait
 orientations. Do not flash this profile to an ST7735 module.
 
 At power-on, the terminal shows the centered Hallzee logo briefly before the
-date/time setup screen.
+date/time setup screen. The ILI9341 profile renders that setup screen at the
+full native 320×240 size, including its keypad legend and input readout.
+Its display bus is intentionally limited to 20 MHz to reduce corruption on
+long or loosely connected SPI wiring. The native UI also uses embedded
+FreeSans bitmap fonts rather than the built-in block font.
 
 For keypad and display-flow checks, open `display-emulator.html` in a browser
 or use the Wokwi setup described in [WOKWI.md](../WOKWI.md).

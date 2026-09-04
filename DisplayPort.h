@@ -2,6 +2,14 @@
 
 #include <Arduino.h>
 
+enum class DisplayFont {
+  BuiltIn,
+  SansBold9,
+  SansBold12,
+  SansBold18,
+  SansBold24
+};
+
 class DisplayPort {
 public:
   virtual ~DisplayPort() = default;
@@ -18,6 +26,7 @@ public:
   virtual void setTextWrap(bool enabled) = 0;
   virtual void setTextColor(uint16_t color) = 0;
   virtual void setTextSize(uint8_t size) = 0;
+  virtual void setFont(DisplayFont font) { (void)font; }
   virtual void setCursor(int16_t x, int16_t y) = 0;
   virtual void print(const char *text) = 0;
   virtual void print(const String &text) = 0;
@@ -26,4 +35,6 @@ public:
   virtual void println(const char *text) = 0;
   virtual void println(const String &text) = 0;
   virtual void pause(unsigned long milliseconds) = 0;
+  // True when the adapter is using the native 320x240 ILI9341 canvas.
+  virtual bool isNative320x240() const { return false; }
 };

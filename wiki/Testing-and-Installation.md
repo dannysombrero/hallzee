@@ -177,7 +177,11 @@ Pass `-Port COM5` when more than one serial device is attached. CI performs a
 compile-only check without flashing.
 
 At power-on, the terminal shows the centered Hallzee logo briefly before the
-date/time setup screen.
+date/time setup screen. The ILI9341 profile renders that setup screen at the
+full native 320×240 size, including its keypad legend and input readout.
+Its display bus is intentionally limited to 20 MHz to reduce corruption on
+long or loosely connected SPI wiring. The native UI also uses embedded
+FreeSans bitmap fonts rather than the built-in block font.
 
 The default firmware profile targets the original ST7735 160×128 display. For
 the 240×320 red module, select the ILI9341 profile:

@@ -51,6 +51,9 @@ staging_sketch="$staging_root/$sketch_name"
 build_dir="$staging_root/build"
 mkdir -p "$staging_sketch"
 cp "${source_files[@]}" "$staging_sketch/"
+if [[ -d "$project_root/fonts" ]]; then
+  cp -R "$project_root/fonts" "$staging_sketch/"
+fi
 trap 'rm -rf "$staging_root"' EXIT
 
 cat <<'REQUIREMENTS'

@@ -11,6 +11,7 @@ void St7735DisplayPort::drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1,
 void St7735DisplayPort::setTextWrap(bool enabled) { display.setTextWrap(enabled); }
 void St7735DisplayPort::setTextColor(uint16_t color) { display.setTextColor(color); }
 void St7735DisplayPort::setTextSize(uint8_t size) { display.setTextSize(size); }
+void St7735DisplayPort::setFont(DisplayFont font) { (void)font; display.setFont(nullptr); }
 void St7735DisplayPort::setCursor(int16_t x, int16_t y) { display.setCursor(x, y); }
 void St7735DisplayPort::print(const char *text) { display.print(text); }
 void St7735DisplayPort::print(const String &text) { display.print(text); }

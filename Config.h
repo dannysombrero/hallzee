@@ -32,6 +32,7 @@ constexpr uint16_t UI_STATUS_GREEN = 0x2528;
 constexpr uint16_t UI_STATUS_RED = 0xE8A8;
 constexpr uint16_t UI_FIELD = 0xF7DF;
 constexpr uint16_t UI_FIELD_BORDER = 0x7BEF;
+constexpr uint16_t UI_BLUETOOTH_MUTED = 0x9CF3;
 
 // TFT wiring
 constexpr int TFT_CS = 5;

@@ -107,6 +107,19 @@ public sealed class DashboardViewModel : INotifyPropertyChanged {
     ExceededSortBy = sortField;
   }
 
+  public void SetThreshold(int minutes) {
+    if (minutes > 0) {
+      ThresholdMinutes = minutes;
+    }
+  }
+
+  public void ResetThresholdToPolicy(int policyMinutes) {
+    if (policyMinutes > 0) {
+      ThresholdMinutes = policyMinutes;
+    }
+  }
+
+
   public void Refresh(string profileId) {
     currentProfileId = profileId;
     var todayStr = DateTime.UtcNow.ToString("yyyy-MM-dd");

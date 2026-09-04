@@ -133,4 +133,22 @@ public sealed class RosterServiceTests : IDisposable {
     Assert.True(result.HasErrors);
     Assert.Contains("File not found", result.Errors[0].ErrorMessage);
   }
+
+  [Fact]
+  public void ImportFromFileSucceedsWhenFileIsConcurrentlyOpen() {
+    var tempCsv = Path.Combine(Path.GetTempPath(), $"hallzee_concurrent_{Guid.NewGuid():N}.csv");
+    try {
+      File.WriteAllText(tempCsv, "ID,Name\n4401,Open File Student\n");
+
+      // Simulate Excel or another viewer having the file open with FileShare.ReadWrite
+      using var concurrentStream = new FileStream(tempCsv, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+
+      var result = service.ImportRosterFromFile("default", tempCsv);
+      Assert.Equal(1, result.ImportedCount);
+      Assert.NotNull(service.LookupStudent("default", "4401"));
+    } finally {
+      try { if (File.Exists(tempCsv)) File.Delete(tempCsv); } catch { }
+    }
+  }
 }
+

@@ -272,6 +272,9 @@ continue holding until **OWNER RESET** appears.
 11. In **Trip History Log**, confirm **TIME OUT** and **TIME IN** are rendered in separate columns with a compact **DURATION** column, and clicking column headers (**STUDENT**, **DATE**, **TIME OUT**, **TIME IN**, **DURATION**, **STATUS**) toggles sorting with directional arrow indicators (`▲`/`▼`).
 12. In **Classroom Roster & Students**, confirm clicking column headers (**STUDENT**, **GRADE**, **PERIOD**) sorts the roster list with directional indicators.
 13. Click **Export** on the dashboard and in the Trip History modal; confirm a native file-save dialog opens to choose the file location, and exporting from the dashboard saves the file directly without opening the Trip History modal.
+14. On the dashboard, in the **Exceeded Time** card, click the orange duration threshold badge (e.g., `> 7m`); confirm a flyout opens with duration filter presets (`5m`, `7m`, `10m`, `15m`, `20m`, `30m`), an integer numeric stepper, and a **Reset to Policy Warning** action. Selecting a preset or entering a custom minute threshold immediately updates the badge and filters the list of students exceeding that threshold without overwriting default classroom policy rules.
+15. In **Student Roster**, click **Import Roster (CSV)**; confirm the native file-open dialog appears smoothly on Windows and macOS without UI freezes. Select a CSV file (including one concurrently open in Microsoft Excel or another viewer); confirm the file is parsed asynchronously in the background, showing analysis status and opening the column mapping preview.
+
 
 ### Verify the student-ID limit
 

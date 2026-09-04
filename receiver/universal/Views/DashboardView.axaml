@@ -263,9 +263,55 @@
                   <Path Data="{StaticResource IconClock}" Width="16" Height="16" Stretch="Uniform" Stroke="#D97706" StrokeThickness="2" StrokeLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center" />
                 </Border>
                 <TextBlock Grid.Column="1" Text="Exceeded Time" FontSize="16" FontWeight="ExtraBold" Foreground="#0F172A" VerticalAlignment="Center" />
-                <Border Grid.Column="2" Classes="status-pill warning">
-                  <TextBlock Text="{Binding Dashboard.ThresholdBadgeText}" />
-                </Border>
+                <Button Grid.Column="2" Classes="status-pill warning" ToolTip.Tip="Click to change trip duration threshold filter">
+                  <Button.Flyout>
+                    <Flyout Placement="BottomEdgeAlignedRight" ShowMode="Standard">
+                      <Border Width="240" Padding="14" Background="White" CornerRadius="14" BoxShadow="0 8 24 0 #250F172A">
+                        <StackPanel Spacing="10">
+                          <!-- Flyout Title -->
+                          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6" VerticalAlignment="Center">
+                            <Path Data="{StaticResource IconClock}" Width="14" Height="14" Stretch="Uniform" Stroke="#D97706" StrokeThickness="2" StrokeLineCap="Round" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="Filter Trip Duration" FontSize="13" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center" />
+                          </Grid>
+                          <TextBlock Text="Show trips that exceeded:" FontSize="11" Foreground="#64748B" TextWrapping="Wrap" />
+
+                          <!-- Numeric Stepper -->
+                          <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                            <NumericUpDown Value="{Binding Dashboard.ThresholdMinutes}"
+                                           Minimum="1" Maximum="180" Increment="1" FormatString="0" ParsingNumberStyle="Integer"
+                                           HorizontalContentAlignment="Center" VerticalAlignment="Center"
+                                           Width="95" />
+                            <TextBlock Text="minutes" FontSize="12" FontWeight="SemiBold" Foreground="#475569" VerticalAlignment="Center" />
+                          </StackPanel>
+
+                          <!-- Quick Presets -->
+                          <TextBlock Text="QUICK PRESETS" FontSize="10" FontWeight="Bold" Foreground="#94A3B8" LetterSpacing="0.5" Margin="0,4,0,0" />
+                          <WrapPanel Orientation="Horizontal">
+                            <Button Classes="pill-filter" Content="5m" Tag="5" Click="OnPresetThresholdClick" Margin="0,0,4,4" ToolTip.Tip="Filter &gt; 5 minutes" />
+                            <Button Classes="pill-filter" Content="7m" Tag="7" Click="OnPresetThresholdClick" Margin="0,0,4,4" ToolTip.Tip="Filter &gt; 7 minutes (Default warning)" />
+                            <Button Classes="pill-filter" Content="10m" Tag="10" Click="OnPresetThresholdClick" Margin="0,0,4,4" ToolTip.Tip="Filter &gt; 10 minutes" />
+                            <Button Classes="pill-filter" Content="15m" Tag="15" Click="OnPresetThresholdClick" Margin="0,0,4,4" ToolTip.Tip="Filter &gt; 15 minutes" />
+                            <Button Classes="pill-filter" Content="20m" Tag="20" Click="OnPresetThresholdClick" Margin="0,0,4,4" ToolTip.Tip="Filter &gt; 20 minutes" />
+                            <Button Classes="pill-filter" Content="30m" Tag="30" Click="OnPresetThresholdClick" Margin="0,0,4,4" ToolTip.Tip="Filter &gt; 30 minutes" />
+                          </WrapPanel>
+
+                          <!-- Reset to Policy Warning -->
+                          <Button Classes="secondary" Click="OnResetThresholdClick" HorizontalAlignment="Stretch" Padding="6,6" CornerRadius="8" Margin="0,4,0,0" ToolTip.Tip="Reset filter to classroom policy warning threshold">
+                            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center">
+                              <Path Data="{StaticResource IconSync}" Width="11" Height="11" Stretch="Uniform" Stroke="#0369A1" StrokeThickness="2" VerticalAlignment="Center" />
+                              <TextBlock Text="Reset to Policy Warning" FontSize="11" FontWeight="Bold" VerticalAlignment="Center" />
+                            </StackPanel>
+                          </Button>
+                        </StackPanel>
+                      </Border>
+                    </Flyout>
+                  </Button.Flyout>
+                  <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Dashboard.ThresholdBadgeText}" />
+                    <Path Data="{StaticResource IconChevronDown}" Width="8" Height="8" Stretch="Uniform" Stroke="White" StrokeThickness="2.2" StrokeLineCap="Round" VerticalAlignment="Center" Margin="1,1,0,0" />
+                  </StackPanel>
+                </Button>
+
               </Grid>
 
               <TextBlock Text="Students whose hall pass trips exceeded the warning threshold." FontSize="11" Foreground="#64748B" TextWrapping="Wrap" />

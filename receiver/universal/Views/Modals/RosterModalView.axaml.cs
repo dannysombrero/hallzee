@@ -1,6 +1,8 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.Platform.Storage;
 using BathroomSync.Universal.ViewModels;
+
 
 namespace BathroomSync.Universal.Views;
 
@@ -15,27 +17,48 @@ public partial class RosterModalView : UserControl {
     }
   }
 
+  bool isImporting;
+
   async void OnImportCsvClick(object? sender, RoutedEventArgs e) {
     if (DataContext is not MainViewModel vm) return;
+    if (isImporting) return;
+    isImporting = true;
 
-    var topLevel = TopLevel.GetTopLevel(this);
-    if (topLevel == null) return;
+    try {
+      var topLevel = TopLevel.GetTopLevel(this);
+      if (topLevel == null) return;
 
-    var files = await topLevel.StorageProvider.OpenFilePickerAsync(new Avalonia.Platform.Storage.FilePickerOpenOptions {
-      Title = "Select Student Roster CSV (export Numbers files as CSV first)",
-      AllowMultiple = false,
-      FileTypeFilter = new[] {
-        new Avalonia.Platform.Storage.FilePickerFileType("CSV roster files") {
-          Patterns = new[] { "*.csv" }
+      // Yield briefly to ensure pointer capture and UI click dispatch release cleanly
+      // before Windows COM opens the native file dialog message loop
+      await Task.Yield();
+
+      var files = await topLevel.StorageProvider.OpenFilePickerAsync(new Avalonia.Platform.Storage.FilePickerOpenOptions {
+        Title = "Select Student Roster CSV (export Numbers files as CSV first)",
+        AllowMultiple = false,
+        FileTypeFilter = new[] {
+          new Avalonia.Platform.Storage.FilePickerFileType("CSV roster files") {
+            Patterns = new[] { "*.csv" }
+          }
+        }
+      });
+
+      // Allow the native dialog COM handle to fully release on Windows
+      await Task.Delay(100);
+
+      if (files != null && files.Count > 0) {
+        var file = files[0];
+        var path = file.TryGetLocalPath() ?? file.Path?.LocalPath;
+        if (!string.IsNullOrEmpty(path)) {
+          await vm.RosterModal.StartCsvImportAsync(path);
         }
       }
-    });
-
-    if (files.Count > 0) {
-      var path = files[0].Path.LocalPath;
-      vm.RosterModal.StartCsvImport(path);
+    } catch (Exception ex) {
+      vm.RosterModal.SetErrorMessage($"Error opening file: {ex.Message}");
+    } finally {
+      isImporting = false;
     }
   }
+
 
   void OnConfirmImportClick(object? sender, RoutedEventArgs e) {
     if (DataContext is MainViewModel vm) {

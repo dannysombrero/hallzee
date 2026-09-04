@@ -18,6 +18,7 @@ public:
   void showManualReset(const String &id);
   void drawIdEntry(const String &entry);
   void drawClock(const String &time);
+  void drawBluetoothStatus(bool connected);
   void drawIdleScreen(const String &currentOutId, const String &entry);
   void drawClockSetupEntry(const String &entry);
   void drawClockSetupScreen(ClockSetupStep step, const String &entry);

@@ -2,6 +2,8 @@ param(
   [string]$Port,
   [ValidateSet("st7735", "ili9341")]
   [string]$Display = "st7735",
+  [ValidateRange(0, 3)]
+  [int]$Rotation = 1,
   [switch]$CompileOnly,
   [string]$ProjectRoot = (Split-Path -Parent $PSScriptRoot)
 )
@@ -60,6 +62,7 @@ if ($sketchFiles.Count -ne 1) {
 $sketchName = $sketchFiles[0].BaseName
 $stagingRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("hallzee-" + [guid]::NewGuid().ToString())
 $stagingSketch = Join-Path $stagingRoot $sketchName
+$buildDir = Join-Path $stagingRoot "build"
 New-Item -ItemType Directory -Force -Path $stagingSketch | Out-Null
 Copy-Item -Path (Join-Path $ProjectRoot "*.ino") -Destination $stagingSketch
 Copy-Item -Path (Join-Path $ProjectRoot "*.h") -Destination $stagingSketch
@@ -69,13 +72,13 @@ try {
   Write-Host "Building and flashing Hallzee to $Port…"
   $buildProperties = @()
   if ($Display -eq "ili9341") {
-    $buildProperties = @("--build-property", "compiler.cpp.extra_flags=-DHALLZEE_ILI9341")
+    $buildProperties = @("--build-property", "compiler.cpp.extra_flags=-DHALLZEE_ILI9341 -DHALLZEE_DISPLAY_ROTATION=$Rotation")
   }
-  & $cli compile --fqbn esp32:esp32:esp32 $stagingSketch @buildProperties
+  & $cli compile --fqbn esp32:esp32:esp32 $stagingSketch --build-path $buildDir @buildProperties
   if ($CompileOnly) {
     Write-Host "Compile-only check passed; the ESP32 was not changed."
   } else {
-    & $cli upload --fqbn esp32:esp32:esp32 --port $Port $stagingSketch @buildProperties
+    & $cli upload --fqbn esp32:esp32:esp32 --port $Port --input-dir $buildDir
     Write-Host "Done. The Hallzee firmware is now on the ESP32."
   }
 } finally {

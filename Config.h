@@ -24,6 +24,14 @@ constexpr uint16_t UI_MUTED = 0x6B6D;
 constexpr uint16_t UI_GREEN = 0x3E8E;
 constexpr uint16_t UI_AMBER = 0xFD20;
 constexpr uint16_t UI_RED = 0xE986;
+constexpr uint16_t UI_HEADER_NAVY = 0x03B1;
+constexpr uint16_t UI_HALLZEE_BLUE = 0x14BF;
+constexpr uint16_t UI_PALE_GREEN = 0xE7DD;
+constexpr uint16_t UI_PALE_RED = 0xFCEB;
+constexpr uint16_t UI_STATUS_GREEN = 0x2528;
+constexpr uint16_t UI_STATUS_RED = 0xE8A8;
+constexpr uint16_t UI_FIELD = 0xF7DF;
+constexpr uint16_t UI_FIELD_BORDER = 0x7BEF;
 
 // TFT wiring
 constexpr int TFT_CS = 5;

@@ -10,12 +10,15 @@ esp32_version="3.3.11"
 compile_only=false
 port=""
 display="st7735"
+rotation="1"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --compile-only) compile_only=true ;;
     --display) display="${2:?--display requires st7735 or ili9341}"; shift ;;
     --display=*) display="${1#*=}" ;;
+    --rotation) rotation="${2:?--rotation requires 0, 1, 2, or 3}"; shift ;;
+    --rotation=*) rotation="${1#*=}" ;;
     --) shift; break ;;
     -*) echo "Unknown option: $1"; exit 1 ;;
     *) if [[ -n "$port" && "$port" != "${1}" ]]; then echo "Only one serial port may be provided."; exit 1; fi; port="$1" ;;
@@ -25,6 +28,10 @@ done
 
 if [[ "$display" != "st7735" && "$display" != "ili9341" ]]; then
   echo "Display must be st7735 or ili9341."
+  exit 1
+fi
+if [[ "$rotation" != "0" && "$rotation" != "1" && "$rotation" != "2" && "$rotation" != "3" ]]; then
+  echo "Rotation must be 0, 1, 2, or 3."
   exit 1
 fi
 
@@ -41,6 +48,7 @@ fi
 sketch_name="$(basename "${sketch_files[0]}" .ino)"
 staging_root="$(mktemp -d)"
 staging_sketch="$staging_root/$sketch_name"
+build_dir="$staging_root/build"
 mkdir -p "$staging_sketch"
 cp "${source_files[@]}" "$staging_sketch/"
 trap 'rm -rf "$staging_root"' EXIT
@@ -85,18 +93,14 @@ echo "Installing the ESP32 board support and required libraries if needed…"
 "$cli" lib install "Adafruit GFX Library" "Adafruit ST7735 and ST7789 Library" "Adafruit ILI9341" Keypad
 
 echo "Building and flashing Hallzee to ${port}…"
-compile_args=(--fqbn esp32:esp32:esp32 "$staging_sketch")
+compile_args=(--fqbn esp32:esp32:esp32 "$staging_sketch" --build-path "$build_dir")
 if [[ "$display" == "ili9341" ]]; then
-  compile_args+=(--build-property compiler.cpp.extra_flags=-DHALLZEE_ILI9341)
+  compile_args+=(--build-property "compiler.cpp.extra_flags=-DHALLZEE_ILI9341 -DHALLZEE_DISPLAY_ROTATION=$rotation")
 fi
 "$cli" compile "${compile_args[@]}"
 if $compile_only; then
   echo "Compile-only check passed; the ESP32 was not changed."
   exit 0
 fi
-upload_args=(--fqbn esp32:esp32:esp32 --port "$port" "$staging_sketch")
-if [[ "$display" == "ili9341" ]]; then
-  upload_args+=(--build-property compiler.cpp.extra_flags=-DHALLZEE_ILI9341)
-fi
-"$cli" upload "${upload_args[@]}"
+"$cli" upload --fqbn esp32:esp32:esp32 --port "$port" --input-dir "$build_dir"
 echo "Done. The Hallzee firmware is now on the ESP32."

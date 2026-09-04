@@ -178,23 +178,115 @@ void TerminalDisplay::showManualReset(const String &id) {
 }
 
 void TerminalDisplay::drawIdEntry(const String &entry) {
+#if defined(HALLZEE_ILI9341)
+  // This is deliberately a flat readout: it must not resemble a touch control.
+  display.fillRoundRect(10, 139, 300, 50, 4, UI_FIELD);
+  display.drawRoundRect(10, 139, 300, 50, 4, UI_FIELD_BORDER);
+  display.setTextColor(UI_TEXT);
+  display.setTextSize(entry.length() > 12 ? 3 : 4);
+  display.setCursor(20, entry.length() > 12 ? 149 : 146);
+  display.print(entry.length() == 0 ? "-" : entry);
+  return;
+#else
   display.fillRect(13, 79, 134, 17, UI_PANEL_DARK);
   display.setTextColor(UI_TEXT);
   const bool useCompactText = entry.length() > 10;
   display.setTextSize(useCompactText ? 1 : 2);
   display.setCursor(16, useCompactText ? 83 : 79);
   display.print(entry.length() == 0 ? "_" : entry);
+#endif
 }
 
 void TerminalDisplay::drawClock(const String &time) {
+#if defined(HALLZEE_ILI9341)
+  display.fillRect(222, 5, 98, 35, UI_HEADER_NAVY);
+  display.setTextColor(DISPLAY_WHITE);
+  display.setTextSize(2);
+  display.setCursor(222, 11);
+  display.print(time);
+  return;
+#else
   display.fillRect(102, 7, 53, 11, UI_NAVY);
   display.setTextColor(DISPLAY_WHITE);
   display.setTextSize(1);
   display.setCursor(104, 8);
   display.print(time);
+#endif
+}
+
+void TerminalDisplay::drawBluetoothStatus(bool connected) {
+#if defined(HALLZEE_ILI9341)
+  const uint16_t color = connected ? UI_HALLZEE_BLUE : UI_FIELD_BORDER;
+  display.fillRect(174, 5, 46, 35, UI_HEADER_NAVY);
+  // Compact Bluetooth rune, drawn as strokes so it remains legible without
+  // depending on a symbol font being present in flash.
+  display.drawLine(182, 7, 182, 34, color);
+  display.drawLine(182, 7, 195, 18, color);
+  display.drawLine(195, 18, 182, 34, color);
+  display.drawLine(182, 19, 195, 8, color);
+  display.drawLine(182, 19, 195, 30, color);
+  if (connected) display.fillRoundRect(202, 18, 7, 7, 3, UI_HALLZEE_BLUE);
+#else
+  (void)connected;
+#endif
 }
 
 void TerminalDisplay::drawIdleScreen(const String &currentOutId, const String &entry) {
+#if defined(HALLZEE_ILI9341)
+  display.fillScreen(UI_BACKGROUND);
+  display.setTextWrap(false);
+  display.fillRect(0, 0, 320, 45, UI_HEADER_NAVY);
+  display.setTextColor(DISPLAY_WHITE);
+  display.setTextSize(3);
+  display.setCursor(12, 3);
+  display.println("HALLZEE");
+  display.setTextColor(UI_FIELD);
+  display.setTextSize(1);
+  display.setCursor(14, 34);
+  display.println("TERMINAL");
+  drawBluetoothStatus(false);
+  display.setTextColor(UI_TEXT);
+
+  const bool available = currentOutId.length() == 0;
+  const uint16_t accent = available ? UI_STATUS_GREEN : UI_STATUS_RED;
+  const uint16_t panel = available ? UI_PALE_GREEN : UI_PALE_RED;
+  display.fillRoundRect(10, 52, 300, 60, 8, panel);
+  display.fillRect(10, 52, 7, 60, accent);
+  display.setTextColor(accent);
+  display.setTextSize(4);
+  display.setCursor(27, 58);
+  display.println(available ? "AVAILABLE" : "OCCUPIED");
+  display.setTextColor(UI_MUTED);
+  display.setTextSize(2);
+  display.setCursor(28, 91);
+  if (available) display.println("READY FOR STUDENT ID");
+  else {
+    display.print("OUT WITH ID ");
+    display.println(currentOutId);
+  }
+
+  display.setTextColor(UI_TEXT);
+  display.setTextSize(2);
+  display.setCursor(10, 119);
+  display.println("STUDENT ID");
+  drawIdEntry(entry);
+
+  display.setTextColor(UI_TEXT);
+  display.setTextSize(3);
+  display.setCursor(31, 202);
+  display.print("*");
+  display.setTextSize(2);
+  display.setCursor(57, 207);
+  display.print("CLEAR");
+  display.drawLine(159, 202, 159, 232, UI_FIELD_BORDER);
+  display.setTextSize(3);
+  display.setCursor(178, 202);
+  display.print("#");
+  display.setTextSize(2);
+  display.setCursor(206, 207);
+  display.print("SUBMIT");
+  return;
+#else
   display.fillScreen(UI_BACKGROUND);
   display.setTextWrap(false);
   display.fillRect(0, 0, 160, 24, UI_NAVY);
@@ -241,6 +333,7 @@ void TerminalDisplay::drawIdleScreen(const String &currentOutId, const String &e
   display.setCursor(103, 114);
   display.print("# SUBMIT");
   drawIdEntry(entry);
+#endif
 }
 
 void TerminalDisplay::drawClockSetupEntry(const String &entry) {

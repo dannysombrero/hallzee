@@ -136,7 +136,8 @@ The firmware composition root is `bathroom-signin.ino`. It instantiates modular 
 5. **`TerminalDisplay`:**
    - Manages TFT graphics rendering through `DisplayPort`. The default ST7735
      profile uses the original 160×128 landscape canvas; the alternate ILI9341
-     profile maps that shared UI into a portrait 240×320 panel.
+     profile maps that shared UI into a 320×240 landscape panel by default and
+     supports all four controller rotations.
    - Decoupled from business logic; accepts view models and draw commands.
 6. **`KeypadController`:**
    - Implements debounce, long-press detection, and keystroke buffering for 4x4 matrix keypads.

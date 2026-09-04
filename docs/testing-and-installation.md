@@ -221,6 +221,10 @@ to enter pairing mode and display a new six-digit passkey. An active checkout de
 owner reset gesture. Remove the old operating-system Bluetooth pairing if the
 client still cannot reconnect.
 
+The owner-reset chord is also accepted while the terminal is on its automatic
+clock-setup screen. The setup screen may not change while the keys are held;
+continue holding until **OWNER RESET** appears.
+
 ### Verify policy rules and bell schedule editing
 
 1. In **Hall Pass Policies & Schedule**, confirm number inputs (student limits, pass counts, grace windows) only display integer numbers without decimal fractions when stepping up and down.

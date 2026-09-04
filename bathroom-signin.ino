@@ -110,6 +110,7 @@ String serialCommandBuffer = "";
 
 // Used so clock only visually refreshes when minute changes
 int lastDisplayedMinute = -1;
+bool lastDisplayedBluetoothState = false;
 
 // ======================================================
 // CLOCK SETUP STATE
@@ -298,6 +299,8 @@ void updateClockIfNeeded() {
 
 void drawIdleScreen() {
   terminalDisplay.drawIdleScreen(terminal.activeId(), enteredID);
+  lastDisplayedBluetoothState = bluetoothSerial.hasClient();
+  terminalDisplay.drawBluetoothStatus(lastDisplayedBluetoothState);
   lastDisplayedMinute = -1;
   updateClockIfNeeded();
 }
@@ -889,7 +892,7 @@ void setup() {
   // Initialize TFT
 #if defined(HALLZEE_ILI9341)
   tft.begin();
-  tft.setRotation(0);
+  tft.setRotation(HALLZEE_DISPLAY_ROTATION);
 #else
   tft.initR(INITR_BLACKTAB);
   tft.setRotation(1);
@@ -907,7 +910,7 @@ void setup() {
 // The source logo is receiver/universal/Assets/hallzee-logo.png. The ESP32
 // cannot load that PNG directly, so this is its display-sized RGB565
 // approximation: the same paired doorway shapes and bidirectional arrow,
-// centered in the complete 160 x 128 landscape viewport.
+// centered in the logical 160 x 128 landscape viewport.
 void drawStartupLogo() {
 #if defined(HALLZEE_ILI9341)
   tft.fillScreen(ILI9341_BLACK);
@@ -922,8 +925,23 @@ void drawStartupLogo() {
   // Left and right doorway halves. Each half is split into two colors to
   // preserve the source logo's green-to-blue vertical gradient.
 #if defined(HALLZEE_ILI9341)
-  // The ILI9341 profile is portrait and uses the same logo geometry scaled
-  // into the 240x320 panel, with the 192px-tall artwork centered vertically.
+  // The ILI9341 profile uses the same logo geometry scaled into the selected
+  // panel orientation.
+#if HALLZEE_DISPLAY_ROTATION == 1 || HALLZEE_DISPLAY_ROTATION == 3
+  tft.fillTriangle(100, 38, 136, 62, 136, 92, logoGreen);
+  tft.fillTriangle(100, 38, 100, 120, 136, 92, logoMid);
+  tft.fillTriangle(100, 120, 136, 148, 136, 203, logoBlue);
+  tft.fillTriangle(100, 120, 100, 203, 136, 148, logoBlue);
+  tft.fillTriangle(220, 38, 184, 62, 184, 92, logoGreen);
+  tft.fillTriangle(220, 38, 220, 120, 184, 92, logoMid);
+  tft.fillTriangle(220, 120, 184, 148, 184, 203, logoBlue);
+  tft.fillTriangle(220, 120, 220, 203, 184, 148, logoBlue);
+  tft.fillTriangle(112, 120, 138, 90, 138, 109, logoGreen);
+  tft.fillTriangle(112, 120, 138, 150, 138, 131, logoGreen);
+  tft.fillRect(138, 109, 44, 23, logoMid);
+  tft.fillTriangle(208, 120, 182, 90, 182, 109, logoBlue);
+  tft.fillTriangle(208, 120, 182, 150, 182, 131, logoBlue);
+#else
   tft.fillTriangle(75, 94, 102, 114, 102, 138, logoGreen);
   tft.fillTriangle(75, 94, 75, 160, 102, 138, logoMid);
   tft.fillTriangle(75, 160, 102, 182, 102, 226, logoBlue);
@@ -937,6 +955,7 @@ void drawStartupLogo() {
   tft.fillRect(104, 151, 33, 18, logoMid);
   tft.fillTriangle(156, 160, 136, 136, 136, 151, logoBlue);
   tft.fillTriangle(156, 160, 136, 184, 136, 169, logoBlue);
+#endif
 #else
   tft.fillTriangle(50, 20, 68, 33, 68, 49, logoGreen);
   tft.fillTriangle(50, 20, 50, 64, 68, 49, logoMid);
@@ -971,6 +990,14 @@ void loop() {
   // Bluetooth is passive in Phase 3; it must never block student workflow.
   bluetoothSync.poll();
   bluetoothSync.updateAvailability(terminal.hasActivePass());
+
+  // The Bluetooth indicator is a small independent region; do not redraw the
+  // rest of the kiosk screen while a desktop client connects or disconnects.
+  const bool bluetoothConnected = bluetoothSerial.hasClient();
+  if (bluetoothConnected != lastDisplayedBluetoothState) {
+    lastDisplayedBluetoothState = bluetoothConnected;
+    terminalDisplay.drawBluetoothStatus(bluetoothConnected);
+  }
 
   if (pairingUiActive && terminalSecurity.hasOwner()) {
     pairingUiActive = false;

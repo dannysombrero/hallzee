@@ -39,4 +39,4 @@ jobs:
           cp bathroom-signin.ino "$RUNNER_TEMP/hallzee/hallzee.ino"
           arduino-cli compile --fqbn esp32:esp32:esp32 "$RUNNER_TEMP/hallzee"
       - name: Compile ILI9341 firmware
-        run: arduino-cli compile --fqbn esp32:esp32:esp32 "$RUNNER_TEMP/hallzee" --build-property compiler.cpp.extra_flags=-DHALLZEE_ILI9341
+        run: arduino-cli compile --fqbn esp32:esp32:esp32 "$RUNNER_TEMP/hallzee" --build-property "compiler.cpp.extra_flags=-DHALLZEE_ILI9341 -DHALLZEE_DISPLAY_ROTATION=1"

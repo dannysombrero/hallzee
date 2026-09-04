@@ -80,6 +80,11 @@ is also available from that workflow run’s **Artifacts** section.
 
 Mac testing using the Universal desktop client now fully supports physical Bluetooth LE discovery and data transfer to the ESP32 terminal. A Windows PC is only needed to test Windows-specific packaging or installation behaviors.
 
+For the native ILI9341 UI, Mac testing is sufficient to inspect the 320×240
+landscape rendering and physical-key instructions. A Windows PC is not
+required; Windows-specific BLE adapter and packaging behavior remain
+unverified by the display tests.
+
 For this pairing/status change, Mac testing is sufficient to validate the
 shared protocol and macOS BLE path, but it is not sufficient to verify the
 Windows BLE adapter. A Windows PC is required to verify the Windows-specific
@@ -182,9 +187,11 @@ bash scripts/flash-terminal-macos.sh --display ili9341 /dev/cu.usbserial-XXXX
 ```
 
 On Windows, pass `-Display ili9341 -Port COM5` to the PowerShell flasher. This
-profile uses the Adafruit ILI9341 driver, rotates the panel to portrait, and
-scales the shared UI. Keypad behavior, Bluetooth, storage, and terminal
-protocol behavior are shared. Do not flash it to an ST7735 module.
+profile uses the Adafruit ILI9341 driver, rotates the panel to landscape, and
+renders its native 320×240 UI. Keypad behavior, Bluetooth, storage, and
+terminal protocol behavior are shared. Use `--rotation 3` on macOS or
+`-Rotation 3` on Windows if the panel is mounted upside down. Do not flash it
+to an ST7735 module.
 
 For keypad and display-flow checks, open `display-emulator.html` in a browser
 or use the Wokwi setup described in [WOKWI.md](../WOKWI.md).

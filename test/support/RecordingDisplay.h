@@ -14,6 +14,7 @@ public:
   void fillRect(int16_t x, int16_t y, int16_t width, int16_t height, uint16_t color) override { record("fillRect", x, y, width, height, color); }
   void fillRoundRect(int16_t x, int16_t y, int16_t width, int16_t height, int16_t radius, uint16_t color) override { record("fillRoundRect", x, y, width, height, radius, color); }
   void drawRoundRect(int16_t x, int16_t y, int16_t width, int16_t height, int16_t radius, uint16_t color) override { record("drawRoundRect", x, y, width, height, radius, color); }
+  void drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1, uint16_t color) override { record("drawLine", x0, y0, x1, y1, color); }
   void setTextWrap(bool enabled) override { record("setTextWrap", enabled); }
   void setTextColor(uint16_t color) override { record("setTextColor", color); }
   void setTextSize(uint8_t size) override { record("setTextSize", static_cast<unsigned int>(size)); }

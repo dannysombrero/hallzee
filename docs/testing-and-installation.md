@@ -80,6 +80,11 @@ is also available from that workflow run’s **Artifacts** section.
 
 Mac testing using the Universal desktop client now fully supports physical Bluetooth LE discovery and data transfer to the ESP32 terminal. A Windows PC is only needed to test Windows-specific packaging or installation behaviors.
 
+For the native ILI9341 UI, Mac testing is sufficient to inspect the 320×240
+landscape rendering and physical-key instructions. A Windows PC is not
+required; Windows-specific BLE adapter and packaging behavior remain
+unverified by the display tests.
+
 For this pairing/status change, Mac testing is sufficient to validate the
 shared protocol and macOS BLE path, but it is not sufficient to verify the
 Windows BLE adapter. A Windows PC is required to verify the Windows-specific
@@ -172,15 +177,18 @@ Pass `-Port COM5` when more than one serial device is attached. CI performs a
 compile-only check without flashing.
 
 The default profile is for the original ST7735 160×128 display. To test the
-240×320 red ILI9341 module, select the alternate profile:
+240×320 red ILI9341 module in horizontal landscape mode, select the alternate
+profile:
 
 ```sh
 bash scripts/flash-terminal-macos.sh --display ili9341 /dev/cu.usbserial-XXXX
 ```
 
 On Windows, use `-Display ili9341 -Port COM5`. The ILI9341 profile rotates the
-panel to portrait and scales the shared UI; terminal behavior and keypad/BLE
-protocols are unchanged. Do not flash this profile to an ST7735 module.
+panel to landscape and renders its native 320×240 UI; terminal behavior and
+keypad/BLE protocols are unchanged. Use `--rotation 3` on macOS or `-Rotation 3` on
+Windows if the panel is mounted upside down. Rotations `0` and `2` are portrait
+orientations. Do not flash this profile to an ST7735 module.
 
 At power-on, the terminal shows the centered Hallzee logo briefly before the
 date/time setup screen.

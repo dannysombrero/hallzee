@@ -70,8 +70,9 @@ bash scripts/flash-terminal-macos.sh --display ili9341 /dev/cu.usbserial-XXXX
 ```
 
 The ILI9341 profile uses the same keypad, Bluetooth, storage, and terminal
-behavior. Its portrait UI is the shared logical layout scaled to fit the
-larger screen. On Windows, use
+behavior. Its landscape UI is rendered natively at 320×240 with a large,
+non-touch readout and physical-key legend. Use `--rotation 3` (macOS) or `-Rotation 3` (Windows) if the
+panel is mounted upside down. On Windows, use
 `powershell -ExecutionPolicy Bypass -File scripts/flash-terminal-windows.ps1 -Display ili9341 -Port COM5`.
 
 The supported firmware build uses the `esp32:esp32` Arduino core version
@@ -147,3 +148,9 @@ hardware-independent core before publishing the app.
 
 Use the Wokwi setup for keypad-flow checks and perform a physical-board test
 for TFT rendering, Bluetooth discovery/reconnection, and flash persistence.
+For the ILI9341 profile, verify the 320×240 landscape layout, large student-ID
+readout, occupied/available cards, and that no display element appears to be a
+touchscreen control. Mac testing is sufficient for rendering and keypad
+behavior; a Windows PC is not required for those checks. A Windows PC is only
+required for Windows-specific desktop packaging/BLE adapter behavior, which is
+not verified by the firmware rendering tests.

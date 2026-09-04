@@ -1,4 +1,5 @@
 # Third-party libraries required by the Wokwi Arduino build.
 Adafruit GFX Library
 Adafruit ST7735 and ST7789 Library
+Adafruit ILI9341
 Keypad

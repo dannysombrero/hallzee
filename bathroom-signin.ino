@@ -1,5 +1,11 @@
 #include <Adafruit_GFX.h>
+#if defined(HALLZEE_ILI9341)
+#include <Adafruit_ILI9341.h>
+#include "Ili9341DisplayPort.h"
+#else
 #include <Adafruit_ST7735.h>
+#include "St7735DisplayPort.h"
+#endif
 #include <SPI.h>
 #include <Keypad.h>
 #include "ArduinoKeypadPort.h"
@@ -10,7 +16,6 @@
 #include "Config.h"
 #include "KeypadController.h"
 #include "MonotonicClock.h"
-#include "St7735DisplayPort.h"
 #include "StudentIdPolicy.h"
 #include "TerminalIdentity.h"
 #include "TerminalSecurity.h"
@@ -25,10 +30,15 @@
 #error Bluetooth BLE is not enabled for this ESP32 board configuration.
 #endif
 
+#if defined(HALLZEE_ILI9341)
+Adafruit_ILI9341 tft(TFT_CS, TFT_DC, TFT_RST);
+Ili9341DisplayPort displayPort(tft);
+#else
 Adafruit_ST7735 tft =
   Adafruit_ST7735(TFT_CS, TFT_DC, TFT_MOSI, TFT_SCLK, TFT_RST);
-St7735DisplayPort st7735Display(tft);
-TerminalDisplay terminalDisplay(st7735Display);
+St7735DisplayPort displayPort(tft);
+#endif
+TerminalDisplay terminalDisplay(displayPort);
 
 char keys[KEYPAD_ROWS][KEYPAD_COLS] = {
   {'1', '2', '3'},
@@ -877,9 +887,13 @@ void setup() {
   keypadController.begin();
 
   // Initialize TFT
+#if defined(HALLZEE_ILI9341)
+  tft.begin();
+  tft.setRotation(0);
+#else
   tft.initR(INITR_BLACKTAB);
-
   tft.setRotation(1);
+#endif
 
   drawStartupLogo();
 
@@ -895,7 +909,11 @@ void setup() {
 // approximation: the same paired doorway shapes and bidirectional arrow,
 // centered in the complete 160 x 128 landscape viewport.
 void drawStartupLogo() {
+#if defined(HALLZEE_ILI9341)
+  tft.fillScreen(ILI9341_BLACK);
+#else
   tft.fillScreen(ST77XX_BLACK);
+#endif
 
   const uint16_t logoGreen = tft.color565(118, 220, 40);
   const uint16_t logoBlue = tft.color565(2, 132, 199);
@@ -903,6 +921,23 @@ void drawStartupLogo() {
 
   // Left and right doorway halves. Each half is split into two colors to
   // preserve the source logo's green-to-blue vertical gradient.
+#if defined(HALLZEE_ILI9341)
+  // The ILI9341 profile is portrait and uses the same logo geometry scaled
+  // into the 240x320 panel, with the 192px-tall artwork centered vertically.
+  tft.fillTriangle(75, 94, 102, 114, 102, 138, logoGreen);
+  tft.fillTriangle(75, 94, 75, 160, 102, 138, logoMid);
+  tft.fillTriangle(75, 160, 102, 182, 102, 226, logoBlue);
+  tft.fillTriangle(75, 160, 75, 226, 102, 182, logoBlue);
+  tft.fillTriangle(165, 94, 138, 114, 138, 138, logoGreen);
+  tft.fillTriangle(165, 94, 165, 160, 138, 138, logoMid);
+  tft.fillTriangle(165, 160, 138, 182, 138, 226, logoBlue);
+  tft.fillTriangle(165, 160, 165, 226, 138, 182, logoBlue);
+  tft.fillTriangle(84, 160, 104, 136, 104, 151, logoGreen);
+  tft.fillTriangle(84, 160, 104, 184, 104, 169, logoGreen);
+  tft.fillRect(104, 151, 33, 18, logoMid);
+  tft.fillTriangle(156, 160, 136, 136, 136, 151, logoBlue);
+  tft.fillTriangle(156, 160, 136, 184, 136, 169, logoBlue);
+#else
   tft.fillTriangle(50, 20, 68, 33, 68, 49, logoGreen);
   tft.fillTriangle(50, 20, 50, 64, 68, 49, logoMid);
   tft.fillTriangle(50, 64, 68, 79, 68, 108, logoBlue);
@@ -919,6 +954,7 @@ void drawStartupLogo() {
   tft.fillRect(69, 58, 22, 12, logoMid);
   tft.fillTriangle(104, 64, 91, 48, 91, 58, logoBlue);
   tft.fillTriangle(104, 64, 91, 80, 91, 70, logoBlue);
+#endif
 }
 
 // ======================================================

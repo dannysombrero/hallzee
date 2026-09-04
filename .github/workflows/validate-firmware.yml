@@ -31,10 +31,12 @@ jobs:
           arduino-cli core update-index
           arduino-cli core install esp32:esp32@3.3.11
       - name: Install firmware libraries
-        run: arduino-cli lib install "Adafruit GFX Library" "Adafruit ST7735 and ST7789 Library" "Keypad"
-      - name: Compile firmware
+        run: arduino-cli lib install "Adafruit GFX Library" "Adafruit ST7735 and ST7789 Library" "Adafruit ILI9341" "Keypad"
+      - name: Compile ST7735 firmware
         run: |
           mkdir -p "$RUNNER_TEMP/hallzee"
           cp ./*.cpp ./*.h "$RUNNER_TEMP/hallzee/"
           cp bathroom-signin.ino "$RUNNER_TEMP/hallzee/hallzee.ino"
           arduino-cli compile --fqbn esp32:esp32:esp32 "$RUNNER_TEMP/hallzee"
+      - name: Compile ILI9341 firmware
+        run: arduino-cli compile --fqbn esp32:esp32:esp32 "$RUNNER_TEMP/hallzee" --build-property compiler.cpp.extra_flags=-DHALLZEE_ILI9341

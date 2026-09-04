@@ -166,20 +166,23 @@ The script downloads the .NET 8 build tools, then creates the Windows app in
 the downloaded project’s `artifacts\BathroomSync-Windows` folder. Open that
 folder and run `HallzeeSync.Universal.exe`.
 
-### Easier: download the latest ready-to-run Windows app
+### Download the latest ready-to-run Windows app
 
-Once the **Publish Latest Windows Sync App** GitHub Action has run, download
-the latest ready-to-run ZIP here:
+The latest ready-to-run Windows build is published as an artifact by the
+**Build Universal Sync Client** GitHub Action:
 
-```text
-https://github.com/dannysombrero/hallzee-mono/releases/download/windows-client-latest/BathroomSync-Windows.zip
-```
+1. Open the repository’s **Actions** tab and choose **Build Universal Sync
+   Client**.
+2. Open the latest successful run, or choose **Run workflow** and wait for it
+   to finish.
+3. Download the `HallzeeSync-Universal-Windows` artifact.
+4. Extract the entire ZIP to a normal folder, then run
+   `HallzeeSync.Universal.exe`.
 
-Extract the entire ZIP to a normal folder, then run `HallzeeSync.Universal.exe`.
-No software installation or local build is needed. If the link has not been
-published yet, open the repository’s **Actions** tab, run **Publish Latest
-Windows Sync App**, then refresh this link when the run completes. The same ZIP
-is also available from that workflow run’s **Artifacts** section.
+No .NET installation or local build is needed. The artifact is a self-contained
+Windows x64 app. The workflow validates a macOS build but does not currently
+publish a ready-to-run Mac package. See [Getting started: normal users](Getting-Started-Users.md)
+for the user-facing pairing and operation steps.
 
 > The Windows build and physical Bluetooth sync require a Windows PC. The Mac
 > command flashes the terminal, but does not verify Windows Bluetooth discovery.

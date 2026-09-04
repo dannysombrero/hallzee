@@ -27,7 +27,7 @@ Before continuing, make sure:
 No Arduino software needs to be installed first; this script installs what it needs.
 "@
 
-if (-not $Port) {
+if (-not $Port -and -not $CompileOnly) {
   $ports = [System.IO.Ports.SerialPort]::GetPortNames() | Sort-Object
   if ($ports.Count -eq 1) {
     $Port = $ports[0]

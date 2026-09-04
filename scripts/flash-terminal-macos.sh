@@ -68,7 +68,7 @@ Before continuing, make sure:
 No Arduino software needs to be installed first; this script installs what it needs.
 REQUIREMENTS
 
-if [[ -z "$port" ]]; then
+if [[ -z "$port" && "$compile_only" == false ]]; then
   candidates=()
   while IFS= read -r candidate; do candidates+=("$candidate"); done < <(find /dev -maxdepth 1 -type c \( -name 'cu.usb*' -o -name 'cu.wch*' -o -name 'cu.SLAB*' \) 2>/dev/null | sort)
   if [[ ${#candidates[@]} -eq 1 ]]; then

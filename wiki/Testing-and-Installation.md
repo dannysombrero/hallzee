@@ -11,6 +11,76 @@ unzip it in your Downloads folder. Plug the ESP32 terminal into your computer
 before using the Mac command below. The commands download the required build
 tools automatically.
 
+## Hardware you should have
+
+The current terminal build assumes this exact hardware profile:
+
+- 1 original ESP32 DevKit V1/WROOM-32 development board with BLE
+- 1 3×4 membrane matrix keypad with seven pins labelled `R1`–`R4` and
+  `C1`–`C3`
+- 1 SPI TFT module, either the default ST7735 160×128 module or the red
+  ILI9341 240×320 module
+- Dupont jumper wires and a USB data cable
+- A USB power source or computer USB port
+
+The firmware does not support an ESP32-C3, ESP32-S2, or ESP32-S3 profile at
+this time. Confirm the board family before wiring a new batch. The TFT and
+keypad use 3.3 V ESP32 logic; do not feed 5 V into a signal pin.
+
+### Physical wiring
+
+Wire by the labels printed on the modules. The keypad has no VCC or GND wire:
+it is a passive switch matrix powered and scanned by the ESP32 GPIOs.
+
+| Part pin | Connect to ESP32 DevKit V1 | Notes |
+| --- | ---: | --- |
+| Keypad `R1` | GPIO 32 | Row 1 |
+| Keypad `R2` | GPIO 33 | Row 2 |
+| Keypad `R3` | GPIO 25 | Row 3 |
+| Keypad `R4` | GPIO 26 | Row 4 |
+| Keypad `C1` | GPIO 27 | Column 1 |
+| Keypad `C2` | GPIO 14 | Column 2 |
+| Keypad `C3` | GPIO 13 | Column 3 |
+| TFT `VCC` / `VIN` | 3V3 | Use 3.3 V for this project |
+| TFT `GND` | GND | Common ground is required |
+| TFT `CS` | GPIO 5 | Chip select |
+| TFT `RST` / `RESET` | GPIO 22 | Hardware reset |
+| TFT `DC` / `A0` | GPIO 21 | Data/command |
+| TFT `MOSI` / `SDA` | GPIO 23 | SPI data into display |
+| TFT `SCLK` / `SCK` / `CLK` | GPIO 18 | SPI clock |
+| TFT `LED` / `BL` | 3V3, if the module requires it | Backlight only; follow the module's label |
+| TFT `MISO` / `SDO` | Leave unconnected | The firmware does not read display data |
+
+The ST7735 and ILI9341 use the same ESP32 connections. Do not connect the
+display's `MISO` just because it is present, and do not connect keypad wires to
+the TFT header. Keep SPI and keypad wires short while bringing up a new
+terminal; the ILI9341 profile is limited to a 20 MHz SPI clock for
+jumper-wired modules.
+
+Before applying power, check each wire end-to-end against the table, check for
+adjacent-pin bridges, and make sure the TFT orientation does not conceal a
+mislabelled header. A reversed TFT power connection can damage the module or
+ESP32.
+
+### Hardware bring-up checklist
+
+1. Leave the TFT and keypad disconnected and connect the ESP32 to the computer
+   with a known-good USB **data** cable. Confirm that a serial port appears.
+2. Disconnect USB power, wire the keypad, and then wire the TFT using the table.
+3. Select the firmware profile that matches the display: `st7735` for the
+   160×128 module, `ili9341` for the red 240×320 module.
+4. Flash the firmware using the Mac or Windows instructions below.
+5. On first boot, set the clock on the keypad. The display prompts for month,
+   day, year, hour, minute, and AM/PM; press `#` after each value.
+6. Press a test ID of at least four digits followed by `#`. Enter the same ID
+   and `#` again to check it back in. Confirm the display returns to available.
+7. If the display is blank but the serial port works, disconnect power before
+   checking `VCC`, `GND`, `CS`, `RST`, `DC`, `MOSI`, and `SCLK`.
+
+Record the terminal's advertised `Hallzee-XXXX` name and physical board label
+with the batch inventory. The terminal identity is generated and persisted by
+the firmware; it is not derived from the USB port name.
+
 ### Flash the terminal from a Mac
 
 Open **Terminal**, paste this one command, and press Return:
@@ -24,6 +94,18 @@ then builds and flashes the terminal. It automatically selects the ESP32 when
 it is the only USB serial device connected. If more than one is connected,
 unplug the others and run the same command again.
 
+For the red 240×320 ILI9341 module, run this instead:
+
+```sh
+bash "$HOME/Downloads/hallzee-mono-main/scripts/flash-terminal-macos.sh" --display ili9341
+```
+
+If the display is mounted upside down, add `--rotation 3`. Use the default
+command for ST7735; do not flash the ILI9341 profile to an ST7735 module. If
+macOS cannot identify the port automatically, list ports with `ls /dev/cu.*`,
+then pass the matching path as the final argument, for example
+`/dev/cu.usbserial-XXXX`.
+
 ### Flash the terminal from Windows
 
 After downloading and unzipping the project, plug in the ESP32, open
@@ -36,6 +118,41 @@ powershell -ExecutionPolicy Bypass -File "$HOME\Downloads\hallzee-mono-main\scri
 The same requirements apply: use a USB **data** cable, connect only one USB
 serial device, and expect the script to replace the firmware on that ESP32.
 It installs the Arduino tools, board support, and libraries automatically.
+
+For the red 240×320 ILI9341 module:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File "$HOME\Downloads\hallzee-mono-main\scripts\flash-terminal-windows.ps1" -Display ili9341
+```
+
+If more than one serial device is listed, open **Device Manager → Ports
+(COM & LPT)**, identify the ESP32's `COM` number, and supply it explicitly:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File "$HOME\Downloads\hallzee-mono-main\scripts\flash-terminal-windows.ps1" -Port COM5
+```
+
+Combine `-Port COM5 -Display ili9341` when needed. Add `-Rotation 3` when the
+ILI9341 is mounted upside down. Windows may install a USB-UART driver after
+the board is first connected; unplug/reconnect the board and rerun the same
+command after that driver installation finishes. The flasher uses the
+original ESP32 target and installs Arduino CLI, ESP32 core `3.3.11`, and all
+four libraries from `libraries.txt` automatically.
+
+### Flash without changing the board
+
+To verify a clean-machine toolchain or a pull request without uploading,
+append the compile-only option:
+
+```sh
+bash scripts/flash-terminal-macos.sh --compile-only
+```
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/flash-terminal-windows.ps1 -CompileOnly
+```
+
+This still needs no connected terminal and does not erase or replace firmware.
 
 ### Build the Windows desktop app from a Windows PC
 
@@ -163,9 +280,9 @@ Encrypted writes are acknowledged and allow up to 60 seconds for Windows pairing
 ### Firmware and display behavior
 
 The firmware is pinned to ESP32 Arduino core `3.3.11` and uses the Adafruit GFX,
-Adafruit ST7735/ST7789, Adafruit ILI9341, and Keypad libraries. From the repository root, compile
-and flash with the platform script (the script stages the Arduino sketch under
-the required matching folder and `.ino` name):
+Adafruit ST7735/ST7789, Adafruit ILI9341, and Keypad libraries. From the
+repository root, compile and flash with the platform script (the script stages
+the Arduino sketch under the required matching folder and `.ino` name):
 
 ```sh
 bash scripts/flash-terminal-macos.sh
@@ -176,26 +293,26 @@ On Windows, use
 Pass `-Port COM5` when more than one serial device is attached. CI performs a
 compile-only check without flashing.
 
+The default profile is for the original ST7735 160×128 display. To test the
+240×320 red ILI9341 module in horizontal landscape mode, select the alternate
+profile:
+
+```sh
+bash scripts/flash-terminal-macos.sh --display ili9341 /dev/cu.usbserial-XXXX
+```
+
+On Windows, use `-Display ili9341 -Port COM5`. The ILI9341 profile rotates the
+panel to landscape and renders its native 320×240 UI; terminal behavior and
+keypad/BLE protocols are unchanged. Use `--rotation 3` on macOS or `-Rotation 3` on
+Windows if the panel is mounted upside down. Rotations `0` and `2` are portrait
+orientations. Do not flash this profile to an ST7735 module.
+
 At power-on, the terminal shows the centered Hallzee logo briefly before the
 date/time setup screen. The ILI9341 profile renders that setup screen at the
 full native 320×240 size, including its keypad legend and input readout.
 Its display bus is intentionally limited to 20 MHz to reduce corruption on
 long or loosely connected SPI wiring. The native UI also uses embedded
 FreeSans bitmap fonts rather than the built-in block font.
-
-The default firmware profile targets the original ST7735 160×128 display. For
-the 240×320 red module, select the ILI9341 profile:
-
-```sh
-bash scripts/flash-terminal-macos.sh --display ili9341 /dev/cu.usbserial-XXXX
-```
-
-On Windows, pass `-Display ili9341 -Port COM5` to the PowerShell flasher. This
-profile uses the Adafruit ILI9341 driver, rotates the panel to landscape, and
-renders its native 320×240 UI. Keypad behavior, Bluetooth, storage, and
-terminal protocol behavior are shared. Use `--rotation 3` on macOS or
-`-Rotation 3` on Windows if the panel is mounted upside down. Do not flash it
-to an ST7735 module.
 
 For keypad and display-flow checks, open `display-emulator.html` in a browser
 or use the Wokwi setup described in [WOKWI.md](../WOKWI.md).

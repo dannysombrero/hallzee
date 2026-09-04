@@ -14,6 +14,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
   readonly RosterService rosterService;
   readonly SyncSession syncSession;
   readonly TerminalSession? terminalSession;
+  readonly ITerminalCredentialStore? ownerCredentialStore;
 
   string activeView = "dashboard";
   string activeModal = "None";
@@ -37,7 +38,8 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
   public MainViewModel(
     ITerminalConnection connection,
     string? appDataPath = null,
-    bool isPreviewMode = true
+    bool isPreviewMode = true,
+    ITerminalCredentialStore? credentialStore = null
   ) {
     this.connection = connection;
     var appData = appDataPath ?? Path.Combine(
@@ -55,9 +57,10 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     rosterService = new RosterService(rosterRepository);
     syncSession = new SyncSession(tripRepository);
     if (!isPreviewMode) {
+      ownerCredentialStore = credentialStore ?? new InMemoryTerminalCredentialStore();
       terminalSession = new TerminalSession(
         connection,
-        new InMemoryTerminalCredentialStore(),
+        ownerCredentialStore,
         profileRepository.GetOrCreateClientId()
       );
     }
@@ -66,6 +69,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     var allProfiles = profileRepository.GetAllProfiles();
     foreach (var p in allProfiles) Profiles.Add(p);
     activeProfile = profileRepository.GetActiveProfile() ?? Profiles.FirstOrDefault() ?? new ClassroomProfile("default", "Room 204 • Chemistry AP");
+    RestoreReconnectTarget();
 
     // Initialize child viewmodels
     ActivePass = new ActivePassViewModel();
@@ -75,6 +79,11 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     TripsModal = new TripsViewModel(tripRepository, rosterService);
     RosterModal = new RosterViewModel(rosterService);
     PolicyModal = new PolicyViewModel(profileRepository);
+    PolicyModal.PropertyChanged += (s, e) => {
+      if (e.PropertyName == nameof(PolicyModal.DurationWarningMinutes)) {
+        Dashboard.ThresholdMinutes = PolicyModal.DurationWarningMinutes;
+      }
+    };
     TerminalSettingsModal = new TerminalSettingsViewModel(profileRepository, connection, appData, () => OnPropertyChanged(nameof(HeaderLocationText)));
     FindTerminalsModal = new FindTerminalsViewModel(connection);
     ManualCheckInModal = new ManualCheckInViewModel(rosterService);
@@ -141,6 +150,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
         OnPropertyChanged(nameof(IsPoliciesModalVisible));
         OnPropertyChanged(nameof(IsTerminalSettingsModalVisible));
         OnPropertyChanged(nameof(IsFindTerminalsModalVisible));
+        OnPropertyChanged(nameof(IsReconnectPromptVisible));
       }
     }
   }
@@ -168,6 +178,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
         OnPropertyChanged(nameof(TopStatusBadgeForeground));
         OnPropertyChanged(nameof(TerminalAvatarBackground));
         OnPropertyChanged(nameof(ConnectedTerminalName));
+        OnPropertyChanged(nameof(IsReconnectPromptVisible));
       }
     }
   }
@@ -226,6 +237,27 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     IsReconnecting ? "#F59E0B" : !IsConnected ? "#94A3B8" : "#10B981";
 
   public bool IsReconnecting => reconnectInProgress;
+
+  public bool HasReconnectCandidate => lastAuthenticatedDevice != null && lastAuthenticatedTerminalId != null;
+
+  public string ReconnectCandidateName => lastAuthenticatedDevice?.Name ?? "";
+
+  public bool IsReconnectPromptVisible => HasReconnectCandidate && !IsConnected && !IsReconnecting && ActiveModal == "None";
+
+  public async Task ReconnectCandidateAsync() {
+    if (!HasReconnectCandidate) return;
+    await ReconnectLastTerminalAsync(lastAuthenticatedDevice!, lastAuthenticatedTerminalId!, CancellationToken.None);
+    OnPropertyChanged(nameof(IsReconnectPromptVisible));
+  }
+
+  public void DismissReconnectPrompt() {
+    lastAuthenticatedDevice = null;
+    lastAuthenticatedTerminalId = null;
+    CancelAutomaticReconnect();
+    OnPropertyChanged(nameof(HasReconnectCandidate));
+    OnPropertyChanged(nameof(ReconnectCandidateName));
+    OnPropertyChanged(nameof(IsReconnectPromptVisible));
+  }
 
   public string LastSyncTimeText {
     get => lastSyncTimeText;
@@ -383,6 +415,9 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     } catch (TerminalInUseException exception) {
       FindTerminalsModal.SetStatus($"{exception.Message} Scan Again to refresh its status.");
       IsConnected = false;
+    } catch (TerminalBondRepairRequiredException exception) {
+      FindTerminalsModal.SetStatus($"{exception.Message} Ownership was retained; repair Bluetooth and reconnect.");
+      IsConnected = false;
     } catch (Exception exception) {
       FindTerminalsModal.SetStatus($"Secure connection failed: {exception.Message}");
       IsConnected = false;
@@ -492,8 +527,30 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
   }
 
   public void RefreshActiveProfileData() {
-    Dashboard.Refresh(ActiveProfile.ProfileId);
     PolicyModal.Refresh(ActiveProfile.ProfileId);
+    Dashboard.ThresholdMinutes = PolicyModal.DurationWarningMinutes;
+    Dashboard.Refresh(ActiveProfile.ProfileId);
+  }
+
+  void RestoreReconnectTarget() {
+    if (terminalSession == null || ownerCredentialStore == null) return;
+    var terminalId = profileRepository.GetAssignedTerminalId(ActiveProfile.ProfileId);
+    if (string.IsNullOrWhiteSpace(terminalId) ||
+        !ownerCredentialStore.TryGetOwnerKey(terminalId, out var ownerKey)) return;
+    Array.Clear(ownerKey);
+
+    var saved = profileRepository.GetTerminal(terminalId);
+    var transportId = saved?.TransportId ?? saved?.BleAddress;
+    if (string.IsNullOrWhiteSpace(transportId)) return;
+    lastAuthenticatedTerminalId = terminalId;
+    lastAuthenticatedDevice = new TerminalDevice(
+      transportId,
+      string.IsNullOrWhiteSpace(saved?.CustomName) ? $"Hallzee ({terminalId})" : saved!.CustomName,
+      true,
+      false);
+    connectedTerminalName = lastAuthenticatedDevice.Name;
+    OnPropertyChanged(nameof(HasReconnectCandidate));
+    OnPropertyChanged(nameof(ReconnectCandidateName));
   }
 
   void HandleTextReceived(object? sender, string text) {
@@ -625,6 +682,15 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
           FindTerminalsModal.SetStatus(
             $"Connection lost. Reconnecting to {device.Name} (attempt {attempt})…");
 
+          var candidates = await connection.DiscoverAsync();
+          var suffix = terminalId[^4..];
+          var candidate = candidates.FirstOrDefault(item =>
+              string.Equals(item.Id, device.Id, StringComparison.OrdinalIgnoreCase))
+            ?? candidates.FirstOrDefault(item =>
+              item.Name.EndsWith(suffix, StringComparison.OrdinalIgnoreCase));
+          if (candidate == null) continue;
+          device = candidate;
+
           var identity = await terminalSession!.OpenAsync(
             device, terminalId, cancellationToken);
           if (!identity.IsClaimed) {
@@ -646,6 +712,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
           profileRepository.AssignTerminalToProfile(ActiveProfile.ProfileId, authenticated.TerminalId);
           connectedTerminalName = authenticated.CustomName;
           IsConnected = true;
+          OnPropertyChanged(nameof(IsReconnectPromptVisible));
           await SyncNowAsync();
           if (IsConnected) return;
         } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
@@ -657,6 +724,9 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
         } catch (TerminalCredentialMissingException) {
           FindTerminalsModal.SetStatus(
             "The last terminal is known, but this app has no owner credential. Connect again to pair it.");
+          return;
+        } catch (TerminalBondRepairRequiredException exception) {
+          FindTerminalsModal.SetStatus($"{exception.Message} Automatic reconnect is paused until Bluetooth is repaired.");
           return;
         } catch (TerminalIdentityMismatchException exception) {
           FindTerminalsModal.SetStatus(

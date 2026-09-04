@@ -137,8 +137,11 @@ displayed six-digit Bluetooth passkey in the Find Terminals dialog and choose
 Connect again. On Windows, the client supplies those digits directly to the
 authenticated pairing ceremony. On macOS, enter the same value if the operating
 system also presents a Bluetooth passkey prompt.
-The current test path stores the owner credential only in memory for the
-running app; restarting the app requires the planned OS-vault implementation.
+Production builds store the owner credential in the platform secure store:
+Windows PasswordVault and macOS Keychain. Preview builds and automated tests
+use an in-memory store. Durable credentials are now available for passkey-free
+reconnect after restarting the app or computer; BLE reconnect retry and startup
+reconnect UI remain in progress.
 On macOS, Connect & Sync waits until CoreBluetooth confirms that terminal
 notifications are enabled before sending any sync commands. If this readiness
 handshake does not complete within 15 seconds, the app reports a connection
@@ -148,6 +151,8 @@ operating-system passkey prompt to complete before reporting a write failure.
 On Windows, Connect & Sync records whether the terminal advertises with a Random
 or Public BLE address type and applies a 45-second connection/setup timeout per
 address type with automatic fallback before establishing GATT subscriptions.
+Owner reconnects retry transient device/service/notification failures up to
+three times with fresh GATT objects and do not repeat a failed passkey ceremony.
 Encrypted writes are acknowledged and allow up to 60 seconds for Windows pairing.
 
 ### Firmware and display behavior

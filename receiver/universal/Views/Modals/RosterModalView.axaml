@@ -96,7 +96,7 @@
                               
                               <!-- Action -->
                               <Button Grid.Column="4" Classes="danger" Click="OnDeleteStudentClick" Tag="{Binding StudentId}" HorizontalAlignment="Right" Margin="0,0,6,0" Width="36" Height="32" Padding="0" ToolTip.Tip="Remove student from roster">
-                                <PathIcon Data="{StaticResource IconTrash}" Width="13" Height="13" Foreground="#E11D48" />
+                                <Path Data="{StaticResource IconTrash}" Width="13" Height="13" Stretch="Uniform" Stroke="#E11D48" StrokeThickness="1.8" StrokeLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center" />
                               </Button>
                             </Grid>
                           </Border>
@@ -106,7 +106,7 @@
 
                     <!-- EMPTY STATE -->
                     <StackPanel IsVisible="{Binding RosterModal.HasNoStudents}" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8" Margin="32">
-                      <PathIcon Data="{StaticResource IconUsers}" Width="36" Height="36" Foreground="#CBD5E1" HorizontalAlignment="Center" />
+                      <Path Data="{StaticResource IconUsers}" Width="36" Height="36" Stretch="Uniform" Stroke="#CBD5E1" StrokeThickness="1.8" StrokeLineCap="Round" HorizontalAlignment="Center" />
                       <TextBlock Text="No students enrolled in this class yet" FontSize="14" FontWeight="Bold" Foreground="#475569" HorizontalAlignment="Center" />
                       <TextBlock Text="Click 'Import Roster (CSV)' above to upload your roster from a spreadsheet or SIS export." FontSize="12" Foreground="#94A3B8" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" MaxWidth="380" />
                     </StackPanel>

@@ -832,7 +832,334 @@ Windows row above has been run and recorded.
 
 ---
 
-## 16. Definition of Done
+## 16. Owner Reconnect Feature Plan
+
+### 16.1 Required user experience
+
+After one successful physical claim, the owning desktop must be able to reconnect
+without touching the terminal or entering the six-digit passkey. This applies
+after a radio drop, app restart, computer restart, terminal restart, sleep/wake,
+and temporary out-of-range condition.
+
+The normal owner flow is:
+
+1. Load the last assigned stable terminal ID and owner credential at startup.
+2. Scan for Hallzee advertisements without placing the terminal in pairing mode.
+3. Match candidates using the saved transport hint and advertised terminal
+   suffix, but trust neither value until `IDENTITY` is received.
+4. Open GATT, subscribe to notifications, send `HELLO,2,<client_id>`, and require
+   the expected stable terminal ID.
+5. If the terminal reports `CLAIMED`, send `AUTH` with the stored owner key.
+6. After `AUTH_OK`, sync time, active-pass state, settings, and trips normally.
+
+The UI should initially offer **Reconnect with Hallzee-<suffix>?** with
+**Reconnect** and **Choose another terminal** actions. An unexpected live
+disconnect may retry automatically in the background. App startup should ask
+before reconnecting unless a future explicit “always reconnect automatically”
+preference is added.
+
+Pairing mode and the six-digit passkey are used only for an unclaimed terminal
+or after a deliberate physical owner reset. A non-owner desktop may discover a
+claimed terminal but cannot authenticate, sync, rename, change settings, or
+replace ownership.
+
+### 16.2 Current gaps to remove
+
+- `MainViewModel` constructs `InMemoryTerminalCredentialStore` in production.
+  The owner key therefore disappears whenever the app exits.
+- `lastAuthenticatedDevice` and `lastAuthenticatedTerminalId` are memory-only.
+- reconnect reuses the old `TerminalDevice` transport ID instead of scanning
+  and refreshing the transport hint first;
+- Windows immediately retries the opposite address type after a failed open,
+  but does not perform a bounded GATT-ready retry for `Unavailable` or
+  `Unreachable` results;
+- discovery calls `DisconnectAsync`, so discovery and reconnect ownership need
+  one coordinator to prevent races;
+- the UI has no explicit startup “Reconnect with this device?” state;
+- an OS Bluetooth bond failure is not distinguished from a missing Hallzee owner
+  credential or an owner-authentication rejection.
+
+### 16.3 Package R1 — Durable owner credential stores
+
+Files:
+
+- `receiver/windows/BathroomSync.Core/TerminalCredentialStore.cs`
+- new platform implementations under `receiver/universal/Services/`
+- `receiver/universal/App.axaml.cs`
+- `receiver/universal/ViewModels/MainViewModel.cs`
+- credential-store unit tests under `receiver/universal.tests/`
+
+Tasks:
+
+1. Keep `ITerminalCredentialStore` in the platform-neutral core.
+2. Add `WindowsDpapiTerminalCredentialStore`. Store one encrypted 32-byte owner
+   key per normalized terminal ID under the Hallzee application-data directory.
+   Protect with Windows DPAPI `CurrentUser`; do not write plaintext keys to
+   SQLite, logs, exceptions, or filenames.
+3. Add `MacKeychainTerminalCredentialStore`. Use a generic-password Keychain
+   item with service `com.hallzee.desktop.owner`, account equal to the normalized
+   terminal ID, and value equal to the 32-byte owner key.
+4. Keep `InMemoryTerminalCredentialStore` only for preview mode and tests.
+5. Select the platform store in the composition root and inject it into
+   `TerminalSession`; do not let `MainViewModel` instantiate the in-memory store
+   for a real build.
+6. Make save replace an existing credential atomically. Make delete idempotent.
+   Return copies from reads and clear temporary byte arrays after use.
+7. If secure storage is unavailable, fail the claim before `CLAIM_COMMIT` and
+   send `CLAIM_ABORT`; never leave the terminal claimed without a durable desktop
+   credential.
+
+Tests:
+
+- save/read/delete and overwrite by normalized terminal ID;
+- app/service recreation can still read a saved credential;
+- corrupt or wrong-user ciphertext fails closed;
+- claim aborts when credential persistence fails;
+- no test log or exception contains the key.
+
+Exit criteria: close and reopen the app, then authenticate to the already
+claimed terminal without a passkey.
+
+### 16.4 Package R2 — Persisted reconnect target
+
+Files:
+
+- `receiver/windows/BathroomSync.Core/Storage/ProfileAndPolicySqliteRepository.cs`
+- `receiver/windows/BathroomSync.Core/Storage/DatabaseMigrator.cs`
+- repository tests in `receiver/windows/BathroomSync.Tests/`
+- `receiver/universal/ViewModels/MainViewModel.cs`
+
+Tasks:
+
+1. Use the existing `terminals`, `client_identity`, and
+   `profile_terminal_assignments` data as the reconnect registry. Add a migration
+   only if a required field is absent; do not create a second source of truth.
+2. Persist stable terminal ID, custom name, latest transport hint, last-seen UTC,
+   protocol version, claim status, and active-profile assignment only after
+   `AUTH_OK`.
+3. Add a repository query returning the active profile's assigned terminal plus
+   its transport hint. Return null when no assignment exists.
+4. On startup, expose a reconnect candidate only when both an assignment and a
+   secure owner credential exist.
+5. When a verified reconnect observes a new transport ID, update only the
+   transport hint. Never change the assigned stable terminal ID from discovery
+   data.
+6. Remove the assignment or mark it recovery-required when the user explicitly
+   forgets the terminal; do not do so for ordinary connection failures.
+
+Tests:
+
+- target survives repository recreation;
+- changed transport hint retains the same stable ID;
+- no credential means no owner-reconnect offer;
+- identity mismatch leaves assignment and credential unchanged but blocks sync.
+
+Exit criteria: app restart reconstructs the same reconnect target without using
+`lastAuthenticatedDevice` memory.
+
+### 16.5 Package R3 — Reconnect coordinator and state machine
+
+Files:
+
+- new `receiver/universal/Services/TerminalReconnectCoordinator.cs`
+- `receiver/windows/BathroomSync.Core/TerminalSession.cs`
+- `receiver/universal/ViewModels/MainViewModel.cs`
+- `receiver/universal/ViewModels/Modals/FindTerminalsViewModel.cs`
+- corresponding unit tests
+
+Define these states: `Idle`, `CandidateAvailable`, `Scanning`, `OpeningGatt`,
+`VerifyingIdentity`, `AuthenticatingOwner`, `Syncing`, `Connected`,
+`RetryWaiting`, `PairingRequired`, `RecoveryRequired`, and `Cancelled`.
+
+Tasks:
+
+1. Move retry ownership out of `MainViewModel` into one coordinator. It must use
+   one cancellation token and one semaphore so manual scan, automatic reconnect,
+   and disconnect cannot run concurrently.
+2. For every attempt, scan first. Prefer an advertisement matching the saved
+   transport hint; otherwise consider Hallzee advertisements whose suffix matches
+   the expected stable ID. Always verify the full ID through `IDENTITY`.
+3. Call `TerminalSession.OpenAsync(candidate, expectedTerminalId)` and then
+   `AuthenticateAsync()` with no passkey. `TerminalSession` retrieves the saved
+   owner key internally.
+4. Use bounded retries: 1, 2, 3, 5, 8, 13, then 15 seconds, with ±20% jitter.
+   Continue while the terminal is absent, Windows reports transient GATT status,
+   or the computer is waking. Reset the delay after any successful `AUTH_OK`.
+5. Stop immediately on identity mismatch, missing credential, invalid owner
+   proof, explicit user cancellation, or an unclaimed terminal. These require a
+   visible user decision rather than background retries.
+6. If the terminal reports `IN_USE`, keep the owner relationship but pause sync;
+   retry periodically or when the user presses Reconnect. Do not request pairing.
+7. After authentication, run time sync first, then active-pass retrieval, policy
+   settings, and trip synchronization through the authorized session.
+8. Do not clear credentials or terminal assignment on timeout, power loss,
+   unavailable GATT service, or notification-subscription failure.
+
+Tests:
+
+- reconnect after connection loss uses no passkey command;
+- app restart loads target and reaches `CandidateAvailable`;
+- stale transport hint is replaced after full-ID verification;
+- wrong terminal suffix/full ID never reaches `AUTH`;
+- retry schedule is deterministic with an injected clock/random source;
+- cancellation stops scan, pending delay, GATT open, and authentication;
+- only one connection attempt runs at a time;
+- transient failures retain owner credential and assignment.
+
+Exit criteria: the same mocked owner reconnects after drop and process restart;
+a different client ID/key cannot authenticate.
+
+### 16.6 Package R4 — Windows BLE reconnect hardening
+
+Files:
+
+- `receiver/windows/BluetoothConnectionManager.cs`
+- Windows-specific connection tests/fakes where WinRT can be abstracted
+
+Tasks:
+
+1. Never call custom pairing or `UnpairAsync` when no passkey was supplied.
+   Owner reconnect must reuse the existing Windows bond.
+2. Dispose the old characteristics, service, and `BluetoothLEDevice` before each
+   retry and detach every event handler exactly once.
+3. After advertisement discovery, open the reported address type first. Try the
+   alternate type only for an address/open failure, not after an identity or auth
+   failure.
+4. Retry uncached service discovery for transient `Unavailable` and
+   `Unreachable` responses for up to 15 seconds. Reopen the device between retry
+   groups because WinRT can retain a stale GATT object after disconnect.
+5. Request service access, rediscover TX/RX characteristics uncached, set required
+   protection, and rewrite the CCCD on every connection.
+6. Classify failures as `DeviceNotFound`, `GattNotReady`, `BondRepairRequired`,
+   `NotificationSubscribeFailed`, or `AccessDenied`; expose the category to the
+   reconnect coordinator without embedding platform text in business logic.
+7. `BondRepairRequired` must present a recovery action. It must not silently
+   unpair, request the claim passkey, or delete the Hallzee owner credential.
+
+Windows tests/manual checks:
+
+- disconnect/reconnect while terminal remains powered;
+- terminal power cycle;
+- Windows sleep/wake;
+- app and PC restart;
+- stale GATT cache and Random/Public address fallback;
+- deliberately remove the Windows bond and verify recovery is offered rather
+  than ownership being silently replaced.
+
+Exit criteria: the owner's Windows PC reconnects without pairing UI or passkey;
+the current “service unavailable / could not open Random device” scenario is
+recovered or classified as bond repair.
+
+### 16.7 Package R5 — macOS reconnect hardening
+
+Files:
+
+- `receiver/MacBLEAgent/Program.cs`
+- `receiver/universal/Services/MacAgentTerminalConnection.cs`
+- Mac adapter tests where feasible
+
+Tasks:
+
+1. Persist the last CoreBluetooth peripheral UUID as a hint, but fall back to a
+   fresh service-UUID scan when retrieval/open fails.
+2. Recreate notification subscription on every reconnect and do not report
+   connected until notifications are active.
+3. Map “Peer removed pairing information” to `BondRepairRequired`; do not delete
+   the Hallzee owner key.
+4. Forward disconnect reason and write/subscription completion exactly once.
+5. After a Mac bond repair, continue with normal owner `AUTH`; do not require the
+   terminal's claim mode unless the terminal itself reports `UNCLAIMED`.
+
+Exit criteria: Mac reconnect works after app restart, terminal restart, and
+CoreBluetooth identifier refresh without re-entering the claim passkey.
+
+### 16.8 Package R6 — Firmware owner availability
+
+Files:
+
+- `ArduinoBluetoothSerialPort.*`
+- `BluetoothSync.*`
+- `TerminalSecurity.*`
+- `bathroom-signin.ino`
+- native firmware tests
+
+Tasks:
+
+1. A claimed terminal must advertise and accept `HELLO`/`AUTH` whenever powered
+   and not occupied, regardless of claim-mode state or the clock-setup screen.
+2. Retain the owner record and BLE bond across disconnect and reboot.
+3. Clear bonds only during an explicit owner reset, an unclaimed pairing-mode
+   start, or a documented bond-repair operation. Never clear a claimed owner's
+   bond during ordinary boot or disconnect.
+4. Continue rejecting `CLAIM` while claimed. Reassignment requires the physical
+   10-second owner reset while unoccupied.
+5. Keep the 10-second unauthenticated-session timeout, but restart it for each
+   new GATT connection and allow immediate subsequent owner reconnect attempts.
+6. Ensure `AUTH_OK` always includes a valid non-empty custom/advertised name.
+
+Tests:
+
+- claimed reboot retains owner and accepts valid `AUTH` outside pairing mode;
+- disconnect does not clear owner or bond;
+- invalid owner cannot run application commands;
+- clock-setup UI does not block BLE authentication;
+- occupied terminal reports `IN_USE` without reopening claim mode;
+- physical owner reset clears only owner/bond state and preserves trips/settings.
+
+Exit criteria: a wall-mounted terminal can be power-cycled and remotely
+reconnected by its owner without keypad interaction.
+
+### 16.9 Package R7 — Reconnect UI
+
+Files:
+
+- `receiver/universal/MainWindow.axaml`
+- `receiver/universal/ViewModels/MainViewModel.cs`
+- `receiver/universal/Views/Modals/FindTerminalsModalView.axaml`
+- `receiver/universal/ViewModels/Modals/FindTerminalsViewModel.cs`
+- UI/ViewModel tests
+
+Tasks:
+
+1. Add a startup banner/card: **Previously connected terminal found**,
+   terminal name/suffix, **Reconnect**, and **Choose another terminal**.
+2. During live-drop retry, show `Reconnecting…`, attempt number, and **Cancel**.
+   Keep the rest of the app usable for viewing local history.
+3. Do not show the six-digit field for an owner reconnect.
+4. For a claimed non-owner terminal, show **Claimed by another computer** and
+   disable Connect. Explain that physical owner reset is required.
+5. For `BondRepairRequired`, show platform-specific repair instructions and a
+   **Repair Bluetooth connection** action. Make clear that Hallzee ownership is
+   retained.
+6. If the terminal is unclaimed, route to the existing physical pairing flow.
+7. On success, close the reconnect prompt, refresh the terminal name/status, and
+   start authorized synchronization.
+
+Exit criteria: a teacher can recover from an ordinary disconnect with one click
+and no terminal interaction; routine automatic retries require no click.
+
+### 16.10 Implementation order and review boundaries
+
+Implement in this order: R1, R2, R3, R4 and R5 in parallel, R6, then R7. Each
+package should be a reviewable commit with passing tests. Do not enable the
+startup reconnect prompt until R1–R3 are complete. Do not call Windows reconnect
+verified until R4's physical matrix passes.
+
+Before handoff, run:
+
+    make -C test test
+    dotnet test receiver/windows/BathroomSync.Tests/BathroomSync.Tests.csproj
+    dotnet test receiver/universal.tests/BathroomSync.Universal.Tests.csproj
+    dotnet build receiver/MacBLEAgent/BathroomSync.MacBLEAgent.csproj
+
+Mac testing is sufficient for the platform-neutral coordinator and macOS path.
+A Windows PC is required to validate WinRT device reopening, uncached GATT
+rediscovery, CCCD resubscription, Random/Public address handling, DPAPI, and bond
+repair. Windows behavior remains unverified until those checks are recorded.
+
+---
+
+## 17. Definition of Done
 
 The feature is complete only when all statements are true:
 

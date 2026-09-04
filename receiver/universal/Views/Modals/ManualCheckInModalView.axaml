@@ -56,7 +56,7 @@
           <Button Grid.Column="1" Classes="secondary" Content="Cancel" Click="OnCancelClick" Padding="14,8" />
           <Button Grid.Column="2" Classes="hallzee-pill-btn" Click="OnSubmitClick" IsEnabled="{Binding ManualCheckInModal.CanSubmit}" Padding="16,8">
             <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-              <PathIcon Data="{StaticResource IconUserCheck}" Width="14" Height="14" Foreground="White" VerticalAlignment="Center" />
+              <Path Data="{StaticResource IconUserCheck}" Width="14" Height="14" Stretch="Uniform" Stroke="White" StrokeThickness="2" StrokeLineCap="Round" StrokeJoin="Round" VerticalAlignment="Center" />
               <TextBlock Text="Check In Student" FontSize="13" FontWeight="Bold" VerticalAlignment="Center" />
             </StackPanel>
           </Button>

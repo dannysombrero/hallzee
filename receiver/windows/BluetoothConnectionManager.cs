@@ -96,7 +96,7 @@ sealed class BluetoothConnectionManager : ITerminalConnection, ITerminalPairingP
       Exception? firstException = null;
       try {
         using var cts = new CancellationTokenSource(HandshakeTimeout);
-        await AttemptConnectAsync(address, primaryType, cts.Token);
+        await AttemptConnectWithRetriesAsync(address, primaryType, cts.Token);
       } catch (Exception ex) {
         firstException = ex;
         await CleanupFailedConnectionAsync();
@@ -105,7 +105,7 @@ sealed class BluetoothConnectionManager : ITerminalConnection, ITerminalPairingP
       if (bluetoothDevice is null && firstException is not null) {
         try {
           using var cts = new CancellationTokenSource(HandshakeTimeout);
-          await AttemptConnectAsync(address, fallbackType, cts.Token);
+          await AttemptConnectWithRetriesAsync(address, fallbackType, cts.Token);
         } catch (Exception ex) {
           await CleanupFailedConnectionAsync();
           throw new InvalidOperationException(
@@ -127,6 +127,27 @@ sealed class BluetoothConnectionManager : ITerminalConnection, ITerminalPairingP
     } finally {
       isConnecting = false;
     }
+  }
+
+  async Task AttemptConnectWithRetriesAsync(
+    ulong address,
+    BluetoothAddressType addressType,
+    CancellationToken cancellationToken) {
+    Exception? lastException = null;
+    for (var attempt = 1; attempt <= 3; attempt++) {
+      try {
+        await AttemptConnectAsync(address, addressType, cancellationToken);
+        return;
+      } catch (Exception exception) {
+        lastException = exception;
+        await CleanupFailedConnectionAsync();
+        // Never repeat an OS pairing ceremony automatically. The caller must
+        // decide whether to retry a failed passkey operation.
+        if (pairingPasskey is not null || attempt == 3) throw;
+        await Task.Delay(TimeSpan.FromMilliseconds(500 * attempt), cancellationToken);
+      }
+    }
+    throw lastException ?? new InvalidOperationException("Windows could not connect to Hallzee.");
   }
 
   async Task AttemptConnectAsync(ulong address, BluetoothAddressType addressType, CancellationToken cancellationToken) {

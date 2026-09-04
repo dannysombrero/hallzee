@@ -240,7 +240,10 @@ void BluetoothSync::processAuthenticationCommand(const String &command) {
         serial.print("AUTH_OK,2,");
         serial.print(identity->terminalId());
         serial.print(",");
-        serial.println(identity->customName());
+        const String customName = identity->customName().length() > 0
+          ? identity->customName()
+          : identity->advertisedName();
+        serial.println(customName);
       }
     } else if (!security->acceptAuth(clientId, proof, handshakeNonce)) {
       serial.println(security->hasOwner() ? "ERROR,AUTH_FAILED_AUTH" : "ERROR,PAIRING_MODE_REQUIRED");
@@ -250,7 +253,10 @@ void BluetoothSync::processAuthenticationCommand(const String &command) {
       serial.print("AUTH_OK,2,");
       serial.print(identity->terminalId());
       serial.print(",");
-      serial.println(identity->customName());
+      const String customName = identity->customName().length() > 0
+        ? identity->customName()
+        : identity->advertisedName();
+      serial.println(customName);
     }
     return;
   }

@@ -17,3 +17,8 @@ public interface ITerminalConnection : IDisposable {
 public interface ITerminalPairingPasskeySink {
   void SetPairingPasskey(string? pairingPasskey);
 }
+
+public sealed class TerminalBondRepairRequiredException : InvalidOperationException {
+  public TerminalBondRepairRequiredException(string message)
+    : base("The operating system removed the Bluetooth bond. Repair the Bluetooth connection, then reconnect. " + message) { }
+}

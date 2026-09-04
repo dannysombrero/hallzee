@@ -74,6 +74,12 @@ public partial class PoliciesModalView : UserControl {
     }
   }
 
+  void OnCancelPeriodClick(object? sender, RoutedEventArgs e) {
+    if (sender is Button btn && btn.Tag is BellPeriodItemViewModel period) {
+      period.CancelEdit();
+    }
+  }
+
   void OnRemovePeriodClick(object? sender, RoutedEventArgs e) {
     if (sender is Button btn && DataContext is MainViewModel vm) {
       if (btn.Tag is BellPeriodItemViewModel periodItem) {

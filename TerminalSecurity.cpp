@@ -145,7 +145,6 @@ bool TerminalSecurity::commitClaim(
   }
 
   if (!persistOwner(pendingClientId, pendingOwnerKey)) {
-    claimCommitFailure = "STORAGE";
     clearPendingClaim();
     return false;
   }
@@ -401,18 +400,27 @@ bool TerminalSecurity::persistOwner(const String &clientId, const uint8_t *key) 
   // separate namespaces and are unaffected.
   // clear() may report false when the namespace is already empty. That is
   // harmless; the write results below are the authoritative check.
-  preferences.clear();
-  const size_t clientBytes = preferences.putString(OWNER_CLIENT_KEY, clientId);
+  Preferences ownerStorage;
+  if (!ownerStorage.begin(OWNER_NAMESPACE, false)) {
+    claimCommitFailure = "STORAGE_OPEN";
+    return false;
+  }
+
+  ownerStorage.clear();
+  const size_t clientBytes = ownerStorage.putString(OWNER_CLIENT_KEY, clientId);
   if (clientBytes == 0) {
     claimCommitFailure = "STORAGE_CLIENT";
-    preferences.clear();
+    ownerStorage.clear();
+    ownerStorage.end();
     return false;
   }
-  const size_t keyBytes = preferences.putBytes(OWNER_KEY_KEY, key, OWNER_KEY_BYTES);
+  const size_t keyBytes = ownerStorage.putBytes(OWNER_KEY_KEY, key, OWNER_KEY_BYTES);
   if (keyBytes != OWNER_KEY_BYTES) {
     claimCommitFailure = "STORAGE_KEY";
-    preferences.clear();
+    ownerStorage.clear();
+    ownerStorage.end();
     return false;
   }
+  ownerStorage.end();
   return true;
 }

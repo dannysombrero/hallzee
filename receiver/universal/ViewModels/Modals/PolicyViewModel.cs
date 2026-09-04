@@ -251,6 +251,13 @@ public sealed class BellPeriodItemViewModel : INotifyPropertyChanged {
     onSaved?.Invoke();
   }
 
+  public void CancelEdit() {
+    EditName = PeriodName;
+    EditStartTime = StartTime;
+    EditEndTime = EndTime;
+    IsEditing = false;
+  }
+
   public BellSchedulePeriod ToModel() => new(
     ScheduleId: scheduleId,
     ProfileId: profileId,

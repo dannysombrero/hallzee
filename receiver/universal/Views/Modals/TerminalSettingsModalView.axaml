@@ -22,13 +22,13 @@
           <StackPanel Orientation="Horizontal" Spacing="4">
             <Button Classes="tab-btn" Click="OnProfileTabClick" Background="{Binding TerminalSettingsModal.ProfileTabBackground}" Foreground="{Binding TerminalSettingsModal.ProfileTabForeground}" CornerRadius="10" Padding="14,6">
               <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                <PathIcon Data="{StaticResource IconUsers}" Width="14" Height="14" Foreground="{Binding TerminalSettingsModal.ProfileTabForeground}" VerticalAlignment="Center" />
+                <Path Data="{StaticResource IconUsers}" Width="14" Height="14" Stretch="Uniform" Stroke="{Binding TerminalSettingsModal.ProfileTabForeground}" StrokeThickness="2" StrokeLineCap="Round" VerticalAlignment="Center" />
                 <TextBlock Text="Profile" FontSize="13" FontWeight="Bold" VerticalAlignment="Center" />
               </StackPanel>
             </Button>
             <Button Classes="tab-btn" Click="OnDeviceTabClick" Background="{Binding TerminalSettingsModal.DeviceTabBackground}" Foreground="{Binding TerminalSettingsModal.DeviceTabForeground}" CornerRadius="10" Padding="14,6">
               <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                <PathIcon Data="{StaticResource IconRadio}" Width="14" Height="14" Foreground="{Binding TerminalSettingsModal.DeviceTabForeground}" VerticalAlignment="Center" />
+                <Path Data="{StaticResource IconRadio}" Width="14" Height="14" Stretch="Uniform" Stroke="{Binding TerminalSettingsModal.DeviceTabForeground}" StrokeThickness="2" StrokeLineCap="Round" VerticalAlignment="Center" />
                 <TextBlock Text="Device" FontSize="13" FontWeight="Bold" VerticalAlignment="Center" />
               </StackPanel>
             </Button>
@@ -72,7 +72,7 @@
           <!-- HEADER PREVIEW CARD -->
           <Border Background="#F0F9FF" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="16" Padding="14">
             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" VerticalAlignment="Center">
-              <PathIcon Data="{StaticResource IconShieldCheck}" Width="16" Height="16" Foreground="#0284C7" VerticalAlignment="Center" />
+              <Path Data="{StaticResource IconShieldCheck}" Width="16" Height="16" Stretch="Uniform" Stroke="#0284C7" StrokeThickness="2" StrokeLineCap="Round" VerticalAlignment="Center" />
               <StackPanel Grid.Column="1" Spacing="2">
                 <TextBlock Text="Header Bar Display:" FontSize="11" FontWeight="Bold" Foreground="#0369A1" />
                 <TextBlock Text="{Binding HeaderLocationText, StringFormat='Hallzee Desktop Client | {0}'}" FontSize="12" FontWeight="SemiBold" Foreground="#0F172A" />

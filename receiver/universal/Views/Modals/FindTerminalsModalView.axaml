@@ -24,7 +24,7 @@
               <ListBox.ItemTemplate>
                 <DataTemplate>
                   <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,4" VerticalAlignment="Center">
-                    <PathIcon Data="{StaticResource IconRadio}" Width="18" Height="18" Margin="4,0,10,0" Foreground="#0284C7" VerticalAlignment="Center" />
+                    <Path Data="{StaticResource IconRadio}" Width="18" Height="18" Margin="4,0,10,0" Stretch="Uniform" Stroke="#0284C7" StrokeThickness="2" StrokeLineCap="Round" VerticalAlignment="Center" />
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                       <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="14" Foreground="#0F172A" />
                       <TextBlock Text="{Binding Id, StringFormat='ID: {0}'}" FontSize="11" Foreground="#64748B" />

@@ -14,8 +14,8 @@
           <Grid ColumnDefinitions="Auto,*" VerticalAlignment="Center" Margin="0,0,16,0">
             <Border Grid.Column="0" Width="56" Height="56" CornerRadius="18" Background="{Binding ActivePass.AvatarBackground}" Margin="0,0,16,0" VerticalAlignment="Center">
               <Panel>
-                <PathIcon Data="{StaticResource IconUserX}" Width="26" Height="26" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" IsVisible="{Binding ActivePass.IsOccupied}" />
-                <PathIcon Data="{StaticResource IconUserCheck}" Width="26" Height="26" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" IsVisible="{Binding !ActivePass.IsOccupied}" />
+                <Path Data="{StaticResource IconUserX}" Width="26" Height="26" Stretch="Uniform" Stroke="White" StrokeThickness="2.2" StrokeLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding ActivePass.IsOccupied}" />
+                <Path Data="{StaticResource IconUserCheck}" Width="26" Height="26" Stretch="Uniform" Stroke="White" StrokeThickness="2.2" StrokeLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding !ActivePass.IsOccupied}" />
               </Panel>
             </Border>
 
@@ -36,7 +36,7 @@
               <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
                 <StackPanel VerticalAlignment="Center" Spacing="2">
                   <TextBlock Text="TERMINAL STATUS" FontSize="10" FontWeight="Bold" Foreground="#94A3B8" LetterSpacing="0.5" />
-                  <TextBlock Text="{Binding TopStatusBadgeText}" FontSize="18" FontWeight="Black" Foreground="{Binding ConnectionBadgeForeground}" />
+                  <TextBlock Text="{Binding TopStatusBadgeText}" FontSize="18" FontWeight="Black" Foreground="{Binding ConnectionStatusColor}" />
                   <TextBlock Text="{Binding SyncProgressText}" FontSize="11" Foreground="#0369A1" FontWeight="SemiBold" IsVisible="{Binding IsSyncing}" />
                   <TextBlock Text="Sync to check pass status" FontSize="11" Foreground="#64748B" IsVisible="{Binding !IsSyncing}" />
                 </StackPanel>
@@ -44,7 +44,7 @@
                 <!-- Sync button if connected -->
                 <Button Grid.Column="1" Classes="hallzee-pill-btn" Click="OnSyncClick" IsEnabled="{Binding !IsSyncing}" IsVisible="{Binding IsConnected}" Margin="14,0,0,0" VerticalAlignment="Center" Padding="14,8">
                   <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                    <PathIcon Data="{StaticResource IconSync}" Width="14" Height="14" VerticalAlignment="Center" Foreground="White" />
+                    <Path Data="{StaticResource IconSync}" Width="14" Height="14" Stretch="Uniform" Stroke="White" StrokeThickness="2" StrokeLineCap="Round" VerticalAlignment="Center" />
                     <TextBlock Text="{Binding SyncButtonText}" FontSize="12" FontWeight="Bold" LineHeight="12" VerticalAlignment="Center" />
                   </StackPanel>
                 </Button>
@@ -52,7 +52,7 @@
                 <!-- Scan button if disconnected -->
                 <Button Grid.Column="1" Classes="hallzee-pill-btn" Click="OnScanForDevicesClick" IsVisible="{Binding !IsConnected}" Margin="14,0,0,0" VerticalAlignment="Center" Padding="14,8">
                   <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                    <PathIcon Data="{StaticResource IconSearch}" Width="14" Height="14" VerticalAlignment="Center" Foreground="White" />
+                    <Path Data="{StaticResource IconSearch}" Width="14" Height="14" Stretch="Uniform" Stroke="White" StrokeThickness="2" StrokeLineCap="Round" VerticalAlignment="Center" />
                     <TextBlock Text="Connect" FontSize="12" FontWeight="Bold" VerticalAlignment="Center" />
                   </StackPanel>
                 </Button>
@@ -89,7 +89,7 @@
 
                 <Button Grid.Column="1" Classes="hallzee-pill-btn" Click="OnManualCheckInClick" Margin="14,0,0,0" VerticalAlignment="Center" Padding="14,8" ToolTip.Tip="Manually check in a student">
                   <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                    <PathIcon Data="{StaticResource IconPlus}" Width="12" Height="12" Foreground="White" VerticalAlignment="Center" />
+                    <Path Data="{StaticResource IconPlus}" Width="12" Height="12" Stretch="Uniform" Stroke="White" StrokeThickness="2" StrokeLineCap="Round" VerticalAlignment="Center" />
                     <TextBlock Text="Manual Check In" FontSize="12" FontWeight="Bold" VerticalAlignment="Center" />
                   </StackPanel>
                 </Button>
@@ -107,7 +107,7 @@
             <Border Background="White" BorderBrush="#FCD34D" BorderThickness="2" CornerRadius="22" BoxShadow="0 4 20 0 #0D000000" Padding="20" Margin="0,10">
               <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
                 <Border Width="56" Height="56" CornerRadius="18" Background="#F59E0B" Margin="0,0,16,0" VerticalAlignment="Center">
-                  <PathIcon Data="{StaticResource IconUserX}" Width="26" Height="26" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="White" />
+                  <Path Data="{StaticResource IconUserX}" Width="26" Height="26" Stretch="Uniform" Stroke="White" StrokeThickness="2.2" StrokeLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center" />
                 </Border>
                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
                   <Border Classes="status-pill" Background="#F59E0B" HorizontalAlignment="Left">
@@ -147,17 +147,17 @@
               </StackPanel>
 
               <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
-                <Button Classes="card-outline" Click="OnExportCsvClick" Padding="10,6">
+                <Button Classes="pill-outline" Click="OnExportCsvClick" Padding="14,6">
                   <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                    <PathIcon Data="{StaticResource IconDownload}" Width="12" Height="12" Foreground="#0369A1" />
-                    <TextBlock Text="Export" FontSize="12" FontWeight="Bold" VerticalAlignment="Center" />
+                    <Path Data="{StaticResource IconDownload}" Width="14" Height="14" Stretch="Uniform" Stroke="#0369A1" StrokeThickness="2" StrokeLineCap="Round" VerticalAlignment="Center" />
+                    <TextBlock Text="Export CSV" FontSize="13" FontWeight="Bold" Foreground="#0369A1" VerticalAlignment="Center" />
                   </StackPanel>
                 </Button>
                 
                 <Button Classes="secondary" Click="OnViewAllClick" Padding="10,6">
                   <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                     <TextBlock Text="View All History" FontSize="12" FontWeight="Bold" VerticalAlignment="Center" />
-                    <PathIcon Data="{StaticResource IconChevronRight}" Width="10" Height="10" Foreground="#0369A1" />
+                    <Path Data="{StaticResource IconChevronRight}" Width="10" Height="10" Stretch="Uniform" Stroke="#0369A1" StrokeThickness="2" StrokeLineCap="Round" VerticalAlignment="Center" />
                   </StackPanel>
                 </Button>
               </StackPanel>
@@ -173,7 +173,7 @@
                         
                         <!-- AVATAR ICON -->
                         <Border Grid.Column="0" Width="38" Height="38" CornerRadius="12" Background="{Binding AvatarBackground}" Margin="0,0,12,0" VerticalAlignment="Center">
-                          <PathIcon Data="{StaticResource IconUserCheck}" Width="18" Height="18" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#166534" />
+                          <Path Data="{StaticResource IconUserCheck}" Width="18" Height="18" Stretch="Uniform" Stroke="#166534" StrokeThickness="2" StrokeLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
 
                         <!-- STUDENT DETAILS -->
@@ -210,45 +210,165 @@
           </Grid>
         </Border>
 
-        <!-- RIGHT COLUMN: ROSTER & PASS POLICY CARD (1/3 width) -->
-        <Border Grid.Column="1" Background="White" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="22" BoxShadow="0 4 16 0 #0A0284C7" Padding="20">
-          <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="14">
-            
-            <!-- HEADER -->
-            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" VerticalAlignment="Center">
-              <Border Width="28" Height="28" CornerRadius="8" Background="#E0F2FE" VerticalAlignment="Center">
-                <PathIcon Data="{StaticResource IconShieldCheck}" Width="16" Height="16" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="#0284C7" />
+        <!-- RIGHT COLUMN: STACKPANEL (ROSTER & PASS POLICY + EXCEEDED TIME) -->
+        <StackPanel Grid.Column="1" Spacing="16">
+
+          <!-- CARD 1: ROSTER & PASS POLICY (1/3 width) -->
+          <Border Background="White" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="22" BoxShadow="0 4 16 0 #0A0284C7" Padding="20">
+            <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="14">
+              
+              <!-- HEADER -->
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" VerticalAlignment="Center">
+                <Border Width="28" Height="28" CornerRadius="8" Background="#E0F2FE" VerticalAlignment="Center">
+                  <Path Data="{StaticResource IconShieldCheck}" Width="16" Height="16" Stretch="Uniform" Stroke="#0284C7" StrokeThickness="2" StrokeLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <TextBlock Grid.Column="1" Text="Roster &amp; Pass Policy" FontSize="16" FontWeight="ExtraBold" Foreground="#0F172A" VerticalAlignment="Center" />
+              </Grid>
+
+              <!-- INSET CONTAINER 1: PASS POLICY -->
+              <Border Grid.Row="1" Background="#F0F9FF" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="16" Padding="14">
+                <StackPanel Spacing="8">
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Text="Pass Capacity:" FontSize="12" Foreground="#475569" />
+                    <TextBlock Grid.Column="1" Text="{Binding PolicyModal.MaxSimultaneousPasses, StringFormat='{}{0} student(s)'}" FontSize="12" FontWeight="ExtraBold" Foreground="#0F172A" />
+                  </Grid>
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Text="Overdue Warning:" FontSize="12" Foreground="#475569" />
+                    <TextBlock Grid.Column="1" Text="{Binding PolicyModal.DurationWarningMinutes, StringFormat='{}{0} minutes'}" FontSize="12" FontWeight="ExtraBold" Foreground="#D97706" />
+                  </Grid>
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Text="Daily Max:" FontSize="12" Foreground="#475569" />
+                    <TextBlock Grid.Column="1" Text="{Binding PolicyModal.MaxDailyPasses, StringFormat='{}{0} trips'}" FontSize="12" FontWeight="ExtraBold" Foreground="#0F172A" />
+                  </Grid>
+                </StackPanel>
               </Border>
-              <TextBlock Grid.Column="1" Text="Roster &amp; Pass Policy" FontSize="16" FontWeight="ExtraBold" Foreground="#0F172A" VerticalAlignment="Center" />
+
+              <!-- ACTION BUTTON -->
+              <Button Grid.Row="2" Classes="hallzee-pill-btn" Click="OnManagePoliciesClick" HorizontalAlignment="Stretch" CornerRadius="16" Padding="12,12">
+                <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center" VerticalAlignment="Center">
+                  <Path Data="{StaticResource IconUsers}" Width="14" Height="14" Stretch="Uniform" Stroke="White" StrokeThickness="2" StrokeLineCap="Round" VerticalAlignment="Center" />
+                  <TextBlock Text="Manage Pass Rules" FontSize="12" FontWeight="Bold" VerticalAlignment="Center" />
+                </StackPanel>
+              </Button>
             </Grid>
+          </Border>
 
-            <!-- INSET CONTAINER 1: PASS POLICY -->
-            <Border Grid.Row="1" Background="#F0F9FF" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="16" Padding="14">
+          <!-- CARD 2: EXCEEDED TIME CONTAINER -->
+          <Border Background="White" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="22" BoxShadow="0 4 16 0 #0A0284C7" Padding="20">
+            <StackPanel Spacing="12">
+              
+              <!-- HEADER -->
+              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" VerticalAlignment="Center">
+                <Border Width="28" Height="28" CornerRadius="8" Background="#FEF3C7" VerticalAlignment="Center">
+                  <Path Data="{StaticResource IconClock}" Width="16" Height="16" Stretch="Uniform" Stroke="#D97706" StrokeThickness="2" StrokeLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <TextBlock Grid.Column="1" Text="Exceeded Time" FontSize="16" FontWeight="ExtraBold" Foreground="#0F172A" VerticalAlignment="Center" />
+                <Border Grid.Column="2" Classes="status-pill warning">
+                  <TextBlock Text="{Binding Dashboard.ThresholdBadgeText}" />
+                </Border>
+              </Grid>
+
+              <TextBlock Text="Students whose hall pass trips exceeded the warning threshold." FontSize="11" Foreground="#64748B" TextWrapping="Wrap" />
+
+              <!-- FILTER & SORT TOOLBAR -->
               <StackPanel Spacing="8">
-                <Grid ColumnDefinitions="*,Auto">
-                  <TextBlock Text="Pass Capacity:" FontSize="12" Foreground="#475569" />
-                  <TextBlock Grid.Column="1" Text="{Binding PolicyModal.MaxSimultaneousPasses, StringFormat='{}{0} student(s)'}" FontSize="12" FontWeight="ExtraBold" Foreground="#0F172A" />
-                </Grid>
-                <Grid ColumnDefinitions="*,Auto">
-                  <TextBlock Text="Overdue Warning:" FontSize="12" Foreground="#475569" />
-                  <TextBlock Grid.Column="1" Text="8 minutes" FontSize="12" FontWeight="ExtraBold" Foreground="#D97706" />
-                </Grid>
-                <Grid ColumnDefinitions="*,Auto">
-                  <TextBlock Text="Daily Max:" FontSize="12" Foreground="#475569" />
-                  <TextBlock Grid.Column="1" Text="{Binding PolicyModal.MaxDailyPasses, StringFormat='{}{0} trips'}" FontSize="12" FontWeight="ExtraBold" Foreground="#0F172A" />
-                </Grid>
-              </StackPanel>
-            </Border>
+                <!-- Search Input -->
+                <TextBox Classes="card-search"
+                         Text="{Binding Dashboard.ExceededFilterText, UpdateSourceTrigger=PropertyChanged}"
+                         Watermark="Search period, name, or ID…"
+                         HorizontalAlignment="Stretch">
+                  <TextBox.InnerLeftContent>
+                    <Path Data="{StaticResource IconSearch}" Width="13" Height="13" Stretch="Uniform" Stroke="#0284C7" StrokeThickness="2" StrokeLineCap="Round" Margin="10,0,6,0" VerticalAlignment="Center" />
+                  </TextBox.InnerLeftContent>
+                </TextBox>
 
-            <!-- ACTION BUTTON -->
-            <Button Grid.Row="2" Classes="hallzee-pill-btn" Click="OnManagePoliciesClick" HorizontalAlignment="Stretch" CornerRadius="16" Padding="12,12">
-              <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center" VerticalAlignment="Center">
-                <PathIcon Data="{StaticResource IconUsers}" Width="14" Height="14" Foreground="White" VerticalAlignment="Center" />
-                <TextBlock Text="Manage Pass Rules" FontSize="12" FontWeight="Bold" VerticalAlignment="Center" />
+                <!-- Sort Row -->
+                <Grid ColumnDefinitions="Auto,*" VerticalAlignment="Center">
+                  <TextBlock Text="Sort by:" FontSize="11" FontWeight="SemiBold" Foreground="#64748B" VerticalAlignment="Center" />
+                  <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="5" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Button Classes="pill-filter" Classes.active="{Binding Dashboard.IsSortedByPeriod}" Click="OnSortExceededPeriodClick" ToolTip.Tip="Sort by Period">
+                      <TextBlock Text="Period" />
+                    </Button>
+                    <Button Classes="pill-filter" Classes.active="{Binding Dashboard.IsSortedByName}" Click="OnSortExceededNameClick" ToolTip.Tip="Sort by Student Name">
+                      <TextBlock Text="Name" />
+                    </Button>
+                    <Button Classes="pill-filter" Classes.active="{Binding Dashboard.IsSortedByCount}" Click="OnSortExceededCountClick" ToolTip.Tip="Sort by Times Over Threshold">
+                      <TextBlock Text="Count" />
+                    </Button>
+                  </StackPanel>
+                </Grid>
               </StackPanel>
-            </Button>
-          </Grid>
-        </Border>
+
+              <!-- EXCEEDED STUDENTS LIST -->
+              <ScrollViewer MaxHeight="220" VerticalScrollBarVisibility="Auto">
+                <StackPanel Spacing="6">
+                  <ItemsControl ItemsSource="{Binding Dashboard.ExceededStudents}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <Border Background="#F8FAFC" BorderBrush="#E0F2FE" BorderThickness="1" CornerRadius="12" Padding="10,8" Margin="0,2">
+                          <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                            <StackPanel Spacing="2">
+                              <TextBlock Text="{Binding DisplayName}" FontWeight="Bold" FontSize="13" Foreground="#0F172A" />
+                              <TextBlock Text="{Binding SubtitleText}" FontSize="11" Foreground="#64748B" />
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="2">
+                              <!-- TIMES BADGE WITH HOVER OVERDUE TRIPS TABLE -->
+                              <Border Background="#FEF2F2" BorderBrush="#FECACA" BorderThickness="1" CornerRadius="8" Padding="6,2" HorizontalAlignment="Right" Cursor="Hand" ToolTip.ShowDelay="100">
+                                <ToolTip.Tip>
+                                  <StackPanel Spacing="6" MinWidth="255">
+                                    <Grid ColumnDefinitions="*,Auto">
+                                      <TextBlock Text="Overdue Trips" FontWeight="Bold" FontSize="11" Foreground="#0F172A" />
+                                      <TextBlock Grid.Column="1" Text="{Binding ExceededCountText}" FontWeight="Bold" FontSize="11" Foreground="#DC2626" />
+                                    </Grid>
+                                    <Border Height="1" Background="#E2E8F0" />
+                                    <!-- Table Header -->
+                                    <Grid ColumnDefinitions="60,65,65,*" Margin="0,2">
+                                      <TextBlock Text="Date" FontSize="10" FontWeight="Bold" Foreground="#64748B" />
+                                      <TextBlock Grid.Column="1" Text="Out" FontSize="10" FontWeight="Bold" Foreground="#64748B" />
+                                      <TextBlock Grid.Column="2" Text="In" FontSize="10" FontWeight="Bold" Foreground="#64748B" />
+                                      <TextBlock Grid.Column="3" Text="Duration" FontSize="10" FontWeight="Bold" Foreground="#64748B" HorizontalAlignment="Right" />
+                                    </Grid>
+                                    <!-- Table Rows -->
+                                    <ScrollViewer MaxHeight="180" VerticalScrollBarVisibility="Auto">
+                                      <ItemsControl ItemsSource="{Binding Trips}">
+                                        <ItemsControl.ItemTemplate>
+                                          <DataTemplate>
+                                            <Grid ColumnDefinitions="60,65,65,*" Margin="0,2">
+                                              <TextBlock Text="{Binding Date}" FontSize="10" Foreground="#334155" />
+                                              <TextBlock Grid.Column="1" Text="{Binding TimeOut}" FontSize="10" Foreground="#475569" />
+                                              <TextBlock Grid.Column="2" Text="{Binding TimeIn}" FontSize="10" Foreground="#475569" />
+                                              <TextBlock Grid.Column="3" Text="{Binding FormattedDuration}" FontSize="10" FontWeight="Bold" Foreground="#DC2626" HorizontalAlignment="Right" />
+                                            </Grid>
+                                          </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                      </ItemsControl>
+                                    </ScrollViewer>
+                                  </StackPanel>
+                                </ToolTip.Tip>
+                                <TextBlock Text="{Binding ExceededCountText}" FontSize="10" FontWeight="Bold" Foreground="#DC2626" />
+                              </Border>
+                              <TextBlock Text="{Binding MaxDurationFormatted, StringFormat='Max: {0}'}" FontSize="10" Foreground="#94A3B8" HorizontalAlignment="Right" />
+                            </StackPanel>
+                          </Grid>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+
+                  <!-- EMPTY STATE -->
+                  <StackPanel IsVisible="{Binding Dashboard.HasNoExceededStudents}" Spacing="6" Margin="0,12" HorizontalAlignment="Center">
+                    <Path Data="{StaticResource IconCheck}" Width="20" Height="20" Stretch="Uniform" Stroke="#10B981" StrokeThickness="2.2" StrokeLineCap="Round" HorizontalAlignment="Center" />
+                    <TextBlock Text="No students over threshold" FontSize="12" FontWeight="Bold" Foreground="#475569" HorizontalAlignment="Center" />
+                    <TextBlock Text="Students with trips over the warning duration will appear here." FontSize="11" Foreground="#94A3B8" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" MaxWidth="240" />
+                  </StackPanel>
+                </StackPanel>
+              </ScrollViewer>
+
+            </StackPanel>
+          </Border>
+
+        </StackPanel>
 
       </Grid>
 

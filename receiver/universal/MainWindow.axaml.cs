@@ -54,4 +54,12 @@ public partial class MainWindow : Window {
   async void OnDisconnectClick(object? sender, RoutedEventArgs e) {
     if (DataContext is MainViewModel vm) await vm.DisconnectAsync();
   }
+
+  async void OnReconnectClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) await vm.ReconnectCandidateAsync();
+  }
+
+  void OnDismissReconnectClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) vm.DismissReconnectPrompt();
+  }
 }

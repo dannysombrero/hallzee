@@ -266,13 +266,16 @@ public class MacAgentTerminalConnection : ITerminalConnection
                             ? requestIdValue.GetString()
                             : null;
                         Console.WriteLine($"Agent Error: {errMsg}");
+                        Exception error = errMsg.Contains("Peer removed pairing information", StringComparison.OrdinalIgnoreCase)
+                            ? new TerminalBondRepairRequiredException(errMsg)
+                            : new IOException(errMsg);
                         if (failedRequestId != null && pendingWrites.TryGetValue(failedRequestId, out var failedWrite)) {
-                            failedWrite.TrySetException(new IOException(errMsg));
+                            failedWrite.TrySetException(error);
                         } else if (discoveryTcs != null) {
-                            discoveryTcs.TrySetException(new Exception(errMsg));
+                            discoveryTcs.TrySetException(error);
                             discoveryTcs = null;
                         } else {
-                            connectionTcs?.TrySetException(new Exception(errMsg));
+                            connectionTcs?.TrySetException(error);
                             connectionTcs = null;
                             // If we get an error while syncing or trying to connect, abort!
                             ConnectionLost?.Invoke(this, errMsg);

@@ -44,7 +44,7 @@
               
               <!-- Section Header: Pass Policy Rules -->
               <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" VerticalAlignment="Center">
-                <PathIcon Data="{StaticResource IconShieldCheck}" Width="16" Height="16" Foreground="#0284C7" VerticalAlignment="Center" />
+                <Path Data="{StaticResource IconShieldCheck}" Width="16" Height="16" Stretch="Uniform" Stroke="#0284C7" StrokeThickness="2" StrokeLineCap="Round" VerticalAlignment="Center" />
                 <TextBlock Grid.Column="1" Text="Pass Policy Rules" FontSize="15" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center" />
               </Grid>
 
@@ -110,7 +110,7 @@
                     <ComboBox Grid.Column="1" Width="120" ItemsSource="{Binding PolicyModal.AlertSounds}" SelectedItem="{Binding PolicyModal.AlertSound}" />
                     <Button Grid.Column="2" Classes="secondary" Click="OnPlaySoundPreviewClick" ToolTip.Tip="Hear selected warning sound" Padding="8,6">
                       <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                        <PathIcon Data="{StaticResource IconVolume2}" Width="13" Height="13" Foreground="#0284C7" />
+                        <Path Data="{StaticResource IconVolume2}" Width="13" Height="13" Stretch="Uniform" Stroke="#0284C7" StrokeThickness="1.8" StrokeLineCap="Round" VerticalAlignment="Center" />
                         <TextBlock Text="Preview" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
                       </StackPanel>
                     </Button>
@@ -121,7 +121,7 @@
               <!-- Card 3: Pause Rules Planned Info (matching browser preview) -->
               <Border Background="#FFFBEB" BorderBrush="#FDE68A" BorderThickness="1" CornerRadius="16" Padding="14,12">
                 <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" VerticalAlignment="Center">
-                  <PathIcon Data="{StaticResource IconPauseCircle}" Width="20" Height="20" Foreground="#D97706" VerticalAlignment="Top" Margin="0,2,0,0" />
+                  <Path Data="{StaticResource IconPauseCircle}" Width="20" Height="20" Stretch="Uniform" Stroke="#D97706" StrokeThickness="2" StrokeLineCap="Round" VerticalAlignment="Top" Margin="0,2,0,0" />
                   <StackPanel Grid.Column="1" Spacing="2">
                     <TextBlock Text="Pause rules is planned" FontSize="13" FontWeight="Bold" Foreground="#92400E" />
                     <TextBlock Text="Trips will continue recording even when classroom rules are temporarily paused." FontSize="11" Foreground="#B45309" TextWrapping="Wrap" />
@@ -136,14 +136,14 @@
               
               <!-- Section Header: Bell Schedule -->
               <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8" VerticalAlignment="Center">
-                <PathIcon Data="{StaticResource IconCalendar}" Width="16" Height="16" Foreground="#0284C7" VerticalAlignment="Center" />
+                <Path Data="{StaticResource IconCalendar}" Width="18" Height="18" Stretch="Uniform" Stroke="#0284C7" StrokeThickness="2" StrokeLineCap="Round" VerticalAlignment="Center" />
                 <TextBlock Grid.Column="1" Text="Bell Schedule" FontSize="15" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center" />
                 <Button Grid.Column="2" Classes="secondary" Click="OnTogglePeriodSortClick" Padding="10,5" FontSize="12" ToolTip.Tip="Toggle between earliest and latest period first">
                   <TextBlock Text="{Binding PolicyModal.SortOrderButtonText}" FontWeight="SemiBold" VerticalAlignment="Center" />
                 </Button>
                 <Button Grid.Column="3" Classes="secondary" Click="OnAddPeriodClick" Padding="10,5" FontSize="12">
                   <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                    <PathIcon Data="{StaticResource IconPlus}" Width="12" Height="12" Foreground="#0284C7" />
+                    <Path Data="{StaticResource IconPlus}" Width="12" Height="12" Stretch="Uniform" Stroke="#0284C7" StrokeThickness="2" StrokeLineCap="Round" VerticalAlignment="Center" />
                     <TextBlock Text="Add Period" FontWeight="SemiBold" VerticalAlignment="Center" />
                   </StackPanel>
                 </Button>
@@ -166,10 +166,10 @@
                           <TextBlock Grid.Row="1" Grid.Column="0" Text="{Binding DisplayTimeRange}" FontSize="12" FontFamily="Cascadia Mono, Menlo, monospace" FontWeight="SemiBold" Foreground="#617694" VerticalAlignment="Center" />
                           <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Spacing="6">
                             <Button Classes="secondary" Click="OnEditPeriodClick" Tag="{Binding}" Width="28" Height="28" Padding="0" ToolTip.Tip="Edit Period">
-                              <PathIcon Data="{StaticResource IconEdit}" Width="12" Height="12" Foreground="#475569" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                              <Path Data="{StaticResource IconEdit}" Width="13" Height="13" Stretch="Uniform" Stroke="#475569" StrokeThickness="1.8" StrokeLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Button>
                             <Button Classes="secondary" Click="OnRemovePeriodClick" Tag="{Binding}" Width="28" Height="28" Padding="0" ToolTip.Tip="Delete Period">
-                              <PathIcon Data="{StaticResource IconTrash}" Width="12" Height="12" Foreground="#EF4444" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                              <Path Data="{StaticResource IconTrash}" Width="13" Height="13" Stretch="Uniform" Stroke="#EF4444" StrokeThickness="1.8" StrokeLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Button>
                           </StackPanel>
                         </Grid>
@@ -184,10 +184,10 @@
                             <TextBox Grid.Column="2" Text="{Binding EditEndTime}" Watermark="08:50 AM" FontSize="12" />
                             <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="6">
                               <Button Classes="hallzee-pill-btn" Click="OnSavePeriodClick" Tag="{Binding}" Width="32" Height="32" Padding="0" ToolTip.Tip="Save Changes">
-                                <PathIcon Data="{StaticResource IconCheck}" Width="14" Height="14" Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <Path Data="{StaticResource IconCheck}" Width="14" Height="14" Stretch="Uniform" Stroke="White" StrokeThickness="2.2" StrokeLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center" />
                               </Button>
-                              <Button Classes="secondary" Click="OnRemovePeriodClick" Tag="{Binding}" Width="32" Height="32" Padding="0" ToolTip.Tip="Delete Period">
-                                <PathIcon Data="{StaticResource IconTrash}" Width="14" Height="14" Foreground="#EF4444" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                              <Button Classes="secondary" Click="OnCancelPeriodClick" Tag="{Binding}" Width="32" Height="32" Padding="0" ToolTip.Tip="Cancel Edit">
+                                <Path Data="{StaticResource IconX}" Width="14" Height="14" Stretch="Uniform" Stroke="#64748B" StrokeThickness="2" StrokeLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center" />
                               </Button>
                             </StackPanel>
                           </Grid>

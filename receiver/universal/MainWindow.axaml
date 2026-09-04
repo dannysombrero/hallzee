@@ -118,7 +118,7 @@
 
               <Button Classes="card-outline" Click="OnSettingsDeviceClick" HorizontalAlignment="Stretch" Padding="8,6" Margin="0,4,0,0">
                 <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center">
-                  <PathIcon Data="{StaticResource IconRadio}" Width="13" Height="13" Foreground="#0369A1" VerticalAlignment="Center" />
+                  <Path Data="{StaticResource IconRadio}" Width="13" Height="13" Stretch="Uniform" Stroke="#0369A1" StrokeThickness="2" StrokeLineCap="Round" VerticalAlignment="Center" />
                   <TextBlock Text="Configure Node" FontSize="12" FontWeight="Bold" VerticalAlignment="Center" />
                 </StackPanel>
               </Button>
@@ -140,5 +140,20 @@
     <views:TerminalSettingsModalView Grid.RowSpan="2" IsVisible="{Binding IsTerminalSettingsModalVisible}" />
     <views:FindTerminalsModalView Grid.RowSpan="2" IsVisible="{Binding IsFindTerminalsModalVisible}" />
     <views:ManualCheckInModalView Grid.RowSpan="2" IsVisible="{Binding IsManualCheckInModalVisible}" />
+
+    <Border Grid.RowSpan="2" IsVisible="{Binding IsReconnectPromptVisible}"
+            HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,72,0,0"
+            Background="White" BorderBrush="#BAE6FD" BorderThickness="1"
+            CornerRadius="14" Padding="18" BoxShadow="0 6 20 0 #40000000">
+      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12" MinWidth="520">
+        <StackPanel Spacing="3">
+          <TextBlock Text="Previously connected terminal found" FontWeight="Bold" Foreground="#0F172A" />
+          <TextBlock Text="Reconnect with this device?" FontSize="12" Foreground="#475569" />
+          <TextBlock Text="{Binding ReconnectCandidateName}" FontSize="12" Foreground="#0369A1" />
+        </StackPanel>
+        <Button Grid.Column="1" Classes="secondary" Content="Not now" Click="OnDismissReconnectClick" Padding="12,7" />
+        <Button Grid.Column="2" Classes="hallzee-pill-btn" Content="Reconnect" Click="OnReconnectClick" Padding="14,7" />
+      </Grid>
+    </Border>
   </Grid>
 </Window>

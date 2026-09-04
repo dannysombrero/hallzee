@@ -86,4 +86,16 @@ public partial class DashboardView : UserControl {
       vm.ExportTrips(exportPath, openModal: false);
     }
   }
+
+  void OnSortExceededPeriodClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) vm.Dashboard.SetSortBy("Period");
+  }
+
+  void OnSortExceededNameClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) vm.Dashboard.SetSortBy("Name");
+  }
+
+  void OnSortExceededCountClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) vm.Dashboard.SetSortBy("Count");
+  }
 }

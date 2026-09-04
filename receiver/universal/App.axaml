@@ -54,11 +54,11 @@
     <StreamGeometry x:Key="IconZap">M13 2L3 14h9l-1 8 10-12h-9l1-8z</StreamGeometry>
     <StreamGeometry x:Key="IconTag">M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2z M7 7a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z</StreamGeometry>
     <StreamGeometry x:Key="IconSearch">M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16z M21 21l-4.35-4.35</StreamGeometry>
-    <StreamGeometry x:Key="IconTrash">M3 6h18 M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2</StreamGeometry>
+    <StreamGeometry x:Key="IconTrash">M3 6h18 M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6 M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2 M10 11v6 M14 11v6</StreamGeometry>
     <StreamGeometry x:Key="IconPlus">M12 5v14 M5 12h14</StreamGeometry>
     <StreamGeometry x:Key="IconX">M18 6L6 18 M6 6l12 12</StreamGeometry>
     <StreamGeometry x:Key="IconCheck">M20 6L9 17l-5-5</StreamGeometry>
-    <StreamGeometry x:Key="IconEdit">M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z M15 5l4 4</StreamGeometry>
+    <StreamGeometry x:Key="IconEdit">M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z M15 5l4 4</StreamGeometry>
     <StreamGeometry x:Key="IconVolume2">M11 5L6 9H2v6h4l5 4V5z M19.07 4.93a10 10 0 0 1 0 14.14 M15.54 8.46a5 5 0 0 1 0 7.07</StreamGeometry>
 
     <!-- CANONICAL APPLICATION FONTS (MATCHING WEB CLIENT: DM SANS) -->
@@ -154,6 +154,25 @@
       <Setter Property="HorizontalContentAlignment" Value="Center" />
     </Style>
     <Style Selector="Button.card-outline:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="#F0F9FF" />
+      <Setter Property="BorderBrush" Value="#7DD3FC" />
+      <Setter Property="Foreground" Value="#0284C7" />
+    </Style>
+
+    <!-- OUTLINE PILL BUTTON (e.g. Export CSV matching Web Client) -->
+    <Style Selector="Button.pill-outline">
+      <Setter Property="Background" Value="White" />
+      <Setter Property="Foreground" Value="#0369A1" />
+      <Setter Property="BorderBrush" Value="#BAE6FD" />
+      <Setter Property="BorderThickness" Value="1.5" />
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="CornerRadius" Value="24" />
+      <Setter Property="Padding" Value="14,7" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.pill-outline:pointerover /template/ ContentPresenter">
       <Setter Property="Background" Value="#F0F9FF" />
       <Setter Property="BorderBrush" Value="#7DD3FC" />
       <Setter Property="Foreground" Value="#0284C7" />
@@ -334,6 +353,62 @@
     <Style Selector="ComboBox:pointerover /template/ Border#Background">
       <Setter Property="Background" Value="#E0F2FE" />
       <Setter Property="BorderBrush" Value="#7DD3FC" />
+    </Style>
+
+    <!-- RESET INTERNAL TEXTBOX INSIDE NUMERICUPDOWN -->
+    <Style Selector="TextBox.card-search">
+      <Setter Property="Background" Value="#F0F9FF" />
+      <Setter Property="BorderBrush" Value="#BAE6FD" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="14" />
+      <Setter Property="Padding" Value="8,5" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="MinHeight" Value="32" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBox.card-search:pointerover /template/ Border#PART_BorderElement">
+      <Setter Property="Background" Value="#E0F2FE" />
+      <Setter Property="BorderBrush" Value="#7DD3FC" />
+    </Style>
+    <Style Selector="TextBox.card-search:focus /template/ Border#PART_BorderElement">
+      <Setter Property="Background" Value="White" />
+      <Setter Property="BorderBrush" Value="#0284C7" />
+    </Style>
+
+    <Style Selector="Button.pill-filter">
+      <Setter Property="Background" Value="#F1F5F9" />
+      <Setter Property="Foreground" Value="#475569" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="BorderBrush" Value="#E2E8F0" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="8,4" />
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Button.pill-filter:pointerover">
+      <Setter Property="Background" Value="#E2E8F0" />
+      <Setter Property="Foreground" Value="#0F172A" />
+    </Style>
+    <Style Selector="Button.pill-filter.active">
+      <Setter Property="Background" Value="#0284C7" />
+      <Setter Property="Foreground" Value="White" />
+      <Setter Property="BorderBrush" Value="#0284C7" />
+    </Style>
+    <Style Selector="Button.pill-filter.active:pointerover">
+      <Setter Property="Background" Value="#0369A1" />
+      <Setter Property="Foreground" Value="White" />
+    </Style>
+
+    <!-- THEMED TOOLTIP (MATCHING HALLZEE SKY PALETTE) -->
+    <Style Selector="ToolTip">
+      <Setter Property="Background" Value="White" />
+      <Setter Property="BorderBrush" Value="#BAE6FD" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="10" />
+      <Setter Property="BoxShadow" Value="0 6 20 0 #200284C7, 0 1 3 0 #0A0284C7" />
+      <Setter Property="Padding" Value="10,6" />
+      <Setter Property="Foreground" Value="#0F172A" />
+      <Setter Property="FontSize" Value="11" />
     </Style>
 
     <!-- RESET INTERNAL TEXTBOX INSIDE NUMERICUPDOWN -->

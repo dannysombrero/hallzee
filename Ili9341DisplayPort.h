@@ -26,6 +26,7 @@ public:
   void setTextWrap(bool enabled) override;
   void setTextColor(uint16_t color) override;
   void setTextSize(uint8_t size) override;
+  void setFont(DisplayFont font) override;
   void setCursor(int16_t x, int16_t y) override;
   void print(const char *text) override;
   void print(const String &text) override;
@@ -34,6 +35,7 @@ public:
   void println(const char *text) override;
   void println(const String &text) override;
   void pause(unsigned long milliseconds) override;
+  bool isNative320x240() const override { return true; }
 
 private:
   static int16_t scaleX(int16_t value);

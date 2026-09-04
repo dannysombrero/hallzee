@@ -19,6 +19,7 @@ public:
   void setTextWrap(bool enabled) override;
   void setTextColor(uint16_t color) override;
   void setTextSize(uint8_t size) override;
+  void setFont(DisplayFont font) override;
   void setCursor(int16_t x, int16_t y) override;
   void print(const char *text) override;
   void print(const String &text) override;

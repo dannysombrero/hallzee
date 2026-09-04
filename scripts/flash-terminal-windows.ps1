@@ -67,6 +67,9 @@ New-Item -ItemType Directory -Force -Path $stagingSketch | Out-Null
 Copy-Item -Path (Join-Path $ProjectRoot "*.ino") -Destination $stagingSketch
 Copy-Item -Path (Join-Path $ProjectRoot "*.h") -Destination $stagingSketch
 Copy-Item -Path (Join-Path $ProjectRoot "*.cpp") -Destination $stagingSketch
+if (Test-Path (Join-Path $ProjectRoot "fonts")) {
+  Copy-Item -Path (Join-Path $ProjectRoot "fonts") -Destination $stagingSketch -Recurse
+}
 
 try {
   Write-Host "Building and flashing Hallzee to $Port…"

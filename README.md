@@ -74,6 +74,9 @@ behavior. Its landscape UI is rendered natively at 320×240 with a large,
 non-touch readout and physical-key legend. Use `--rotation 3` (macOS) or `-Rotation 3` (Windows) if the
 panel is mounted upside down. On Windows, use
 `powershell -ExecutionPolicy Bypass -File scripts/flash-terminal-windows.ps1 -Display ili9341 -Port COM5`.
+The ILI9341 profile uses a conservative 20 MHz SPI clock for reliable updates
+on jumper-wired modules and embeds only the bitmap font sizes used by the
+native terminal UI.
 
 The supported firmware build uses the `esp32:esp32` Arduino core version
 3.3.11. The Windows equivalent is
@@ -81,8 +84,10 @@ The supported firmware build uses the `esp32:esp32` Arduino core version
 board package and libraries when needed.
 
 Upload only after selecting the correct board and serial port for the physical
-terminal. The terminal starts by asking for the local date and time; this is
-also set automatically when the receiver sends a valid `TIME` command.
+terminal. The terminal starts by asking for the local date and time; on the
+ILI9341 profile this setup screen also uses the full native 320×240 layout.
+The clock is also set automatically when the receiver sends a valid `TIME`
+command.
 
 ## Using the terminal
 

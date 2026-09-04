@@ -1,5 +1,10 @@
 #include "Ili9341DisplayPort.h"
 
+#include "fonts/FreeSansBold9pt7b.h"
+#include "fonts/FreeSansBold12pt7b.h"
+#include "fonts/FreeSansBold18pt7b.h"
+#include "fonts/FreeSansBold24pt7b.h"
+
 #if defined(HALLZEE_ILI9341)
 
 Ili9341DisplayPort::Ili9341DisplayPort(Adafruit_ILI9341 &display)
@@ -37,6 +42,15 @@ void Ili9341DisplayPort::drawLine(int16_t x0, int16_t y0, int16_t x1, int16_t y1
 void Ili9341DisplayPort::setTextWrap(bool enabled) { display.setTextWrap(enabled); }
 void Ili9341DisplayPort::setTextColor(uint16_t color) { display.setTextColor(color); }
 void Ili9341DisplayPort::setTextSize(uint8_t size) { display.setTextSize(size); }
+void Ili9341DisplayPort::setFont(DisplayFont font) {
+  switch (font) {
+    case DisplayFont::SansBold9: display.setFont(&FreeSansBold9pt7b); break;
+    case DisplayFont::SansBold12: display.setFont(&FreeSansBold12pt7b); break;
+    case DisplayFont::SansBold18: display.setFont(&FreeSansBold18pt7b); break;
+    case DisplayFont::SansBold24: display.setFont(&FreeSansBold24pt7b); break;
+    case DisplayFont::BuiltIn: display.setFont(nullptr); break;
+  }
+}
 void Ili9341DisplayPort::setCursor(int16_t x, int16_t y) { display.setCursor(scaleX(x), scaleY(y)); }
 void Ili9341DisplayPort::print(const char *text) { display.print(text); }
 void Ili9341DisplayPort::print(const String &text) { display.print(text); }

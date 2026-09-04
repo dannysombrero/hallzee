@@ -891,7 +891,10 @@ void setup() {
 
   // Initialize TFT
 #if defined(HALLZEE_ILI9341)
-  tft.begin();
+  // The native 320x240 layout performs substantially more SPI writes than
+  // the legacy 160x128 renderer. 20 MHz leaves useful margin for longer
+  // jumper wires and inexpensive ILI9341 modules while remaining responsive.
+  tft.begin(20000000);
   tft.setRotation(HALLZEE_DISPLAY_ROTATION);
 #else
   tft.initR(INITR_BLACKTAB);

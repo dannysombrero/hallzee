@@ -203,6 +203,15 @@ Before calling a Windows change complete, check:
 8. A second BLE central is rejected while the authorized client remains connected.
 9. Powering the kiosk off shows **RECONNECTING**; restoring the kiosk lets the
    same owner reconnect, while **Scan Again** remains available.
+10. After a successful claim, reboot the kiosk while it is on the clock-setup
+    screen. The next `IDENTITY,2` must still report `CLAIMED`, and the same
+    desktop must be able to authenticate without entering a passkey.
+11. On macOS, reconnect after a brief BLE drop or reboot; the client should use
+    the freshly scanned peripheral and complete owner authentication without
+    the stale `Peer removed pairing information` failure.
+    The terminal must not clear its BLE bond just because owner storage was
+    temporarily unavailable during startup; bonds are cleared only by explicit
+    pairing mode or owner reset.
 
 If a test claim must be cleared, connect the USB serial monitor at 115200 baud
 and send the line `OWNER_RESET`. Confirm `OWNER_RESET,OK`; this clears only the

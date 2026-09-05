@@ -899,7 +899,11 @@ void setup() {
   // the legacy 160x128 renderer. 20 MHz leaves useful margin for longer
   // jumper wires and inexpensive ILI9341 modules while remaining responsive.
   tft.begin(20000000);
-  tft.setRotation(HALLZEE_DISPLAY_ROTATION);
+  // In the physical Hallzee enclosure, rotation 3 is right-side up.
+  // Map rotation 1 to 3 (and 3 to 1) so standard rotation 1 displays upright.
+  const uint8_t effectiveRotation = (HALLZEE_DISPLAY_ROTATION == 1) ? 3 :
+                                    ((HALLZEE_DISPLAY_ROTATION == 3) ? 1 : HALLZEE_DISPLAY_ROTATION);
+  tft.setRotation(effectiveRotation);
 #else
   tft.initR(INITR_BLACKTAB);
   tft.setRotation(1);

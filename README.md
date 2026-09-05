@@ -19,6 +19,7 @@ records locally and can synchronize them to a desktop receiver over Bluetooth Lo
 | `receiver/windows/` | Current Windows sync application |
 | `receiver/universal/` | Shared Avalonia desktop UI preview for the next Windows/macOS client |
 | `receiver/` | Legacy/native macOS receiver |
+| `models/3d/` | Enclosure, mounting, and other Hallzee fabrication files |
 | `docs/` | Architecture and Bluetooth protocol references |
 
 ## Getting started, contributor guides & design documentation

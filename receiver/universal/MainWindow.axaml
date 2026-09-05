@@ -147,12 +147,12 @@
             CornerRadius="14" Padding="18" BoxShadow="0 6 20 0 #40000000">
       <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12" MinWidth="520">
         <StackPanel Spacing="3">
-          <TextBlock Text="Previously connected terminal found" FontWeight="Bold" Foreground="#0F172A" />
-          <TextBlock Text="Reconnect with this device?" FontSize="12" Foreground="#475569" />
+          <TextBlock Text="{Binding ReconnectPromptTitle}" FontWeight="Bold" Foreground="#0F172A" />
+          <TextBlock Text="{Binding ReconnectPromptDetail}" FontSize="12" Foreground="#475569" TextWrapping="Wrap" />
           <TextBlock Text="{Binding ReconnectCandidateName}" FontSize="12" Foreground="#0369A1" />
         </StackPanel>
         <Button Grid.Column="1" Classes="secondary" Content="Not now" Click="OnDismissReconnectClick" Padding="12,7" />
-        <Button Grid.Column="2" Classes="hallzee-pill-btn" Content="Reconnect" Click="OnReconnectClick" Padding="14,7" />
+        <Button Grid.Column="2" Classes="hallzee-pill-btn" Content="Reconnect" Click="OnReconnectClick" Padding="14,7" IsVisible="{Binding !IsReconnecting}" />
       </Grid>
     </Border>
   </Grid>

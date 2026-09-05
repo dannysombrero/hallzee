@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
 
 namespace BathroomSync.Universal.ViewModels;
@@ -9,7 +10,10 @@ public sealed class ActivePassViewModel : INotifyPropertyChanged {
   string? studentId;
   string? studentName;
   string? departTime;
-  string destination = "Hallway Restroom (East)";
+  string? period;
+  string? destination;
+  string? purpose;
+  bool isManual;
   DateTime? checkoutTimestamp;
   int elapsedSeconds;
 
@@ -61,27 +65,32 @@ public sealed class ActivePassViewModel : INotifyPropertyChanged {
       ? $"{DisplayName} is Out of Class"
       : "Pass is Available";
 
-  string reason = "Restroom";
-  string? location;
-
-  public string Reason {
-    get => reason;
-    set { reason = value; OnPropertyChanged(); OnPropertyChanged(nameof(SubtitleText)); }
+  public string? Period {
+    get => period;
+    set { period = value; OnPropertyChanged(); }
   }
 
-  public string? Location {
-    get => location;
-    set { location = value; OnPropertyChanged(); OnPropertyChanged(nameof(SubtitleText)); }
+  public string? Purpose {
+    get => purpose;
+    set { purpose = value; OnPropertyChanged(); OnPropertyChanged(nameof(SubtitleText)); }
   }
 
   public DateTime? CheckoutTime => checkoutTimestamp;
+
+  public bool IsManual {
+    get => isManual;
+    private set { isManual = value; OnPropertyChanged(); }
+  }
 
   public string SubtitleText {
     get {
       if (IsStatusUnknown) return "Connect to the Hallzee terminal to confirm whether a student is out.";
       if (IsOccupied) {
-        var place = string.IsNullOrWhiteSpace(Location) ? Reason : $"{Reason} ({Location})";
-        return $"Departed at {DepartTime ?? "recently"} for {place}.";
+        var details = new[] { Purpose, Destination, Period }.Where(value => !string.IsNullOrWhiteSpace(value));
+        var suffix = string.Join(" • ", details);
+        return string.IsNullOrWhiteSpace(suffix)
+          ? $"Departed at {DepartTime ?? "recently"}."
+          : $"Departed at {DepartTime ?? "recently"} • {suffix}.";
       }
       return "The physical Hallzee terminal is ready for the next student.";
     }
@@ -92,7 +101,7 @@ public sealed class ActivePassViewModel : INotifyPropertyChanged {
     private set { departTime = value; OnPropertyChanged(); OnPropertyChanged(nameof(SubtitleText)); }
   }
 
-  public string Destination {
+  public string? Destination {
     get => destination;
     set { destination = value; OnPropertyChanged(); OnPropertyChanged(nameof(SubtitleText)); }
   }
@@ -143,12 +152,14 @@ public sealed class ActivePassViewModel : INotifyPropertyChanged {
   public string TimerTextColor => IsStatusUnknown ? "#64748B" : IsOccupied ? "#D97706" : "#059669";
   public string ActionButtonText => IsOccupied ? "Check In" : "Simulate Tap";
 
-  public void SetOccupied(string id, string? name, DateTime? timestamp = null, string? reason = null, string? location = null) {
+  public void SetOccupied(string id, string? name, DateTime? timestamp = null, string? period = null, string? destination = null, string? purpose = null, bool isManual = false) {
     isStatusKnown = true;
     StudentId = id;
     StudentName = name;
-    Reason = string.IsNullOrWhiteSpace(reason) ? "Restroom" : reason;
-    Location = location;
+    Period = period;
+    Destination = destination;
+    Purpose = purpose;
+    IsManual = isManual;
     checkoutTimestamp = timestamp ?? DateTime.Now;
     DepartTime = checkoutTimestamp.Value.ToString("h:mm tt");
     var diff = (int)Math.Max(0, (DateTime.Now - checkoutTimestamp.Value).TotalSeconds);
@@ -163,8 +174,10 @@ public sealed class ActivePassViewModel : INotifyPropertyChanged {
     StudentId = null;
     StudentName = null;
     DepartTime = null;
-    Reason = "Restroom";
-    Location = null;
+    Period = null;
+    Destination = null;
+    Purpose = null;
+    IsManual = false;
     checkoutTimestamp = null;
     ElapsedSeconds = 0;
     if (wasUnknown) NotifyStatusPresentationChanged();
@@ -176,8 +189,10 @@ public sealed class ActivePassViewModel : INotifyPropertyChanged {
     StudentId = null;
     StudentName = null;
     DepartTime = null;
-    Reason = "Restroom";
-    Location = null;
+    Period = null;
+    Destination = null;
+    Purpose = null;
+    IsManual = false;
     checkoutTimestamp = null;
     ElapsedSeconds = 0;
     NotifyStatusPresentationChanged();

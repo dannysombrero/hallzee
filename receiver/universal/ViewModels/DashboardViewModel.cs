@@ -296,17 +296,20 @@ public sealed record DashboardActivityItem(
     "#FEF3C7"
   ) { SortTimestamp = (checkoutTime ?? DateTime.Now).ToString("O"), CheckoutTime = checkoutTime ?? DateTime.Now };
 
-  public static DashboardActivityItem FromTrip(EnrichedTripRecord trip) => new(
-    trip.StudentId,
-    trip.DisplayName,
-    string.IsNullOrWhiteSpace(trip.TimeOut) ? "—" : trip.TimeOut,
-    string.IsNullOrWhiteSpace(trip.TimeIn) ? "—" : trip.TimeIn,
-    trip.FormattedDuration,
-    "Returned",
-    "#10B981",
-    "White",
-    "#E0F2FE"
-  );
+  public static DashboardActivityItem FromTrip(EnrichedTripRecord trip) {
+    var isManual = string.Equals(trip.Status, "MANUAL", StringComparison.OrdinalIgnoreCase);
+    return new DashboardActivityItem(
+      trip.StudentId,
+      trip.DisplayName,
+      string.IsNullOrWhiteSpace(trip.TimeOut) ? "—" : trip.TimeOut,
+      string.IsNullOrWhiteSpace(trip.TimeIn) ? "—" : trip.TimeIn,
+      trip.FormattedDuration,
+      isManual ? "Manual" : "Returned",
+      isManual ? "#64748B" : "#10B981",
+      "White",
+      isManual ? "#E2E8F0" : "#E0F2FE"
+    );
+  }
 }
 
 public sealed class AdditionalActivePassViewModel : INotifyPropertyChanged {

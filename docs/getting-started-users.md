@@ -56,7 +56,8 @@ successful connection, the app remembers the terminal's Bluetooth transport and
 automatically reconnects to it when the app starts or the link drops. The app
 then syncs without requiring the date/time or pairing screens. The reconnect
 message counts down for 10 seconds; after that, use **Find Terminal** to return
-to manual recovery. If the terminal was replaced, reset, or paired to a
+to manual recovery. The dashboard also leaves a **Reconnect** action for the
+remembered claimed terminal; that action does not require a pairing key. If the terminal was replaced, reset, or paired to a
 different computer, contact the project owner before clearing its owner state.
 
 ## If something does not work

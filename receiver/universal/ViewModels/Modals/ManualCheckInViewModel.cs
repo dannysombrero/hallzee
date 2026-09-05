@@ -11,8 +11,9 @@ public sealed class ManualCheckInViewModel : INotifyPropertyChanged {
   readonly IRosterService rosterService;
   string studentName = "";
   string studentId = "";
-  string reason = "Restroom";
-  string location = "";
+  string period = "";
+  string destination = "";
+  string purpose = "";
   string? statusMessage;
   string currentProfileId = "default";
 
@@ -21,17 +22,6 @@ public sealed class ManualCheckInViewModel : INotifyPropertyChanged {
   }
 
   public event PropertyChangedEventHandler? PropertyChanged;
-
-  public IReadOnlyList<string> ReasonOptions { get; } = new[] {
-    "Restroom",
-    "Water Fountain",
-    "Nurse / Clinic",
-    "Main Office",
-    "Counselor",
-    "Library",
-    "Lockers",
-    "Other"
-  };
 
   public string StudentName {
     get => studentName;
@@ -57,21 +47,31 @@ public sealed class ManualCheckInViewModel : INotifyPropertyChanged {
     }
   }
 
-  public string Reason {
-    get => reason;
+  public string Period {
+    get => period;
     set {
-      if (reason != value) {
-        reason = value;
+      if (period != value) {
+        period = value;
         OnPropertyChanged();
       }
     }
   }
 
-  public string Location {
-    get => location;
+  public string Destination {
+    get => destination;
     set {
-      if (location != value) {
-        location = value;
+      if (destination != value) {
+        destination = value;
+        OnPropertyChanged();
+      }
+    }
+  }
+
+  public string Purpose {
+    get => purpose;
+    set {
+      if (purpose != value) {
+        purpose = value;
         OnPropertyChanged();
       }
     }
@@ -94,35 +94,37 @@ public sealed class ManualCheckInViewModel : INotifyPropertyChanged {
     currentProfileId = profileId;
     StudentName = "";
     StudentId = "";
-    Reason = "Restroom";
-    Location = "";
+    Period = "";
+    Destination = "";
+    Purpose = "";
     StatusMessage = null;
   }
 
-  public (string resolvedId, string resolvedName, string resolvedReason, string? resolvedLocation) ResolvePassDetails() {
+  public (string resolvedId, string resolvedName, string? resolvedPeriod, string? resolvedDestination, string? resolvedPurpose) ResolvePassDetails() {
     var rawId = StudentId.Trim();
     var rawName = StudentName.Trim();
-    var resolvedReason = string.IsNullOrWhiteSpace(Reason) ? "Restroom" : Reason.Trim();
-    var resolvedLocation = string.IsNullOrWhiteSpace(Location) ? null : Location.Trim();
+    var resolvedPeriod = string.IsNullOrWhiteSpace(Period) ? null : Period.Trim();
+    var resolvedDestination = string.IsNullOrWhiteSpace(Destination) ? null : Destination.Trim();
+    var resolvedPurpose = string.IsNullOrWhiteSpace(Purpose) ? null : Purpose.Trim();
 
     if (!string.IsNullOrWhiteSpace(rawId) && !string.IsNullOrWhiteSpace(rawName)) {
-      return (rawId, rawName, resolvedReason, resolvedLocation);
+      return (rawId, rawName, resolvedPeriod, resolvedDestination, resolvedPurpose);
     }
 
     if (!string.IsNullOrWhiteSpace(rawId)) {
       var match = rosterService.LookupStudent(currentProfileId, rawId);
       var name = match?.FullName ?? $"#{rawId}";
-      return (rawId, name, resolvedReason, resolvedLocation);
+      return (rawId, name, resolvedPeriod, resolvedDestination, resolvedPurpose);
     }
 
     if (!string.IsNullOrWhiteSpace(rawName)) {
       var roster = rosterService.GetRoster(currentProfileId);
       var match = roster.FirstOrDefault(s => string.Equals(s.FullName, rawName, StringComparison.OrdinalIgnoreCase));
       var id = match?.StudentId ?? $"M-{DateTime.Now:HHmmss}";
-      return (id, rawName, resolvedReason, resolvedLocation);
+      return (id, rawName, resolvedPeriod, resolvedDestination, resolvedPurpose);
     }
 
-    return ("MANUAL", "Manual Pass", resolvedReason, resolvedLocation);
+    return ("MANUAL", "Manual Pass", resolvedPeriod, resolvedDestination, resolvedPurpose);
   }
 
   void TryAutoLookupName() {

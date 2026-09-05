@@ -50,16 +50,17 @@ public record EnrichedTripRecord(
   string? FirstName,
   string? LastName,
   string? Grade,
-  string? ClassPeriod
+  string? ClassPeriod,
+  string? ManualName = null
 ) {
   public string? FullName =>
     !string.IsNullOrWhiteSpace(FirstName) || !string.IsNullOrWhiteSpace(LastName)
       ? $"{FirstName} {LastName}".Trim()
       : null;
 
-  public string DisplayName => FullName ?? $"#{StudentId}";
+  public string DisplayName => ManualName ?? FullName ?? $"#{StudentId}";
 
-  public bool HasKnownName => !string.IsNullOrWhiteSpace(FullName);
+  public bool HasKnownName => !string.IsNullOrWhiteSpace(ManualName) || !string.IsNullOrWhiteSpace(FullName);
 
   public string TimeInDisplay => string.IsNullOrWhiteSpace(TimeIn) || TimeIn == "—" ? "--:--" : TimeIn;
 

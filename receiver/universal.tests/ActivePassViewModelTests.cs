@@ -46,6 +46,20 @@ public sealed class ActivePassViewModelTests {
   }
 
   [Fact]
+  public void SetOccupiedStoresManualCheckInDetails() {
+    var vm = new ActivePassViewModel();
+
+    vm.SetOccupied("10482", "Elena Rostova", DateTime.Now, "Period 3", "Room 102", "Nurse / Clinic", isManual: true);
+
+    Assert.Equal("Period 3", vm.Period);
+    Assert.Equal("Room 102", vm.Destination);
+    Assert.Equal("Nurse / Clinic", vm.Purpose);
+    Assert.True(vm.IsManual);
+    Assert.Contains("Nurse / Clinic", vm.SubtitleText);
+    Assert.Contains("Room 102", vm.SubtitleText);
+  }
+
+  [Fact]
   public void SetAvailableClearsOccupiedState() {
     var vm = new ActivePassViewModel();
     vm.SetOccupied("10482", "Elena Rostova", DateTime.Now);
@@ -57,6 +71,7 @@ public sealed class ActivePassViewModelTests {
     Assert.Equal("00:00", vm.ElapsedFormatted);
     Assert.Equal("No active pass", vm.DisplayName);
     Assert.False(vm.IsStatusUnknown);
+    Assert.False(vm.IsManual);
   }
 
   [Fact]

@@ -32,21 +32,27 @@
             <TextBox Text="{Binding ManualCheckInModal.StudentId}" Watermark="e.g. 10482 (optional if Name is provided)" FontSize="13" />
           </StackPanel>
 
-          <!-- REASON (OPTIONAL) -->
+          <!-- PERIOD (OPTIONAL) -->
           <StackPanel Spacing="4">
-            <TextBlock Text="Reason (optional)" FontSize="12" FontWeight="Bold" Foreground="#334155" />
-            <ComboBox ItemsSource="{Binding ManualCheckInModal.ReasonOptions}" SelectedItem="{Binding ManualCheckInModal.Reason}" HorizontalAlignment="Stretch" />
+            <TextBlock Text="Period (optional)" FontSize="12" FontWeight="Bold" Foreground="#334155" />
+            <TextBox Text="{Binding ManualCheckInModal.Period}" Watermark="e.g. Period 3" FontSize="13" />
           </StackPanel>
 
-          <!-- LOCATION (OPTIONAL) -->
+          <!-- DESTINATION (OPTIONAL) -->
           <StackPanel Spacing="4">
-            <TextBlock Text="Location / Destination (optional)" FontSize="12" FontWeight="Bold" Foreground="#334155" />
-            <TextBox Text="{Binding ManualCheckInModal.Location}" Watermark="e.g. Hallway Restroom, Clinic, Room 204" FontSize="13" />
+            <TextBlock Text="Destination (optional)" FontSize="12" FontWeight="Bold" Foreground="#334155" />
+            <TextBox Text="{Binding ManualCheckInModal.Destination}" Watermark="e.g. Hallway Restroom, Clinic, Room 204" FontSize="13" />
+          </StackPanel>
+
+          <!-- PURPOSE (OPTIONAL) -->
+          <StackPanel Spacing="4">
+            <TextBlock Text="Purpose (optional)" FontSize="12" FontWeight="Bold" Foreground="#334155" />
+            <TextBox Text="{Binding ManualCheckInModal.Purpose}" Watermark="e.g. restroom, nurse, office" FontSize="13" />
           </StackPanel>
 
           <!-- HELPER HINT -->
           <Border Classes="hallzee-section" Padding="12">
-            <TextBlock Text="Provide either a Student Name or Student ID. Submitting starts the pass live timer on the dashboard." FontSize="11" Foreground="#0369A1" TextWrapping="Wrap" />
+            <TextBlock Text="Student Name or Student ID is required. Period, destination, and purpose are optional. Submitting starts the live timer." FontSize="11" Foreground="#0369A1" TextWrapping="Wrap" />
           </Border>
         </StackPanel>
 

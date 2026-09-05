@@ -3,7 +3,7 @@ using Microsoft.Data.Sqlite;
 namespace BathroomSync.Core;
 
 public static class DatabaseMigrator {
-  public const int CurrentSchemaVersion = 4;
+  public const int CurrentSchemaVersion = 5;
 
   public static void Migrate(SqliteConnection connection) {
     EnsureMigrationTable(connection);
@@ -20,6 +20,9 @@ public static class DatabaseMigrator {
     }
     if (currentVersion < 4) {
       ApplyMigration4(connection);
+    }
+    if (currentVersion < 5) {
+      ApplyMigration5(connection);
     }
   }
 
@@ -315,6 +318,28 @@ public static class DatabaseMigrator {
         command.ExecuteNonQuery();
       }
 
+      transaction.Commit();
+    } catch {
+      transaction.Rollback();
+      throw;
+    }
+  }
+
+  static void ApplyMigration5(SqliteConnection connection) {
+    using var transaction = connection.BeginTransaction();
+    try {
+      var tripColumns = GetColumnNames(connection, transaction, "trips");
+      if (!tripColumns.Contains("manual_name")) {
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = "ALTER TABLE trips ADD COLUMN manual_name TEXT;";
+        command.ExecuteNonQuery();
+      }
+
+      using var migrationCommand = connection.CreateCommand();
+      migrationCommand.Transaction = transaction;
+      migrationCommand.CommandText = "INSERT OR REPLACE INTO schema_migrations (version, applied_at, description) VALUES (5, datetime('now'), 'Manual trip display names');";
+      migrationCommand.ExecuteNonQuery();
       transaction.Commit();
     } catch {
       transaction.Rollback();

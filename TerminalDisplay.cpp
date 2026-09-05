@@ -5,8 +5,30 @@
 
 TerminalDisplay::TerminalDisplay(DisplayPort &display) : display(display) {}
 
+void TerminalDisplay::prepareScreenTransition(uint16_t backgroundColor) {
+  display.fillScreen(backgroundColor);
+  display.setTextWrap(false);
+  display.setTextSize(1);
+  display.setFont(DisplayFont::BuiltIn);
+}
+
 void TerminalDisplay::showBluetoothClockSynced(const String &date, const String &time) {
-  display.fillScreen(DISPLAY_GREEN);
+  prepareScreenTransition(DISPLAY_GREEN);
+  if (display.isNative320x240()) {
+    display.setTextColor(DISPLAY_BLACK);
+    display.setFont(DisplayFont::DMSansBold18);
+    display.setCursor(24, 60);
+    display.println("CLOCK SYNCED");
+
+    display.setFont(DisplayFont::DMSansRegular12);
+    display.setCursor(24, 110);
+    display.println(date);
+    display.setCursor(24, 135);
+    display.println(time);
+    display.pause(1200);
+    return;
+  }
+
   display.setTextColor(DISPLAY_BLACK);
   display.setTextSize(2);
   display.setCursor(10, 24);
@@ -20,6 +42,25 @@ void TerminalDisplay::showBluetoothClockSynced(const String &date, const String 
 }
 
 void TerminalDisplay::showCheckedOut(const String &id, const String &time) {
+  if (display.isNative320x240()) {
+    prepareScreenTransition(DISPLAY_GREEN);
+    display.setTextColor(DISPLAY_BLACK);
+    display.setFont(DisplayFont::DMSansBold18);
+    display.setCursor(24, 60);
+    display.println("CHECKED OUT");
+
+    display.setFont(DisplayFont::DMSansRegular12);
+    display.setCursor(24, 110);
+    display.print("ID: ");
+    display.println(id);
+
+    display.setCursor(24, 140);
+    display.print("Time: ");
+    display.println(time);
+    display.pause(2000);
+    return;
+  }
+
   display.fillScreen(DISPLAY_GREEN);
   display.setTextColor(DISPLAY_BLACK);
   display.setTextSize(2);
@@ -38,7 +79,38 @@ void TerminalDisplay::showCheckedOut(const String &id, const String &time) {
 }
 
 void TerminalDisplay::showCheckedIn(unsigned long elapsedSeconds) {
-  display.fillScreen(DISPLAY_BLUE);
+  prepareScreenTransition(DISPLAY_BLUE);
+  if (display.isNative320x240()) {
+    display.setTextColor(DISPLAY_WHITE);
+    display.setFont(DisplayFont::DMSansBold18);
+    display.setCursor(24, 60);
+    display.println("CHECKED IN");
+
+    const unsigned long hours = elapsedSeconds / 3600;
+    const unsigned long minutes = (elapsedSeconds % 3600) / 60;
+    const unsigned long seconds = elapsedSeconds % 60;
+
+    display.setFont(DisplayFont::DMSansRegular12);
+    display.setCursor(24, 110);
+    display.println("Time away:");
+
+    display.setFont(DisplayFont::DMSansBold18);
+    display.setCursor(24, 150);
+    if (hours > 0) {
+      display.print(hours);
+      display.print("h ");
+    }
+    display.print(minutes);
+    display.print("m ");
+    if (seconds < 10) {
+      display.print("0");
+    }
+    display.print(seconds);
+    display.println("s");
+    display.pause(3000);
+    return;
+  }
+
   display.setTextColor(DISPLAY_WHITE);
   display.setTextSize(2);
   display.setCursor(10, 12);
@@ -70,7 +142,22 @@ void TerminalDisplay::showCheckedIn(unsigned long elapsedSeconds) {
 }
 
 void TerminalDisplay::showPassOccupied() {
-  display.fillScreen(DISPLAY_RED);
+  prepareScreenTransition(DISPLAY_RED);
+  if (display.isNative320x240()) {
+    display.setTextColor(DISPLAY_WHITE);
+    display.setFont(DisplayFont::DMSansBold18);
+    display.setCursor(24, 60);
+    display.println("PASS OCCUPIED");
+
+    display.setFont(DisplayFont::DMSansRegular12);
+    display.setCursor(24, 110);
+    display.println("Waiting for current");
+    display.setCursor(24, 135);
+    display.println("student to return.");
+    display.pause(2000);
+    return;
+  }
+
   display.setTextColor(DISPLAY_WHITE);
   display.setTextSize(2);
   display.setCursor(10, 20);
@@ -86,7 +173,22 @@ void TerminalDisplay::showPassOccupied() {
 }
 
 void TerminalDisplay::showEnterId() {
-  display.fillScreen(DISPLAY_RED);
+  prepareScreenTransition(DISPLAY_RED);
+  if (display.isNative320x240()) {
+    display.setTextColor(DISPLAY_WHITE);
+    display.setFont(DisplayFont::DMSansBold18);
+    display.setCursor(24, 60);
+    display.println("ENTER ID");
+
+    display.setFont(DisplayFont::DMSansRegular12);
+    display.setCursor(24, 110);
+    display.println("Type your student ID");
+    display.setCursor(24, 135);
+    display.println("before submitting.");
+    display.pause(1500);
+    return;
+  }
+
   display.setTextColor(DISPLAY_WHITE);
   display.setTextSize(2);
   display.setCursor(10, 30);
@@ -100,7 +202,23 @@ void TerminalDisplay::showEnterId() {
 }
 
 void TerminalDisplay::showStudentIdTooLong(uint8_t maximumLength) {
-  display.fillScreen(DISPLAY_RED);
+  prepareScreenTransition(DISPLAY_RED);
+  if (display.isNative320x240()) {
+    display.setTextColor(DISPLAY_WHITE);
+    display.setFont(DisplayFont::DMSansBold18);
+    display.setCursor(24, 60);
+    display.println("ID TOO LONG");
+
+    display.setFont(DisplayFont::DMSansRegular12);
+    display.setCursor(24, 110);
+    display.print("Current limit: ");
+    display.println(String(maximumLength));
+    display.setCursor(24, 135);
+    display.println("Enter the ID again.");
+    display.pause(1800);
+    return;
+  }
+
   display.setTextColor(DISPLAY_WHITE);
   display.setTextSize(2);
   display.setCursor(10, 22);
@@ -115,7 +233,22 @@ void TerminalDisplay::showStudentIdTooLong(uint8_t maximumLength) {
 }
 
 void TerminalDisplay::showStorageError() {
-  display.fillScreen(DISPLAY_RED);
+  prepareScreenTransition(DISPLAY_RED);
+  if (display.isNative320x240()) {
+    display.setTextColor(DISPLAY_WHITE);
+    display.setFont(DisplayFont::DMSansBold18);
+    display.setCursor(24, 60);
+    display.println("NOT SAVED");
+
+    display.setFont(DisplayFont::DMSansRegular12);
+    display.setCursor(24, 110);
+    display.println("Trip log unavailable.");
+    display.setCursor(24, 135);
+    display.println("Pass remains occupied.");
+    display.pause(2200);
+    return;
+  }
+
   display.setTextColor(DISPLAY_WHITE);
   display.setTextSize(2);
   display.setCursor(10, 20);
@@ -133,7 +266,36 @@ void TerminalDisplay::showTripLogSummary(
   uint32_t recordCount,
   uint32_t latestTripID
 ) {
-  display.fillScreen(DISPLAY_BLACK);
+  prepareScreenTransition(DISPLAY_BLACK);
+  if (display.isNative320x240()) {
+    display.setTextColor(DISPLAY_YELLOW);
+    display.setFont(DisplayFont::DMSansBold18);
+    display.setCursor(24, 50);
+    display.println("TRIP LOG");
+
+    display.setTextColor(DISPLAY_WHITE);
+    display.setFont(DisplayFont::DMSansRegular12);
+    if (!logReady) {
+      display.setCursor(24, 95);
+      display.println("Storage unavailable");
+    } else {
+      display.setCursor(24, 95);
+      display.print("Saved records: ");
+      display.println(String(recordCount));
+      display.setCursor(24, 125);
+      if (latestTripID == 0) {
+        display.println("No trips recorded yet.");
+      } else {
+        display.print("Latest trip ID: ");
+        display.println(String(latestTripID));
+      }
+    }
+    display.setCursor(24, 180);
+    display.println("Returning...");
+    display.pause(2500);
+    return;
+  }
+
   display.setTextColor(DISPLAY_YELLOW);
   display.setTextSize(2);
   display.setCursor(10, 12);
@@ -163,7 +325,21 @@ void TerminalDisplay::showTripLogSummary(
 }
 
 void TerminalDisplay::showManualReset(const String &id) {
-  display.fillScreen(DISPLAY_YELLOW);
+  prepareScreenTransition(DISPLAY_YELLOW);
+  if (display.isNative320x240()) {
+    display.setTextColor(DISPLAY_BLACK);
+    display.setFont(DisplayFont::DMSansBold18);
+    display.setCursor(24, 60);
+    display.println("PASS RESET");
+
+    display.setFont(DisplayFont::DMSansRegular12);
+    display.setCursor(24, 110);
+    display.print("Cleared ID: ");
+    display.println(id);
+    display.pause(1800);
+    return;
+  }
+
   display.setTextColor(DISPLAY_BLACK);
   display.setTextSize(2);
   display.setCursor(10, 22);
@@ -230,8 +406,7 @@ void TerminalDisplay::drawBluetoothStatus(bool connected) {
 
 void TerminalDisplay::drawIdleScreen(const String &currentOutId, const String &entry) {
   if (display.isNative320x240()) {
-  display.fillScreen(UI_BACKGROUND);
-  display.setTextWrap(false);
+  prepareScreenTransition(UI_BACKGROUND);
   display.fillRect(0, 0, 320, 40, UI_HEADER_NAVY);
   display.setTextColor(DISPLAY_WHITE);
   display.setFont(DisplayFont::DMSansBold12);
@@ -347,8 +522,7 @@ void TerminalDisplay::drawClockSetupEntry(const String &entry) {
 
 void TerminalDisplay::drawClockSetupScreen(ClockSetupStep step, const String &entry) {
   if (display.isNative320x240()) {
-    display.fillScreen(UI_BACKGROUND);
-    display.setTextWrap(false);
+    prepareScreenTransition(UI_BACKGROUND);
     display.fillRect(0, 0, 320, 40, UI_HEADER_NAVY);
     display.setTextColor(DISPLAY_WHITE);
     display.setFont(DisplayFont::DMSansBold12);
@@ -461,7 +635,22 @@ void TerminalDisplay::showInvalidClockValue(const String &message) {
 }
 
 void TerminalDisplay::showClockSet(const String &date, const String &time) {
-  display.fillScreen(DISPLAY_GREEN);
+  prepareScreenTransition(DISPLAY_GREEN);
+  if (display.isNative320x240()) {
+    display.setTextColor(DISPLAY_BLACK);
+    display.setFont(DisplayFont::DMSansBold18);
+    display.setCursor(24, 60);
+    display.println("CLOCK SET");
+
+    display.setFont(DisplayFont::DMSansRegular12);
+    display.setCursor(24, 110);
+    display.println(date);
+    display.setCursor(24, 135);
+    display.println(time);
+    display.pause(1800);
+    return;
+  }
+
   display.setTextColor(DISPLAY_BLACK);
   display.setTextSize(2);
   display.setCursor(10, 18);
@@ -478,8 +667,7 @@ void TerminalDisplay::showPairing(
   const String &suffix,
   uint32_t passkey
 ) {
-  display.fillScreen(UI_BACKGROUND);
-  display.setTextWrap(false);
+  prepareScreenTransition(UI_BACKGROUND);
   display.setTextColor(UI_TEXT);
   display.setTextSize(2);
   display.setCursor(10, 8);
@@ -500,7 +688,23 @@ void TerminalDisplay::showPairing(
 }
 
 void TerminalDisplay::showPairingComplete(const String &suffix) {
-  display.fillScreen(DISPLAY_GREEN);
+  prepareScreenTransition(DISPLAY_GREEN);
+  if (display.isNative320x240()) {
+    display.setTextColor(DISPLAY_BLACK);
+    display.setFont(DisplayFont::DMSansBold18);
+    display.setCursor(24, 60);
+    display.println("CLAIMED");
+
+    display.setFont(DisplayFont::DMSansRegular12);
+    display.setCursor(24, 110);
+    display.print("Hallzee-");
+    display.println(suffix);
+    display.setCursor(24, 135);
+    display.println("This terminal is linked.");
+    display.pause(1800);
+    return;
+  }
+
   display.setTextColor(DISPLAY_BLACK);
   display.setTextSize(2);
   display.setCursor(10, 22);
@@ -515,7 +719,20 @@ void TerminalDisplay::showPairingComplete(const String &suffix) {
 }
 
 void TerminalDisplay::showPairingError(const String &message) {
-  display.fillScreen(DISPLAY_RED);
+  prepareScreenTransition(DISPLAY_RED);
+  if (display.isNative320x240()) {
+    display.setTextColor(DISPLAY_WHITE);
+    display.setFont(DisplayFont::DMSansBold18);
+    display.setCursor(24, 60);
+    display.println("PAIR ERROR");
+
+    display.setFont(DisplayFont::DMSansRegular12);
+    display.setCursor(24, 110);
+    display.println(message);
+    display.pause(1800);
+    return;
+  }
+
   display.setTextColor(DISPLAY_WHITE);
   display.setTextSize(2);
   display.setCursor(10, 22);
@@ -527,7 +744,24 @@ void TerminalDisplay::showPairingError(const String &message) {
 }
 
 void TerminalDisplay::showOwnerReset() {
-  display.fillScreen(DISPLAY_YELLOW);
+  prepareScreenTransition(DISPLAY_YELLOW);
+  if (display.isNative320x240()) {
+    display.setTextColor(DISPLAY_BLACK);
+    display.setFont(DisplayFont::DMSansBold18);
+    display.setCursor(24, 60);
+    display.println("OWNER RESET");
+
+    display.setFont(DisplayFont::DMSansRegular12);
+    display.setCursor(24, 100);
+    display.println("Pairing is cleared.");
+    display.setCursor(24, 125);
+    display.println("Hold * + # for 5 sec");
+    display.setCursor(24, 150);
+    display.println("to pair again.");
+    display.pause(2200);
+    return;
+  }
+
   display.setTextColor(DISPLAY_BLACK);
   display.setTextSize(2);
   display.setCursor(10, 22);

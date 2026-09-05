@@ -82,6 +82,20 @@ public sealed class DashboardViewModelTests : IDisposable {
   }
 
   [Fact]
+  public void ManualTripsAreLabeledManualAndUseManualName() {
+    var today = DateTime.UtcNow.ToString("yyyy-MM-dd");
+    tripRepository.StoreManual(
+      "LEGACY-DEFAULT",
+      $"1,M-123456,{today},09:00:00,09:02:00,120,MANUAL",
+      "Jordan Hayes");
+
+    viewModel.Refresh("default");
+
+    Assert.Equal("Jordan Hayes", viewModel.RecentTrips[0].DisplayName);
+    Assert.Equal("Manual", viewModel.RecentTrips[0].StatusText);
+  }
+
+  [Fact]
   public void ExceededTimeStudentsIdentifiedGroupedAndFilteredCorrectly() {
     var today = DateTime.UtcNow.ToString("yyyy-MM-dd");
     // Seed roster

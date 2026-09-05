@@ -145,7 +145,7 @@ public sealed class TripsViewModel : INotifyPropertyChanged {
     activeProfileId = profileId;
     var statusFilter = SelectedStatus switch {
       "Completed" or "COMPLETED" => "COMPLETED",
-      "Manual" or "MANUAL" or "MANUAL_RESET" => "MANUAL_RESET",
+      "Manual" or "MANUAL" or "MANUAL_RESET" => "MANUAL",
       _ => null
     };
 

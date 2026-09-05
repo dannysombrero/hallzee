@@ -54,6 +54,10 @@ public sealed class MainViewModelTests : IDisposable {
     viewModel.OpenModal("FindTerminals");
     Assert.True(viewModel.IsFindTerminalsModalVisible);
 
+    viewModel.OpenModal("ManualCheckIn");
+    Assert.True(viewModel.IsManualCheckInModalVisible);
+    Assert.False(viewModel.IsFindTerminalsModalVisible);
+
     viewModel.CloseModal();
     Assert.False(viewModel.IsModalOpen);
     Assert.Equal("None", viewModel.ActiveModal);
@@ -68,6 +72,29 @@ public sealed class MainViewModelTests : IDisposable {
     Assert.True(File.Exists(exportPath));
     Assert.True(viewModel.IsTripsModalVisible);
     Assert.Equal("Trips", viewModel.ActiveModal);
+  }
+
+  [Fact]
+  public void ManualCheckInRequiresIdentityAndStartsActivePass() {
+    viewModel.OpenModal("ManualCheckIn");
+
+    viewModel.SubmitManualCheckIn();
+
+    Assert.False(viewModel.ActivePass.IsOccupied);
+    Assert.Equal("Enter a student name or student ID to continue.", viewModel.ManualCheckInModal.StatusMessage);
+
+    viewModel.ManualCheckInModal.StudentName = "Avery Chen";
+    viewModel.ManualCheckInModal.Period = "Period 3";
+    viewModel.ManualCheckInModal.Destination = "Room 102";
+    viewModel.ManualCheckInModal.Purpose = "Nurse / Clinic";
+    viewModel.SubmitManualCheckIn();
+
+    Assert.True(viewModel.ActivePass.IsOccupied);
+    Assert.Equal("Avery Chen", viewModel.ActivePass.StudentName);
+    Assert.Equal("Period 3", viewModel.ActivePass.Period);
+    Assert.Equal("Room 102", viewModel.ActivePass.Destination);
+    Assert.Equal("Nurse / Clinic", viewModel.ActivePass.Purpose);
+    Assert.False(viewModel.IsModalOpen);
   }
 
   [Fact]

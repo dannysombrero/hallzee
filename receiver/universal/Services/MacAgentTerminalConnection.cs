@@ -55,6 +55,7 @@ public class MacAgentTerminalConnection : ITerminalConnection
         finally
         {
             if (ReferenceEquals(connectionTcs, connectionAttempt)) connectionTcs = null;
+            if (!isConnected) SendCommand("Disconnect", null);
         }
     }
 
@@ -74,9 +75,19 @@ public class MacAgentTerminalConnection : ITerminalConnection
     {
         await EnsureAgentRunning();
         discoveredDevices.Clear();
-        discoveryTcs = new TaskCompletionSource<IReadOnlyList<TerminalDevice>>();
+        var discoveryAttempt = new TaskCompletionSource<IReadOnlyList<TerminalDevice>>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        discoveryTcs = discoveryAttempt;
         SendCommand("Discover", null);
-        return await discoveryTcs.Task;
+        try
+        {
+            return await discoveryAttempt.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        }
+        finally
+        {
+            if (ReferenceEquals(discoveryTcs, discoveryAttempt)) discoveryTcs = null;
+            SendCommand("Disconnect", null);
+        }
     }
 
     public async Task SendAsync(string text)

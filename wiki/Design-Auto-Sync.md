@@ -46,7 +46,15 @@ If a High Priority command is initiated while a background cursor sync is stream
 
 ## 3. Reconnect Strategy & Radio Hygiene
 
-- **Exponential Backoff:** When out of range or when a link drops, the desktop client searches for advertisements at intervals of 5s, 10s, 30s, and then steady-state polling every 60s to minimize CPU and radio power consumption.
+- **Remembered-device fast path:** After a terminal has been claimed, the
+  desktop client restores its saved transport and attempts a direct reconnect
+  immediately when the app starts or the link drops. This does not show the
+  date/time or physical pairing flow again.
+- **Discovery fallback:** If the saved BLE address is no longer usable, the
+  client scans for the matching terminal identity and updates the saved
+  transport after a successful reconnect.
+- **Retry backoff:** When the terminal is powered off or out of range, the
+  first attempt is immediate and later attempts use increasing delays.
 - **Session Cleanup:** On connection loss, the desktop clears in-memory stream buffers while leaving durable SQLite records intact. The kiosk resumes standard BLE advertising within 500ms.
 
 ---

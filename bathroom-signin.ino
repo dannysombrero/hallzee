@@ -2,6 +2,9 @@
 #if defined(HALLZEE_ILI9341)
 #include <Adafruit_ILI9341.h>
 #include "Ili9341DisplayPort.h"
+#include "fonts/DMSansBold12pt7b.h"
+#include "fonts/DMSansRegular6pt7b.h"
+#include "HallzeeLogoData.h"
 #else
 #include <Adafruit_ST7735.h>
 #include "St7735DisplayPort.h"
@@ -904,63 +907,63 @@ void setup() {
 
   drawStartupLogo();
 
-  delay(800);
+  delay(1800);
 
   // Until Bluetooth auto-time is added,
   // every true startup asks for date/time.
   beginClockSetup();
 }
 
-// The source logo is receiver/universal/Assets/hallzee-logo.png. The ESP32
-// cannot load that PNG directly, so this is its display-sized RGB565
-// approximation: the same paired doorway shapes and bidirectional arrow,
-// centered in the logical 160 x 128 landscape viewport.
+// Hallzee brand logo splash screen.
 void drawStartupLogo() {
 #if defined(HALLZEE_ILI9341)
-  tft.fillScreen(ILI9341_BLACK);
+  tft.fillScreen(ILI9341_WHITE);
+  const int16_t startX = (320 - LOGO_BITMAP_WIDTH) / 2;
+  const int16_t startY = 40;
+
+  int16_t x = 0;
+  int16_t y = 0;
+  for (size_t i = 0; i < LOGO_RLE_COUNT; i++) {
+    LogoRleSpan span;
+    memcpy_P(&span, &HALLZEE_LOGO_RLE[i], sizeof(LogoRleSpan));
+    int16_t remaining = span.count;
+    while (remaining > 0) {
+      int16_t runInRow = min((int)remaining, (int)(LOGO_BITMAP_WIDTH - x));
+      if (span.color != 0xFFFF) {
+        tft.drawFastHLine(startX + x, startY + y, runInRow, span.color);
+      }
+      x += runInRow;
+      remaining -= runInRow;
+      if (x >= LOGO_BITMAP_WIDTH) {
+        x = 0;
+        y++;
+      }
+    }
+  }
+
+  // Brand title below logo
+  tft.setFont(&DMSansBold12pt7b);
+  tft.setTextColor(0x03B1); // UI_HEADER_NAVY
+  tft.setTextSize(1);
+  tft.setCursor(118, 142);
+  tft.print("HALLZEE");
+
+  tft.setFont(&DMSansRegular6pt7b);
+  tft.setTextColor(0x6B6D); // UI_MUTED
+  tft.setCursor(118, 160);
+  tft.print("T E R M I N A L");
+
+  tft.setFont(&DMSansRegular6pt7b);
+  tft.setTextColor(0x9CF3); // UI_BLUETOOTH_MUTED
+  tft.setCursor(126, 202);
+  tft.print("STARTING...");
+
 #else
   tft.fillScreen(ST77XX_BLACK);
-#endif
-
   const uint16_t logoGreen = tft.color565(118, 220, 40);
   const uint16_t logoBlue = tft.color565(2, 132, 199);
   const uint16_t logoMid = tft.color565(27, 185, 137);
 
-  // Left and right doorway halves. Each half is split into two colors to
-  // preserve the source logo's green-to-blue vertical gradient.
-#if defined(HALLZEE_ILI9341)
-  // The ILI9341 profile uses the same logo geometry scaled into the selected
-  // panel orientation.
-#if HALLZEE_DISPLAY_ROTATION == 1 || HALLZEE_DISPLAY_ROTATION == 3
-  tft.fillTriangle(100, 38, 136, 62, 136, 92, logoGreen);
-  tft.fillTriangle(100, 38, 100, 120, 136, 92, logoMid);
-  tft.fillTriangle(100, 120, 136, 148, 136, 203, logoBlue);
-  tft.fillTriangle(100, 120, 100, 203, 136, 148, logoBlue);
-  tft.fillTriangle(220, 38, 184, 62, 184, 92, logoGreen);
-  tft.fillTriangle(220, 38, 220, 120, 184, 92, logoMid);
-  tft.fillTriangle(220, 120, 184, 148, 184, 203, logoBlue);
-  tft.fillTriangle(220, 120, 220, 203, 184, 148, logoBlue);
-  tft.fillTriangle(112, 120, 138, 90, 138, 109, logoGreen);
-  tft.fillTriangle(112, 120, 138, 150, 138, 131, logoGreen);
-  tft.fillRect(138, 109, 44, 23, logoMid);
-  tft.fillTriangle(208, 120, 182, 90, 182, 109, logoBlue);
-  tft.fillTriangle(208, 120, 182, 150, 182, 131, logoBlue);
-#else
-  tft.fillTriangle(75, 94, 102, 114, 102, 138, logoGreen);
-  tft.fillTriangle(75, 94, 75, 160, 102, 138, logoMid);
-  tft.fillTriangle(75, 160, 102, 182, 102, 226, logoBlue);
-  tft.fillTriangle(75, 160, 75, 226, 102, 182, logoBlue);
-  tft.fillTriangle(165, 94, 138, 114, 138, 138, logoGreen);
-  tft.fillTriangle(165, 94, 165, 160, 138, 138, logoMid);
-  tft.fillTriangle(165, 160, 138, 182, 138, 226, logoBlue);
-  tft.fillTriangle(165, 160, 165, 226, 138, 182, logoBlue);
-  tft.fillTriangle(84, 160, 104, 136, 104, 151, logoGreen);
-  tft.fillTriangle(84, 160, 104, 184, 104, 169, logoGreen);
-  tft.fillRect(104, 151, 33, 18, logoMid);
-  tft.fillTriangle(156, 160, 136, 136, 136, 151, logoBlue);
-  tft.fillTriangle(156, 160, 136, 184, 136, 169, logoBlue);
-#endif
-#else
   tft.fillTriangle(50, 20, 68, 33, 68, 49, logoGreen);
   tft.fillTriangle(50, 20, 50, 64, 68, 49, logoMid);
   tft.fillTriangle(50, 64, 68, 79, 68, 108, logoBlue);
@@ -970,8 +973,6 @@ void drawStartupLogo() {
   tft.fillTriangle(110, 64, 92, 79, 92, 108, logoBlue);
   tft.fillTriangle(110, 64, 110, 108, 92, 79, logoBlue);
 
-  // The center passage arrow, rendered in the source logo's two accent
-  // colors instead of the old white person-shaped splash.
   tft.fillTriangle(56, 64, 69, 48, 69, 58, logoGreen);
   tft.fillTriangle(56, 64, 69, 80, 69, 70, logoGreen);
   tft.fillRect(69, 58, 22, 12, logoMid);

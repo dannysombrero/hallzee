@@ -136,6 +136,7 @@ void handleSingleStar();
 void handleSingleHash();
 void resetCurrentCheckout();
 void drawIdleScreen();
+void transitionToIdle(bool clearEnteredId = true);
 
 bool pairingUiActive = false;
 
@@ -156,10 +157,10 @@ void resetOwnerFromKeypad() {
     setupMode = false;
     setupEntry = "";
     terminalDisplay.showOwnerReset();
-    drawIdleScreen();
+    transitionToIdle();
   } else {
     terminalDisplay.showPairingError("RESET FAILED");
-    drawIdleScreen();
+    transitionToIdle();
   }
 }
 
@@ -172,7 +173,7 @@ void startPairingMode() {
   if (!bluetoothSerial.clearBondedDevices()) {
     terminalSecurity.stopClaimMode();
     terminalDisplay.showPairingError("PAIR RESET FAILED");
-    drawIdleScreen();
+    transitionToIdle();
     return;
   }
   bluetoothSerial.setPairingPasskey(terminalSecurity.pairingPasskey());
@@ -256,10 +257,9 @@ void handleBluetoothClockSet() {
 
   setupMode = false;
   setupEntry = "";
-  enteredID = "";
 
   showBluetoothClockSync();
-  drawIdleScreen();
+  transitionToIdle();
 }
 
 // ======================================================
@@ -303,6 +303,13 @@ void drawIdleScreen() {
   terminalDisplay.drawBluetoothStatus(lastDisplayedBluetoothState);
   lastDisplayedMinute = -1;
   updateClockIfNeeded();
+}
+
+void transitionToIdle(bool clearEnteredId) {
+  if (clearEnteredId) {
+    enteredID = "";
+  }
+  drawIdleScreen();
 }
 
 // ======================================================
@@ -365,8 +372,7 @@ bool manualCheckInFromDesktop(const String &requestedId) {
     bluetoothSync.notifyCheckout(terminal.activeId(), static_cast<uint32_t>(terminal.activeCheckoutTime()));
   }
   showCheckedIn(studentId, elapsedSeconds);
-  enteredID = "";
-  drawIdleScreen();
+  transitionToIdle();
   return true;
 }
 
@@ -378,11 +384,9 @@ void resetCurrentCheckout() {
   String oldID;
   if (!terminal.resetActivePass(oldID)) {
     showStorageError();
-    drawIdleScreen();
+    transitionToIdle();
     return;
   }
-
-  enteredID = "";
 
   bluetoothSync.notifyReset(oldID, 0);
 
@@ -391,7 +395,7 @@ void resetCurrentCheckout() {
   Serial.print("Manual reset. Cleared ID: ");
   Serial.println(oldID);
 
-  drawIdleScreen();
+  transitionToIdle();
 }
 
 // ======================================================
@@ -411,6 +415,7 @@ void showInvalidValue(const String &message) {
   setupEntry = "";
   drawSetupScreen();
 }
+
 void beginClockSetup() {
 
   setupMode = true;
@@ -453,9 +458,7 @@ void finishClockSetup() {
 
   terminalDisplay.showClockSet(getDateString(), getTimeString());
 
-  enteredID = "";
-
-  drawIdleScreen();
+  transitionToIdle();
 }
 
 // ======================================================
@@ -700,9 +703,8 @@ void submitID() {
   const String submittedID = enteredID;
   const uint8_t currentIdLimit = tripStorage.getMaxStudentIdLength();
   if (!isStudentIdWithinLimit(submittedID, currentIdLimit)) {
-    enteredID = "";
     terminalDisplay.showStudentIdTooLong(currentIdLimit);
-    drawIdleScreen();
+    transitionToIdle();
     return;
   }
 
@@ -711,7 +713,7 @@ void submitID() {
   switch (result.action) {
     case TerminalAction::EmptyId:
       showEnterID();
-      drawIdleScreen();
+      transitionToIdle();
       return;
 
     case TerminalAction::StartClockSetup:
@@ -722,9 +724,8 @@ void submitID() {
 
     case TerminalAction::ShowTripLog:
       Serial.println("Trip log summary requested.");
-      enteredID = "";
       showTripLogSummary();
-      drawIdleScreen();
+      transitionToIdle();
       return;
 
     case TerminalAction::CheckedOut:
@@ -736,8 +737,7 @@ void submitID() {
       Serial.println(getTimeString());
       bluetoothSync.notifyCheckout(result.id, static_cast<uint32_t>(terminal.checkoutTimeFor(result.id)));
       showCheckedOut(result.id);
-      enteredID = "";
-      drawIdleScreen();
+      transitionToIdle();
       return;
 
     case TerminalAction::CheckedIn: {
@@ -760,23 +760,20 @@ void submitID() {
         bluetoothSync.notifyCheckout(terminal.activeId(), static_cast<uint32_t>(terminal.activeCheckoutTime()));
       }
       showCheckedIn(result.id, result.elapsedSeconds);
-      enteredID = "";
-      drawIdleScreen();
+      transitionToIdle();
       return;
     }
 
     case TerminalAction::StorageError:
-      enteredID = "";
       showStorageError();
-      drawIdleScreen();
+      transitionToIdle();
       return;
 
     case TerminalAction::PassOccupied:
       Serial.print("Rejected ID: ");
       Serial.println(submittedID);
       showWrongID();
-      enteredID = "";
-      drawIdleScreen();
+      transitionToIdle();
       return;
   }
 }
@@ -1005,11 +1002,11 @@ void loop() {
   if (pairingUiActive && terminalSecurity.hasOwner()) {
     pairingUiActive = false;
     terminalDisplay.showPairingComplete(terminalIdentity.terminalSuffix());
-    drawIdleScreen();
+    transitionToIdle();
   } else if (pairingUiActive &&
              !terminalSecurity.claimModeActive(monotonicClock.milliseconds())) {
     pairingUiActive = false;
-    drawIdleScreen();
+    transitionToIdle();
   }
 
   if (setupMode) {

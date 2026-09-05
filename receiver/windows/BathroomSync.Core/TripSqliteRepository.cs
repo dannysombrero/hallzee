@@ -68,6 +68,14 @@ public sealed class TripSqliteRepository : ITripRepository {
   }
 
   public TripStoreResult Store(string terminalId, string payload) {
+    return StoreInternal(terminalId, payload, null);
+  }
+
+  public TripStoreResult StoreManual(string terminalId, string payload, string? manualName) {
+    return StoreInternal(terminalId, payload, string.IsNullOrWhiteSpace(manualName) ? null : manualName.Trim());
+  }
+
+  TripStoreResult StoreInternal(string terminalId, string payload, string? manualName) {
     if (string.IsNullOrWhiteSpace(terminalId)) return TripStoreResult.Invalid;
 
     var fields = payload.Split(',');
@@ -80,8 +88,8 @@ public sealed class TripSqliteRepository : ITripRepository {
       using var command = connection.CreateCommand();
       command.CommandText = """
         INSERT OR IGNORE INTO trips
-          (trip_id, student_id, trip_date, time_out, time_in, duration_seconds, status, terminal_id, synced_at)
-        VALUES ($id, $studentId, $date, $timeOut, $timeIn, $duration, $status, $terminalId, datetime('now'));
+          (trip_id, student_id, trip_date, time_out, time_in, duration_seconds, status, terminal_id, synced_at, manual_name)
+        VALUES ($id, $studentId, $date, $timeOut, $timeIn, $duration, $status, $terminalId, datetime('now'), $manualName);
         """;
       command.Parameters.AddWithValue("$id", tripId);
       command.Parameters.AddWithValue("$studentId", fields[1]);
@@ -91,6 +99,7 @@ public sealed class TripSqliteRepository : ITripRepository {
       command.Parameters.AddWithValue("$duration", fields[5]);
       command.Parameters.AddWithValue("$status", fields[6]);
       command.Parameters.AddWithValue("$terminalId", terminalId);
+      command.Parameters.AddWithValue("$manualName", (object?)manualName ?? DBNull.Value);
       return command.ExecuteNonQuery() == 1 ? TripStoreResult.Saved : TripStoreResult.Duplicate;
     } catch (SqliteException) {
       return TripStoreResult.Unavailable;
@@ -168,7 +177,8 @@ public sealed class TripSqliteRepository : ITripRepository {
         r.first_name,
         r.last_name,
         r.grade,
-        r.class_period
+        r.class_period,
+        t.manual_name
       FROM trips t
       LEFT JOIN roster_students r 
         ON t.student_id = r.student_id 
@@ -348,8 +358,9 @@ public sealed class TripSqliteRepository : ITripRepository {
     if (!string.IsNullOrWhiteSpace(filter.Status) && !string.Equals(filter.Status, "ALL", StringComparison.OrdinalIgnoreCase)) {
       if (string.Equals(filter.Status, "COMPLETED", StringComparison.OrdinalIgnoreCase) || string.Equals(filter.Status, "COMPLETE", StringComparison.OrdinalIgnoreCase)) {
         conditions.Add("UPPER(t.status) IN ('COMPLETE', 'COMPLETED')");
-      } else if (string.Equals(filter.Status, "MANUAL_RESET", StringComparison.OrdinalIgnoreCase)) {
-        conditions.Add("UPPER(t.status) = 'MANUAL_RESET'");
+      } else if (string.Equals(filter.Status, "MANUAL", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(filter.Status, "MANUAL_RESET", StringComparison.OrdinalIgnoreCase)) {
+        conditions.Add("UPPER(t.status) IN ('MANUAL', 'MANUAL_RESET')");
       } else {
         conditions.Add("UPPER(t.status) = $status");
         parameters["$status"] = filter.Status.ToUpperInvariant();
@@ -391,6 +402,7 @@ public sealed class TripSqliteRepository : ITripRepository {
     var lastName = reader.IsDBNull(10) ? null : reader.GetString(10);
     var grade = reader.IsDBNull(11) ? null : reader.GetString(11);
     var classPeriod = reader.IsDBNull(12) ? null : reader.GetString(12);
+    var manualName = reader.IsDBNull(13) ? null : reader.GetString(13);
 
     return new EnrichedTripRecord(
       TripId: tripId,
@@ -405,7 +417,8 @@ public sealed class TripSqliteRepository : ITripRepository {
       FirstName: firstName,
       LastName: lastName,
       Grade: grade,
-      ClassPeriod: classPeriod
+      ClassPeriod: classPeriod,
+      ManualName: manualName
     );
   }
 

@@ -156,6 +156,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
         OnPropertyChanged(nameof(IsPoliciesModalVisible));
         OnPropertyChanged(nameof(IsTerminalSettingsModalVisible));
         OnPropertyChanged(nameof(IsFindTerminalsModalVisible));
+        OnPropertyChanged(nameof(IsManualCheckInModalVisible));
         OnPropertyChanged(nameof(IsReconnectPromptVisible));
       }
     }
@@ -248,7 +249,15 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
 
   public string ReconnectCandidateName => lastAuthenticatedDevice?.Name ?? "";
 
-  public bool IsReconnectPromptVisible => HasReconnectCandidate && !IsConnected && !IsReconnecting && ActiveModal == "None";
+  public bool IsReconnectPromptVisible => HasReconnectCandidate && !IsConnected && ActiveModal == "None";
+
+  public string ReconnectPromptTitle => IsReconnecting
+    ? "Attempting to reconnect to last known device…"
+    : "Previously connected terminal found";
+
+  public string ReconnectPromptDetail => IsReconnecting
+    ? FindTerminalsModal.StatusText
+    : "Reconnect without entering a Bluetooth pairing key.";
 
   public async Task ReconnectCandidateAsync() {
     if (!HasReconnectCandidate) return;
@@ -326,9 +335,12 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
   }
 
   public void SubmitManualCheckIn() {
-    if (!ManualCheckInModal.CanSubmit) return;
-    var (id, name, reason, location) = ManualCheckInModal.ResolvePassDetails();
-    ActivePass.SetOccupied(id, name, DateTime.Now, reason, location);
+    if (!ManualCheckInModal.CanSubmit) {
+      ManualCheckInModal.StatusMessage = "Enter a student name or student ID to continue.";
+      return;
+    }
+    var (id, name, period, destination, purpose) = ManualCheckInModal.ResolvePassDetails();
+    ActivePass.SetOccupied(id, name, DateTime.Now, period, destination, purpose, isManual: true);
     Dashboard.RegisterLiveCheckout(id, name, DateTime.Now);
     Dashboard.RefreshAdditionalActiveTrips();
     Dashboard.Refresh(ActiveProfile.ProfileId);
@@ -501,8 +513,13 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
       var timeIn = checkinTime.ToString("HH:mm:ss");
 
       var tripId = tripRepository.GetLatestTripId() + 1;
-      var payload = $"{tripId},{studentId},{date},{timeOut},{timeIn},{duration},COMPLETED";
-      tripRepository.Store(payload);
+      var status = ActivePass.IsManual ? "MANUAL" : "COMPLETED";
+      var payload = $"{tripId},{studentId},{date},{timeOut},{timeIn},{duration},{status}";
+      if (ActivePass.IsManual) {
+        tripRepository.StoreManual("LEGACY-DEFAULT", payload, ActivePass.StudentName);
+      } else {
+        tripRepository.Store(payload);
+      }
 
       if (IsConnected) {
         try {
@@ -660,6 +677,9 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
         lastAuthenticatedDevice == null || lastAuthenticatedTerminalId == null) return;
 
     reconnectCancellation = new CancellationTokenSource();
+    OnPropertyChanged(nameof(IsReconnectPromptVisible));
+    OnPropertyChanged(nameof(ReconnectPromptTitle));
+    OnPropertyChanged(nameof(ReconnectPromptDetail));
     _ = ReconnectLastTerminalAsync(
       lastAuthenticatedDevice,
       lastAuthenticatedTerminalId,
@@ -674,7 +694,9 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     var reconnectDeadline = Stopwatch.GetTimestamp() +
       (long)(Stopwatch.Frequency * reconnectWindowSeconds);
     reconnectInProgress = true;
+    _ = UpdateReconnectCountdownAsync(cancellationToken, device.Name, reconnectWindowSeconds);
     OnPropertyChanged(nameof(IsReconnecting));
+    OnPropertyChanged(nameof(ReconnectPromptTitle));
     OnPropertyChanged(nameof(ConnectionStatusText));
     OnPropertyChanged(nameof(ConnectionStatusColor));
     OnPropertyChanged(nameof(ConnectionBadgeBackground));
@@ -697,6 +719,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
           FindTerminalsModal.SetStatus(
             $"Attempting to reconnect to last known device {device.Name}… " +
             $"{remainingSeconds}s remaining (attempt {attempt})");
+          OnPropertyChanged(nameof(ReconnectPromptDetail));
 
           TerminalIdentity identity;
           try {
@@ -713,7 +736,11 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
             var candidate = candidates.FirstOrDefault(item =>
                 string.Equals(item.Id, device.Id, StringComparison.OrdinalIgnoreCase))
               ?? candidates.FirstOrDefault(item =>
-                item.Name.EndsWith(suffix, StringComparison.OrdinalIgnoreCase));
+                item.Name.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+              // CoreBluetooth can assign a new identifier after a reset. If
+              // only one Hallzee is visible, let the full identity handshake
+              // below verify it instead of requiring the old identifier/name.
+              ?? (candidates.Count == 1 ? candidates[0] : null);
             if (candidate == null) continue;
             device = candidate;
             identity = await terminalSession!.OpenAsync(
@@ -766,6 +793,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
       if (!cancellationToken.IsCancellationRequested) {
         FindTerminalsModal.SetStatus(
           "Reconnect timed out after 10 seconds. Set the terminal's date & time, then choose Find Terminal.");
+        OnPropertyChanged(nameof(ReconnectPromptDetail));
       }
     } finally {
       reconnectInProgress = false;
@@ -778,12 +806,34 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
       OnPropertyChanged(nameof(TerminalAvatarBackground));
       reconnectCancellation?.Dispose();
       reconnectCancellation = null;
+      OnPropertyChanged(nameof(IsReconnectPromptVisible));
+      OnPropertyChanged(nameof(ReconnectPromptTitle));
+      OnPropertyChanged(nameof(ReconnectPromptDetail));
+    }
+  }
+
+  async Task UpdateReconnectCountdownAsync(
+    CancellationToken cancellationToken,
+    string deviceName,
+    int seconds) {
+    try {
+      for (var remaining = seconds; remaining > 0; remaining--) {
+        FindTerminalsModal.SetStatus(
+          $"Attempting to reconnect to last known device {deviceName}… " +
+          $"{remaining}s remaining");
+        OnPropertyChanged(nameof(ReconnectPromptDetail));
+        await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+      }
+    } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+      // The reconnect succeeded, was cancelled, or reached its timeout.
     }
   }
 
   void CancelAutomaticReconnect() {
-    reconnectCancellation?.Cancel();
+    var cancellation = reconnectCancellation;
     reconnectCancellation = null;
+    cancellation?.Cancel();
+    cancellation?.Dispose();
   }
 
   Task SendProtocolAsync(string command) {

@@ -57,8 +57,9 @@ public sealed class ManualCheckInViewModelTests : IDisposable {
     var details = viewModel.ResolvePassDetails();
     Assert.Equal("10482", details.resolvedId);
     Assert.Equal("Elena Rostova", details.resolvedName);
-    Assert.Equal("Restroom", details.resolvedReason);
-    Assert.Null(details.resolvedLocation);
+    Assert.Null(details.resolvedPeriod);
+    Assert.Null(details.resolvedDestination);
+    Assert.Null(details.resolvedPurpose);
   }
 
   [Fact]
@@ -73,33 +74,37 @@ public sealed class ManualCheckInViewModelTests : IDisposable {
   }
 
   [Fact]
-  public void CustomReasonAndLocationResolvedProperly() {
+  public void OptionalDetailsResolvedProperly() {
     viewModel.Reset("prof-1");
     viewModel.StudentName = "Jordan Hayes";
-    viewModel.Reason = "Nurse / Clinic";
-    viewModel.Location = "Room 102";
+    viewModel.Period = "Period 3";
+    viewModel.Destination = "Room 102";
+    viewModel.Purpose = "Nurse / Clinic";
 
     var details = viewModel.ResolvePassDetails();
     Assert.Equal("Jordan Hayes", details.resolvedName);
     Assert.StartsWith("M-", details.resolvedId);
-    Assert.Equal("Nurse / Clinic", details.resolvedReason);
-    Assert.Equal("Room 102", details.resolvedLocation);
+    Assert.Equal("Period 3", details.resolvedPeriod);
+    Assert.Equal("Room 102", details.resolvedDestination);
+    Assert.Equal("Nurse / Clinic", details.resolvedPurpose);
   }
 
   [Fact]
   public void ResetClearsStateToDefaults() {
     viewModel.StudentName = "Test";
     viewModel.StudentId = "999";
-    viewModel.Reason = "Library";
-    viewModel.Location = "Floor 2";
+    viewModel.Period = "Period 2";
+    viewModel.Destination = "Floor 2";
+    viewModel.Purpose = "Library";
     viewModel.StatusMessage = "Some error";
 
     viewModel.Reset("prof-1");
 
     Assert.Equal("", viewModel.StudentName);
     Assert.Equal("", viewModel.StudentId);
-    Assert.Equal("Restroom", viewModel.Reason);
-    Assert.Equal("", viewModel.Location);
+    Assert.Equal("", viewModel.Period);
+    Assert.Equal("", viewModel.Destination);
+    Assert.Equal("", viewModel.Purpose);
     Assert.Null(viewModel.StatusMessage);
     Assert.False(viewModel.CanSubmit);
   }

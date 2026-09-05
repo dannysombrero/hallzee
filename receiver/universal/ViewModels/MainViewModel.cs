@@ -748,7 +748,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
           }
           if (!identity.IsClaimed) {
             FindTerminalsModal.SetStatus(
-              "The last terminal is no longer claimed. Hold * and # on it to start pairing.");
+              "This terminal reports UNCLAIMED after reconnect. Reflash the current terminal firmware, then claim it once with the six-digit pairing key.");
             return;
           }
 

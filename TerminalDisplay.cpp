@@ -180,11 +180,11 @@ void TerminalDisplay::showManualReset(const String &id) {
 void TerminalDisplay::drawIdEntry(const String &entry) {
   if (display.isNative320x240()) {
   // This is deliberately a flat readout: it must not resemble a touch control.
-  display.fillRoundRect(10, 139, 300, 50, 4, UI_FIELD);
-  display.drawRoundRect(10, 139, 300, 50, 4, UI_FIELD_BORDER);
+  display.fillRoundRect(12, 138, 296, 44, 4, UI_FIELD);
+  display.drawRoundRect(12, 138, 296, 44, 4, UI_FIELD_BORDER);
   display.setTextColor(UI_TEXT);
   display.setFont(entry.length() > 12 ? DisplayFont::DMSansBold18 : DisplayFont::DMSansBold24);
-  display.setCursor(20, entry.length() > 12 ? 149 : 164);
+  display.setCursor(22, entry.length() > 12 ? 158 : 166);
   display.print(entry.length() == 0 ? "-" : entry);
   return;
   }
@@ -198,10 +198,10 @@ void TerminalDisplay::drawIdEntry(const String &entry) {
 
 void TerminalDisplay::drawClock(const String &time) {
   if (display.isNative320x240()) {
-  display.fillRect(222, 5, 98, 35, UI_HEADER_NAVY);
+  display.fillRect(222, 3, 98, 36, UI_HEADER_NAVY);
   display.setTextColor(DISPLAY_WHITE);
   display.setFont(DisplayFont::DMSansBold12);
-  display.setCursor(222, 29);
+  display.setCursor(222, 27);
   display.print(time);
   return;
   }
@@ -215,15 +215,15 @@ void TerminalDisplay::drawClock(const String &time) {
 void TerminalDisplay::drawBluetoothStatus(bool connected) {
   if (display.isNative320x240()) {
   const uint16_t color = connected ? UI_HALLZEE_BLUE : UI_BLUETOOTH_MUTED;
-  display.fillRect(174, 5, 46, 35, UI_HEADER_NAVY);
+  display.fillRect(174, 3, 46, 36, UI_HEADER_NAVY);
   // Compact Bluetooth rune, drawn as strokes so it remains legible without
   // depending on a symbol font being present in flash.
-  display.drawLine(182, 7, 182, 34, color);
-  display.drawLine(182, 7, 195, 18, color);
-  display.drawLine(195, 18, 182, 34, color);
-  display.drawLine(182, 19, 195, 8, color);
-  display.drawLine(182, 19, 195, 30, color);
-  if (connected) display.fillRoundRect(202, 18, 7, 7, 3, UI_HALLZEE_BLUE);
+  display.drawLine(182, 6, 182, 32, color);
+  display.drawLine(182, 6, 195, 17, color);
+  display.drawLine(195, 17, 182, 32, color);
+  display.drawLine(182, 18, 195, 7, color);
+  display.drawLine(182, 18, 195, 29, color);
+  if (connected) display.fillRoundRect(202, 16, 7, 7, 3, UI_HALLZEE_BLUE);
   }
   (void)connected;
 }
@@ -232,29 +232,29 @@ void TerminalDisplay::drawIdleScreen(const String &currentOutId, const String &e
   if (display.isNative320x240()) {
   display.fillScreen(UI_BACKGROUND);
   display.setTextWrap(false);
-  display.fillRect(0, 0, 320, 45, UI_HEADER_NAVY);
+  display.fillRect(0, 0, 320, 40, UI_HEADER_NAVY);
   display.setTextColor(DISPLAY_WHITE);
   display.setFont(DisplayFont::DMSansBold18);
-  display.setCursor(12, 26);
+  display.setCursor(12, 25);
   display.println("HALLZEE");
   display.setTextColor(UI_FIELD);
   display.setFont(DisplayFont::DMSansRegular9);
-  display.setCursor(14, 43);
+  display.setCursor(14, 38);
   display.println("TERMINAL");
   display.setTextColor(UI_TEXT);
 
   const bool available = currentOutId.length() == 0;
   const uint16_t accent = available ? UI_STATUS_GREEN : UI_STATUS_RED;
   const uint16_t panel = available ? UI_PALE_GREEN : UI_PALE_RED;
-  display.fillRoundRect(10, 52, 300, 60, 8, panel);
-  display.fillRect(10, 52, 7, 60, accent);
+  display.fillRoundRect(12, 48, 296, 58, 8, panel);
+  display.fillRoundRect(18, 54, 5, 46, 3, accent);
   display.setTextColor(accent);
   display.setFont(DisplayFont::DMSansBold24);
-  display.setCursor(27, 88);
+  display.setCursor(32, 86);
   display.println(available ? "AVAILABLE" : "OCCUPIED");
   display.setTextColor(UI_MUTED);
   display.setFont(DisplayFont::DMSansRegular12);
-  display.setCursor(28, 108);
+  display.setCursor(32, 102);
   if (available) display.println("READY FOR STUDENT ID");
   else {
     display.print("OUT WITH ID ");
@@ -263,24 +263,23 @@ void TerminalDisplay::drawIdleScreen(const String &currentOutId, const String &e
 
   display.setTextColor(UI_TEXT);
   display.setFont(DisplayFont::DMSansBold12);
-  display.setCursor(10, 136);
+  display.setCursor(12, 130);
   display.println("STUDENT ID");
   drawIdEntry(entry);
 
   display.setTextColor(UI_TEXT);
-  display.setFont(DisplayFont::DMSansBold24);
-  display.setCursor(31, 226);
+  display.setFont(DisplayFont::DMSansBold18);
+  display.setCursor(45, 218);
   display.print("*");
-  display.setTextSize(2);
   display.setFont(DisplayFont::DMSansBold12);
-  display.setCursor(57, 224);
+  display.setCursor(66, 216);
   display.print("CLEAR");
-  display.drawLine(159, 202, 159, 232, UI_FIELD_BORDER);
-  display.setFont(DisplayFont::DMSansBold24);
-  display.setCursor(178, 226);
+  display.drawLine(160, 198, 160, 222, UI_FIELD_BORDER);
+  display.setFont(DisplayFont::DMSansBold18);
+  display.setCursor(192, 218);
   display.print("#");
   display.setFont(DisplayFont::DMSansBold12);
-  display.setCursor(206, 224);
+  display.setCursor(216, 216);
   display.print("SUBMIT");
   return;
   }
@@ -334,11 +333,11 @@ void TerminalDisplay::drawIdleScreen(const String &currentOutId, const String &e
 
 void TerminalDisplay::drawClockSetupEntry(const String &entry) {
   if (display.isNative320x240()) {
-    display.fillRoundRect(10, 139, 300, 50, 4, UI_FIELD);
-    display.drawRoundRect(10, 139, 300, 50, 4, UI_FIELD_BORDER);
+    display.fillRoundRect(12, 138, 296, 44, 4, UI_FIELD);
+    display.drawRoundRect(12, 138, 296, 44, 4, UI_FIELD_BORDER);
     display.setTextColor(UI_TEXT);
     display.setFont(DisplayFont::DMSansBold24);
-    display.setCursor(20, 164);
+    display.setCursor(22, 166);
     display.print(entry.length() == 0 ? "-" : entry);
     return;
   }
@@ -353,58 +352,58 @@ void TerminalDisplay::drawClockSetupScreen(ClockSetupStep step, const String &en
   if (display.isNative320x240()) {
     display.fillScreen(UI_BACKGROUND);
     display.setTextWrap(false);
-    display.fillRect(0, 0, 320, 45, UI_HEADER_NAVY);
+    display.fillRect(0, 0, 320, 40, UI_HEADER_NAVY);
     display.setTextColor(DISPLAY_WHITE);
     display.setFont(DisplayFont::DMSansBold18);
-    display.setCursor(12, 26);
+    display.setCursor(12, 25);
     display.println("HALLZEE");
     display.setTextColor(UI_FIELD);
     display.setFont(DisplayFont::DMSansRegular9);
-    display.setCursor(14, 43);
+    display.setCursor(14, 38);
     display.println("TERMINAL");
     display.setTextColor(DISPLAY_WHITE);
     display.setFont(DisplayFont::DMSansBold12);
-    display.setCursor(218, 25);
+    display.setCursor(218, 27);
     display.print("SET TIME");
 
     const char *prompts[] = {"MONTH", "DAY", "YEAR", "HOUR", "MINUTE", "AM / PM"};
     const char *hints[] = {"1-12", "1-31", "YYYY", "1-12", "0-59", "1 or 2"};
     const int index = static_cast<int>(step);
 
-    display.fillRoundRect(10, 52, 300, 60, 8, UI_PANEL);
-    display.fillRect(10, 52, 7, 60, UI_HALLZEE_BLUE);
+    display.fillRoundRect(12, 48, 296, 58, 8, UI_PANEL);
+    display.fillRoundRect(18, 54, 5, 46, 3, UI_HALLZEE_BLUE);
     display.setTextColor(UI_TEXT);
     display.setFont(DisplayFont::DMSansBold12);
-    display.setCursor(28, 72);
+    display.setCursor(32, 69);
     display.println("SET DATE & TIME");
     display.setTextColor(UI_HALLZEE_BLUE);
     display.setFont(DisplayFont::DMSansBold18);
-    display.setCursor(28, 103);
+    display.setCursor(32, 91);
     display.println(prompts[index]);
     display.setTextColor(UI_MUTED);
     display.setFont(DisplayFont::DMSansRegular12);
-    display.setCursor(245, 101);
+    display.setCursor(245, 92);
     display.println(hints[index]);
 
     display.setTextColor(UI_TEXT);
     display.setFont(DisplayFont::DMSansBold12);
-    display.setCursor(10, 136);
+    display.setCursor(12, 129);
     display.println("ENTER VALUE");
     drawClockSetupEntry(entry);
 
     display.setTextColor(UI_TEXT);
-    display.setFont(DisplayFont::DMSansBold24);
-    display.setCursor(31, 226);
+    display.setFont(DisplayFont::DMSansBold18);
+    display.setCursor(45, 218);
     display.print("*");
     display.setFont(DisplayFont::DMSansBold12);
-    display.setCursor(57, 224);
+    display.setCursor(66, 216);
     display.print("CLEAR");
-    display.drawLine(159, 202, 159, 232, UI_FIELD_BORDER);
-    display.setFont(DisplayFont::DMSansBold24);
-    display.setCursor(178, 226);
+    display.drawLine(160, 198, 160, 222, UI_FIELD_BORDER);
+    display.setFont(DisplayFont::DMSansBold18);
+    display.setCursor(192, 218);
     display.print("#");
     display.setFont(DisplayFont::DMSansBold12);
-    display.setCursor(206, 224);
+    display.setCursor(216, 216);
     display.print("NEXT");
     return;
   }

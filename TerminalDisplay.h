@@ -33,4 +33,5 @@ public:
 
 private:
   DisplayPort &display;
+  bool clockSetupActive = false;
 };

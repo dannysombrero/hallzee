@@ -1,10 +1,12 @@
 #include "Ili9341DisplayPort.h"
 
 #if defined(HALLZEE_ILI9341)
+#include "fonts/DMSansBold8pt7b.h"
 #include "fonts/DMSansBold9pt7b.h"
 #include "fonts/DMSansBold12pt7b.h"
 #include "fonts/DMSansBold18pt7b.h"
 #include "fonts/DMSansBold24pt7b.h"
+#include "fonts/DMSansRegular6pt7b.h"
 #include "fonts/DMSansRegular9pt7b.h"
 #include "fonts/DMSansRegular12pt7b.h"
 #include "fonts/DMSansRegular18pt7b.h"
@@ -48,9 +50,11 @@ void Ili9341DisplayPort::setTextColor(uint16_t color) { display.setTextColor(col
 void Ili9341DisplayPort::setTextSize(uint8_t size) { display.setTextSize(size); }
 void Ili9341DisplayPort::setFont(DisplayFont font) {
   switch (font) {
+    case DisplayFont::DMSansRegular6: display.setFont(&DMSansRegular6pt7b); break;
     case DisplayFont::DMSansRegular9: display.setFont(&DMSansRegular9pt7b); break;
     case DisplayFont::DMSansRegular12: display.setFont(&DMSansRegular12pt7b); break;
     case DisplayFont::DMSansRegular18: display.setFont(&DMSansRegular18pt7b); break;
+    case DisplayFont::DMSansBold8: display.setFont(&DMSansBold8pt7b); break;
     case DisplayFont::DMSansBold9: display.setFont(&DMSansBold9pt7b); break;
     case DisplayFont::DMSansBold12: display.setFont(&DMSansBold12pt7b); break;
     case DisplayFont::DMSansBold18: display.setFont(&DMSansBold18pt7b); break;

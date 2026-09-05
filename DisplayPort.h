@@ -4,9 +4,11 @@
 
 enum class DisplayFont {
   BuiltIn,
+  DMSansRegular6,
   DMSansRegular9,
   DMSansRegular12,
   DMSansRegular18,
+  DMSansBold8,
   DMSansBold9,
   DMSansBold12,
   DMSansBold18,

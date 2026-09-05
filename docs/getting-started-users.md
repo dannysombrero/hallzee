@@ -51,9 +51,12 @@ available.
 - Use **Open CSV** or the export controls to create a CSV report.
 
 The app remembers the terminal owner credential on supported production builds,
-so normal reconnects should not require the passkey again. If the terminal was
-replaced, reset, or paired to a different computer, contact the project owner
-before clearing its owner state.
+so normal reconnects should not require the passkey again. After the first
+successful connection, the app remembers the terminal's Bluetooth transport and
+automatically reconnects to it when the app starts or the link drops. The app
+then syncs without requiring the date/time or pairing screens. If the terminal
+was replaced, reset, or paired to a different computer, contact the project
+owner before clearing its owner state.
 
 ## If something does not work
 

@@ -34,17 +34,45 @@ public sealed class TerminalV2MainViewModelTests {
     }
   }
 
+  [Fact]
+  public async Task ClaimedTerminalReconnectsDirectlyAfterConnectionLoss() {
+    var folder = Path.Combine(
+      Path.GetTempPath(), "HallzeeV2MainViewModelTests", Guid.NewGuid().ToString("N"));
+    Directory.CreateDirectory(folder);
+    var connection = new FakeV2Connection();
+
+    try {
+      using var viewModel = new MainViewModel(connection, folder, isPreviewMode: false);
+      await viewModel.FindTerminalsModal.ScanAsync();
+      viewModel.FindTerminalsModal.PairingPasskey = "807481";
+      await viewModel.ConnectAndSyncAsync();
+
+      var connectionCount = connection.ConnectCount;
+      connection.RaiseConnectionLost();
+
+      var deadline = DateTime.UtcNow.AddSeconds(2);
+      while (connection.ConnectCount == connectionCount && DateTime.UtcNow < deadline)
+        await Task.Delay(20);
+
+      Assert.True(connection.ConnectCount > connectionCount);
+      Assert.Equal(1, connection.DiscoverCount);
+    } finally {
+      if (Directory.Exists(folder)) Directory.Delete(folder, true);
+    }
+  }
+
   sealed class FakeV2Connection : ITerminalConnection {
     bool connected;
+    bool claimed;
 
     public event EventHandler<string>? TextReceived;
-    public event EventHandler<string>? ConnectionLost {
-      add { }
-      remove { }
-    }
+    public event EventHandler<string>? ConnectionLost;
     public List<string> SentCommands { get; } = new();
+    public int ConnectCount { get; private set; }
+    public int DiscoverCount { get; private set; }
 
     public Task<IReadOnlyList<TerminalDevice>> DiscoverAsync() {
+      DiscoverCount++;
       IReadOnlyList<TerminalDevice> devices = new[] {
         new TerminalDevice("transport-v2", "Hallzee-A1B2", false, false)
       };
@@ -53,6 +81,7 @@ public sealed class TerminalV2MainViewModelTests {
 
     public Task ConnectAsync(TerminalDevice terminal) {
       connected = true;
+      ConnectCount++;
       return Task.CompletedTask;
     }
 
@@ -61,10 +90,11 @@ public sealed class TerminalV2MainViewModelTests {
       SentCommands.Add(command);
 
       if (command.StartsWith("HELLO,2,")) {
-        Emit($"IDENTITY,2,{TerminalId},E5F6,UNCLAIMED,AVAILABLE,{IdentityNonce}\n");
+        Emit($"IDENTITY,2,{TerminalId},E5F6,{(claimed ? "CLAIMED" : "UNCLAIMED")},AVAILABLE,{IdentityNonce}\n");
       } else if (command.StartsWith("CLAIM,2,")) {
         Emit($"CLAIM_OK,2,{TerminalId},{CommitNonce}\n");
       } else if (command.StartsWith("CLAIM_COMMIT,2,")) {
+        claimed = true;
         Emit($"AUTH_OK,2,{TerminalId},Hallzee-A1B2\n");
       } else if (command == "GET_ACTIVE_PASSES") {
         Emit("ACTIVE_PASSES\n");
@@ -83,6 +113,11 @@ public sealed class TerminalV2MainViewModelTests {
     }
 
     public void Dispose() => connected = false;
+
+    public void RaiseConnectionLost() {
+      connected = false;
+      ConnectionLost?.Invoke(this, "Fake connection lost.");
+    }
 
     void Emit(string text) => TextReceived?.Invoke(this, text);
   }

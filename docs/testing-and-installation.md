@@ -3,6 +3,20 @@
 This guide explains which checks can be done on a Mac and which require a
 Windows PC.
 
+## Automatic reconnect verification
+
+After completing the first Bluetooth claim on a Windows PC, close and reopen
+the Universal app with the terminal powered on. It should reconnect to the
+remembered terminal and sync without showing the date/time or physical pairing
+flow. While connected, power-cycle or move the terminal out of range, then
+restore it; the app should retry the remembered device and fall back to a BLE
+scan if its transport address changed.
+
+Mac testing is sufficient for the shared reconnect state-machine and UI tests.
+A Windows PC is required for the Windows-specific WinRT BLE direct reconnect,
+bond reuse, and discovery fallback. Those Windows behaviors have not yet been
+verified on physical hardware.
+
 ## First day: start from nothing
 
 You do not need Git, Arduino, .NET, or any project libraries installed in

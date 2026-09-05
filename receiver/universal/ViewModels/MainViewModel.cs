@@ -95,6 +95,11 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     // Refresh data
     RefreshActiveProfileData();
 
+    // A claimed terminal has already completed the physical pairing flow. Try
+    // its remembered transport as soon as the desktop app starts so the user
+    // does not have to open the date/time or pairing screens first.
+    if (!isPreviewMode) StartAutomaticReconnect();
+
     // Start 1-second ticker for active pass elapsed timer
     timer = new Timer(_ => {
       ActivePass.Tick();
@@ -676,23 +681,35 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
       var attempt = 0;
       while (!cancellationToken.IsCancellationRequested) {
         attempt++;
-        var delay = TimeSpan.FromSeconds(Math.Min(attempt, 15));
+        var delay = attempt == 1 ? TimeSpan.Zero : TimeSpan.FromSeconds(Math.Min(attempt, 15));
         try {
           await Task.Delay(delay, cancellationToken);
           FindTerminalsModal.SetStatus(
-            $"Connection lost. Reconnecting to {device.Name} (attempt {attempt})…");
+            attempt == 1
+              ? $"Connecting to the last terminal {device.Name}…"
+              : $"Connection lost. Reconnecting to {device.Name} (attempt {attempt})…");
 
-          var candidates = await connection.DiscoverAsync();
-          var suffix = terminalId[^4..];
-          var candidate = candidates.FirstOrDefault(item =>
-              string.Equals(item.Id, device.Id, StringComparison.OrdinalIgnoreCase))
-            ?? candidates.FirstOrDefault(item =>
-              item.Name.EndsWith(suffix, StringComparison.OrdinalIgnoreCase));
-          if (candidate == null) continue;
-          device = candidate;
-
-          var identity = await terminalSession!.OpenAsync(
-            device, terminalId, cancellationToken);
+          TerminalIdentity identity;
+          try {
+            // The saved transport is sufficient for a bonded device and does
+            // not require an advertisement scan. This is the fast path used
+            // at startup and immediately after a transient disconnect.
+            identity = await terminalSession!.OpenAsync(
+              device, terminalId, cancellationToken);
+          } catch {
+            // If the peripheral rotated its BLE address, rediscover it and
+            // continue using the verified terminal identity as the selector.
+            var candidates = await connection.DiscoverAsync();
+            var suffix = terminalId.Length >= 4 ? terminalId[^4..] : terminalId;
+            var candidate = candidates.FirstOrDefault(item =>
+                string.Equals(item.Id, device.Id, StringComparison.OrdinalIgnoreCase))
+              ?? candidates.FirstOrDefault(item =>
+                item.Name.EndsWith(suffix, StringComparison.OrdinalIgnoreCase));
+            if (candidate == null) continue;
+            device = candidate;
+            identity = await terminalSession!.OpenAsync(
+              device, terminalId, cancellationToken);
+          }
           if (!identity.IsClaimed) {
             FindTerminalsModal.SetStatus(
               "The last terminal is no longer claimed. Hold * and # on it to start pairing.");

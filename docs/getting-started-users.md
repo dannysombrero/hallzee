@@ -66,6 +66,8 @@ different computer, contact the project owner before clearing its owner state.
 - Close other Bluetooth apps that may be connected to it.
 - Use **Scan Again**, then retry the connection.
 - If Windows asks for Bluetooth permission, allow the app to use Bluetooth.
+- If reconnect reports that the terminal is **UNCLAIMED**, flash the current
+  terminal firmware and claim it again with the six-digit pairing key.
 - Do not factory-reset or send `OWNER_RESET` unless you are intentionally
   reassigning the terminal; that is a developer/test recovery action.
 

@@ -18,6 +18,15 @@ A Windows PC is required for the Windows-specific WinRT BLE direct reconnect,
 bond reuse, and discovery fallback. Those Windows behaviors have not yet been
 verified on physical hardware.
 
+## Owner-storage recovery
+
+The current firmware stores the terminal owner record in LittleFS so it can
+survive an unavailable ESP32 NVS namespace. After flashing, claim the terminal
+once through the desktop app and confirm the Serial Monitor shows
+`Terminal owner: CLAIMED` after a reset. A full-flash erase removes the
+LittleFS trip log and terminal settings, so export or record any needed data
+before enabling **Erase All Flash Before Sketch Upload** in Arduino IDE.
+
 ## First day: start from nothing
 
 You do not need Git, Arduino, .NET, or any project libraries installed in
@@ -368,10 +377,10 @@ sure the ESP32 terminal is powered on, then use the desktop app to find and
 sync `Hallzee-XXXX`. Initial ownership requires holding `*` and `#` on an
 unclaimed, unoccupied terminal for five seconds, releasing both keys, and
 entering the displayed six-digit Bluetooth passkey. One continuous key hold
-starts only one pairing session. A kiosk with an active checkout advertises `INUSE`,
-is shown as **In Use**, and cannot be selected for connection; use **Scan Again**
-to refresh that status. Do not treat the advertised name or BLE address as
-proof of terminal identity.
+starts only one pairing session. A kiosk with an active checkout advertises `INUSE`
+and is shown as **In Use**. The remembered owner may reconnect and authenticate
+without the pairing passkey; a different client cannot claim or connect to it.
+Do not treat the advertised name or BLE address as proof of terminal identity.
 
 Before calling a Windows change complete, check:
 
@@ -396,6 +405,9 @@ Before calling a Windows change complete, check:
     The terminal must not clear its BLE bond just because owner storage was
     temporarily unavailable during startup; bonds are cleared only by explicit
     pairing mode or owner reset.
+12. With an active checkout, the terminal advertises `INUSE`; the remembered
+    owner can still reconnect and check the student back in without a passkey,
+    while an unrecognized client is rejected.
 
 If a test claim must be cleared, connect the USB serial monitor at 115200 baud
 and send the line `OWNER_RESET`. Confirm `OWNER_RESET,OK`; this clears only the

@@ -88,7 +88,7 @@ public sealed class FindTerminalsViewModel : INotifyPropertyChanged {
       foreach (var d in found) Devices.Add(d);
       SelectedDevice = Devices.FirstOrDefault();
       StatusText = Devices.Count > 0
-        ? $"Found {Devices.Count} terminal(s) nearby. In Use kiosks cannot be connected."
+        ? $"Found {Devices.Count} terminal(s) nearby. In Use kiosks can only be reconnected by their owner."
         : "No terminals found nearby. Ensure kiosk is powered on.";
     } catch (Exception ex) {
       StatusText = $"Scan failed: {ex.Message}";
@@ -99,10 +99,6 @@ public sealed class FindTerminalsViewModel : INotifyPropertyChanged {
 
   public async Task<bool> ConnectAsync() {
     if (SelectedDevice == null) return false;
-    if (SelectedDevice.IsInUse) {
-      StatusText = $"{SelectedDevice.Name} is In Use. Choose Scan Again after it becomes available.";
-      return false;
-    }
     IsConnecting = true;
     StatusText = $"Connecting to {SelectedDevice.Name}…";
     try {

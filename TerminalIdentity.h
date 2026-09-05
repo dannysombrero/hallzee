@@ -17,6 +17,7 @@ public:
 
 private:
   Preferences preferences;
+  bool preferencesReady = false;
   String id;
   String name;
 };

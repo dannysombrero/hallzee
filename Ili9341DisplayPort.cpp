@@ -1,5 +1,6 @@
 #include "Ili9341DisplayPort.h"
 
+#if defined(HALLZEE_ILI9341)
 #include "fonts/DMSansBold9pt7b.h"
 #include "fonts/DMSansBold12pt7b.h"
 #include "fonts/DMSansBold18pt7b.h"
@@ -7,9 +8,9 @@
 #include "fonts/DMSansRegular9pt7b.h"
 #include "fonts/DMSansRegular12pt7b.h"
 #include "fonts/DMSansRegular18pt7b.h"
+#endif
 
 #if defined(HALLZEE_ILI9341)
-
 Ili9341DisplayPort::Ili9341DisplayPort(Adafruit_ILI9341 &display)
   : display(display) {}
 

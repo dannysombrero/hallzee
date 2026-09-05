@@ -80,7 +80,7 @@ public sealed class TerminalSessionTests {
   }
 
   [Fact]
-  public async Task RefusesAConnectionWhenTheTerminalReportsInUse() {
+  public async Task RefusesAnInUseConnectionWithoutTheOwnerCredential() {
     var connection = new FakeTerminalConnection(claimed: true, inUse: true);
     using var session = new TerminalSession(
       connection,
@@ -91,6 +91,21 @@ public sealed class TerminalSessionTests {
       session.OpenAsync(new TerminalDevice("transport-1", "Hallzee-E5F6", false), TerminalId));
 
     Assert.Equal(TerminalSessionState.Failed, session.State);
+  }
+
+  [Fact]
+  public async Task OwnerCanReconnectWhenTheTerminalReportsInUse() {
+    var connection = new FakeTerminalConnection(claimed: true, inUse: true);
+    var credentials = new InMemoryTerminalCredentialStore();
+    var ownerKey = TerminalIdentityProtocol.DeriveOwnerKey("807481", TerminalId, ClientId);
+    credentials.SaveOwnerKey(TerminalId, ownerKey);
+    using var session = new TerminalSession(connection, credentials, ClientId);
+
+    await session.OpenAsync(new TerminalDevice("transport-1", "Hallzee-E5F6", false), TerminalId);
+    await session.AuthenticateAsync();
+
+    Assert.Equal(TerminalSessionState.Authenticated, session.State);
+    Assert.Contains(connection.SentCommands, command => command.StartsWith("AUTH,2,", StringComparison.Ordinal));
   }
 
   [Fact]

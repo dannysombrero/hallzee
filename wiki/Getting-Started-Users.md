@@ -39,8 +39,9 @@ No .NET installation is required for this self-contained Windows artifact.
 7. Choose **Sync Now**.
 
 The terminal can have one active owner connection. A terminal with an active
-student checkout is shown as **In Use** and cannot be selected until it becomes
-available.
+student checkout is shown as **In Use**. The remembered owner can reconnect
+without the pairing passkey so the checkout can be completed; other clients
+cannot claim or connect to it.
 
 ## Everyday operation
 

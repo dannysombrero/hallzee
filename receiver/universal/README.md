@@ -9,8 +9,9 @@ store. Preview mode uses the simulated v1 terminal.
 
 For an unclaimed physical terminal, hold `*` and `#` for five seconds, enter
 the displayed six-digit Bluetooth passkey in the Find Terminals dialog, and
-connect again. A kiosk with an active checkout is shown as **In Use** and
-cannot be selected; use **Scan Again** after it becomes available.
+connect again. A kiosk with an active checkout is shown as **In Use**; its
+remembered owner can reconnect without the passkey, while other clients must
+wait until it becomes available.
 After a successful connection, an unexpected Bluetooth drop automatically
 retries the same terminal using its owner credential and resumes sync without
 asking for the passkey. The current v2 test path keeps that credential in

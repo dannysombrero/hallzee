@@ -207,7 +207,10 @@ void BluetoothSync::processAuthenticationCommand(const String &command) {
     }
     const String clientId = remainder.substring(0, separator);
     const String proof = remainder.substring(separator + 1);
-    if (activePassProvider) {
+    // An active checkout blocks new claims, but the remembered owner must
+    // still be able to authenticate and reconnect in order to check the pass
+    // back in. AUTH remains protected by the owner-key proof below.
+    if ((prefixLength == 8 || prefixLength == 15) && activePassProvider) {
       String activeId;
       uint32_t checkoutEpoch = 0;
       if (activePassProvider(activeId, checkoutEpoch)) {

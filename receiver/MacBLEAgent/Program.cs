@@ -218,6 +218,10 @@ class Program
         
         public override void FailedToConnectPeripheral(CBCentralManager central, CBPeripheral peripheral, NSError? error)
         {
+            // Release the failed peripheral before the desktop starts its
+            // discovery fallback. Keeping this stale target selected can make
+            // the next CoreBluetooth operation a no-op.
+            Disconnect();
             EmitEvent("Error", new { Message = $"Failed to connect: {error?.LocalizedDescription}" });
         }
         

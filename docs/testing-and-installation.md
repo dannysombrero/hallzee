@@ -9,8 +9,9 @@ After completing the first Bluetooth claim on a Windows PC, close and reopen
 the Universal app with the terminal powered on. It should reconnect to the
 remembered terminal and sync without showing the date/time or physical pairing
 flow. While connected, power-cycle or move the terminal out of range, then
-restore it; the app should retry the remembered device and fall back to a BLE
-scan if its transport address changed.
+restore it; the app should retry the remembered device, show a 10-second
+countdown, and fall back to manual recovery if it cannot reconnect. It should
+fall back to a BLE scan if the transport address changed.
 
 Mac testing is sufficient for the shared reconnect state-machine and UI tests.
 A Windows PC is required for the Windows-specific WinRT BLE direct reconnect,

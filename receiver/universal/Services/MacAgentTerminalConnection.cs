@@ -40,7 +40,10 @@ public class MacAgentTerminalConnection : ITerminalConnection
         connectionTcs = connectionAttempt;
         SendCommand("Connect", new Dictionary<string, string> { { "Id", terminal.Id } });
 
-        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        // Reconnect attempts are intentionally short. The coordinator owns a
+        // bounded retry window and should be able to return the UI to manual
+        // recovery instead of leaving one CoreBluetooth attempt hanging.
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
         using var registration = timeout.Token.Register(() =>
             connectionAttempt.TrySetException(new TimeoutException(
                 "Timed out waiting for the terminal's BLE notifications to become ready.")));

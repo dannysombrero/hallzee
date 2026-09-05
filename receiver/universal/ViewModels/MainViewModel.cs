@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using BathroomSync.Core;
 using BathroomSync.Universal.Services;
@@ -669,6 +670,9 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     TerminalDevice device,
     string terminalId,
     CancellationToken cancellationToken) {
+    const int reconnectWindowSeconds = 10;
+    var reconnectDeadline = Stopwatch.GetTimestamp() +
+      (long)(Stopwatch.Frequency * reconnectWindowSeconds);
     reconnectInProgress = true;
     OnPropertyChanged(nameof(IsReconnecting));
     OnPropertyChanged(nameof(ConnectionStatusText));
@@ -679,15 +683,20 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     OnPropertyChanged(nameof(TerminalAvatarBackground));
     try {
       var attempt = 0;
-      while (!cancellationToken.IsCancellationRequested) {
+      while (!cancellationToken.IsCancellationRequested &&
+             Stopwatch.GetTimestamp() < reconnectDeadline) {
         attempt++;
-        var delay = attempt == 1 ? TimeSpan.Zero : TimeSpan.FromSeconds(Math.Min(attempt, 15));
+        var remainingSeconds = Math.Max(1, (int)Math.Ceiling(
+          (reconnectDeadline - Stopwatch.GetTimestamp()) / (double)Stopwatch.Frequency));
+        var delay = attempt == 1 ? TimeSpan.Zero : TimeSpan.FromSeconds(1);
         try {
           await Task.Delay(delay, cancellationToken);
+          if (Stopwatch.GetTimestamp() >= reconnectDeadline) break;
+          remainingSeconds = Math.Max(1, (int)Math.Ceiling(
+            (reconnectDeadline - Stopwatch.GetTimestamp()) / (double)Stopwatch.Frequency));
           FindTerminalsModal.SetStatus(
-            attempt == 1
-              ? $"Connecting to the last terminal {device.Name}…"
-              : $"Connection lost. Reconnecting to {device.Name} (attempt {attempt})…");
+            $"Attempting to reconnect to last known device {device.Name}… " +
+            $"{remainingSeconds}s remaining (attempt {attempt})");
 
           TerminalIdentity identity;
           try {
@@ -753,6 +762,10 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
           // The terminal may be powered off or temporarily out of range. Keep
           // retrying with the same verified identity until the user cancels.
         }
+      }
+      if (!cancellationToken.IsCancellationRequested) {
+        FindTerminalsModal.SetStatus(
+          "Reconnect timed out after 10 seconds. Set the terminal's date & time, then choose Find Terminal.");
       }
     } finally {
       reconnectInProgress = false;

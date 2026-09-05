@@ -9,8 +9,9 @@ After completing the first Bluetooth claim on a Windows PC, close and reopen
 the Universal app with the terminal powered on. It should reconnect to the
 remembered terminal and sync without showing the date/time or physical pairing
 flow. While connected, power-cycle or move the terminal out of range, then
-restore it; the app should retry the remembered device, show a 10-second
-countdown, and fall back to manual recovery if it cannot reconnect. It should
+restore it; the app should retry the remembered device, show a countdown for
+up to 45 seconds, and fall back to manual recovery if it cannot reconnect. It
+should
 fall back to a BLE scan if the transport address changed.
 
 Mac testing is sufficient for the shared reconnect state-machine and UI tests.
@@ -150,7 +151,8 @@ For the red 240×320 ILI9341 module, run this instead:
 bash "$HOME/Downloads/hallzee-mono-main/scripts/flash-terminal-macos.sh" --display ili9341
 ```
 
-If the display is mounted upside down, add `--rotation 3`. Use the default
+The standard enclosure mounts the display right-side up with default settings.
+If an alternative mount has the display inverted, add `--rotation 3`. Use the default
 command for ST7735; do not flash the ILI9341 profile to an ST7735 module. If
 macOS cannot identify the port automatically, list ports with `ls /dev/cu.*`,
 then pass the matching path as the final argument, for example

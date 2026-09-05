@@ -54,7 +54,7 @@ If a High Priority command is initiated while a background cursor sync is stream
   client scans for the matching terminal identity and updates the saved
   transport after a successful reconnect.
 - **Bounded retry window:** The first attempt is immediate. The client shows a
-  seconds-remaining countdown while retrying for 10 seconds, then returns to
+  seconds-remaining countdown while retrying for up to 45 seconds, then returns to
   manual recovery instead of retrying forever.
 - **Session Cleanup:** On connection loss, the desktop clears in-memory stream buffers while leaving durable SQLite records intact. The kiosk resumes standard BLE advertising within 500ms.
 

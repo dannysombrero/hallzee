@@ -690,7 +690,11 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     TerminalDevice device,
     string terminalId,
     CancellationToken cancellationToken) {
-    const int reconnectWindowSeconds = 10;
+    // A computer waking from sleep can report the link loss before its
+    // Bluetooth stack is ready to accept a new CoreBluetooth/WinRT request.
+    // Keep trying long enough for that subsystem to resume instead of making
+    // the user press Reconnect after the original short countdown expires.
+    const int reconnectWindowSeconds = 45;
     var reconnectDeadline = Stopwatch.GetTimestamp() +
       (long)(Stopwatch.Frequency * reconnectWindowSeconds);
     reconnectInProgress = true;
@@ -792,7 +796,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
       }
       if (!cancellationToken.IsCancellationRequested) {
         FindTerminalsModal.SetStatus(
-          "Reconnect timed out after 10 seconds. Set the terminal's date & time, then choose Find Terminal.");
+          "Reconnect is still unavailable after 45 seconds. Check that Bluetooth is on, then choose Find Terminal.");
         OnPropertyChanged(nameof(ReconnectPromptDetail));
       }
     } finally {

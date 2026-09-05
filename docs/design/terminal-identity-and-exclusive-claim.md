@@ -227,9 +227,10 @@ Both sides derive the same owner key after validating the physical claim proof:
       output_length = 32 bytes
     )
 
-Firmware persists owner_client_id and owner_key in a dedicated Preferences
-namespace. The desktop stores owner_key in an OS-protected credential vault,
-keyed by terminal_id; SQLite stores only non-secret metadata.
+Firmware persists owner_client_id and owner_key in an atomic LittleFS owner
+record, with one-time migration from the legacy Preferences namespace. The
+desktop stores owner_key in an OS-protected credential vault, keyed by
+terminal_id; SQLite stores only non-secret metadata.
 
 ### 6.3 Proof construction
 
@@ -541,7 +542,8 @@ Add these modules at the repository root:
 - TerminalIdentity.h/.cpp
   - eFuse-based ID and suffix formatting;
   - validated custom-name persistence;
-  - owner metadata persistence in a dedicated Preferences namespace.
+  - eFuse-based identity and custom-name persistence, with owner metadata in an
+    atomic LittleFS record and legacy Preferences migration.
 - TerminalSecurity.h/.cpp
   - claim window, nonce lifecycle, proof verification, HKDF derivation,
     authorization state, failure counter, and timeout;

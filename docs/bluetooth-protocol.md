@@ -119,7 +119,7 @@ Carriage returns are ignored.
 | `ERROR,AUTH_TIMEOUT` | Authorization was not completed in time |
 | `ERROR,PAIRING_MODE_REQUIRED` | An unclaimed terminal is not in its physical claim window |
 | `ERROR,ALREADY_CLAIMED` | A claim was attempted against an owned terminal |
-| `ERROR,TERMINAL_IN_USE` | The kiosk currently has an active checkout and cannot accept a desktop connection |
+| `ERROR,TERMINAL_IN_USE` | The kiosk currently has an active checkout and cannot accept a new claim; its authenticated owner may still reconnect |
 | `ERROR,UPGRADE_REQUIRED` | Legacy protocol is not accepted by the secured firmware |
 
 ## Kiosk settings

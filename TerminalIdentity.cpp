@@ -16,8 +16,12 @@ bool TerminalIdentity::begin() {
            static_cast<unsigned long long>(eFuseMac));
   id = String(idBuffer);
 
-  if (!preferences.begin(PREFERENCES_NAMESPACE, false)) {
-    return false;
+  // The eFuse-derived identity remains usable even if the optional NVS
+  // custom-name namespace is unavailable. Owner credentials use LittleFS.
+  preferencesReady = preferences.begin(PREFERENCES_NAMESPACE, false);
+  if (!preferencesReady) {
+    name = DEFAULT_NAME;
+    return true;
   }
 
   name = preferences.getString(CUSTOM_NAME_KEY, "");
@@ -44,6 +48,7 @@ String TerminalIdentity::advertisedName(bool inUse) const {
 bool TerminalIdentity::setCustomName(const String &requestedName) {
   if (!isValidCustomName(requestedName)) return false;
   const String normalized = requestedName;
+  if (!preferencesReady) return false;
   if (preferences.putString(CUSTOM_NAME_KEY, normalized) == 0) return false;
   name = normalized;
   return true;

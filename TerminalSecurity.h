@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
+#include <LittleFS.h>
 #include <Preferences.h>
 
 #include "TerminalIdentity.h"
@@ -92,5 +93,8 @@ private:
     const String &nonce
   );
   void clearPendingClaim();
+  bool loadOwnerFromLittleFS();
+  bool writeOwnerToLittleFS(const String &clientId, const uint8_t *key);
+  bool migrateOwnerFromPreferences();
   bool persistOwner(const String &clientId, const uint8_t *key);
 };

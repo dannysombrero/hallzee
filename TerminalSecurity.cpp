@@ -7,25 +7,35 @@ namespace {
 constexpr char OWNER_NAMESPACE[] = "hallzee_owner";
 constexpr char OWNER_CLIENT_KEY[] = "client_id";
 constexpr char OWNER_KEY_KEY[] = "owner_key";
+constexpr char OWNER_FILE_PATH[] = "/hallzee-owner.bin";
+constexpr char OWNER_TEMP_PATH[] = "/hallzee-owner.tmp";
+constexpr char OWNER_MAGIC[] = "HZOW";
+constexpr uint8_t OWNER_FILE_VERSION = 1;
+constexpr size_t OWNER_CLIENT_BYTES = 37;
+constexpr size_t OWNER_FILE_BYTES = 4 + 1 + OWNER_CLIENT_BYTES + 32;
 }
 
 TerminalSecurity::TerminalSecurity(TerminalIdentity &identity)
   : identity(identity) {}
 
 bool TerminalSecurity::begin() {
-  if (!preferences.begin(OWNER_NAMESPACE, false)) return false;
-  ownerClientId = preferences.getString(OWNER_CLIENT_KEY, "");
-  const size_t storedLength = preferences.getBytesLength(OWNER_KEY_KEY);
-  if (ownerClientId.length() == 0 || storedLength != OWNER_KEY_BYTES) {
-    ownerClientId = "";
-    memset(ownerKey, 0, sizeof(ownerKey));
-    return true;
+  if (!LittleFS.begin(false)) return false;
+
+  // Prefer the new LittleFS record. Existing valid NVS records are migrated
+  // once so upgrading does not require a new physical claim.
+  if (loadOwnerFromLittleFS()) return true;
+
+  if (preferences.begin(OWNER_NAMESPACE, false)) {
+    ownerClientId = preferences.getString(OWNER_CLIENT_KEY, "");
+    const size_t storedLength = preferences.getBytesLength(OWNER_KEY_KEY);
+    if (ownerClientId.length() > 0 && storedLength == OWNER_KEY_BYTES &&
+        preferences.getBytes(OWNER_KEY_KEY, ownerKey, OWNER_KEY_BYTES) == OWNER_KEY_BYTES) {
+      if (migrateOwnerFromPreferences()) return true;
+    }
   }
 
-  if (preferences.getBytes(OWNER_KEY_KEY, ownerKey, OWNER_KEY_BYTES) != OWNER_KEY_BYTES) {
-    ownerClientId = "";
-    memset(ownerKey, 0, sizeof(ownerKey));
-  }
+  ownerClientId = "";
+  memset(ownerKey, 0, sizeof(ownerKey));
   return true;
 }
 
@@ -191,11 +201,12 @@ void TerminalSecurity::clearSession() {
 }
 
 bool TerminalSecurity::resetOwner() {
-  if (hasOwner() &&
-      (preferences.remove(OWNER_CLIENT_KEY) == 0 ||
-       preferences.remove(OWNER_KEY_KEY) == 0)) {
-    return false;
+  bool removed = !LittleFS.exists(OWNER_FILE_PATH) || LittleFS.remove(OWNER_FILE_PATH);
+  if (preferences.begin(OWNER_NAMESPACE, false)) {
+    if (preferences.isKey(OWNER_CLIENT_KEY)) preferences.remove(OWNER_CLIENT_KEY);
+    if (preferences.isKey(OWNER_KEY_KEY)) preferences.remove(OWNER_KEY_KEY);
   }
+  if (!removed) return false;
   ownerClientId = "";
   memset(ownerKey, 0, sizeof(ownerKey));
   stopClaimMode();
@@ -393,43 +404,56 @@ void TerminalSecurity::clearPendingClaim() {
 
 bool TerminalSecurity::persistOwner(const String &clientId, const uint8_t *key) {
   if (clientId.length() == 0 || key == nullptr) return false;
-
-  // Refresh the namespace handle before writing. A claim can happen after a
-  // prior interrupted claim or reset, and ESP32 Preferences may otherwise
-  // retain a stale handle after keys were cleared.
-  preferences.end();
-  if (!preferences.begin(OWNER_NAMESPACE, false)) {
-    claimCommitFailure = "STORAGE_OPEN";
-    return false;
-  }
-  preferences.clear();
-  const size_t clientBytes = preferences.putString(OWNER_CLIENT_KEY, clientId);
-  if (clientBytes == 0) {
-    claimCommitFailure = "STORAGE_CLIENT";
-    preferences.clear();
-    return false;
-  }
-  const size_t keyBytes = preferences.putBytes(OWNER_KEY_KEY, key, OWNER_KEY_BYTES);
-  if (keyBytes != OWNER_KEY_BYTES) {
-    claimCommitFailure = "STORAGE_KEY";
-    preferences.clear();
-    return false;
-  }
-
-  // Verify both values through the same handle before AUTH_OK is emitted.
-  // This turns a storage failure into CLAIM_COMMIT_STORAGE instead of leaving
-  // the desktop believing the terminal is claimed when the next boot will
-  // report UNCLAIMED.
-  uint8_t storedKey[OWNER_KEY_BYTES] = {};
-  const bool verified = preferences.getString(OWNER_CLIENT_KEY, "") == clientId &&
-    preferences.getBytesLength(OWNER_KEY_KEY) == OWNER_KEY_BYTES &&
-    preferences.getBytes(OWNER_KEY_KEY, storedKey, OWNER_KEY_BYTES) == OWNER_KEY_BYTES &&
-    memcmp(storedKey, key, OWNER_KEY_BYTES) == 0;
-  memset(storedKey, 0, sizeof(storedKey));
-  if (!verified) {
-    claimCommitFailure = "STORAGE_VERIFY";
-    preferences.clear();
+  if (!writeOwnerToLittleFS(clientId, key)) {
+    claimCommitFailure = "STORAGE_LITTLEFS";
     return false;
   }
   return true;
+}
+
+bool TerminalSecurity::loadOwnerFromLittleFS() {
+  if (!LittleFS.exists(OWNER_FILE_PATH)) return false;
+  File file = LittleFS.open(OWNER_FILE_PATH, FILE_READ);
+  if (!file || file.size() != OWNER_FILE_BYTES) return false;
+
+  uint8_t buffer[OWNER_FILE_BYTES] = {};
+  if (file.read(buffer, sizeof(buffer)) != sizeof(buffer) ||
+      memcmp(buffer, OWNER_MAGIC, 4) != 0 ||
+      buffer[4] != OWNER_FILE_VERSION) return false;
+
+  char clientBuffer[OWNER_CLIENT_BYTES] = {};
+  memcpy(clientBuffer, buffer + 5, OWNER_CLIENT_BYTES);
+  const String candidate(clientBuffer);
+  const String normalized = normalizeClientId(candidate);
+  if (normalized.length() == 0 || normalized != candidate) return false;
+
+  ownerClientId = normalized;
+  memcpy(ownerKey, buffer + 5 + OWNER_CLIENT_BYTES, OWNER_KEY_BYTES);
+  return true;
+}
+
+bool TerminalSecurity::writeOwnerToLittleFS(const String &clientId, const uint8_t *key) {
+  uint8_t buffer[OWNER_FILE_BYTES] = {};
+  memcpy(buffer, OWNER_MAGIC, 4);
+  buffer[4] = OWNER_FILE_VERSION;
+  memcpy(buffer + 5, clientId.c_str(), min(clientId.length(), OWNER_CLIENT_BYTES - 1));
+  memcpy(buffer + 5 + OWNER_CLIENT_BYTES, key, OWNER_KEY_BYTES);
+
+  LittleFS.remove(OWNER_TEMP_PATH);
+  File temp = LittleFS.open(OWNER_TEMP_PATH, FILE_WRITE);
+  if (!temp || temp.write(buffer, sizeof(buffer)) != sizeof(buffer)) return false;
+  temp.flush();
+  temp.close();
+
+  LittleFS.remove(OWNER_FILE_PATH);
+  if (!LittleFS.rename(OWNER_TEMP_PATH, OWNER_FILE_PATH)) {
+    LittleFS.remove(OWNER_TEMP_PATH);
+    return false;
+  }
+  return loadOwnerFromLittleFS();
+}
+
+bool TerminalSecurity::migrateOwnerFromPreferences() {
+  if (!hasOwner()) return false;
+  return writeOwnerToLittleFS(ownerClientId, ownerKey);
 }

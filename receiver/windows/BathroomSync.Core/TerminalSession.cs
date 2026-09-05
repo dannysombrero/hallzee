@@ -94,7 +94,16 @@ public sealed class TerminalSession : IAsyncDisposable, IDisposable {
           throw new TerminalIdentityMismatchException(this.expectedTerminalId, observed.TerminalId);
         }
         if (observed.IsInUse) {
-          throw new TerminalInUseException(observed.TerminalId);
+          // An in-use terminal is still reconnectable by the client that has
+          // its remembered owner credential. The terminal verifies the proof
+          // during AUTH; clients without that credential remain blocked.
+          byte[] ownerKey = Array.Empty<byte>();
+          var hasOwnerCredential = observed.IsClaimed &&
+            credentialStore.TryGetOwnerKey(observed.TerminalId, out ownerKey);
+          if (hasOwnerCredential) Array.Clear(ownerKey);
+          if (!hasOwnerCredential) {
+            throw new TerminalInUseException(observed.TerminalId);
+          }
         }
         identity = observed;
         SetState(observed.IsClaimed

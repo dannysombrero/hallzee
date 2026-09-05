@@ -864,8 +864,12 @@ void setup() {
     "Hallzee Starting..."
   );
 
-  if (!terminalIdentity.begin() || !terminalSecurity.begin()) {
+  const bool identityStorageReady = terminalIdentity.begin();
+  const bool securityStorageReady = terminalSecurity.begin();
+  if (!identityStorageReady || !securityStorageReady) {
     Serial.println("ERROR: terminal identity/security storage unavailable.");
+    if (!identityStorageReady) Serial.println("Identity storage: UNAVAILABLE");
+    if (!securityStorageReady) Serial.println("Owner storage: UNAVAILABLE");
   }
 
   bluetoothSync.begin();

@@ -53,8 +53,9 @@ If a High Priority command is initiated while a background cursor sync is stream
 - **Discovery fallback:** If the saved BLE address is no longer usable, the
   client scans for the matching terminal identity and updates the saved
   transport after a successful reconnect.
-- **Retry backoff:** When the terminal is powered off or out of range, the
-  first attempt is immediate and later attempts use increasing delays.
+- **Bounded retry window:** The first attempt is immediate. The client shows a
+  seconds-remaining countdown while retrying for 10 seconds, then returns to
+  manual recovery instead of retrying forever.
 - **Session Cleanup:** On connection loss, the desktop clears in-memory stream buffers while leaving durable SQLite records intact. The kiosk resumes standard BLE advertising within 500ms.
 
 ---

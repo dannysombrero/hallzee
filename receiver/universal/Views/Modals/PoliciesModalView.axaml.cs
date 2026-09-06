@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using BathroomSync.Core;
 using BathroomSync.Universal.ViewModels;
@@ -8,6 +9,14 @@ namespace BathroomSync.Universal.Views;
 public partial class PoliciesModalView : UserControl {
   public PoliciesModalView() {
     InitializeComponent();
+  }
+
+  void OnBackdropPointerPressed(object? sender, PointerPressedEventArgs e) {
+    var properties = e.GetCurrentPoint(this).Properties;
+    if (properties.IsLeftButtonPressed && ReferenceEquals(e.Source, sender) && DataContext is MainViewModel vm) {
+      e.Handled = true;
+      vm.CloseModal();
+    }
   }
 
   void OnCloseClick(object? sender, RoutedEventArgs e) {

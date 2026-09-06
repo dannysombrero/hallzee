@@ -3,8 +3,8 @@
              xmlns:vm="clr-namespace:BathroomSync.Universal.ViewModels;assembly=HallzeeSync.Universal"
              x:Class="BathroomSync.Universal.Views.PoliciesModalView"
              x:DataType="vm:MainViewModel">
-  <Border Background="#99000000" Padding="32,24">
-    <Border Background="White" CornerRadius="24" MaxWidth="1040" MaxHeight="640" VerticalAlignment="Center" HorizontalAlignment="Stretch" Padding="28" BoxShadow="0 10 30 0 #40000000">
+  <Border Background="#99000000" Padding="32,24" PointerPressed="OnBackdropPointerPressed">
+    <Border Classes="hallzee-modal-window" MaxWidth="1040" MaxHeight="640" VerticalAlignment="Center" HorizontalAlignment="Stretch">
       <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="12">
         
         <!-- ROW 0: HEADER -->
@@ -13,7 +13,7 @@
             <TextBlock Text="Hall Pass Policies &amp; Schedule" FontSize="22" FontWeight="Bold" Foreground="#111B33" />
             <TextBlock Text="Configure classroom pass limits, grace periods, and timetable." FontSize="14" Foreground="#617694" />
           </StackPanel>
-          <Button Grid.Column="1" Classes="secondary" Content="✕" Click="OnCloseClick" Width="36" Height="36" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+          <Button Grid.Column="1" Classes="icon-circle secondary" Content="✕" FontSize="14" FontWeight="Bold" Click="OnCloseClick" />
         </Grid>
 
         <!-- ROW 1: PROFILE SELECTION & SAVE PROFILE SETTINGS (TOP PROFILE BAR) -->
@@ -21,7 +21,7 @@
           <TextBlock Text="Profile:" FontWeight="Bold" FontSize="14" Foreground="#334155" VerticalAlignment="Center" />
           <ComboBox Grid.Column="1" Classes="filter-dropdown" ItemsSource="{Binding Profiles}" SelectedItem="{Binding ActiveProfile}" DisplayMemberBinding="{Binding Name}" MinWidth="200" VerticalAlignment="Center" />
           <TextBlock Grid.Column="2" Text="{Binding PolicyModal.StatusMessage}" MaxWidth="240" TextTrimming="CharacterEllipsis" Foreground="#10B981" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center" />
-          <Button Grid.Column="3" Classes="secondary" Content="+ Create New Profile" Click="OnToggleCreateProfileClick" Padding="14,8" FontSize="13" VerticalAlignment="Center" />
+          <Button Grid.Column="3" Classes="pill-secondary" Content="+ Create New Profile" Click="OnToggleCreateProfileClick" />
           <Button Grid.Column="4" Classes="hallzee-pill-btn" Content="Save Profile Settings" Click="OnSavePolicyClick" Padding="16,8" FontSize="13" VerticalAlignment="Center" />
         </Grid>
 
@@ -49,7 +49,7 @@
               </Grid>
 
               <!-- Card 1: Pass Limits -->
-              <Border Classes="hallzee-section" Padding="16,14">
+              <Border Classes="hallzee-section-white">
                 <StackPanel Spacing="12">
                   <!-- Row 1: Students Allowed Out Simultaneously -->
                   <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
@@ -64,7 +64,9 @@
                     <TextBlock Text="Overdue warning threshold:" FontSize="13" Foreground="#475569" VerticalAlignment="Center" />
                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                       <NumericUpDown Minimum="1" Maximum="60" Increment="1" FormatString="0" ParsingNumberStyle="Integer" HorizontalContentAlignment="Center" Width="105" Value="{Binding PolicyModal.DurationWarningMinutes}" />
-                      <TextBlock Text="mins" FontSize="12" FontWeight="Bold" Foreground="#D97706" VerticalAlignment="Center" />
+                      <Border Classes="status-pill warning">
+                        <TextBlock Text="mins" />
+                      </Border>
                     </StackPanel>
                   </Grid>
 
@@ -75,14 +77,16 @@
                     <TextBlock Text="Daily pass guideline per student:" FontSize="13" Foreground="#475569" VerticalAlignment="Center" />
                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                       <NumericUpDown Minimum="1" Maximum="20" Increment="1" FormatString="0" ParsingNumberStyle="Integer" HorizontalContentAlignment="Center" Width="105" Value="{Binding PolicyModal.MaxDailyPasses}" />
-                      <TextBlock Text="trips" FontSize="12" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center" />
+                      <Border Classes="status-pill dark">
+                        <TextBlock Text="trips" />
+                      </Border>
                     </StackPanel>
                   </Grid>
                 </StackPanel>
               </Border>
 
               <!-- Card 2: Bell-Time Windows -->
-              <Border Classes="hallzee-section" Padding="16,14">
+              <Border Classes="hallzee-section-white">
                 <StackPanel Spacing="10">
                   <TextBlock Text="BELL-TIME WINDOWS" FontSize="11" FontWeight="Bold" Foreground="#64748B" />
 
@@ -108,25 +112,14 @@
                   <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" VerticalAlignment="Center">
                     <TextBlock Text="Warning sound:" FontSize="13" Foreground="#475569" VerticalAlignment="Center" />
                     <ComboBox Grid.Column="1" Width="120" ItemsSource="{Binding PolicyModal.AlertSounds}" SelectedItem="{Binding PolicyModal.AlertSound}" />
-                    <Button Grid.Column="2" Classes="secondary" Click="OnPlaySoundPreviewClick" ToolTip.Tip="Hear selected warning sound" Padding="8,6">
+                    <Button Grid.Column="2" Classes="pill-secondary" Click="OnPlaySoundPreviewClick" ToolTip.Tip="Hear selected warning sound">
                       <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                        <Path Data="{StaticResource IconVolume2}" Width="13" Height="13" Stretch="Uniform" Stroke="#0284C7" StrokeThickness="1.8" StrokeLineCap="Round" VerticalAlignment="Center" />
-                        <TextBlock Text="Preview" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <Path Data="{StaticResource IconVolume2}" Width="13" Height="13" Stretch="Uniform" Stroke="#0369A1" StrokeThickness="1.8" StrokeLineCap="Round" VerticalAlignment="Center" />
+                        <TextBlock Text="Preview" FontSize="12" FontWeight="Bold" Foreground="#0369A1" VerticalAlignment="Center" />
                       </StackPanel>
                     </Button>
                   </Grid>
                 </StackPanel>
-              </Border>
-
-              <!-- Card 3: Pause Rules Planned Info (matching browser preview) -->
-              <Border Background="#FFFBEB" BorderBrush="#FDE68A" BorderThickness="1" CornerRadius="16" Padding="14,12">
-                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" VerticalAlignment="Center">
-                  <Path Data="{StaticResource IconPauseCircle}" Width="20" Height="20" Stretch="Uniform" Stroke="#D97706" StrokeThickness="2" StrokeLineCap="Round" VerticalAlignment="Top" Margin="0,2,0,0" />
-                  <StackPanel Grid.Column="1" Spacing="2">
-                    <TextBlock Text="Pause rules is planned" FontSize="13" FontWeight="Bold" Foreground="#92400E" />
-                    <TextBlock Text="Trips will continue recording even when classroom rules are temporarily paused." FontSize="11" Foreground="#B45309" TextWrapping="Wrap" />
-                  </StackPanel>
-                </Grid>
               </Border>
 
             </StackPanel>
@@ -138,13 +131,13 @@
               <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8" VerticalAlignment="Center">
                 <Path Data="{StaticResource IconCalendar}" Width="18" Height="18" Stretch="Uniform" Stroke="#0284C7" StrokeThickness="2" StrokeLineCap="Round" VerticalAlignment="Center" />
                 <TextBlock Grid.Column="1" Text="Bell Schedule" FontSize="15" FontWeight="Bold" Foreground="#0F172A" VerticalAlignment="Center" />
-                <Button Grid.Column="2" Classes="secondary" Click="OnTogglePeriodSortClick" Padding="10,5" FontSize="12" ToolTip.Tip="Toggle between earliest and latest period first">
+                <Button Grid.Column="2" Classes="pill-secondary" Click="OnTogglePeriodSortClick" ToolTip.Tip="Toggle between earliest and latest period first">
                   <TextBlock Text="{Binding PolicyModal.SortOrderButtonText}" FontWeight="SemiBold" VerticalAlignment="Center" />
                 </Button>
-                <Button Grid.Column="3" Classes="secondary" Click="OnAddPeriodClick" Padding="10,5" FontSize="12">
+                <Button Grid.Column="3" Classes="pill-secondary" Click="OnAddPeriodClick">
                   <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                    <Path Data="{StaticResource IconPlus}" Width="12" Height="12" Stretch="Uniform" Stroke="#0284C7" StrokeThickness="2" StrokeLineCap="Round" VerticalAlignment="Center" />
-                    <TextBlock Text="Add Period" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    <Path Data="{StaticResource IconPlus}" Width="12" Height="12" Stretch="Uniform" Stroke="#0369A1" StrokeThickness="2" StrokeLineCap="Round" VerticalAlignment="Center" />
+                    <TextBlock Text="Add Period" FontWeight="Bold" Foreground="#0369A1" VerticalAlignment="Center" />
                   </StackPanel>
                 </Button>
               </Grid>
@@ -157,7 +150,7 @@
                   <DataTemplate>
                     <Panel Margin="0,4">
                       <!-- VIEW MODE: COMPACT READABLE ROW -->
-                      <Border Classes="hallzee-section-white" Padding="14,12" IsVisible="{Binding !IsEditing}">
+                      <Border Classes="hallzee-section-white" IsVisible="{Binding !IsEditing}">
                         <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" RowSpacing="6" VerticalAlignment="Center">
                           <TextBlock Grid.Row="0" Grid.Column="0" Text="{Binding DisplayTitle}" FontWeight="Bold" FontSize="14" Foreground="#0F172A" VerticalAlignment="Center" />
                           <Border Grid.Row="0" Grid.Column="1" Background="#E0F2FE" CornerRadius="10" Padding="8,2" VerticalAlignment="Center">
@@ -165,10 +158,10 @@
                           </Border>
                           <TextBlock Grid.Row="1" Grid.Column="0" Text="{Binding DisplayTimeRange}" FontSize="12" FontFamily="Cascadia Mono, Menlo, monospace" FontWeight="SemiBold" Foreground="#617694" VerticalAlignment="Center" />
                           <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Spacing="6">
-                            <Button Classes="secondary" Click="OnEditPeriodClick" Tag="{Binding}" Width="28" Height="28" Padding="0" ToolTip.Tip="Edit Period">
-                              <Path Data="{StaticResource IconEdit}" Width="13" Height="13" Stretch="Uniform" Stroke="#475569" StrokeThickness="1.8" StrokeLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <Button Classes="icon-circle info" Click="OnEditPeriodClick" Tag="{Binding}" ToolTip.Tip="Edit Period">
+                              <Path Data="{StaticResource IconEdit}" Width="13" Height="13" Stretch="Uniform" Stroke="#0284C7" StrokeThickness="1.8" StrokeLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Button>
-                            <Button Classes="secondary" Click="OnRemovePeriodClick" Tag="{Binding}" Width="28" Height="28" Padding="0" ToolTip.Tip="Delete Period">
+                            <Button Classes="icon-circle danger" Click="OnRemovePeriodClick" Tag="{Binding}" ToolTip.Tip="Delete Period">
                               <Path Data="{StaticResource IconTrash}" Width="13" Height="13" Stretch="Uniform" Stroke="#EF4444" StrokeThickness="1.8" StrokeLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center" />
                             </Button>
                           </StackPanel>

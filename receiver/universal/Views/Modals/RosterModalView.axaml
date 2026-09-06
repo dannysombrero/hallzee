@@ -3,7 +3,7 @@
              xmlns:vm="clr-namespace:BathroomSync.Universal.ViewModels;assembly=HallzeeSync.Universal"
              x:Class="BathroomSync.Universal.Views.RosterModalView"
              x:DataType="vm:MainViewModel">
-  <Border Background="#99000000" Padding="32,24">
+  <Border Background="#99000000" Padding="32,24" PointerPressed="OnBackdropPointerPressed">
     <Border Background="White" CornerRadius="24" MaxWidth="980" MaxHeight="640" VerticalAlignment="Center" HorizontalAlignment="Stretch" Padding="28" BoxShadow="0 10 30 0 #40000000">
       <Grid RowDefinitions="Auto,*">
         
@@ -43,77 +43,79 @@
 
             <!-- ROW 2: STUDENTS LIST / TABLE WITH UNIFIED TABLE STYLES -->
             <Border Grid.Row="2" Classes="hallzee-table-container">
-              <Grid RowDefinitions="Auto,*">
-                <!-- TABLE HEADER -->
-                <Border Classes="hallzee-table-header">
-                  <Grid ColumnDefinitions="1.2*,2*,1*,1*,70" VerticalAlignment="Center">
-                    <Button Classes="table-header-btn" Click="OnSortStudentClick">
-                      <StackPanel Orientation="Horizontal" Spacing="4">
-                        <TextBlock Text="Student ID" FontSize="12" FontWeight="Bold" Foreground="#0369A1" />
-                        <TextBlock Text="{Binding RosterModal.StudentSortIndicator}" FontSize="12" Foreground="#94A3B8" />
-                      </StackPanel>
-                    </Button>
-                    <Button Grid.Column="1" Classes="table-header-btn" Click="OnSortStudentClick">
-                      <StackPanel Orientation="Horizontal" Spacing="4">
-                        <TextBlock Text="Student Name" FontSize="12" FontWeight="Bold" Foreground="#0369A1" />
-                        <TextBlock Text="{Binding RosterModal.StudentSortIndicator}" FontSize="12" Foreground="#94A3B8" />
-                      </StackPanel>
-                    </Button>
-                    <Button Grid.Column="2" Classes="table-header-btn" Click="OnSortGradeClick">
-                      <StackPanel Orientation="Horizontal" Spacing="4">
-                        <TextBlock Text="Grade" FontSize="12" FontWeight="Bold" Foreground="#0369A1" />
-                        <TextBlock Text="{Binding RosterModal.GradeSortIndicator}" FontSize="12" Foreground="#94A3B8" />
-                      </StackPanel>
-                    </Button>
-                    <Button Grid.Column="3" Classes="table-header-btn" Click="OnSortPeriodClick">
-                      <StackPanel Orientation="Horizontal" Spacing="4">
-                        <TextBlock Text="Period" FontSize="12" FontWeight="Bold" Foreground="#0369A1" />
-                        <TextBlock Text="{Binding RosterModal.PeriodSortIndicator}" FontSize="12" Foreground="#94A3B8" />
-                      </StackPanel>
-                    </Button>
-                    <TextBlock Grid.Column="4" Text="Action" FontSize="12" FontWeight="Bold" Foreground="#0369A1" HorizontalAlignment="Right" Margin="0,0,8,0" />
-                  </Grid>
-                </Border>
+              <Border Classes="hallzee-table-inner">
+                <Grid RowDefinitions="Auto,*">
+                  <!-- TABLE HEADER -->
+                  <Border Classes="hallzee-table-header">
+                    <Grid ColumnDefinitions="1.2*,2*,1*,1*,70" VerticalAlignment="Center">
+                      <Button Classes="table-header-btn" Click="OnSortStudentClick">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                          <TextBlock Text="Student ID" FontSize="12" FontWeight="Bold" Foreground="#0369A1" />
+                          <TextBlock Text="{Binding RosterModal.StudentSortIndicator}" FontSize="12" Foreground="#94A3B8" />
+                        </StackPanel>
+                      </Button>
+                      <Button Grid.Column="1" Classes="table-header-btn" Click="OnSortStudentClick">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                          <TextBlock Text="Student Name" FontSize="12" FontWeight="Bold" Foreground="#0369A1" />
+                          <TextBlock Text="{Binding RosterModal.StudentSortIndicator}" FontSize="12" Foreground="#94A3B8" />
+                        </StackPanel>
+                      </Button>
+                      <Button Grid.Column="2" Classes="table-header-btn" Click="OnSortGradeClick">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                          <TextBlock Text="Grade" FontSize="12" FontWeight="Bold" Foreground="#0369A1" />
+                          <TextBlock Text="{Binding RosterModal.GradeSortIndicator}" FontSize="12" Foreground="#94A3B8" />
+                        </StackPanel>
+                      </Button>
+                      <Button Grid.Column="3" Classes="table-header-btn" Click="OnSortPeriodClick">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                          <TextBlock Text="Period" FontSize="12" FontWeight="Bold" Foreground="#0369A1" />
+                          <TextBlock Text="{Binding RosterModal.PeriodSortIndicator}" FontSize="12" Foreground="#94A3B8" />
+                        </StackPanel>
+                      </Button>
+                      <TextBlock Grid.Column="4" Text="Action" FontSize="12" FontWeight="Bold" Foreground="#0369A1" HorizontalAlignment="Right" Margin="0,0,8,0" />
+                    </Grid>
+                  </Border>
 
-                <!-- STUDENT ITEMS -->
-                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                  <Panel>
-                    <ListBox ItemsSource="{Binding RosterModal.Students}" IsVisible="{Binding RosterModal.HasStudents}" Classes="hallzee-table-list">
-                      <ListBox.ItemTemplate>
-                        <DataTemplate>
-                          <Border Classes="hallzee-table-row">
-                            <Grid ColumnDefinitions="1.2*,2*,1*,1*,70" VerticalAlignment="Center">
-                              <!-- Student ID -->
-                              <TextBlock Text="{Binding StudentId, StringFormat='#{0}'}" FontWeight="Bold" FontSize="13" Foreground="#0F172A" VerticalAlignment="Center" />
-                              
-                              <!-- Student Name -->
-                              <TextBlock Grid.Column="1" Text="{Binding FullName}" FontWeight="Bold" FontSize="13" Foreground="#0F172A" VerticalAlignment="Center" />
-                              
-                              <!-- Grade -->
-                              <TextBlock Grid.Column="2" Text="{Binding Grade, FallbackValue='—'}" FontSize="13" Foreground="#475569" VerticalAlignment="Center" />
-                              
-                              <!-- Period -->
-                              <TextBlock Grid.Column="3" Text="{Binding ClassPeriod, FallbackValue='—'}" FontSize="13" Foreground="#475569" VerticalAlignment="Center" />
-                              
-                              <!-- Action -->
-                              <Button Grid.Column="4" Classes="danger" Click="OnDeleteStudentClick" Tag="{Binding StudentId}" HorizontalAlignment="Right" Margin="0,0,6,0" Width="36" Height="32" Padding="0" ToolTip.Tip="Remove student from roster">
-                                <Path Data="{StaticResource IconTrash}" Width="13" Height="13" Stretch="Uniform" Stroke="#E11D48" StrokeThickness="1.8" StrokeLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                              </Button>
-                            </Grid>
-                          </Border>
-                        </DataTemplate>
-                      </ListBox.ItemTemplate>
-                    </ListBox>
+                  <!-- STUDENT ITEMS -->
+                  <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <Panel>
+                      <ListBox ItemsSource="{Binding RosterModal.Students}" IsVisible="{Binding RosterModal.HasStudents}" Classes="hallzee-table-list">
+                        <ListBox.ItemTemplate>
+                          <DataTemplate>
+                            <Border Classes="hallzee-table-row">
+                              <Grid ColumnDefinitions="1.2*,2*,1*,1*,70" VerticalAlignment="Center">
+                                <!-- Student ID -->
+                                <TextBlock Text="{Binding StudentId, StringFormat='#{0}'}" FontWeight="Bold" FontSize="13" Foreground="#0F172A" VerticalAlignment="Center" />
+                                
+                                <!-- Student Name -->
+                                <TextBlock Grid.Column="1" Text="{Binding FullName}" FontWeight="Bold" FontSize="13" Foreground="#0F172A" VerticalAlignment="Center" />
+                                
+                                <!-- Grade -->
+                                <TextBlock Grid.Column="2" Text="{Binding Grade, FallbackValue='—'}" FontSize="13" Foreground="#475569" VerticalAlignment="Center" />
+                                
+                                <!-- Period -->
+                                <TextBlock Grid.Column="3" Text="{Binding ClassPeriod, FallbackValue='—'}" FontSize="13" Foreground="#475569" VerticalAlignment="Center" />
+                                
+                                <!-- Action -->
+                                <Button Grid.Column="4" Classes="danger" Click="OnDeleteStudentClick" Tag="{Binding StudentId}" HorizontalAlignment="Right" Margin="0,0,6,0" Width="36" Height="32" Padding="0" ToolTip.Tip="Remove student from roster">
+                                  <Path Data="{StaticResource IconTrash}" Width="13" Height="13" Stretch="Uniform" Stroke="#E11D48" StrokeThickness="1.8" StrokeLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                </Button>
+                              </Grid>
+                            </Border>
+                          </DataTemplate>
+                        </ListBox.ItemTemplate>
+                      </ListBox>
 
-                    <!-- EMPTY STATE -->
-                    <StackPanel IsVisible="{Binding RosterModal.HasNoStudents}" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8" Margin="32">
-                      <Path Data="{StaticResource IconUsers}" Width="36" Height="36" Stretch="Uniform" Stroke="#CBD5E1" StrokeThickness="1.8" StrokeLineCap="Round" HorizontalAlignment="Center" />
-                      <TextBlock Text="No students enrolled in this class yet" FontSize="14" FontWeight="Bold" Foreground="#475569" HorizontalAlignment="Center" />
-                      <TextBlock Text="Click 'Import Roster (CSV)' above to upload your roster from a spreadsheet or SIS export." FontSize="12" Foreground="#94A3B8" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" MaxWidth="380" />
-                    </StackPanel>
-                  </Panel>
-                </ScrollViewer>
-              </Grid>
+                      <!-- EMPTY STATE -->
+                      <StackPanel IsVisible="{Binding RosterModal.HasNoStudents}" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8" Margin="32">
+                        <Path Data="{StaticResource IconUsers}" Width="36" Height="36" Stretch="Uniform" Stroke="#CBD5E1" StrokeThickness="1.8" StrokeLineCap="Round" HorizontalAlignment="Center" />
+                        <TextBlock Text="No students enrolled in this class yet" FontSize="14" FontWeight="Bold" Foreground="#475569" HorizontalAlignment="Center" />
+                        <TextBlock Text="Click 'Import Roster (CSV)' above to upload your roster from a spreadsheet or SIS export." FontSize="12" Foreground="#94A3B8" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" MaxWidth="380" />
+                      </StackPanel>
+                    </Panel>
+                  </ScrollViewer>
+                </Grid>
+              </Border>
             </Border>
 
             <!-- ROW 3: FOOTER STATUS -->

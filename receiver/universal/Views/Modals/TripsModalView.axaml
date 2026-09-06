@@ -5,7 +5,7 @@
              x:DataType="vm:MainViewModel">
 
   <!-- OVERLAY WITH GUARANTEED PADDING SO MODAL NEVER CLIPS WINDOW BOUNDS -->
-  <Border Background="#99000000" Padding="32,24">
+  <Border Background="#99000000" Padding="32,24" PointerPressed="OnBackdropPointerPressed">
     <Border Background="White" CornerRadius="24" MaxWidth="1040" MaxHeight="640" VerticalAlignment="Center" HorizontalAlignment="Stretch" Padding="24" BoxShadow="0 10 30 0 #40000000">
       <Grid RowDefinitions="Auto,*,Auto">
         
@@ -49,7 +49,8 @@
 
           <!-- ROW 2: TRIPS TABLE WITH UNIFIED TABLE STYLES -->
           <Border Grid.Row="2" Classes="hallzee-table-container">
-            <Grid RowDefinitions="Auto,*">
+            <Border Classes="hallzee-table-inner">
+              <Grid RowDefinitions="Auto,*">
               
               <!-- TABLE HEADER -->
               <Border Classes="hallzee-table-header">
@@ -154,6 +155,7 @@
               </ScrollViewer>
             </Grid>
           </Border>
+        </Border>
 
           <!-- ROW 3: FOOTER STATUS -->
           <TextBlock Grid.Row="3" Text="{Binding TripsModal.ExportStatusMessage}" FontSize="12" FontWeight="SemiBold" Foreground="#166534" IsVisible="{Binding TripsModal.ExportStatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />

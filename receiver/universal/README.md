@@ -12,6 +12,10 @@ the displayed six-digit Bluetooth passkey in the Find Terminals dialog, and
 connect again. A kiosk with an active checkout is shown as **In Use**; its
 remembered owner can reconnect without the passkey, while other clients must
 wait until it becomes available.
+The **Students Out** top-bar action opens a compact always-on-top companion
+window. It keeps displaying active passes when the main window is minimized
+and uses the configured bell schedule to show the first-10, open, and last-10
+minute states with live countdowns.
 After a successful connection, an unexpected Bluetooth drop automatically
 retries the same terminal using its owner credential and resumes sync without
 asking for the passkey. The current v2 test path keeps that credential in

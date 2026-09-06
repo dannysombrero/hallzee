@@ -5,8 +5,11 @@ using BathroomSync.Universal.ViewModels;
 namespace BathroomSync.Universal;
 
 public partial class MainWindow : Window {
+  StudentsOutWindow? studentsOutWindow;
+
   public MainWindow() {
     InitializeComponent();
+    Closed += (_, _) => studentsOutWindow?.CloseForShutdown();
   }
 
   void OnDashboardClick(object? sender, RoutedEventArgs e) {
@@ -61,5 +64,12 @@ public partial class MainWindow : Window {
 
   void OnDismissReconnectClick(object? sender, RoutedEventArgs e) {
     if (DataContext is MainViewModel vm) vm.DismissReconnectPrompt();
+  }
+
+  void OnStudentsOutClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is not MainViewModel viewModel) return;
+    studentsOutWindow ??= new StudentsOutWindow { DataContext = viewModel };
+    studentsOutWindow.Show();
+    studentsOutWindow.Activate();
   }
 }

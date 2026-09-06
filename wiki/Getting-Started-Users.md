@@ -61,6 +61,16 @@ to manual recovery. The dashboard also leaves a **Reconnect** action for the
 remembered claimed terminal; that action does not require a pairing key. If the terminal was replaced, reset, or paired to a
 different computer, contact the project owner before clearing its owner state.
 
+## Put the Students Out board on display
+
+Choose **Students Out** in the app's top bar to open a compact, always-on-top
+window. It remains visible while the main Hallzee app is minimized and shows
+only students currently out, their elapsed pass times, and a **Check In**
+action. The board also reads the active bell schedule and highlights the first
+10 minutes, the open pass window, or the last 10 minutes with a live countdown.
+Set each period's start and end time in **Policies & Bell Times** for this
+display to be accurate.
+
 ## If something does not work
 
 - Confirm the terminal is powered on and showing **AVAILABLE**.

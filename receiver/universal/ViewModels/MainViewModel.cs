@@ -1,7 +1,9 @@
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using Avalonia.Threading;
 using BathroomSync.Core;
 using BathroomSync.Universal.Services;
 
@@ -101,11 +103,17 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     // does not have to open the date/time or pairing screens first.
     if (!isPreviewMode) StartAutomaticReconnect();
 
-    // Start 1-second ticker for active pass elapsed timer
-    timer = new Timer(_ => {
+    ActivePass.PropertyChanged += HandleActivePassPropertyChanged;
+    Dashboard.AdditionalActiveTrips.CollectionChanged += HandleAdditionalActiveTripsChanged;
+    UpdatePeriodWindow();
+
+    // Start a UI-thread ticker so both the dashboard and the companion window
+    // keep their pass timers and bell-window countdowns in sync.
+    timer = new Timer(_ => Dispatcher.UIThread.Post(() => {
       ActivePass.Tick();
       Dashboard.TickLiveActivePasses();
-    }, null, 1000, 1000);
+      UpdatePeriodWindow();
+    }), null, 1000, 1000);
   }
 
   public event PropertyChangedEventHandler? PropertyChanged;
@@ -120,6 +128,15 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
   public TerminalSettingsViewModel TerminalSettingsModal { get; }
   public FindTerminalsViewModel FindTerminalsModal { get; }
   public ManualCheckInViewModel ManualCheckInModal { get; }
+
+  public bool HasStudentsOut => ActivePass.IsOccupied || Dashboard.AdditionalActiveTrips.Count > 0;
+
+  public string CurrentPeriodName { get; private set; } = "No current period";
+  public string CurrentPeriodRange { get; private set; } = "Set bell times in Policies & Bell Times";
+  public string PeriodWindowTitle { get; private set; } = "Bell schedule needed";
+  public string PeriodWindowDetail { get; private set; } = "Add the current class period to show first and last ten-minute windows.";
+  public string PeriodWindowAccent { get; private set; } = "#64748B";
+  public double CurrentPeriodProgress { get; private set; }
 
   public string ActiveView {
     get => activeView;
@@ -289,6 +306,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
         OnPropertyChanged(nameof(HeaderLocationText));
         Dashboard.ClearLiveCheckouts();
         RefreshActiveProfileData();
+        UpdatePeriodWindow();
       }
     }
   }
@@ -553,6 +571,120 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     PolicyModal.Refresh(ActiveProfile.ProfileId);
     Dashboard.ThresholdMinutes = PolicyModal.DurationWarningMinutes;
     Dashboard.Refresh(ActiveProfile.ProfileId);
+    UpdatePeriodWindow();
+  }
+
+  void HandleActivePassPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs) {
+    if (eventArgs.PropertyName is nameof(ActivePassViewModel.IsOccupied) or nameof(ActivePassViewModel.IsStatusUnknown)) {
+      OnPropertyChanged(nameof(HasStudentsOut));
+    }
+  }
+
+  void HandleAdditionalActiveTripsChanged(object? sender, NotifyCollectionChangedEventArgs eventArgs) =>
+    OnPropertyChanged(nameof(HasStudentsOut));
+
+  void UpdatePeriodWindow() {
+    var now = DateTime.Now;
+    var current = PolicyModal.Periods.FirstOrDefault(period =>
+      IsScheduledOn(period, now.DayOfWeek) &&
+      TryGetPeriodBounds(period, now.Date, out var start, out var end) &&
+      now >= start && now < end);
+
+    if (current is null || !TryGetPeriodBounds(current, now.Date, out var periodStart, out var periodEnd)) {
+      SetPeriodWindow(
+        "No current period",
+        "Set bell times in Policies & Bell Times",
+        "Bell schedule needed",
+        "Add the current class period to show first and last ten-minute windows.",
+        "#64748B",
+        0);
+      return;
+    }
+
+    var totalSeconds = Math.Max(1, (periodEnd - periodStart).TotalSeconds);
+    var elapsedSeconds = Math.Clamp((now - periodStart).TotalSeconds, 0, totalSeconds);
+    var remaining = periodEnd - now;
+    var firstWindowEnds = periodStart.AddMinutes(10);
+    var lastWindowStarts = periodEnd.AddMinutes(-10);
+    var range = $"{periodStart:h:mm tt} – {periodEnd:h:mm tt}";
+
+    if (now < firstWindowEnds) {
+      SetPeriodWindow(
+        current.DisplayTitle,
+        range,
+        "First 10 minutes",
+        $"Window active · {FormatCountdown(firstWindowEnds - now)} remaining",
+        "#F59E0B",
+        elapsedSeconds / totalSeconds * 100);
+    } else if (now >= lastWindowStarts) {
+      SetPeriodWindow(
+        current.DisplayTitle,
+        range,
+        "Last 10 minutes",
+        $"Window active · period ends in {FormatCountdown(remaining)}",
+        "#E11D48",
+        elapsedSeconds / totalSeconds * 100);
+    } else {
+      SetPeriodWindow(
+        current.DisplayTitle,
+        range,
+        "Open pass window",
+        $"Last 10-minute window begins in {FormatCountdown(lastWindowStarts - now)}",
+        "#059669",
+        elapsedSeconds / totalSeconds * 100);
+    }
+  }
+
+  static bool IsScheduledOn(BellPeriodItemViewModel period, DayOfWeek day) => day switch {
+    DayOfWeek.Monday => period.IsMonday,
+    DayOfWeek.Tuesday => period.IsTuesday,
+    DayOfWeek.Wednesday => period.IsWednesday,
+    DayOfWeek.Thursday => period.IsThursday,
+    DayOfWeek.Friday => period.IsFriday,
+    _ => false
+  };
+
+  static bool TryGetPeriodBounds(
+    BellPeriodItemViewModel period,
+    DateTime date,
+    out DateTime start,
+    out DateTime end) {
+    start = default;
+    end = default;
+    if (!DateTime.TryParse(period.StartTime, out var startTime) ||
+        !DateTime.TryParse(period.EndTime, out var endTime)) return false;
+    start = date.Add(startTime.TimeOfDay);
+    end = date.Add(endTime.TimeOfDay);
+    if (end <= start) end = end.AddDays(1);
+    return true;
+  }
+
+  void SetPeriodWindow(
+    string periodName,
+    string range,
+    string title,
+    string detail,
+    string accent,
+    double progress) {
+    CurrentPeriodName = periodName;
+    CurrentPeriodRange = range;
+    PeriodWindowTitle = title;
+    PeriodWindowDetail = detail;
+    PeriodWindowAccent = accent;
+    CurrentPeriodProgress = progress;
+    OnPropertyChanged(nameof(CurrentPeriodName));
+    OnPropertyChanged(nameof(CurrentPeriodRange));
+    OnPropertyChanged(nameof(PeriodWindowTitle));
+    OnPropertyChanged(nameof(PeriodWindowDetail));
+    OnPropertyChanged(nameof(PeriodWindowAccent));
+    OnPropertyChanged(nameof(CurrentPeriodProgress));
+  }
+
+  static string FormatCountdown(TimeSpan duration) {
+    if (duration < TimeSpan.Zero) duration = TimeSpan.Zero;
+    return duration.TotalHours >= 1
+      ? $"{(int)duration.TotalHours}h {duration.Minutes:D2}m"
+      : $"{duration.Minutes:D2}:{duration.Seconds:D2}";
   }
 
   void RestoreReconnectTarget() {
@@ -667,6 +799,8 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     intentionalDisconnect = true;
     CancelAutomaticReconnect();
     timer?.Dispose();
+    ActivePass.PropertyChanged -= HandleActivePassPropertyChanged;
+    Dashboard.AdditionalActiveTrips.CollectionChanged -= HandleAdditionalActiveTripsChanged;
     connection.TextReceived -= HandleTextReceived;
     connection.ConnectionLost -= HandleConnectionLost;
     terminalSession?.Dispose();

@@ -24,6 +24,12 @@
         </StackPanel>
 
         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+          <Button Classes="secondary" Click="OnStudentsOutClick" Padding="10,5" ToolTip.Tip="Open the always-on-top Students Out display">
+            <StackPanel Orientation="Horizontal" Spacing="5">
+              <Path Data="{StaticResource IconUsers}" Width="14" Height="14" Stretch="Uniform" Stroke="#0369A1" StrokeThickness="2" StrokeLineCap="Round" />
+              <TextBlock Text="Students Out" FontSize="11" FontWeight="Bold" />
+            </StackPanel>
+          </Button>
           <TextBlock Text="Profile" FontSize="11" FontWeight="Bold" Foreground="#E0F2FE" VerticalAlignment="Center" />
           <ComboBox Width="190" ItemsSource="{Binding Profiles}" SelectedItem="{Binding ActiveProfile}" DisplayMemberBinding="{Binding Name}" />
           <TextBlock Text="v1.5.2-win64" FontSize="11" FontFamily="Cascadia Mono, Menlo, monospace" Foreground="#E0F2FE" VerticalAlignment="Center" />

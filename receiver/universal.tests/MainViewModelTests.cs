@@ -98,6 +98,20 @@ public sealed class MainViewModelTests : IDisposable {
   }
 
   [Fact]
+  public async Task StudentsOutBoardTracksAnActivePassAndCanCheckItIn() {
+    Assert.False(viewModel.HasStudentsOut);
+
+    viewModel.ManualCheckInModal.StudentName = "Avery Chen";
+    viewModel.SubmitManualCheckIn();
+
+    Assert.True(viewModel.HasStudentsOut);
+
+    await viewModel.CheckInActivePassAsync();
+
+    Assert.False(viewModel.HasStudentsOut);
+  }
+
+  [Fact]
   public async Task ConnectAndSyncWorkflowUpdatesConnectionAndStatus() {
     await viewModel.FindTerminalsModal.ScanAsync();
     Assert.NotEmpty(viewModel.FindTerminalsModal.Devices);

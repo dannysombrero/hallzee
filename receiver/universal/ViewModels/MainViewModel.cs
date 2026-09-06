@@ -87,7 +87,11 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
         Dashboard.ThresholdMinutes = PolicyModal.DurationWarningMinutes;
       }
     };
-    TerminalSettingsModal = new TerminalSettingsViewModel(profileRepository, connection, appData, () => OnPropertyChanged(nameof(HeaderLocationText)));
+    TerminalSettingsModal = new TerminalSettingsViewModel(
+      profileRepository,
+      connection,
+      appData,
+      HandleClassroomInfoChanged);
     FindTerminalsModal = new FindTerminalsViewModel(connection);
     ManualCheckInModal = new ManualCheckInViewModel(rosterService);
 
@@ -234,8 +238,23 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     set { connectedTerminalName = value; OnPropertyChanged(); }
   }
 
-  public string ProfileDetails => profileDetails;
-  public string ProfileTeacher => profileTeacher;
+  public string ProfileDetails {
+    get {
+      var school = TerminalSettingsModal?.School?.Trim();
+      return string.IsNullOrWhiteSpace(school)
+        ? profileDetails
+        : $"{profileDetails} • {school}";
+    }
+  }
+
+  public string ProfileTeacher {
+    get {
+      var teacher = TerminalSettingsModal?.TeacherName?.Trim();
+      return string.IsNullOrWhiteSpace(teacher)
+        ? profileTeacher
+        : $"Teacher: {teacher}";
+    }
+  }
   public string LoadedRosterFileName => loadedRosterFileName;
 
   public string ConnectionStatusText =>
@@ -334,6 +353,14 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
 
       return ActiveProfile?.Name ?? "Default Classroom";
     }
+  }
+
+  void HandleClassroomInfoChanged() {
+    // The location in the title bar and the classroom-profile card both read
+    // these values. Refresh all affected bindings as soon as Settings saves.
+    OnPropertyChanged(nameof(HeaderLocationText));
+    OnPropertyChanged(nameof(ProfileDetails));
+    OnPropertyChanged(nameof(ProfileTeacher));
   }
 
   public void OpenModal(string modalName) {

@@ -98,6 +98,17 @@ public sealed class MainViewModelTests : IDisposable {
   }
 
   [Fact]
+  public void ClassroomProfileCardReflectsTeacherAndSchoolSettings() {
+    viewModel.TerminalSettingsModal.TeacherName = "Mr. Herrero";
+    viewModel.TerminalSettingsModal.School = "Hallzee Middle School";
+
+    Assert.Equal("Teacher: Mr. Herrero", viewModel.ProfileTeacher);
+    Assert.Contains("Hallzee Middle School", viewModel.ProfileDetails);
+    Assert.Contains("Mr. Herrero", viewModel.HeaderLocationText);
+    Assert.Contains("Hallzee Middle School", viewModel.HeaderLocationText);
+  }
+
+  [Fact]
   public async Task StudentsOutBoardTracksAnActivePassAndCanCheckItIn() {
     Assert.False(viewModel.HasStudentsOut);
 

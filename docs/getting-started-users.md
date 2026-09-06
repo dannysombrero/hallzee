@@ -50,6 +50,8 @@ cannot claim or connect to it.
 - Press `*` to clear an ID that is being entered.
 - Use **Sync Now** after activity to copy new trips into the local database.
 - Use **Open CSV** or the export controls to create a CSV report.
+- In **Settings**, save the teacher name and school to update the classroom
+  profile card and the app title bar immediately.
 
 The app remembers the terminal owner credential on supported production builds,
 so normal reconnects should not require the passkey again. After the first

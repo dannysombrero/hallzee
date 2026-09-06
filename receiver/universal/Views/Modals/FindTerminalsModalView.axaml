@@ -4,7 +4,7 @@
              x:Class="BathroomSync.Universal.Views.FindTerminalsModalView"
              x:DataType="vm:MainViewModel">
   <!-- OVERLAY WITH GUARANTEED PADDING SO MODAL NEVER CLIPS WINDOW BOUNDS -->
-  <Border Background="#99000000" Padding="32,24">
+  <Border Background="#99000000" Padding="32,24" PointerPressed="OnBackdropPointerPressed">
     <Border Background="White" CornerRadius="24" MaxWidth="560" VerticalAlignment="Center" HorizontalAlignment="Stretch" Padding="24" BoxShadow="0 10 30 0 #40000000">
       <Grid RowDefinitions="Auto,Auto,*,Auto,Auto" RowSpacing="16">
         
@@ -19,29 +19,31 @@
         <TextBlock Grid.Row="1" Text="{Binding FindTerminalsModal.StatusText}" FontSize="13" Foreground="#334155" TextWrapping="Wrap" />
 
         <Border Grid.Row="2" Classes="hallzee-table-container" MinHeight="140" MaxHeight="220" Margin="0,2,0,2">
-          <ScrollViewer VerticalScrollBarVisibility="Auto">
-            <ListBox ItemsSource="{Binding FindTerminalsModal.Devices}" SelectedItem="{Binding FindTerminalsModal.SelectedDevice}" Classes="hallzee-table-list">
-              <ListBox.ItemTemplate>
-                <DataTemplate>
-                  <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,4" VerticalAlignment="Center">
-                    <Path Data="{StaticResource IconRadio}" Width="18" Height="18" Margin="4,0,10,0" Stretch="Uniform" Stroke="#0284C7" StrokeThickness="2" StrokeLineCap="Round" VerticalAlignment="Center" />
-                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                      <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="14" Foreground="#0F172A" />
-                      <TextBlock Text="{Binding Id, StringFormat='ID: {0}'}" FontSize="11" Foreground="#64748B" />
-                    </StackPanel>
-                    <StackPanel Grid.Column="2" Orientation="Horizontal">
-                      <Border Background="#FEF3C7" CornerRadius="6" Padding="8,3" VerticalAlignment="Center" IsVisible="{Binding IsInUse}">
-                        <TextBlock Text="IN USE" FontSize="10" FontWeight="Bold" Foreground="#92400E" />
-                      </Border>
-                      <Border Background="#DCFCE7" CornerRadius="6" Padding="8,3" VerticalAlignment="Center" IsVisible="{Binding !IsInUse}">
-                        <TextBlock Text="READY" FontSize="10" FontWeight="Bold" Foreground="#166534" />
-                      </Border>
-                    </StackPanel>
-                  </Grid>
-                </DataTemplate>
-              </ListBox.ItemTemplate>
-            </ListBox>
-          </ScrollViewer>
+          <Border Classes="hallzee-table-inner">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+              <ListBox ItemsSource="{Binding FindTerminalsModal.Devices}" SelectedItem="{Binding FindTerminalsModal.SelectedDevice}" Classes="hallzee-table-list">
+                <ListBox.ItemTemplate>
+                  <DataTemplate>
+                    <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,4" VerticalAlignment="Center">
+                      <Path Data="{StaticResource IconRadio}" Width="18" Height="18" Margin="4,0,10,0" Stretch="Uniform" Stroke="#0284C7" StrokeThickness="2" StrokeLineCap="Round" VerticalAlignment="Center" />
+                      <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="14" Foreground="#0F172A" />
+                        <TextBlock Text="{Binding Id, StringFormat='ID: {0}'}" FontSize="11" Foreground="#64748B" />
+                      </StackPanel>
+                      <StackPanel Grid.Column="2" Orientation="Horizontal">
+                        <Border Background="#FEF3C7" CornerRadius="6" Padding="8,3" VerticalAlignment="Center" IsVisible="{Binding IsInUse}">
+                          <TextBlock Text="IN USE" FontSize="10" FontWeight="Bold" Foreground="#92400E" />
+                        </Border>
+                        <Border Background="#DCFCE7" CornerRadius="6" Padding="8,3" VerticalAlignment="Center" IsVisible="{Binding !IsInUse}">
+                          <TextBlock Text="READY" FontSize="10" FontWeight="Bold" Foreground="#166534" />
+                        </Border>
+                      </StackPanel>
+                    </Grid>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </ScrollViewer>
+          </Border>
         </Border>
 
         <StackPanel Grid.Row="3" Spacing="5">

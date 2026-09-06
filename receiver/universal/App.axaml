@@ -109,28 +109,34 @@
       <Setter Property="Template">
         <ControlTemplate>
           <DockPanel Background="Transparent">
-            <StackPanel Name="PART_SpinnerPanel"
-                        DockPanel.Dock="Right"
-                        Orientation="Horizontal"
-                        IsVisible="{TemplateBinding ShowButtonSpinner}">
-              <RepeatButton Name="PART_IncreaseButton"
-                            Theme="{StaticResource HallzeeSpinnerRepeatButton}"
-                            IsTabStop="{TemplateBinding IsTabStop}">
-                <Path Data="{StaticResource IconChevronUp}"
-                      Width="9" Height="9" Stretch="Uniform"
-                      Stroke="#0369A1" StrokeThickness="2.2" StrokeLineCap="Round"
-                      HorizontalAlignment="Center" VerticalAlignment="Center" />
-              </RepeatButton>
+            <Border DockPanel.Dock="Right"
+                    Background="#BAE6FD"
+                    CornerRadius="0,9,9,0"
+                    Margin="0"
+                    VerticalAlignment="Stretch"
+                    IsVisible="{TemplateBinding ShowButtonSpinner}">
+              <StackPanel Name="PART_SpinnerPanel"
+                          Orientation="Horizontal"
+                          VerticalAlignment="Stretch">
+                <RepeatButton Name="PART_IncreaseButton"
+                              Theme="{StaticResource HallzeeSpinnerRepeatButton}"
+                              IsTabStop="{TemplateBinding IsTabStop}">
+                  <Path Data="{StaticResource IconChevronUp}"
+                        Width="9" Height="9" Stretch="Uniform"
+                        Stroke="#0369A1" StrokeThickness="2.2" StrokeLineCap="Round"
+                        HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </RepeatButton>
 
-              <RepeatButton Name="PART_DecreaseButton"
-                            Theme="{StaticResource HallzeeSpinnerRepeatButton}"
-                            IsTabStop="{TemplateBinding IsTabStop}">
-                <Path Data="{StaticResource IconChevronDown}"
-                      Width="9" Height="9" Stretch="Uniform"
-                      Stroke="#0369A1" StrokeThickness="2.2" StrokeLineCap="Round"
-                      HorizontalAlignment="Center" VerticalAlignment="Center" />
-              </RepeatButton>
-            </StackPanel>
+                <RepeatButton Name="PART_DecreaseButton"
+                              Theme="{StaticResource HallzeeSpinnerRepeatButton}"
+                              IsTabStop="{TemplateBinding IsTabStop}">
+                  <Path Data="{StaticResource IconChevronDown}"
+                        Width="9" Height="9" Stretch="Uniform"
+                        Stroke="#0369A1" StrokeThickness="2.2" StrokeLineCap="Round"
+                        HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </RepeatButton>
+              </StackPanel>
+            </Border>
 
             <ContentPresenter Name="PART_ContentPresenter"
                               Content="{TemplateBinding Content}"
@@ -141,15 +147,16 @@
           </DockPanel>
         </ControlTemplate>
       </Setter>
-      <Style Selector="^:left /template/ StackPanel#PART_SpinnerPanel">
+      <Style Selector="^:left /template/ Border">
         <Setter Property="DockPanel.Dock" Value="Left" />
+        <Setter Property="CornerRadius" Value="9,0,0,9" />
       </Style>
     </ControlTheme>
 
     <!-- UNIFIED NUMERICUPDOWN THEME (FLAWLESS PILL/ROUNDED CORNERS, NO BLEED) -->
     <ControlTheme x:Key="{x:Type NumericUpDown}" TargetType="NumericUpDown">
       <Setter Property="Foreground" Value="#0F172A" />
-      <Setter Property="Background" Value="#F0F9FF" />
+      <Setter Property="Background" Value="White" />
       <Setter Property="BorderBrush" Value="#BAE6FD" />
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="CornerRadius" Value="10" />
@@ -351,6 +358,9 @@
     <Style Selector="Border.status-pill.neutral">
       <Setter Property="Background" Value="#64748B" />
     </Style>
+    <Style Selector="Border.status-pill.dark">
+      <Setter Property="Background" Value="#0F172A" />
+    </Style>
 
     <!-- INTERACTIVE STATUS PILL BUTTON (e.g. Filter Threshold Badge) -->
     <Style Selector="Button.status-pill">
@@ -420,6 +430,57 @@
       <Setter Property="Padding" Value="10,4" />
     </Style>
 
+    <!-- SOFT CYAN PILL BUTTON (e.g. + Create New Profile, Earliest First, + Add Period, Preview) -->
+    <Style Selector="Button.pill-secondary">
+      <Setter Property="Background" Value="#BAE6FD" />
+      <Setter Property="Foreground" Value="#0369A1" />
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="CornerRadius" Value="20" />
+      <Setter Property="Padding" Value="12,6" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.pill-secondary:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="#7DD3FC" />
+      <Setter Property="Foreground" Value="#0284C7" />
+    </Style>
+
+    <!-- CIRCULAR ICON ACTION BUTTONS (e.g. Close, Edit, Delete) -->
+    <Style Selector="Button.icon-circle">
+      <Setter Property="Width" Value="32" />
+      <Setter Property="Height" Value="32" />
+      <Setter Property="CornerRadius" Value="16" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="Cursor" Value="Hand" />
+    </Style>
+    <Style Selector="Button.icon-circle.secondary">
+      <Setter Property="Background" Value="#BAE6FD" />
+      <Setter Property="Foreground" Value="#0369A1" />
+    </Style>
+    <Style Selector="Button.icon-circle.secondary:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="#7DD3FC" />
+    </Style>
+    <Style Selector="Button.icon-circle.info">
+      <Setter Property="Background" Value="#BAE6FD" />
+      <Setter Property="Foreground" Value="#0284C7" />
+    </Style>
+    <Style Selector="Button.icon-circle.info:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="#7DD3FC" />
+    </Style>
+    <Style Selector="Button.icon-circle.danger">
+      <Setter Property="Background" Value="#FEE2E2" />
+      <Setter Property="Foreground" Value="#EF4444" />
+    </Style>
+    <Style Selector="Button.icon-circle.danger:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="#FECACA" />
+    </Style>
+
     <!-- TABLE HEADER BUTTON (For clickable sortable columns) -->
     <Style Selector="Button.table-header-btn">
       <Setter Property="Background" Value="Transparent" />
@@ -440,9 +501,14 @@
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="CornerRadius" Value="18" />
       <Setter Property="BoxShadow" Value="0 4 20 0 #1A0284C7, 0 1 3 0 #0A0284C7" />
-      <Setter Property="ClipToBounds" Value="True" />
+      <Setter Property="ClipToBounds" Value="False" />
       <Setter Property="MinHeight" Value="260" />
       <Setter Property="Margin" Value="0,2,0,4" />
+    </Style>
+
+    <Style Selector="Border.hallzee-table-inner, Border.hallzee-table-container > Border">
+      <Setter Property="CornerRadius" Value="17" />
+      <Setter Property="ClipToBounds" Value="True" />
     </Style>
 
     <Style Selector="Border.hallzee-table-header">
@@ -453,7 +519,6 @@
       <Setter Property="CornerRadius" Value="17,17,0,0" />
     </Style>
 
-
     <Style Selector="ListBox.hallzee-table-list">
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderThickness" Value="0" />
@@ -462,6 +527,10 @@
     <Style Selector="ListBox.hallzee-table-list ListBoxItem">
       <Setter Property="Padding" Value="0" />
       <Setter Property="Background" Value="Transparent" />
+      <Setter Property="CornerRadius" Value="0" />
+    </Style>
+    <Style Selector="ListBox.hallzee-table-list ListBoxItem /template/ ContentPresenter">
+      <Setter Property="CornerRadius" Value="0" />
     </Style>
     <Style Selector="ListBox.hallzee-table-list ListBoxItem:selected /template/ ContentPresenter">
       <Setter Property="Background" Value="#F0F9FF" />
@@ -515,7 +584,7 @@
     </Style>
 
     <Style Selector="ComboBox">
-      <Setter Property="Background" Value="#F0F9FF" />
+      <Setter Property="Background" Value="White" />
       <Setter Property="BorderBrush" Value="#BAE6FD" />
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="CornerRadius" Value="16" />
@@ -620,9 +689,17 @@
       <Setter Property="Background" Value="White" />
       <Setter Property="BorderBrush" Value="#BAE6FD" />
       <Setter Property="BorderThickness" Value="1" />
-      <Setter Property="CornerRadius" Value="16" />
-      <Setter Property="Padding" Value="16" />
-      <Setter Property="BoxShadow" Value="0 2 8 0 #080284C7" />
+      <Setter Property="CornerRadius" Value="18" />
+      <Setter Property="Padding" Value="16,14" />
+      <Setter Property="BoxShadow" Value="0 2 8 0 #060284C7" />
+    </Style>
+
+    <!-- REUSABLE MODAL SURFACE (Soft sky background matching mockup) -->
+    <Style Selector="Border.hallzee-modal-window">
+      <Setter Property="Background" Value="#EBF8FE" />
+      <Setter Property="CornerRadius" Value="24" />
+      <Setter Property="Padding" Value="28" />
+      <Setter Property="BoxShadow" Value="0 10 30 0 #40000000" />
     </Style>
 
     <Style Selector="Border.hallzee-subnav-bar">

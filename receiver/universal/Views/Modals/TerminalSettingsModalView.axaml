@@ -4,7 +4,7 @@
              x:Class="BathroomSync.Universal.Views.TerminalSettingsModalView"
              x:DataType="vm:MainViewModel">
   <!-- OVERLAY WITH GUARANTEED PADDING SO MODAL NEVER CLIPS WINDOW BOUNDS -->
-  <Border Background="#99000000" Padding="32,24">
+  <Border Background="#99000000" Padding="32,24" PointerPressed="OnBackdropPointerPressed">
     <Border Background="White" CornerRadius="24" MaxWidth="680" MaxHeight="620" VerticalAlignment="Center" HorizontalAlignment="Stretch" Padding="24" BoxShadow="0 10 30 0 #40000000">
       <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="16">
         

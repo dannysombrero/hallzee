@@ -1,4 +1,12 @@
-# vinext-starter
+# Hallzee teacher website
+
+This directory contains the Hallzee teacher-facing website: the product
+overview, hardware and desktop-client examples, waiting-list form, privacy
+notice, terms, and self-service waiting-list removal page.
+
+The page uses fictional student data in the client images. The terminal images
+are illustrative product renders; the check-in screen is rendered from the
+firmware display function.
 
 A clean full-stack starter running on
 [vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and

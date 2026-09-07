@@ -1,0 +1,1 @@
+ALTER TABLE `waitlist` ADD `notice_version` text;

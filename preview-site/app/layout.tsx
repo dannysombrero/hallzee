@@ -1,49 +1,19 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
+import type { Metadata } from 'next';
+import './globals.css';
 export const metadata: Metadata = {
-  title: "Bathroom Terminal Preview",
-  description: "A browser simulation of the Bathroom Terminal desktop sync client.",
-  openGraph: {
-    title: "Bathroom Terminal Preview",
-    description: "A browser simulation of the Bathroom Terminal desktop sync client.",
-    images: ["/og.png"],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Bathroom Terminal Preview",
-    description: "A browser simulation of the Bathroom Terminal desktop sync client.",
-    images: ["/og.png"],
-  },
-  icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
-  },
+  icons: { icon: '/hallzee-logo.png' },
+  title: 'Hallzee - The hall pass system that handles everything for you',
+  description:
+    'A classroom terminal and desktop app for student checkouts, live pass timers, bell schedules, and searchable trip history. Join the Hallzee waiting list.',
 };
-
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

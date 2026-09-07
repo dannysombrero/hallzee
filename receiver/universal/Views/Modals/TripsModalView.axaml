@@ -31,20 +31,22 @@
             <Button Grid.Column="3" Classes="pill-outline" Click="OnExportCsvClick" Padding="14,6" Height="36" VerticalAlignment="Center">
               <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                 <Path Data="{StaticResource IconDownload}" Width="14" Height="14" Stretch="Uniform" Stroke="#0369A1" StrokeThickness="2" StrokeLineCap="Round" VerticalAlignment="Center" />
-                <TextBlock Text="Export CSV" FontSize="13" FontWeight="Bold" Foreground="#0369A1" VerticalAlignment="Center" />
+                <TextBlock Text="Export" FontSize="13" FontWeight="Bold" Foreground="#0369A1" VerticalAlignment="Center" />
               </StackPanel>
             </Button>
           </Grid>
 
           <!-- ROW 1: SEARCH & THEMED FILTER TOOLBAR -->
-          <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="12" VerticalAlignment="Center">
+          <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
             <Border Background="#F0F9FF" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="24" Padding="14,6">
               <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
                 <Path Data="{StaticResource IconSearch}" Width="16" Height="16" Stretch="Uniform" Stroke="#0284C7" StrokeThickness="2" StrokeLineCap="Round" VerticalAlignment="Center" />
-                <TextBox Grid.Column="1" Text="{Binding TripsModal.SearchText, UpdateSourceTrigger=PropertyChanged}" Watermark="Filter student name, ID, or trip…" FontSize="13" Padding="0,6" Background="Transparent" BorderThickness="0" />
+                <TextBox Grid.Column="1" Text="{Binding TripsModal.SearchText, UpdateSourceTrigger=PropertyChanged}" Watermark="Search student name, ID, or trip…" FontSize="13" Padding="0,6" Background="Transparent" BorderThickness="0" />
               </Grid>
             </Border>
-            <ComboBox Grid.Column="1" Classes="filter-dropdown" ItemsSource="{Binding TripsModal.StatusOptions}" SelectedItem="{Binding TripsModal.SelectedStatus}" Width="140" VerticalAlignment="Center" />
+            <ComboBox Grid.Column="1" Classes="filter-dropdown" ItemsSource="{Binding TripsModal.TimeframeOptions}" SelectedItem="{Binding TripsModal.SelectedTimeframe}" Width="125" VerticalAlignment="Center" ToolTip.Tip="Filter by date range" />
+            <ComboBox Grid.Column="2" Classes="filter-dropdown" ItemsSource="{Binding TripsModal.DurationOptions}" SelectedItem="{Binding TripsModal.SelectedDuration}" Width="130" VerticalAlignment="Center" ToolTip.Tip="Filter by duration" />
+            <ComboBox Grid.Column="3" Classes="filter-dropdown" ItemsSource="{Binding TripsModal.StatusOptions}" SelectedItem="{Binding TripsModal.SelectedStatus}" Width="130" VerticalAlignment="Center" ToolTip.Tip="Filter by status" />
           </Grid>
 
           <!-- ROW 2: TRIPS TABLE WITH UNIFIED TABLE STYLES -->

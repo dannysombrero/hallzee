@@ -156,4 +156,35 @@ public sealed class MainViewModelTests : IDisposable {
     viewModel.TerminalSettingsModal.Room = "2-207";
     Assert.Equal("Room 2-207 - Herrero - HRMS", viewModel.HeaderLocationText);
   }
+
+  [Fact]
+  public void PopupWindowPropertiesReflectLiveClockAndDefaultState() {
+    Assert.False(string.IsNullOrWhiteSpace(viewModel.CurrentTimeDisplay));
+    Assert.Contains(DateTime.Now.ToString("tt"), viewModel.CurrentTimeDisplay);
+    Assert.Equal("PASSES CLOSED", viewModel.PopupPillText);
+  }
+
+  [Fact]
+  public void PopupWindowTracksActiveStudentCheckout() {
+    viewModel.ManualCheckInModal.StudentName = "Avery Chen";
+    viewModel.SubmitManualCheckIn();
+
+    Assert.Equal("PASS UNAVAILABLE", viewModel.PopupPillText);
+    Assert.Contains("Pass In Use", viewModel.PopupStatusPrefix);
+  }
+
+  [Fact]
+  public void PopupWindowReflectsCurrentPeriodAndStatus() {
+    var now = DateTime.Now;
+    var start = now.AddMinutes(-5).ToString("h:mm tt");
+    var end = now.AddMinutes(45).ToString("h:mm tt");
+    var period = new BellSchedulePeriod("p-1", viewModel.ActiveProfile.ProfileId, "Period 3", start, end, "Mon,Tue,Wed,Thu,Fri,Sat,Sun");
+    viewModel.PolicyModal.Periods.Add(new BellPeriodItemViewModel(period));
+
+    Assert.Equal("Period 3", viewModel.CurrentPeriodName);
+    Assert.StartsWith("(", viewModel.FormattedPeriodRange);
+    Assert.EndsWith(")", viewModel.FormattedPeriodRange);
+    Assert.Equal("PASSES CLOSED", viewModel.PopupPillText);
+    Assert.Equal("Bathroom Window Closed · Passes open in: ", viewModel.PopupStatusPrefix);
+  }
 }

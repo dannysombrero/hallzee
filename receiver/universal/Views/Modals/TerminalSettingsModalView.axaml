@@ -5,7 +5,7 @@
              x:DataType="vm:MainViewModel">
   <!-- OVERLAY WITH GUARANTEED PADDING SO MODAL NEVER CLIPS WINDOW BOUNDS -->
   <Border Background="#99000000" Padding="32,24" PointerPressed="OnBackdropPointerPressed">
-    <Border Background="White" CornerRadius="24" MaxWidth="680" MaxHeight="620" VerticalAlignment="Center" HorizontalAlignment="Stretch" Padding="24" BoxShadow="0 10 30 0 #40000000">
+    <Border Classes="hallzee-modal-window" MaxWidth="680" MaxHeight="620" VerticalAlignment="Center" HorizontalAlignment="Stretch">
       <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="16">
         
         <!-- HEADER -->
@@ -38,7 +38,7 @@
         <!-- TAB 1: PROFILE / CLASSROOM SETTINGS -->
         <StackPanel Grid.Row="2" Spacing="16" IsVisible="{Binding TerminalSettingsModal.IsProfileSelected}">
           
-          <Border Classes="hallzee-section" Padding="20">
+          <Border Classes="hallzee-section-white" Padding="20">
             <StackPanel Spacing="14">
               <TextBlock Text="CLASSROOM &amp; TEACHER INFORMATION" FontSize="11" FontWeight="Bold" Foreground="#64748B" />
               <TextBlock Text="Set your classroom details to display in the application header." FontSize="12" Foreground="#475569" TextWrapping="Wrap" />
@@ -70,7 +70,7 @@
           </Border>
 
           <!-- HEADER PREVIEW CARD -->
-          <Border Background="#F0F9FF" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="16" Padding="14">
+          <Border Classes="hallzee-section-white" Padding="14">
             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" VerticalAlignment="Center">
               <Path Data="{StaticResource IconShieldCheck}" Width="16" Height="16" Stretch="Uniform" Stroke="#0284C7" StrokeThickness="2" StrokeLineCap="Round" VerticalAlignment="Center" />
               <StackPanel Grid.Column="1" Spacing="2">
@@ -85,7 +85,7 @@
         <StackPanel Grid.Row="2" Spacing="16" IsVisible="{Binding TerminalSettingsModal.IsDeviceSelected}">
           
           <!-- STUDENT ID LIMIT -->
-          <Border Classes="hallzee-section">
+          <Border Classes="hallzee-section-white" Padding="20">
             <StackPanel Spacing="12">
               <TextBlock Text="STUDENT ID KEYPAD LIMIT" FontSize="11" FontWeight="Bold" Foreground="#64748B" />
               <TextBlock Text="Set the maximum number of digits students can type at the kiosk (4–16 digits)." FontSize="12" Foreground="#475569" TextWrapping="Wrap" />
@@ -98,10 +98,10 @@
           </Border>
 
           <!-- DEVICE INFORMATION -->
-          <Border Classes="hallzee-section">
-            <StackPanel Spacing="8">
+          <Border Classes="hallzee-section-white" Padding="20">
+            <StackPanel Spacing="10">
               <TextBlock Text="DEVICE INFORMATION" FontSize="11" FontWeight="Bold" Foreground="#64748B" />
-              <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="6" ColumnSpacing="12">
+              <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="8" ColumnSpacing="14">
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Node Name:" FontSize="12" Foreground="#64748B" />
                 <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding TerminalSettingsModal.TerminalName}" FontSize="12" FontWeight="SemiBold" Foreground="#334155" />
                 <TextBlock Grid.Row="1" Grid.Column="0" Text="GATT Transport:" FontSize="12" Foreground="#64748B" />

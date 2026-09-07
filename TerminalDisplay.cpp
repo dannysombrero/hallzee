@@ -82,6 +82,36 @@ void TerminalDisplay::showCheckedOut(const String &id, const String &time) {
   display.pause(2000);
 }
 
+void TerminalDisplay::showCheckedOutWarning(const String &id, const String &time) {
+  prepareScreenTransition(UI_AMBER);
+  display.setTextColor(DISPLAY_BLACK);
+  if (display.isNative320x240()) {
+    display.setFont(DisplayFont::DMSansBold18);
+    display.setCursor(24, 52);
+    display.println("CHECKOUT WARNING");
+    display.setFont(DisplayFont::DMSansRegular12);
+    display.setCursor(24, 102);
+    display.println("Bell-time window is active.");
+    display.setCursor(24, 137);
+    display.print("ID: ");
+    display.println(id);
+    display.setCursor(24, 165);
+    display.print("Time: ");
+    display.println(time);
+  } else {
+    display.setTextSize(2);
+    display.setCursor(10, 18);
+    display.println("WARNING");
+    display.setTextSize(1);
+    display.setCursor(10, 55);
+    display.println("Bell window active.");
+    display.setCursor(10, 75);
+    display.print("ID: ");
+    display.println(id);
+  }
+  display.pause(2400);
+}
+
 void TerminalDisplay::showCheckedIn(unsigned long elapsedSeconds) {
   prepareScreenTransition(DISPLAY_BLUE);
   if (display.isNative320x240()) {
@@ -143,6 +173,27 @@ void TerminalDisplay::showCheckedIn(unsigned long elapsedSeconds) {
   display.print(seconds);
   display.print("s");
   display.pause(3000);
+}
+
+void TerminalDisplay::showPolicyLocked() {
+  prepareScreenTransition(DISPLAY_RED);
+  display.setTextColor(DISPLAY_WHITE);
+  if (display.isNative320x240()) {
+    display.setFont(DisplayFont::DMSansBold18);
+    display.setCursor(24, 60);
+    display.println("PASS WINDOW CLOSED");
+    display.setFont(DisplayFont::DMSansRegular12);
+    display.setCursor(24, 115);
+    display.println("Try again after the bell window.");
+  } else {
+    display.setTextSize(2);
+    display.setCursor(10, 20);
+    display.println("PASS CLOSED");
+    display.setTextSize(1);
+    display.setCursor(10, 65);
+    display.println("Try again after bell window.");
+  }
+  display.pause(2200);
 }
 
 void TerminalDisplay::showPassOccupied() {

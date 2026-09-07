@@ -543,6 +543,50 @@ void testTerminalEnforcesConfiguredMultiPassCapacity() {
   expectTrue(terminal.activePassCount() == 1 && terminal.activeId() == "B", "next oldest pass becomes primary");
 }
 
+time_t localTimestamp(int year, int month, int day, int hour, int minute) {
+  struct tm value = {};
+  value.tm_year = year - 1900;
+  value.tm_mon = month - 1;
+  value.tm_mday = day;
+  value.tm_hour = hour;
+  value.tm_min = minute;
+  value.tm_isdst = -1;
+  return mktime(&value);
+}
+
+void testBellPolicyLocksWarnsAndFailsOpenOutsideCache() {
+  BellPolicy policy;
+  policy.beginUpdate(true);
+  BellPolicyWindow window;
+  window.dateKey = 20260908;
+  window.startMinute = 480;
+  window.endMinute = 600;
+  window.firstWindowEndMinute = 490;
+  window.lastWindowStartMinute = 590;
+  window.firstDecision = BellPolicyDecision::Lock;
+  window.lastDecision = BellPolicyDecision::Warn;
+  expectTrue(policy.addStagedWindow(window), "valid bell policy window stages");
+  expectTrue(policy.commitUpdate(1), "bell policy update commits atomically");
+
+  FakeTripStorage storage;
+  FakeTimeProvider time;
+  time.currentTime = localTimestamp(2026, 9, 8, 8, 5);
+  TerminalController terminal(storage, time, &policy);
+  expectAction(terminal.submit("LOCKED").action, TerminalAction::PolicyLocked,
+    "first bell window locks a new checkout");
+  expectTrue(!terminal.hasActivePass(), "locked checkout does not occupy the pass");
+
+  time.currentTime = localTimestamp(2026, 9, 8, 9, 55);
+  expectAction(terminal.submit("WARNED").action, TerminalAction::CheckedOutWithWarning,
+    "last bell window warns while allowing checkout");
+
+  FakeTripStorage otherStorage;
+  time.currentTime = localTimestamp(2026, 9, 9, 8, 5);
+  TerminalController outsideCache(otherStorage, time, &policy);
+  expectAction(outsideCache.submit("OPEN").action, TerminalAction::CheckedOut,
+    "a date missing from the offline cache fails open");
+}
+
 void testKeypadControllerInterpretsKeysAndResetGesture() {
   resetKeypadCallbacks();
   FakeKeypad keypad;
@@ -858,6 +902,39 @@ void testBluetoothFailureAndValidationPaths() {
   expectTrue(unavailableSerial.output.empty() && unavailableSerial.pin.empty(), "unavailable transport remains inactive");
 }
 
+void testBluetoothBellPolicyValidation() {
+  FakeTripStorage storage;
+  FakeBluetoothSerial serial;
+  BellPolicy policy;
+  BluetoothSync sync(
+    storage, serial, setBluetoothClock, onBluetoothClockSet,
+    nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, &policy
+  );
+  sync.begin();
+  serial.connected = true;
+  sync.poll();
+  serial.output.clear();
+
+  serial.input = "POLICY_BEGIN,1\nPOLICY_WINDOW,broken\nPOLICY_COMMIT,broken\n";
+  sync.poll();
+  expectTrue(contains(serial.output, "POLICY_ACK,BEGIN"),
+    "valid policy begin is acknowledged");
+  expectTrue(contains(serial.output, "POLICY_ERROR,INVALID_WINDOW"),
+    "malformed policy window is rejected");
+  expectTrue(contains(serial.output, "POLICY_ERROR,COMMIT_FAILED") && !policy.enabled(),
+    "nonnumeric policy commit cannot replace the active policy");
+
+  serial.output.clear();
+  serial.input =
+    "POLICY_BEGIN,1\n"
+    "POLICY_WINDOW,20260908,480,600,490,590,2,1\n"
+    "POLICY_COMMIT,1\n";
+  sync.poll();
+  expectTrue(policy.enabled() && policy.windowCount() == 1 &&
+    contains(serial.output, "POLICY_ACK,COMMIT,1"),
+    "valid policy transfer commits atomically");
+}
+
 void testTripRecordCodecPreservesAndRewritesRecords() {
   const String unsynced = "7,ID1,2026-01-01,08:00:00,08:10:00,600,COMPLETE,0";
   uint32_t tripID = 0;
@@ -928,9 +1005,11 @@ int main() {
   testTerminalClampsBackwardTimeAndPersistsManualReset();
   testTerminalManualCheckInPersistsManualTrip();
   testTerminalEnforcesConfiguredMultiPassCapacity();
+  testBellPolicyLocksWarnsAndFailsOpenOutsideCache();
   testKeypadControllerInterpretsKeysAndResetGesture();
   testBluetoothProtocolAndRecovery();
   testBluetoothFailureAndValidationPaths();
+  testBluetoothBellPolicyValidation();
   testTripRecordCodecPreservesAndRewritesRecords();
 
   if (failures != 0) {

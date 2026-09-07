@@ -11,7 +11,7 @@
         <!-- HEADER -->
         <Grid ColumnDefinitions="*,Auto">
           <StackPanel Spacing="2">
-            <TextBlock Text="Manual Student Check-In" FontSize="20" FontWeight="Bold" Foreground="#0F172A" />
+            <TextBlock Text="Teacher-Started Pass" FontSize="20" FontWeight="Bold" Foreground="#0F172A" />
             <TextBlock Text="Assign an active hall pass while a pass is available." FontSize="13" Foreground="#64748B" />
           </StackPanel>
           <Button Grid.Column="1" Classes="secondary" Content="✕" Click="OnCancelClick" Width="36" Height="36" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
@@ -63,7 +63,7 @@
           <Button Grid.Column="2" Classes="hallzee-pill-btn" Click="OnSubmitClick" IsEnabled="{Binding ManualCheckInModal.CanSubmit}" Padding="16,8">
             <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
               <Path Data="{StaticResource IconUserCheck}" Width="14" Height="14" Stretch="Uniform" Stroke="White" StrokeThickness="2" StrokeLineCap="Round" StrokeJoin="Round" VerticalAlignment="Center" />
-              <TextBlock Text="Check In Student" FontSize="13" FontWeight="Bold" VerticalAlignment="Center" />
+              <TextBlock Text="Start Pass" FontSize="13" FontWeight="Bold" VerticalAlignment="Center" />
             </StackPanel>
           </Button>
         </Grid>

@@ -16,21 +16,21 @@
           <Button Grid.Column="1" Classes="icon-circle secondary" Content="✕" FontSize="14" FontWeight="Bold" Click="OnCloseClick" />
         </Grid>
 
-        <!-- ROW 1: PROFILE SELECTION & SAVE PROFILE SETTINGS (TOP PROFILE BAR) -->
+        <!-- ROW 1: TEACHER WORKSPACE SELECTION -->
         <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="12" VerticalAlignment="Center">
-          <TextBlock Text="Profile:" FontWeight="Bold" FontSize="14" Foreground="#334155" VerticalAlignment="Center" />
+          <TextBlock Text="Teacher workspace:" FontWeight="Bold" FontSize="14" Foreground="#334155" VerticalAlignment="Center" />
           <ComboBox Grid.Column="1" Classes="filter-dropdown" ItemsSource="{Binding Profiles}" SelectedItem="{Binding ActiveProfile}" DisplayMemberBinding="{Binding Name}" MinWidth="200" VerticalAlignment="Center" />
           <TextBlock Grid.Column="2" Text="{Binding PolicyModal.StatusMessage}" MaxWidth="240" TextTrimming="CharacterEllipsis" Foreground="#10B981" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center" />
-          <Button Grid.Column="3" Classes="pill-secondary" Content="+ Create New Profile" Click="OnToggleCreateProfileClick" />
-          <Button Grid.Column="4" Classes="hallzee-pill-btn" Content="Save Profile Settings" Click="OnSavePolicyClick" Padding="16,8" FontSize="13" VerticalAlignment="Center" />
+          <Button Grid.Column="3" Classes="pill-secondary" Content="+ Create Teacher Workspace" Click="OnToggleCreateProfileClick" />
+          <Button Grid.Column="4" Classes="hallzee-pill-btn" Content="Save Workspace Settings" Click="OnSavePolicyClick" Padding="16,8" FontSize="13" VerticalAlignment="Center" />
         </Grid>
 
         <!-- ROW 2: EXPANDABLE CREATE NEW PROFILE BAR (SHOWN ONLY WHEN BUTTON CLICKED) -->
         <Border Grid.Row="2" Classes="hallzee-section" Padding="14,8" IsVisible="{Binding PolicyModal.IsCreatingProfile}">
           <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
-            <TextBlock Text="New profile name:" FontSize="12" FontWeight="SemiBold" Foreground="#64748B" VerticalAlignment="Center" />
-            <TextBox Grid.Column="1" Text="{Binding PolicyModal.NewProfileName}" Watermark="Profile / section name (e.g. Period 2 / Block B)" FontSize="12" />
-            <Button Grid.Column="2" Classes="hallzee-pill-btn" Content="Save as New Profile" Click="OnSaveAsProfileClick" Padding="14,6" FontSize="12" />
+            <TextBlock Text="Teacher workspace name:" FontSize="12" FontWeight="SemiBold" Foreground="#64748B" VerticalAlignment="Center" />
+            <TextBox Grid.Column="1" Text="{Binding PolicyModal.NewProfileName}" Watermark="Teacher name (e.g. Ms. Rivera)" FontSize="12" />
+            <Button Grid.Column="2" Classes="hallzee-pill-btn" Content="Create Workspace" Click="OnSaveAsProfileClick" Padding="14,6" FontSize="12" />
             <Button Grid.Column="3" Classes="secondary" Content="Cancel" Click="OnCancelCreateProfileClick" Padding="12,6" FontSize="12" />
           </Grid>
         </Border>
@@ -119,6 +119,13 @@
                       </StackPanel>
                     </Button>
                   </Grid>
+
+                  <Rectangle Height="1" Fill="#E0F2FE" />
+
+                  <StackPanel Spacing="3">
+                    <CheckBox Content="Enforce bell-time lockouts on the terminal" IsChecked="{Binding PolicyModal.TerminalEnforcementEnabled}" FontSize="13" />
+                    <TextBlock Text="Optional and off by default. When enabled, the next 14 days are copied to the kiosk for offline enforcement." FontSize="11" Foreground="#64748B" TextWrapping="Wrap" Margin="24,0,0,0" />
+                  </StackPanel>
                 </StackPanel>
               </Border>
 
@@ -142,7 +149,7 @@
                 </Button>
               </Grid>
 
-              <TextBlock Text="Editable bell schedules and start/end-of-period alerts for this profile." FontSize="12" Foreground="#64748B" TextWrapping="Wrap" />
+              <TextBlock Text="Regular and alternate templates stay inside this teacher workspace. Each period can identify the class section active at that time." FontSize="12" Foreground="#64748B" TextWrapping="Wrap" />
 
               <!-- PERIODS LIST -->
               <ItemsControl ItemsSource="{Binding PolicyModal.Periods}">
@@ -171,7 +178,7 @@
                       <!-- EDIT MODE: FORM FIELDS WITH CHECKBOXES -->
                       <Border Background="#F0FDF4" BorderBrush="#86EFAC" BorderThickness="1" CornerRadius="16" Padding="12,10" IsVisible="{Binding IsEditing}">
                         <StackPanel Spacing="8">
-                          <Grid ColumnDefinitions="1.5*,*,*,Auto" ColumnSpacing="8" VerticalAlignment="Center">
+                          <Grid ColumnDefinitions="1.5*,*,*,Auto" RowDefinitions="Auto,Auto" RowSpacing="6" ColumnSpacing="8" VerticalAlignment="Center">
                             <TextBox Text="{Binding EditName}" Watermark="Period name" FontSize="12" />
                             <TextBox Grid.Column="1" Text="{Binding EditStartTime}" Watermark="08:00 AM" FontSize="12" />
                             <TextBox Grid.Column="2" Text="{Binding EditEndTime}" Watermark="08:50 AM" FontSize="12" />
@@ -183,6 +190,8 @@
                                 <Path Data="{StaticResource IconX}" Width="14" Height="14" Stretch="Uniform" Stroke="#64748B" StrokeThickness="2" StrokeLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center" />
                               </Button>
                             </StackPanel>
+                            <TextBox Grid.Row="1" Grid.Column="0" Text="{Binding EditClassSection}" Watermark="Class section (e.g. Chemistry 3)" FontSize="12" />
+                            <TextBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Text="{Binding EditScheduleName}" Watermark="Schedule template (Regular, Early Release…)" FontSize="12" />
                           </Grid>
 
                           <!-- DAY CHECKBOXES -->
@@ -202,6 +211,29 @@
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>
               </ItemsControl>
+
+              <Border Classes="hallzee-section-white" Margin="0,8,0,0">
+                <StackPanel Spacing="8">
+                  <TextBlock Text="DATE EXCEPTIONS" FontSize="11" FontWeight="Bold" Foreground="#64748B" />
+                  <TextBlock Text="Choose which named schedule template applies on a special date, or mark the day as no school." FontSize="11" Foreground="#64748B" TextWrapping="Wrap" />
+                  <Grid ColumnDefinitions="*,*,Auto" ColumnSpacing="6">
+                    <TextBox Text="{Binding PolicyModal.NewExceptionDate}" Watermark="YYYY-MM-DD" FontSize="12" />
+                    <TextBox Grid.Column="1" Text="{Binding PolicyModal.NewExceptionScheduleName}" Watermark="Schedule template" FontSize="12" IsEnabled="{Binding !PolicyModal.NewExceptionIsNoSchool}" />
+                    <Button Grid.Column="2" Classes="pill-secondary" Content="Add" Click="OnAddExceptionClick" />
+                  </Grid>
+                  <CheckBox Content="No school on this date" IsChecked="{Binding PolicyModal.NewExceptionIsNoSchool}" FontSize="12" />
+                  <ItemsControl ItemsSource="{Binding PolicyModal.Exceptions}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,2">
+                          <TextBlock Text="{Binding Summary}" FontSize="12" Foreground="#334155" VerticalAlignment="Center" />
+                          <Button Grid.Column="1" Classes="icon-circle danger" Content="✕" Tag="{Binding}" Click="OnRemoveExceptionClick" ToolTip.Tip="Remove date exception" />
+                        </Grid>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </Border>
 
             </StackPanel>
 

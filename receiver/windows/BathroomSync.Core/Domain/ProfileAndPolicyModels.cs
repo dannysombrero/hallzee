@@ -18,7 +18,8 @@ public record PolicyRule(
   int LockoutEndMinutes = 10,
   string FirstWindowAction = "Warn",
   string LastWindowAction = "Warn",
-  string AlertSound = "Chime"
+  string AlertSound = "Chime",
+  bool TerminalEnforcementEnabled = false
 );
 
 public sealed class BellSchedulePeriod {
@@ -29,7 +30,8 @@ public sealed class BellSchedulePeriod {
     string StartTime,
     string EndTime,
     string DaysOfWeek = "Mon,Tue,Wed,Thu,Fri",
-    string ScheduleName = "Regular"
+    string ScheduleName = "Regular",
+    string ClassSection = ""
   ) {
     this.ScheduleId = ScheduleId;
     this.ProfileId = ProfileId;
@@ -38,6 +40,7 @@ public sealed class BellSchedulePeriod {
     this.EndTime = EndTime;
     this.DaysOfWeek = DaysOfWeek;
     this.ScheduleName = ScheduleName;
+    this.ClassSection = ClassSection;
   }
 
   public string ScheduleId { get; set; }
@@ -47,7 +50,24 @@ public sealed class BellSchedulePeriod {
   public string EndTime { get; set; }
   public string DaysOfWeek { get; set; }
   public string ScheduleName { get; set; }
+  public string ClassSection { get; set; }
 }
+
+public record ScheduleException(
+  string ExceptionId,
+  string ProfileId,
+  string ExceptionDate,
+  string ScheduleName,
+  bool IsNoSchool = false
+);
+
+public record ResolvedBellPeriod(
+  BellSchedulePeriod Period,
+  DateTime StartsAt,
+  DateTime EndsAt,
+  string ScheduleName,
+  string ClassSection
+);
 
 public record TerminalDeviceConfig(
   string TerminalId,

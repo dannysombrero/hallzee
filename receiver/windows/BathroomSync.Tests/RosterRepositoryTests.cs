@@ -52,6 +52,17 @@ public sealed class RosterRepositoryTests {
       Assert.Equal("Charles", updated.FirstName);
       Assert.Equal("Period 1 Honors", updated.ClassPeriod);
 
+      // One teacher workspace can enroll the same student in more than one
+      // scheduled class section without creating class-specific profiles.
+      rosterRepo.SaveStudents("default", new[] {
+        new RosterStudent("101", "default", "Charles", "Brown", "9", "Biology 1"),
+        new RosterStudent("101", "default", "Charles", "Brown", "9", "Advisory")
+      });
+      var multiSection = rosterRepo.FindStudent("default", "101");
+      Assert.NotNull(multiSection);
+      Assert.Contains("Biology 1", multiSection.ClassPeriod);
+      Assert.Contains("Advisory", multiSection.ClassPeriod);
+
       // Delete student
       rosterRepo.DeleteStudent("default", "102");
       Assert.Equal(1, rosterRepo.CountStudents("default"));

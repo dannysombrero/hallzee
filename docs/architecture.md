@@ -54,7 +54,7 @@ To prevent data drift, duplicated configuration systems, and split-brain sync er
 | Data or Behavior | Desktop Client | Teacher Workspace | Terminal Kiosk | Future Cloud | Authoritative Source |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Trip History** | Yes (Local SQLite store) | Referenced | Local source (LittleFS) | Possible (read-only audit) | **Terminal** creates; **Client SQLite** is permanent historical authority. |
-| **Student Roster** | Yes (Local DB) | Yes (Scoped to teacher workspace; class-section scope planned) | No (Never sent over BLE) | Possible (SIS integration) | **Desktop Client teacher workspace** is authoritative. |
+| **Student Roster** | Yes (Local DB) | Yes (teacher workspace with class-section enrollments) | No (Never sent over BLE) | Possible (SIS integration) | **Desktop Client teacher workspace** is authoritative. |
 | **Student-ID Length Limit** | Display & Configuration | Optional default preset | Authoritative (Preferences) | Possible (School policy default) | **Terminal Hardware** is authoritative during checkout. |
 | **Terminal Name** | Remembered in UI | Association | Authoritative (Preferences) | Possible (Asset registry) | **Terminal Hardware** stores its own name in non-volatile flash. |
 | **Auto-Sync Preferences** | Yes (Local client config) | Yes (Teacher-workspace setting) | No | No | **Desktop Client** owns sync timing. |

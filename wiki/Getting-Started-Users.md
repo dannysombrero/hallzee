@@ -34,8 +34,10 @@ No .NET installation is required for this self-contained Windows artifact.
 3. Hold `*` and `#` together for five seconds, then release both keys.
 4. The terminal displays a six-digit Bluetooth passkey and enters pairing mode.
 5. In the app, choose **Find Terminal** or **Find Terminals**.
-6. Select the matching `Hallzee-XXXX` terminal. Enter the six-digit passkey
-   when prompted, then choose **Connect** again if the dialog asks.
+6. Select the matching `Hallzee-XXXX` terminal. The list shows signal quality
+   and RSSI in dBm; values closer to zero indicate a stronger nearby signal.
+   Enter the six-digit passkey when prompted, then choose **Connect** again if
+   the dialog asks.
 7. Choose **Sync Now**.
 
 The terminal can have one active owner connection. A terminal with an active
@@ -48,11 +50,21 @@ cannot claim or connect to it.
 - Students enter their ID and press `#` to check out.
 - They enter the same ID and press `#` to check back in.
 - Press `*` to clear an ID that is being entered.
-- Use **Sync Now** after activity to copy new trips into the local database.
+- Leave the app connected: completed trips stream automatically and a
+  five-minute reconciliation sync recovers missed notifications. **Sync Now**
+  remains available for an immediate check.
 - Use **Open CSV** or the export controls to create a CSV report.
 - In **Settings**, save the teacher name and school to update the classroom
   profile card and the app title bar immediately. The **Device** tab shows the
   friendly name and link status of the last paired terminal.
+- In **Terminal Settings**, edit the kiosk name and apply it while connected.
+  The name is persisted by the kiosk and reused in discovery and reconnect UI.
+- In **Policies & Bell Times**, keep one teacher workspace, create `Regular`
+  or alternate schedule templates, assign a class section to each period, and
+  add date exceptions for early-release or no-school days. Bell-window actions
+  are desktop guidance unless **Enforce bell-time lockouts on the terminal** is
+  selected; it is off by default. When enabled, the next 14 days are copied to
+  the kiosk and refreshed by sync.
 - In the **Exceeded Time** dashboard card, filter by duration threshold (e.g. `> 7m`)
   and timeframe (e.g. **Last 2 Weeks**, **Today**, **This Week**, or **All Time**)
   to spot students with high hallway time.
@@ -77,6 +89,10 @@ or **PASS UNAVAILABLE** when a student is out) with live period countdowns.
 The window includes close and minimize controls at the top left (and supports the
 `Esc` key to dismiss). Set each period's start and end time in **Policies & Bell Times**
 for this display to be accurate.
+
+`Warn` windows show a warning but allow checkout. `Lock` windows reject only
+new checkouts; an already-out student can always check back in. The current
+kiosk has no speaker, so selected alert sounds play on the desktop only.
 
 ## If something does not work
 

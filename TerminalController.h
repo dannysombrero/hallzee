@@ -5,6 +5,7 @@
 
 #include "TimeProvider.h"
 #include "TripStoragePort.h"
+#include "BellPolicy.h"
 
 enum class TerminalAction {
   EmptyId,
@@ -13,7 +14,9 @@ enum class TerminalAction {
   CheckedOut,
   CheckedIn,
   StorageError,
-  PassOccupied
+  PassOccupied,
+  PolicyLocked,
+  CheckedOutWithWarning
 };
 
 struct TerminalActionResult {
@@ -24,7 +27,7 @@ struct TerminalActionResult {
 
 class TerminalController {
 public:
-  TerminalController(TripStoragePort &tripStorage, const TimeProvider &timeProvider);
+  TerminalController(TripStoragePort &tripStorage, const TimeProvider &timeProvider, BellPolicy *bellPolicy = nullptr);
 
   void restoreActivePass();
   bool hasActivePass() const;
@@ -42,6 +45,7 @@ public:
 private:
   TripStoragePort &tripStorage;
   const TimeProvider &timeProvider;
+  BellPolicy *bellPolicy;
   ActiveCheckout activePasses[MAX_ACTIVE_PASSES];
   uint8_t activeCount = 0;
   uint8_t maxSimultaneousPasses = 1;

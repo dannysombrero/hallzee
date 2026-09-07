@@ -26,11 +26,12 @@ public interface ITripRepository : ITripStore {
   int CountTrips(TripQueryFilter filter) => 0;
   TripSummary GetTripSummary(string? startDate = null, string? endDate = null, string? profileId = null) => new(0, 0, 0, 0, 0.0);
   void ExportEnrichedCsv(string destinationPath, string? profileId = null) { }
+  void AssignTripContext(string terminalId, long tripId, string profileId, string? scheduleName, string? classSection) { }
 }
 
 public sealed class TripSqliteRepository : ITripRepository {
   public const string CsvHeader = "trip_id,student_id,date,time_out,time_in,duration_seconds,status";
-  public const string EnrichedCsvHeader = "trip_id,student_id,student_name,class_period,grade,trip_date,time_out,time_in,duration_seconds,status,terminal_id,synced_at";
+  public const string EnrichedCsvHeader = "trip_id,student_id,student_name,class_section,schedule_name,grade,trip_date,time_out,time_in,duration_seconds,status,terminal_id,synced_at";
 
   readonly string connectionString;
 
@@ -73,6 +74,19 @@ public sealed class TripSqliteRepository : ITripRepository {
 
   public TripStoreResult StoreManual(string terminalId, string payload, string? manualName) {
     return StoreInternal(terminalId, payload, string.IsNullOrWhiteSpace(manualName) ? null : manualName.Trim());
+  }
+
+  public void AssignTripContext(string terminalId, long tripId, string profileId, string? scheduleName, string? classSection) {
+    if (string.IsNullOrWhiteSpace(terminalId) || tripId <= 0 || string.IsNullOrWhiteSpace(profileId)) return;
+    using var connection = OpenConnection();
+    using var command = connection.CreateCommand();
+    command.CommandText = "UPDATE trips SET profile_id = $profileId, schedule_name = $scheduleName, class_section = $classSection WHERE terminal_id = $terminalId AND trip_id = $tripId;";
+    command.Parameters.AddWithValue("$profileId", profileId);
+    command.Parameters.AddWithValue("$scheduleName", (object?)scheduleName ?? DBNull.Value);
+    command.Parameters.AddWithValue("$classSection", (object?)classSection ?? DBNull.Value);
+    command.Parameters.AddWithValue("$terminalId", terminalId);
+    command.Parameters.AddWithValue("$tripId", tripId);
+    command.ExecuteNonQuery();
   }
 
   TripStoreResult StoreInternal(string terminalId, string payload, string? manualName) {
@@ -177,8 +191,11 @@ public sealed class TripSqliteRepository : ITripRepository {
         r.first_name,
         r.last_name,
         r.grade,
-        r.class_period,
-        t.manual_name
+        COALESCE(NULLIF(t.class_section, ''),
+          (SELECT group_concat(e.class_section, ', ') FROM roster_enrollments e WHERE e.profile_id = r.profile_id AND e.student_id = r.student_id),
+          r.class_period),
+        t.manual_name,
+        t.schedule_name
       FROM trips t
       LEFT JOIN roster_students r 
         ON t.student_id = r.student_id 
@@ -240,6 +257,10 @@ public sealed class TripSqliteRepository : ITripRepository {
     if (!string.IsNullOrWhiteSpace(endDate)) {
       whereClauses.Add("trip_date <= $endDate");
       command.Parameters.AddWithValue("$endDate", endDate);
+    }
+    if (!string.IsNullOrWhiteSpace(profileId)) {
+      whereClauses.Add("(profile_id = $profileId OR profile_id = 'default')");
+      command.Parameters.AddWithValue("$profileId", profileId);
     }
 
     var whereSql = whereClauses.Count > 0 ? "WHERE " + string.Join(" AND ", whereClauses) : "";
@@ -321,6 +342,7 @@ public sealed class TripSqliteRepository : ITripRepository {
             EscapeCsvField(t.StudentId),
             EscapeCsvField(t.FullName ?? ""),
             EscapeCsvField(t.ClassPeriod ?? ""),
+            EscapeCsvField(t.ScheduleName ?? ""),
             EscapeCsvField(t.Grade ?? ""),
             EscapeCsvField(t.TripDate),
             EscapeCsvField(t.TimeOut),
@@ -382,6 +404,11 @@ public sealed class TripSqliteRepository : ITripRepository {
       parameters["$terminalId"] = filter.TerminalId;
     }
 
+    if (!string.IsNullOrWhiteSpace(filter.ProfileId)) {
+      conditions.Add("(t.profile_id = $profileId OR t.profile_id = 'default')");
+      parameters["$profileId"] = filter.ProfileId;
+    }
+
     var sql = conditions.Count > 0 ? "WHERE " + string.Join(" AND ", conditions) : "";
     return (sql, parameters);
   }
@@ -403,6 +430,7 @@ public sealed class TripSqliteRepository : ITripRepository {
     var grade = reader.IsDBNull(11) ? null : reader.GetString(11);
     var classPeriod = reader.IsDBNull(12) ? null : reader.GetString(12);
     var manualName = reader.IsDBNull(13) ? null : reader.GetString(13);
+    var scheduleName = reader.IsDBNull(14) ? null : reader.GetString(14);
 
     return new EnrichedTripRecord(
       TripId: tripId,
@@ -418,7 +446,8 @@ public sealed class TripSqliteRepository : ITripRepository {
       LastName: lastName,
       Grade: grade,
       ClassPeriod: classPeriod,
-      ManualName: manualName
+      ManualName: manualName,
+      ScheduleName: scheduleName
     );
   }
 

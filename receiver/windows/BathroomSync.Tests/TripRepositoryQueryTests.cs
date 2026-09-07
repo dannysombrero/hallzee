@@ -85,8 +85,8 @@ public sealed class TripRepositoryQueryTests {
       var lines = File.ReadAllLines(exportPath);
       Assert.Equal(5, lines.Length);
       Assert.Equal(TripSqliteRepository.EnrichedCsvHeader, lines[0]);
-      Assert.Contains("1,1001,Alex Rivera,Period 1,10,2026-09-01,08:30:00,08:35:00,300,COMPLETE,ROOM204", lines[1]);
-      Assert.Contains("3,9999,,,", lines[3]); // Unrostered student has blank name/period/grade
+      Assert.Contains("1,1001,Alex Rivera,Period 1,,10,2026-09-01,08:30:00,08:35:00,300,COMPLETE,ROOM204", lines[1]);
+      Assert.Contains("3,9999,,,,,", lines[3]); // Unrostered student has blank name/section/schedule/grade
     } finally {
       if (Directory.Exists(folder)) Directory.Delete(folder, true);
     }

@@ -59,7 +59,8 @@ sealed class BluetoothConnectionManager : ITerminalConnection, ITerminalPairingP
       var displayName = inUse ? name[..^6] : name;
       lock (found) {
         found[args.BluetoothAddress] = new TerminalDevice(
-          args.BluetoothAddress.ToString("X12"), displayName, false, inUse
+          args.BluetoothAddress.ToString("X12"), displayName, false, inUse,
+          args.RawSignalStrengthInDBm
         );
       }
     }

@@ -51,7 +51,8 @@ public record EnrichedTripRecord(
   string? LastName,
   string? Grade,
   string? ClassPeriod,
-  string? ManualName = null
+  string? ManualName = null,
+  string? ScheduleName = null
 ) {
   public string? FullName =>
     !string.IsNullOrWhiteSpace(FirstName) || !string.IsNullOrWhiteSpace(LastName)

@@ -18,6 +18,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged {
   string exceededSortBy = "Period";
   string currentProfileId = "default";
   readonly List<ExceededTimeStudentItem> allExceededStudents = new();
+  int maxDailyPasses = 2;
 
   public DashboardViewModel(
     TripSqliteRepository tripRepository,
@@ -35,6 +36,18 @@ public sealed class DashboardViewModel : INotifyPropertyChanged {
   public ObservableCollection<DashboardActivityItem> RecentTrips { get; } = new();
   public ObservableCollection<AdditionalActivePassViewModel> AdditionalActiveTrips { get; } = new();
   public ObservableCollection<ExceededTimeStudentItem> ExceededStudents { get; } = new();
+  public ObservableCollection<DailyLimitStudentItem> DailyLimitStudents { get; } = new();
+
+  public int MaxDailyPasses {
+    get => maxDailyPasses;
+    set { if (maxDailyPasses != value) { maxDailyPasses = Math.Max(1, value); OnPropertyChanged(); RefreshDailyLimits(); } }
+  }
+  public bool HasDailyLimitAlerts => DailyLimitStudents.Count > 0;
+  public string DailyLimitSummary => DailyLimitStudents.Count switch {
+    0 => "No students have reached today's guideline.",
+    1 => $"{DailyLimitStudents[0].DisplayName} reached today's {MaxDailyPasses}-trip guideline.",
+    _ => $"{DailyLimitStudents.Count} students reached today's {MaxDailyPasses}-trip guideline."
+  };
 
   public int TotalTripsToday {
     get => totalTripsToday;
@@ -186,7 +199,25 @@ public sealed class DashboardViewModel : INotifyPropertyChanged {
     }
     foreach (var t in raw) RecentTrips.Add(DashboardActivityItem.FromTrip(t));
 
+    RefreshDailyLimits();
+
     RefreshExceededTimeStudents();
+  }
+
+  void RefreshDailyLimits(IReadOnlyList<EnrichedTripRecord>? todayTrips = null) {
+    if (string.IsNullOrWhiteSpace(currentProfileId)) return;
+    if (todayTrips == null) {
+      var today = DateTime.Now.ToString("yyyy-MM-dd");
+      todayTrips = tripRepository.QueryTrips(new TripQueryFilter(ProfileId: currentProfileId, StartDate: today, EndDate: today, Limit: 10000));
+    }
+    DailyLimitStudents.Clear();
+    foreach (var group in todayTrips.GroupBy(trip => trip.StudentId).Where(group => group.Count() >= MaxDailyPasses).OrderByDescending(group => group.Count())) {
+      var first = group.First();
+      var name = first.FullName ?? rosterService.LookupStudent(currentProfileId, group.Key)?.FullName ?? $"#{group.Key}";
+      DailyLimitStudents.Add(new DailyLimitStudentItem(group.Key, name, group.Count(), MaxDailyPasses));
+    }
+    OnPropertyChanged(nameof(HasDailyLimitAlerts));
+    OnPropertyChanged(nameof(DailyLimitSummary));
   }
 
   public void RefreshExceededTimeStudents() {
@@ -410,4 +441,8 @@ public sealed class ExceededTimeStudentItem {
   public string PeriodDisplay => string.IsNullOrWhiteSpace(ClassPeriod) || ClassPeriod == "—" ? "General" : ClassPeriod;
   public string SubtitleText => $"ID: #{StudentId} • {PeriodDisplay}";
   public IReadOnlyList<ExceededTripDetail> Trips { get; init; } = Array.Empty<ExceededTripDetail>();
+}
+
+public sealed record DailyLimitStudentItem(string StudentId, string DisplayName, int TripCount, int Limit) {
+  public string Summary => $"{DisplayName}: {TripCount} trips (guideline {Limit})";
 }

@@ -21,10 +21,15 @@ public sealed class BellPeriodItemViewModel : INotifyPropertyChanged {
   bool isWednesday;
   bool isThursday;
   bool isFriday;
+  bool isSaturday;
+  bool isSunday;
   bool isEditing;
   string editName;
   string editStartTime;
   string editEndTime;
+  string editScheduleName;
+  string editClassSection;
+  string classSection;
   readonly Action? onSaved;
 
   public BellPeriodItemViewModel(BellSchedulePeriod period, bool isEditing = false, Action? onSaved = null) {
@@ -40,6 +45,9 @@ public sealed class BellPeriodItemViewModel : INotifyPropertyChanged {
     editName = periodName;
     editStartTime = startTime;
     editEndTime = endTime;
+    editScheduleName = scheduleName;
+    classSection = period.ClassSection;
+    editClassSection = classSection;
 
     var days = period.DaysOfWeek ?? "";
     isMonday = days.Contains("Mon", StringComparison.OrdinalIgnoreCase);
@@ -47,6 +55,8 @@ public sealed class BellPeriodItemViewModel : INotifyPropertyChanged {
     isWednesday = days.Contains("Wed", StringComparison.OrdinalIgnoreCase);
     isThursday = days.Contains("Thu", StringComparison.OrdinalIgnoreCase);
     isFriday = days.Contains("Fri", StringComparison.OrdinalIgnoreCase);
+    isSaturday = days.Contains("Sat", StringComparison.OrdinalIgnoreCase);
+    isSunday = days.Contains("Sun", StringComparison.OrdinalIgnoreCase);
   }
 
   public event PropertyChangedEventHandler? PropertyChanged;
@@ -82,6 +92,16 @@ public sealed class BellPeriodItemViewModel : INotifyPropertyChanged {
         OnPropertyChanged();
       }
     }
+  }
+
+  public string EditScheduleName {
+    get => editScheduleName;
+    set { if (editScheduleName != value) { editScheduleName = value; OnPropertyChanged(); } }
+  }
+
+  public string EditClassSection {
+    get => editClassSection;
+    set { if (editClassSection != value) { editClassSection = value; OnPropertyChanged(); } }
   }
 
   public string ScheduleName {
@@ -194,6 +214,9 @@ public sealed class BellPeriodItemViewModel : INotifyPropertyChanged {
     }
   }
 
+  public bool IsSaturday { get => isSaturday; set { if (isSaturday != value) { isSaturday = value; OnPropertyChanged(); OnPropertyChanged(nameof(DaysOfWeek)); } } }
+  public bool IsSunday { get => isSunday; set { if (isSunday != value) { isSunday = value; OnPropertyChanged(); OnPropertyChanged(nameof(DaysOfWeek)); } } }
+
   public bool IsEditing {
     get => isEditing;
     set {
@@ -212,6 +235,8 @@ public sealed class BellPeriodItemViewModel : INotifyPropertyChanged {
       if (IsWednesday) days.Add("Wed");
       if (IsThursday) days.Add("Thu");
       if (IsFriday) days.Add("Fri");
+      if (IsSaturday) days.Add("Sat");
+      if (IsSunday) days.Add("Sun");
       return string.Join(",", days);
     }
   }
@@ -233,13 +258,17 @@ public sealed class BellPeriodItemViewModel : INotifyPropertyChanged {
   public string DisplayTimeRange => $"{StartTime} – {EndTime}";
 
   public string DisplayTitle => string.IsNullOrWhiteSpace(ScheduleName) || ScheduleName == "Regular"
-    ? PeriodName
-    : $"{ScheduleName} • {PeriodName}";
+    ? AppendSection(PeriodName)
+    : AppendSection($"{ScheduleName} • {PeriodName}");
+
+  string AppendSection(string value) => string.IsNullOrWhiteSpace(classSection) ? value : $"{value} · {classSection}";
 
   public void StartEdit() {
     EditName = PeriodName;
     EditStartTime = StartTime;
     EditEndTime = EndTime;
+    EditScheduleName = ScheduleName;
+    EditClassSection = classSection;
     IsEditing = true;
   }
 
@@ -247,6 +276,9 @@ public sealed class BellPeriodItemViewModel : INotifyPropertyChanged {
     if (!string.IsNullOrWhiteSpace(EditName)) PeriodName = EditName.Trim();
     if (!string.IsNullOrWhiteSpace(EditStartTime)) StartTime = EditStartTime.Trim();
     if (!string.IsNullOrWhiteSpace(EditEndTime)) EndTime = EditEndTime.Trim();
+    ScheduleName = string.IsNullOrWhiteSpace(EditScheduleName) ? "Regular" : EditScheduleName.Trim();
+    classSection = EditClassSection.Trim();
+    OnPropertyChanged(nameof(DisplayTitle));
     IsEditing = false;
     onSaved?.Invoke();
   }
@@ -255,6 +287,8 @@ public sealed class BellPeriodItemViewModel : INotifyPropertyChanged {
     EditName = PeriodName;
     EditStartTime = StartTime;
     EditEndTime = EndTime;
+    EditScheduleName = ScheduleName;
+    EditClassSection = classSection;
     IsEditing = false;
   }
 
@@ -265,11 +299,39 @@ public sealed class BellPeriodItemViewModel : INotifyPropertyChanged {
     StartTime: StartTime,
     EndTime: EndTime,
     DaysOfWeek: DaysOfWeek,
-    ScheduleName: ScheduleName
+    ScheduleName: ScheduleName,
+    ClassSection: classSection
   );
 
   void OnPropertyChanged([CallerMemberName] string? propertyName = null) {
     PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+  }
+}
+
+public sealed class ScheduleExceptionItemViewModel : INotifyPropertyChanged {
+  string exceptionDate;
+  string scheduleName;
+  bool isNoSchool;
+
+  public ScheduleExceptionItemViewModel(ScheduleException item) {
+    ExceptionId = item.ExceptionId;
+    ProfileId = item.ProfileId;
+    exceptionDate = item.ExceptionDate;
+    scheduleName = item.ScheduleName;
+    isNoSchool = item.IsNoSchool;
+  }
+
+  public event PropertyChangedEventHandler? PropertyChanged;
+  public string ExceptionId { get; }
+  public string ProfileId { get; }
+  public string ExceptionDate { get => exceptionDate; set { if (exceptionDate != value) { exceptionDate = value; OnPropertyChanged(); } } }
+  public string ScheduleName { get => scheduleName; set { if (scheduleName != value) { scheduleName = value; OnPropertyChanged(); } } }
+  public bool IsNoSchool { get => isNoSchool; set { if (isNoSchool != value) { isNoSchool = value; OnPropertyChanged(); } } }
+  public string Summary => IsNoSchool ? $"{ExceptionDate}: No school" : $"{ExceptionDate}: {ScheduleName}";
+  public ScheduleException ToModel() => new(ExceptionId, ProfileId, ExceptionDate, IsNoSchool ? "" : ScheduleName.Trim(), IsNoSchool);
+  void OnPropertyChanged([CallerMemberName] string? propertyName = null) {
+    PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    if (propertyName != nameof(Summary)) PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Summary)));
   }
 }
 
@@ -286,6 +348,10 @@ public sealed class PolicyViewModel : INotifyPropertyChanged {
   string newProfileName = "";
   string statusMessage = "";
   bool isCreatingProfile;
+  bool terminalEnforcementEnabled;
+  string newExceptionDate = DateTime.Today.ToString("yyyy-MM-dd");
+  string newExceptionScheduleName = "Regular";
+  bool newExceptionIsNoSchool;
 
   public bool IsCreatingProfile {
     get => isCreatingProfile;
@@ -311,6 +377,7 @@ public sealed class PolicyViewModel : INotifyPropertyChanged {
   public event PropertyChangedEventHandler? PropertyChanged;
 
   public ObservableCollection<BellPeriodItemViewModel> Periods { get; } = new();
+  public ObservableCollection<ScheduleExceptionItemViewModel> Exceptions { get; } = new();
   public IReadOnlyList<string> BellActions { get; } = new[] { "Allow", "Warn", "Lock" };
   public IReadOnlyList<string> AlertSounds { get; } = new[] { "No sound", "Chime", "Bell", "Soft alert" };
 
@@ -353,6 +420,15 @@ public sealed class PolicyViewModel : INotifyPropertyChanged {
     get => alertSound;
     set { if (alertSound != value) { alertSound = value; OnPropertyChanged(); } }
   }
+
+  public bool TerminalEnforcementEnabled {
+    get => terminalEnforcementEnabled;
+    set { if (terminalEnforcementEnabled != value) { terminalEnforcementEnabled = value; OnPropertyChanged(); } }
+  }
+
+  public string NewExceptionDate { get => newExceptionDate; set { if (newExceptionDate != value) { newExceptionDate = value; OnPropertyChanged(); } } }
+  public string NewExceptionScheduleName { get => newExceptionScheduleName; set { if (newExceptionScheduleName != value) { newExceptionScheduleName = value; OnPropertyChanged(); } } }
+  public bool NewExceptionIsNoSchool { get => newExceptionIsNoSchool; set { if (newExceptionIsNoSchool != value) { newExceptionIsNoSchool = value; OnPropertyChanged(); } } }
 
   public string NewProfileName {
     get => newProfileName;
@@ -437,6 +513,7 @@ public sealed class PolicyViewModel : INotifyPropertyChanged {
     FirstWindowAction = rule.FirstWindowAction;
     LastWindowAction = rule.LastWindowAction;
     AlertSound = rule.AlertSound;
+    TerminalEnforcementEnabled = rule.TerminalEnforcementEnabled;
 
     var schedule = policyRepository.GetBellSchedule(profileId);
     Periods.Clear();
@@ -444,6 +521,8 @@ public sealed class PolicyViewModel : INotifyPropertyChanged {
       Periods.Add(new BellPeriodItemViewModel(p, isEditing: false, onSaved: SortPeriods));
     }
     SortPeriods();
+    Exceptions.Clear();
+    foreach (var item in policyRepository.GetScheduleExceptions(profileId)) Exceptions.Add(new ScheduleExceptionItemViewModel(item));
     StatusMessage = "";
   }
 
@@ -463,11 +542,13 @@ public sealed class PolicyViewModel : INotifyPropertyChanged {
       LockoutEndMinutes: LastWindowMinutes,
       FirstWindowAction: FirstWindowAction,
       LastWindowAction: LastWindowAction,
-      AlertSound: AlertSound
+      AlertSound: AlertSound,
+      TerminalEnforcementEnabled: TerminalEnforcementEnabled
     );
     policyRepository.SavePolicyRule(rule);
     policyRepository.SaveBellSchedule(profileId, Periods.Select(p => p.ToModel()).ToList());
-    StatusMessage = "Profile settings saved.";
+    policyRepository.SaveScheduleExceptions(profileId, Exceptions.Select(item => item.ToModel()));
+    StatusMessage = "Teacher workspace settings saved.";
   }
 
   public void AddPeriod(string profileId, string name, string start, string end) {
@@ -492,6 +573,25 @@ public sealed class PolicyViewModel : INotifyPropertyChanged {
     var item = Periods.FirstOrDefault(p => p.ScheduleId == period.ScheduleId);
     if (item != null) Periods.Remove(item);
   }
+
+  public void AddException(string profileId) {
+    if (!DateOnly.TryParseExact(NewExceptionDate, "yyyy-MM-dd", out _)) {
+      StatusMessage = "Use YYYY-MM-DD for the exception date.";
+      return;
+    }
+    if (!NewExceptionIsNoSchool && string.IsNullOrWhiteSpace(NewExceptionScheduleName)) {
+      StatusMessage = "Choose the schedule template for this date.";
+      return;
+    }
+    var existing = Exceptions.FirstOrDefault(item => item.ExceptionDate == NewExceptionDate);
+    if (existing != null) Exceptions.Remove(existing);
+    Exceptions.Add(new ScheduleExceptionItemViewModel(new ScheduleException(
+      $"exception-{Guid.NewGuid():N}", profileId, NewExceptionDate,
+      NewExceptionIsNoSchool ? "" : NewExceptionScheduleName.Trim(), NewExceptionIsNoSchool)));
+    StatusMessage = "Date exception added. Save workspace settings to apply it.";
+  }
+
+  public void RemoveException(ScheduleExceptionItemViewModel item) => Exceptions.Remove(item);
 
   void OnPropertyChanged([CallerMemberName] string? propertyName = null) {
     PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));

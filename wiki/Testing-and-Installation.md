@@ -19,6 +19,23 @@ A Windows PC is required for the Windows-specific WinRT BLE direct reconnect,
 bond reuse, and discovery fallback. Those Windows behaviors have not yet been
 verified on physical hardware.
 
+## Schedule, terminal policy, naming, and RSSI verification
+
+Mac testing is sufficient for the shared schedule/date-exception engine,
+class-section roster storage, daily-limit alerts, trip attribution/CSV export,
+operation serialization, and native firmware unit tests. A physical ESP32 is
+required to verify that a connected policy save persists the 14-day cache,
+`Warn` allows checkout with the amber warning screen, `Lock` rejects only a new
+checkout, an active student can still check in, and the renamed kiosk advertises
+its new name after restart.
+
+A Windows PC is required specifically to verify that WinRT discovery reports
+RSSI, renders the signal-quality label and dBm value, and transfers the policy
+through the packaged Windows BLE path. Those Windows-specific behaviors have
+not yet been verified on physical Windows hardware. Mac-only testing does not
+verify WinRT, but it is sufficient for the shared feature behavior and the
+macOS CoreBluetooth path.
+
 ## Owner-storage recovery
 
 The current firmware stores the terminal owner record in LittleFS so it can
@@ -440,7 +457,7 @@ continue holding until **OWNER RESET** appears.
 4. Confirm that trip durations display in minutes and seconds (e.g., `0m 45s`, `5m 30s`) across dashboard activity and the trips history modal, and include hours if duration exceeds 60 minutes.
 5. In **Classroom Roster & Students**, confirm the class selection, enrollment count badge, import button, new class input, and student list render cleanly with no overlapping controls.
 6. On the dashboard, verify the top terminal strip is removed; when pass status is unknown, the active pass card displays the Sync Now / Connect action.
-7. While a pass is available, click **Manual Check In**. Verify that the form cannot be submitted without a Student Name or Student ID, accepts either one or both identity fields, and treats Period, Destination, and Purpose as optional. Submit a student and verify the live timer starts; clicking **Check In** should store the completed trip with the entered name/ID and a **Manual** status.
+7. While a pass is available, click **Start Pass**. Verify that the teacher-started checkout form cannot be submitted without a Student Name or Student ID, accepts either one or both identity fields, and treats Period, Destination, and Purpose as optional. Submit a student and verify the live timer starts; clicking **Check In** should store the completed trip with the entered name/ID and a **Manual** status.
 8. In **Trip History Log**, confirm the table matches the Student Roster styling (clean column headers, student icons, stacked out/in times, duration, status pills, and friendly empty state), and the export button is labeled **Export**.
 9. In the sidebar, confirm **Terminal Settings** is removed and **Settings** is present; opening **Settings** provides **Profile** and **Device** submenu tabs.
 10. In **Policies & Bell Times**, confirm the Profile toolbar (active profile dropdown, status, save button, and add profile bar) is located at the top of the modal.

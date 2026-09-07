@@ -226,8 +226,11 @@ public class MacAgentTerminalConnection : ITerminalConnection
                         var id = data.GetProperty("Id").GetString();
                         var name = data.GetProperty("Name").GetString();
                         var inUse = data.TryGetProperty("IsInUse", out var inUseValue) && inUseValue.GetBoolean();
+                        var rssi = data.TryGetProperty("Rssi", out var rssiValue) && rssiValue.TryGetInt32(out var parsedRssi)
+                            ? parsedRssi
+                            : (int?)null;
                         if (id != null) {
-                            discoveredDevices.Add(new TerminalDevice(id, name ?? "Hallzee", false, inUse));
+                            discoveredDevices.Add(new TerminalDevice(id, name ?? "Hallzee", false, inUse, rssi));
                         }
                         break;
                     case "DiscoverComplete":

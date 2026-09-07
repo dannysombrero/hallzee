@@ -44,7 +44,7 @@ public partial class TerminalSettingsModalView : UserControl {
 
   async void OnApplyClick(object? sender, RoutedEventArgs e) {
     if (DataContext is MainViewModel vm) {
-      await vm.TerminalSettingsModal.ApplySettingsAsync();
+      await vm.ApplyTerminalSettingsAsync();
     }
   }
 }

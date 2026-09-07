@@ -1,580 +1,122 @@
-# Hallzee Client UI Architecture and Refactor Specification
+# Client UI Architecture
 
-**Status:** Current implementation reference and remaining-work plan
+**Status:** Current implementation reference
 
-**Scope:** Hallzee desktop client UI, uploaded React prototype, and integration boundaries  
-**Non-goal:** This document does not authorize product-feature implementation or intentional visual redesign.
+**Scope:** The shared Avalonia desktop client, native BLE adapters, local
+repositories, and UI-facing state boundaries.
 
-**Terminology decision:** The current implementation and schema use
-`ClassroomProfile`; product semantics define that entity as a **teacher
-workspace**, normally one per teacher/room. Class periods are class-section
-contexts selected by schedules, not separate profiles. Renaming the UI and
-adding section-scoped roster data are follow-up implementation work.
+## 1. Supported client
 
-## Phase 1 implementation status
+`receiver/universal/` is the current shared Windows/macOS Avalonia client.
+`preview-site/` is a browser design preview and must not become a second source
+of protocol, policy, or persistence rules. The older receivers under
+`receiver/windows/` and `receiver/` remain compatibility/reference hosts.
 
-The canonical React prototype is consolidated under `preview-site` with a thin route/application entry, typed domain models, a shared mock provider (`HallzeeProvider`), reusable shell (`AppShell`), SVG icon set (`Icons.tsx`), modal dialogs (`TripsModal`, `RosterModal`, `PoliciesModal`, `TerminalSettingsModal`, `SettingsModal`, `TerminalSearchDialog`), and central `DashboardPage`. Sub-pages open as modal pop-ups over the dashboard with backdrop blur, preserving the dashboard context and canonical UI styling.
+The Universal client composes:
 
-## Phase 3 implementation status
+- Avalonia Views and ViewModels for dashboard, trips, roster, policies, terminal
+  discovery, and settings;
+- `BathroomSync.Core` for protocol parsing, identity/authentication, schedules,
+  CSV import, and SQLite repositories;
+- WinRT BLE on Windows and the Mac BLE agent/CoreBluetooth adapter on macOS;
+- a preview terminal adapter for deterministic UI tests.
 
-The native desktop presentation host is implemented in `receiver/universal/` (.NET 8 + Avalonia 11) using the MVVM architecture:
-- **`MainWindow.axaml`**: Native AppShell with brand sidebar rail, classroom profile status box, top title bar gradient (`#0284C7` to `#075985`), themeable vector SVG `PathIcon` elements, and modal dialog overlays.
-- **`DashboardView.axaml`**: Real-time ticking hero active pass timer card, metric statistic summary cards, search-filtered recent activity table with student display names and `#<id>` safe fallback, and top terminal status banner.
-- **Natural State Flow**: Starts clean in disconnected state (`OFFLINE`), initiates discovery with "Searching for devices..." scanning progress, allows selecting discovered kiosks to transition to "Connecting...", then automatically enters dashboard "SYNCING" mode with live spinning indicators, and transitions to "BLE CONNECTED" with timestamped successful sync.
-- **Modal Dialog Views**: Native modal controls for `TripsModalView`, `RosterModalView` (with two-phase CSV import and column mapping verification), `PoliciesModalView`, `TerminalSettingsModalView`, and `FindTerminalsModalView`.
-- **ViewModels**: `MainViewModel`, `ActivePassViewModel`, `DashboardViewModel`, `TripsViewModel`, `RosterViewModel`, `PolicyViewModel`, `TerminalSettingsViewModel`, and `FindTerminalsViewModel`.
-- **Unit Testing**: 15 / 15 unit tests passing in `BathroomSync.Universal.Tests`.
+## 2. Teacher workspace and class sections
 
-## 1. Outcome
+The schema retains the internal type/table name `profile` for compatibility,
+but the user-facing concept is a **teacher workspace**. A workspace owns the
+teacher's local roster, policy, schedules, terminal assignment, and last
+successful sync time.
 
-Refactor the uploaded 1,107-line React shell into understandable pages, components, hooks, and service adapters while preserving its current appearance and demonstrations. Then connect those presentation contracts to Hallzee's existing C# BLE, SQLite, settings, and export capabilities one feature at a time.
+Bell periods identify the active **class section** inside the workspace. They do
+not switch teacher workspaces. `roster_enrollments` permits one student to
+belong to multiple class sections, while roster names remain local to the
+desktop.
 
-The initial refactor must be behavior-preserving. A feature may move to a different file, but it must not disappear, change meaning, or silently become production behavior.
-
-## 2. Current product surfaces
-
-Hallzee currently has four relevant UI representations:
-
-| Surface | Current role | Production status |
-| --- | --- | --- |
-| `receiver/windows/Program.cs` | Published .NET 8 WinForms sync client | Current production Windows app |
-| `receiver/universal/` | Avalonia desktop client preview using a ViewModel | Candidate future native UI |
-| `preview-site/` | Browser-based sync-flow demonstration | Preview only; no Bluetooth hardware |
-| Uploaded `bathroom_pass_terminal_client.tsx` | Rich dashboard and future-feature shell | Design/reference prototype |
-
-The uploaded React shell must not become an independent fourth source of business rules. It should consume explicit contracts and mock adapters. The existing C# core remains the reference for implemented sync behavior until a production UI framework decision is approved.
-
-### Current technical debt relevant to the UI work
-
-- The architecture page and its Wiki mirror were corrected in the Phase 0 documentation branch to describe BLE GATT and `TIME_CURSOR`; future implementation work should use those updated versions as its protocol baseline.
-- The published WinForms UI still constructs controls and coordinates application behavior in one form class. Its protocol/storage classes are reusable, but the form itself should not become the new dashboard architecture.
-- The Avalonia preview already separates a ViewModel from XAML, but it covers only discovery, manual sync, activity, and export—not the new dashboard information architecture.
-- The current browser preview and uploaded React shell use different simulated experiences. Consolidate them instead of maintaining both indefinitely.
-- The current Open export folder implementation produces a CSV as a side effect, matching open issue #8; the new UI must not preserve that defect as intended behavior.
-
-## 3. Framework decision gate
-
-Before replacing the published WinForms interface, Hallzee must explicitly choose its production presentation host.
-
-### Recommended direction
-
-Use the uploaded React UI as the canonical UX prototype and behavior reference, while keeping BLE, SQLite, protocol parsing, and export logic outside React. Continue treating Avalonia as the leading production-native presentation option because:
-
-- the repository already contains an Avalonia application and ViewModel tests;
-- the shared C# core can be reused directly;
-- Windows BLE stays in a native adapter;
-- no browser application or separate approval path is required;
-- the UI can later support macOS without moving device or storage rules into JavaScript.
-
-Under this direction, componentizing the React shell is still useful for design iteration and precise screen contracts, but its hooks are prototype adapters—not the final Bluetooth implementation.
-
-### Alternatives to evaluate before production porting
-
-| Option | Strength | Cost/risk |
-| --- | --- | --- |
-| Avalonia Views + ViewModels | Reuses current C# architecture and supports a native standalone app | React/Tailwind layout must be translated to XAML/styles |
-| React hosted in WebView2 with a .NET bridge | Highest reuse of the uploaded TSX | Windows-only runtime dependency, bridge complexity, harder testing and packaging |
-| Electron/Tauri-style desktop host | Direct React reuse | Adds a new runtime and a new native BLE integration path |
-| Continue WinForms | Lowest short-term migration cost | Poor fit for the proposed component-rich dashboard |
-
-**Decision required before Phase 3:** Confirm whether Avalonia is the production UI target. The behavior-preserving React refactor can proceed before this decision because it does not alter the released client.
-
-## 4. Architectural principles
-
-1. **Preserve the prototype first.** Refactoring must not intentionally change visuals or interactions.
-2. **One source of business truth.** UI components display state and raise intents; they do not parse BLE messages or write SQLite directly.
-3. **Local first.** Trips, profiles, rosters, and settings work without cloud services.
-4. **Terminal remains authoritative for offline-critical behavior.** Locally recorded trips and terminal-enforced settings must survive an unavailable computer.
-5. **Mock and real adapters share contracts.** Demonstration controls remain possible without contaminating production behavior.
-6. **Manual trip sync is the current default.** Date/time synchronization remains automatic during the established connection workflow.
-7. **Status is structured, not inferred from strings.** Connection and sync states use enums/data objects.
-8. **Student data is minimized.** Screens show only information needed for the classroom workflow; diagnostics avoid unnecessary student data.
-9. **Refactors and feature changes are separate.** Each pull request should have one primary purpose.
-
-## 5. Current prototype behavior baseline
-
-The following interactions must remain available after componentization:
-
-- Navigate to the dashboard.
-- Open the complete history experience from the navigation or recent-trips card.
-- Search history by student name, student ID, or trip ID.
-- Filter history by all, active, or completed trips.
-- Sort supported history fields.
-- Trigger the simulated CSV export confirmation.
-- Open roster import and simulate a successful roster selection.
-- Open terminal discovery, display scanning, list mock terminals, and connect to one.
-- Display disconnected, connected, and syncing states.
-- Run a simulated manual sync and update the last-sync time.
-- Display occupied and available pass states.
-- Simulate a student checking out and returning.
-- Show the active-trip timer.
-- Fall back to student ID when no roster name exists.
-- Open terminal settings and preserve the current mocked controls.
-- Display toast notifications.
-- Use the sandbox controls to exercise demo states.
-
-These are characterization requirements, not a declaration that every action belongs in production. In particular, desktop-driven occupancy simulation and the sandbox must live only in the mock/demo adapter.
-
-## 6. Information architecture
-
-### 6.1 Application pages
-
-| Route/view | Purpose | Initial implementation state |
-| --- | --- | --- |
-| Dashboard | At-a-glance pass, terminal, sync, and recent-trip state | Prototype exists; refactor first |
-| Trips | Complete sortable/filterable trip history and export | Currently a modal; promote to a page |
-| Roster | Import status, validation, student mapping, and roster management | Modal shell exists; backend planned |
-| Policies | Pass rules, bell schedules, and pause state | Navigation placeholder; planned |
-| Terminal | Discovery, selection, connection health, terminal identity, and device settings | Split across dashboard and modals |
-| Settings | Profiles and app-level preferences, including future auto-sync controls | Planned |
-
-### 6.2 Modal versus page rule
-
-Use a modal only for a bounded task that can be completed or cancelled without navigation:
-
-- discover/select a terminal;
-- confirm a destructive trip action;
-- choose and validate a roster file;
-- apply a small terminal setting.
-
-Use a page for information that users browse, filter, compare, or revisit:
-
-- full trip history;
-- roster management;
-- policies and bell schedules;
-- terminal management;
-- profiles and settings.
-
-The compact recent-trips dashboard remains intentionally small. “View all history” navigates to Trips rather than expanding the dashboard into a dense table.
-
-## 7. Proposed React prototype structure
-
-```text
-src/
-  app/
-    App.tsx
-    AppProviders.tsx
-    routes.ts
-  pages/
-    dashboard/DashboardPage.tsx
-    trips/TripsPage.tsx
-    roster/RosterPage.tsx
-    policies/PoliciesPage.tsx
-    terminal/TerminalPage.tsx
-    settings/SettingsPage.tsx
-  components/
-    layout/AppShell.tsx
-    layout/TitleBar.tsx
-    layout/Sidebar.tsx
-    feedback/ToastRegion.tsx
-    feedback/EmptyState.tsx
-    feedback/StatusBadge.tsx
-    terminal/TerminalStatusStrip.tsx
-    terminal/TerminalDiscoveryDialog.tsx
-    terminal/TerminalSettingsDialog.tsx
-    pass/PassStatusHero.tsx
-    pass/ActiveTripTimer.tsx
-    trips/RecentTripsCard.tsx
-    trips/TripTable.tsx
-    trips/TripFilters.tsx
-    roster/RosterSummaryCard.tsx
-    roster/RosterImportDialog.tsx
-    policies/PolicySummaryCard.tsx
-    demo/DemoControls.tsx
-  hooks/
-    useTerminalConnection.ts
-    useTripSync.ts
-    useActiveTrip.ts
-    useTripQuery.ts
-    useRoster.ts
-    useTerminalSettings.ts
-    useToast.ts
-    useDemoScenario.ts
-  domain/
-    terminal.ts
-    trips.ts
-    roster.ts
-    policies.ts
-    profiles.ts
-    activity.ts
-  services/
-    contracts/
-      TerminalConnectionService.ts
-      TripRepository.ts
-      TripSyncService.ts
-      ActivePassService.ts
-      RosterRepository.ts
-      CsvExportService.ts
-      ProfileRepository.ts
-      TerminalSettingsService.ts
-      ActivityEventSink.ts
-    mock/
-      MockTerminalConnectionService.ts
-      InMemoryTripRepository.ts
-      MockTripSyncService.ts
-      MockRosterRepository.ts
-      MockTerminalSettingsService.ts
-  test/
-    fixtures/
-    scenarios/
-```
-
-The exact framework router can be chosen during implementation. The route model must remain simple enough to map to Avalonia navigation/ViewModels later.
-
-## 8. State ownership
-
-### 8.1 Application state
+## 3. State ownership
 
 | State | Owner | Persistence |
 | --- | --- | --- |
-| Current route | App/router | Session only |
-| Active teacher workspace ID | Profile service | Local settings database (currently named `profile`) |
-| Toast queue | Toast provider | None |
-| Demo mode/scenario | Demo provider | Session only; absent from production |
-
-### 8.2 Terminal state
-
-| State | Owner | Notes |
-| --- | --- | --- |
-| Discovery results | Connection service | Cleared/replaced per discovery run |
-| Selected terminal | Connection service/teacher-workspace association | Persisted per teacher workspace after authenticated connection |
-| Connection state | Connection service/state machine | Never inferred from label text |
-| Sync state/progress | Sync orchestrator | Exclusive operation; no overlapping sync/settings writes |
-| Last successful sync | Sync service/repository | Persist successful completion time |
-| Live active-pass state | Active-pass service | `GET_ACTIVE_PASS`/`GET_ACTIVE_PASSES` plus live events; unknown after disconnect |
-| Maximum student-ID length | Terminal settings service | Terminal is authoritative |
-| Terminal name | Terminal settings service | Terminal protocol support exists; desktop-to-terminal rename wiring remains planned |
-
-### 8.3 Classroom data
-
-| Data | Owner | Authority |
-| --- | --- | --- |
-| Trip records | SQLite repository | Terminal is origin; client is durable local copy |
-| Active trip displayed by client | Active-pass query/event | Live terminal state enriched from the active teacher workspace's local roster |
-| Roster | Local roster repository | Teacher workspace; future class-section selection |
-| Name/class/period enrichment | Query layer | Derived by joining trips with roster |
-| Policies and bell schedule | Profile repository | Client configuration and active-period display; optional terminal enforcement is planned and off by default |
-| Auto-sync preferences | Profile repository | Reconnect is automatic; continuous/background synchronization preferences remain planned |
-
-## 9. Domain models
-
-Use typed models instead of free-form strings.
-
-```ts
-type ConnectionState =
-  | 'disconnected'
-  | 'discovering'
-  | 'connecting'
-  | 'connected'
-  | 'syncing'
-  | 'connectionLost'
-  | 'recoverableError';
-
-type TripStatus = 'active' | 'completed' | 'manualReset';
-
-interface Trip {
-  id: number;
-  studentId: string;
-  checkedOutAt: Date;
-  checkedInAt?: Date;
-  durationSeconds?: number;
-  status: TripStatus;
-}
-
-interface EnrichedTrip extends Trip {
-  studentName?: string;
-  className?: string;
-  period?: string;
-}
-
-interface TerminalSummary {
-  stableId: string;
-  advertisedName: string;
-  configuredName?: string;
-  signalStrength?: number;
-}
-```
-
-Formatting such as `Today, 9:22 AM`, `6m 20s`, `#9042`, and badge text belongs in presentation helpers, not stored domain data.
-
-## 10. Hook responsibilities
-
-Hooks coordinate UI-facing state; they do not contain protocol parsing or persistence code.
-
-| Hook | Responsibility | Must not do |
-| --- | --- | --- |
-| `useTerminalConnection` | Discover, select, connect, disconnect, expose state | Parse trip payloads or write SQLite |
-| `useTripSync` | Start manual sync, expose progress/result, serialize operations | Implement BLE transport |
-| `useActiveTrip` | Present active/available/unknown state and elapsed display time | Create production trips from desktop simulation |
-| `useTripQuery` | Search, filter, sort, page, and summarize repository results | Maintain a second copy of trip truth |
-| `useRoster` | Import intent, validation results, active roster metadata | Parse CSV directly in components |
-| `useTerminalSettings` | Query/apply settings and expose errors | Assume a local draft was accepted by the kiosk |
-| `useToast` | Queue accessible transient messages | Replace persistent error/status UI |
-| `useDemoScenario` | Drive current simulated interactions | Be included in production composition root |
-
-## 11. Service contracts and existing implementation mapping
-
-| Contract | Existing code to adapt | Current readiness |
-| --- | --- | --- |
-| Terminal connection | `BluetoothConnectionManager.cs`; `TerminalConnectionPort.cs` | Implemented on Windows |
-| Sync session | `SyncSession.cs` | Implemented and tested |
-| Active-pass state | `ActivePassProtocol.cs`, `SyncSession.cs`, firmware `BluetoothSync.cpp` | Implemented: query, multi-pass snapshot, events, timer, and live-trip storage |
-| Trip persistence/query | `TripSqliteRepository.cs` | Implemented in the Universal client, including enriched history queries/export |
-| Terminal settings | `KioskSettingsProtocol.cs` plus firmware settings handlers | Maximum ID length and active-pass capacity implemented; terminal rename desktop wiring remains |
-| CSV export | `TripSqliteRepository.ExportCsv` and WinForms actions | Implemented with open issues #7 and #8 |
-| Activity events | Currently logs/string updates | Needs structured translation; issue #9 |
-| Roster storage/import | `RosterSqliteRepository.cs`, `RosterService.cs` | Implemented: CSV preview/mapping, import, and profile-scoped enrichment |
-| Profiles/settings | `ProfileAndPolicySqliteRepository.cs` | Implemented: profiles, assignments, policies, and bell-period persistence |
-| Policy/schedule engine | Policy and bell-period ViewModels | Implemented as local configuration/display; automatic switching and optional terminal enforcement remain planned |
-| Auto-sync orchestrator | `MainViewModel` reconnect/live-stream path | Partial: automatic reconnect and live streaming work; continuous-sync preferences and a serialized coordinator remain planned |
-
-### Contract rule
-
-Every contract must have:
-
-1. a mock implementation for deterministic prototype behavior;
-2. a native implementation or adapter for production;
-3. tests that both implementations obey the same externally visible outcomes where applicable.
-
-## 12. Feature-to-UI mapping
-
-| UI concept in uploaded shell | Product status | Planned connection |
-| --- | --- | --- |
-| Find Terminal dialog | Real feature | Windows BLE discovery; issues #5, #10, #11 |
-| Connected/disconnected/syncing badges | Real feature, presentation incomplete | Structured connection state |
-| Sync Now | Real feature | Existing cursor-based `TIME_CURSOR` sync |
-| Automatic clock alignment | Real feature | Existing connection/sync command flow |
-| Last successful sync | Partially represented | Persist on successful sync completion |
-| Live occupied/available state and timer | Real feature | Active-pass query/snapshot and live events |
-| Recent trips | Real feature | SQLite query with roster enrichment |
-| Full trip history | Real feature | SQLite query/filter/sort and export |
-| Export CSV | Real feature | Existing export service; issue #7 |
-| Open export folder | Real feature needing correction | Open-only behavior; issue #8 |
-| Student name fallback | Real feature | Roster join with safe ID fallback |
-| Roster CSV import | Real feature | Two-phase CSV preview/mapping/import |
-| Maximum student-ID length | Real terminal setting | Implemented 4–16 range; terminal authoritative |
-| Terminal assigned name | Partial | Firmware supports persisted rename; Universal settings currently save a local name only |
-| Auto-sync on connection | Real for the assigned terminal | Authenticated startup/drop reconnect and sync are automatic; arbitrary-nearby-terminal connection is never automatic |
-| Auto-sync new transactions while connected | Real while connected | `EVENT`/`LIVE_TRIP` notifications; user-configurable continuous mode remains planned |
-| Pass capacity | Real feature | Terminal enforces configured 1–8 capacity |
-| Overdue warning | Real feature | Dashboard threshold/display |
-| Daily max per student | Partial | Stored/displayed policy; checkout-time evaluation remains planned |
-| Bell times | Partial | Stored/displayed; automatic switching and optional terminal enforcement remain planned |
-| Teacher workspace | Real feature, terminology update pending | Profile repository and UI selection currently provide the storage/selection |
-| Desktop Check In / Simulate Tap | Demo only | `useDemoScenario`; never production command |
-| Sandbox toolbar | Demo only | Development/preview composition only |
-
-## 13. Connection and operation state model
-
-### Connection states
-
-```mermaid
-stateDiagram-v2
-    [*] --> Disconnected
-    Disconnected --> Discovering: Find terminal
-    Discovering --> Disconnected: None/error
-    Discovering --> Connecting: Select terminal
-    Connecting --> Connected: GATT ready
-    Connecting --> RecoverableError: Failure
-    Connected --> Syncing: Sync now
-    Syncing --> Connected: Keep-alive mode later
-    Syncing --> Disconnected: Current manual flow completes
-    Connected --> ConnectionLost: Link drops
-    ConnectionLost --> Discovering: Retry
-    RecoverableError --> Discovering: Retry
-```
-
-For the current manual workflow, completion may intentionally disconnect. Future continuous auto-sync will keep `Connected` distinct from `Syncing` and must not be represented as already implemented.
-
-### Exclusive terminal operations
-
-Only one of these may use the terminal command channel at a time:
-
-- time/cursor sync;
-- full-history recovery;
-- settings query/update;
-- terminal rename;
-- future policy transfer.
-
-An operation coordinator queues or rejects a second request with a clear UI message. Components must not disable unrelated navigation merely because a terminal operation is active.
-
-### Active-pass implementation
-
-`GET_ACTIVE_PASS` and `GET_ACTIVE_PASSES` provide an authenticated snapshot of
-in-progress checkouts. `EVENT,CHECKOUT`, `EVENT,CHECKIN`, and `EVENT,RESET`
-keep the live dashboard current while a connection remains open; `LIVE_TRIP`
-persists completed records immediately. The dashboard calculates elapsed time
-locally and returns to an unknown state on disconnect rather than inferring
-occupancy from completed history.
-
-## 14. Privacy and safety boundaries
-
-- Store trip and roster information locally by default.
-- Do not send roster names, class names, or periods to the terminal for roster enrichment.
-- Use student IDs only where operationally necessary.
-- Default dashboard history to a compact recent subset.
-- Keep diagnostic and crash information local; student names may appear when useful for local classroom support, but diagnostics must never upload roster data or transmit it to a terminal.
-- Require confirmation and audit metadata before future trip editing/deletion.
-- Do not expose admin/dean access until authentication, permissions, and shared storage are explicitly designed.
-
-## 15. Behavior-preservation test plan
-
-### 15.1 Characterization tests before moving code
-
-Capture current outcomes with component/integration tests:
-
-1. Dashboard renders connected, occupied, recent-trip, roster, and policy summaries.
-2. Disconnected state replaces sync actions with terminal discovery guidance.
-3. Find Terminal enters scanning state and renders the discovered device list.
-4. Selecting a device completes the mock connection and updates terminal identity.
-5. Sync Now enters syncing state, returns to connected, updates last-sync text, and emits a toast.
-6. Active timer increments only in the current connected/occupied demo scenario.
-7. Demo checkout/check-in transitions update recent trips exactly once.
-8. History search, status filters, and sort directions preserve current outcomes.
-9. Missing roster names use the student-ID fallback.
-10. Roster import updates the displayed filename and closes its dialog.
-11. Settings dialog retains the current fields and planned-feature marker.
-12. Escape/close buttons and focus behavior work for every dialog.
-
-### 15.2 Refactor verification
-
-- Use fixture data equivalent to `INITIAL_TRIPS` and `DISCOVERABLE_TERMINALS`.
-- Prefer roles and accessible names over CSS selectors.
-- Add visual snapshots only for major page-level regressions; interaction tests remain authoritative.
-- Do not update snapshots merely to make a refactor pass without reviewing the difference.
-- Run the original and refactored shell against the same scenario fixtures during the migration window.
-
-### 15.3 Native integration verification
-
-| Capability | macOS sufficient? | Windows required? |
-| --- | --- | --- |
-| React component behavior and mock services | Yes | No |
-| Shared C# ViewModel/core tests | Yes where .NET target permits | No for core-only tests |
-| SQLite queries/export formatting | Yes | No |
-| Windows BLE discovery/GATT connection/reconnect | No | Yes |
-| Physical ESP32 sync/settings update | No | Yes, with physical Hallzee |
-| Final packaged Windows layout and accessibility | No | Yes |
-
-Windows behavior must be reported as unverified until tested on a Windows PC. UI-only preview checks must not be described as Bluetooth validation.
-
-## 16. Historical implementation roadmap
-
-Phases 1–5 below are substantially delivered in the Universal client. They are
-retained as design history; the remaining work is terminal rename wiring,
-optional terminal bell-policy transfer/enforcement, schedule exceptions and
-period metadata, daily-limit evaluation, RSSI display, and serialized
-continuous-sync controls.
-
-### Phase 0 — Approve architecture
-
-- Approve this document.
-- Decide where the uploaded React prototype lives in the repository.
-- Keep the published client unchanged.
-- Record the production UI framework decision as pending or choose Avalonia.
-
-### Phase 1 — Characterize and componentize the React shell
-
-- Add tests around current prototype behavior.
-- Extract domain types and fixture data.
-- Extract AppShell, title bar, sidebar, toast region, dashboard widgets, dialogs, and trip table.
-- Introduce page-level components without changing styling.
-- Move all simulations into mock services and `useDemoScenario`.
-- Preserve every baseline interaction listed in Section 5.
-
-**PR boundary:** No real BLE, SQLite, firmware, or new product features.
-
-### Phase 2 — Establish UI-facing application contracts
-
-- Define service interfaces and operation/result models.
-- Define the `ActivePassService` contract and explicit unavailable/unknown state without inventing production data.
-- Add structured connection and activity events.
-- Expand repository query interfaces for recent trips and full history.
-- Add mock contract tests.
-- Adapt existing C# core to parallel ViewModel/application contracts.
-
-**PR boundary:** Architecture and adapters; minimal intentional UI change.
-
-### Phase 3 — Confirm and build production presentation host
-
-- Confirm Avalonia or another approved host.
-- Reproduce AppShell, navigation, Dashboard, and Terminal status using production ViewModels.
-- Bind Find Terminal and Sync Now to existing native services.
-- Keep WinForms available until replacement acceptance criteria pass.
-
-### Phase 4 — Pair implemented backend features
-
-Order:
-
-1. BLE discovery, selected terminal, connection states, and manual incremental sync.
-2. Active-pass query/event protocol and live occupied/available state.
-3. Maximum student-ID length query/apply.
-4. SQLite recent trips and full history.
-5. CSV save and open-folder corrections.
-6. Human-readable activity events.
-
-Each feature gets mock tests, core tests, native ViewModel tests, and the required Windows hardware check.
-
-### Phase 5 — Add planned data foundations
-
-Order:
-
-1. Database migrations.
-2. Local profiles/settings.
-3. Roster CSV import, validation, and ID enrichment.
-4. Known-terminal association per profile.
-5. Trip query summaries and pagination.
-
-### Phase 6 — Add policy and automation features
-
-- Terminal naming.
-- Pass-policy and bell-schedule engine.
-- Continuous/background sync preferences and operation coordination.
-
-These require individual feature designs before implementation.
-
-## 17. Current native modal behavior
-
-The Avalonia trip-history modal follows the web client’s light-blue table treatment. Its search field and status selector apply filters immediately as their values change; no separate Refresh action is required. Full history rows include a sortable Trip ID column. The Policies & Bell Times modal uses the same pale-blue card, navy text, and rounded schedule-row styling.
-
-## 18. Pull-request rules
-
-1. Do not combine componentization with a backend feature.
-2. Do not intentionally restyle during behavior-preserving refactors.
-3. Keep demo-only controls visibly and structurally separate from production composition.
-4. Update relevant `docs/` and matching Wiki sources when a change affects operation, testing, setup, or platform support.
-5. State whether Mac testing is sufficient and exactly which Windows behavior remains unverified.
-6. Keep current WinForms publishing intact until the replacement client is explicitly approved.
-7. Never migrate/delete teacher data as part of a UI refactor.
-
-## 19. Decisions still requiring approval
-
-| Decision | Recommendation | Needed by |
-| --- | --- | --- |
-| Production UI framework | Avalonia, with React as UX prototype | Before Phase 3 |
-| React prototype repository location | Replace/expand `preview-site` rather than create another top-level client | Before Phase 1 |
-| Full history presentation | Dedicated Trips page; dashboard stays compact | Approved direction, formalize in Phase 1 |
-| Desktop-driven check-in/out | Demo only | Before production Dashboard port |
-| Active trip freshness | Live while connected through active-pass query/snapshot/events; unknown after disconnect | Delivered |
-| Policy enforcement location | Client configuration by default; terminal bell-policy enforcement is optional and off by default | Before policy-transfer implementation |
-| Continuous Bluetooth connection | Reconnect is automatic; continuous background connection follows the policy selected by the teacher | Before continuous-sync preference implementation |
-| Trip edit/delete behavior | Require audit trail and clear terminal/client ownership | Before issue #15 design |
-
-## 20. Definition of done for the first refactor
-
-The first componentization is complete when:
-
-- no primary page or reusable dialog remains embedded in `App.tsx`;
-- `App.tsx` is primarily composition, providers, and routing;
-- demo behavior uses injected mock services;
-- all interactions in Section 5 still work;
-- characterization tests pass;
-- no released client or firmware behavior changes;
-- no planned feature is presented as implemented;
-- the original uploaded file remains recoverable through version control or an archived reference during review;
-- the resulting structure can be mapped clearly to native Views/ViewModels.
-
-## 21. Current next actions
-
-Prioritize the remaining work listed in Section 16. Do not describe reconnect
-or live terminal events as configurable auto-sync until the preference and
-operation-coordinator work is complete.
+| Active teacher workspace | `ProfileAndPolicySqliteRepository` | SQLite |
+| Terminal assignment and custom name | Terminal repository plus authenticated kiosk setting | SQLite and kiosk Preferences |
+| Discovery results and RSSI | Platform connection adapter | Session only |
+| Owner credential | Platform credential store | Windows DPAPI or macOS Keychain |
+| Trips and schedule/class attribution | `TripSqliteRepository` | SQLite |
+| Roster and class enrollments | `RosterSqliteRepository` | SQLite |
+| Policy, named schedules, and date exceptions | Policy repository | SQLite |
+| Last successful sync | Profile repository | SQLite after `SYNC_END` |
+| Live pass state | Active-pass query/snapshot/events | Memory; unknown after disconnect |
+
+## 4. Connection and synchronization
+
+Only the terminal assigned to the active teacher workspace is an automatic
+reconnect target. The client never picks an arbitrary nearby kiosk.
+
+1. Restore the saved terminal identity, transport hint, and owner credential.
+2. Open GATT and verify the expected stable terminal ID.
+3. Authenticate with the owner proof.
+4. Query active passes/settings, send pass capacity and the optional bell-policy
+   cache, align the clock, and start `TIME_CURSOR`.
+5. Keep the connection active for `EVENT`/`LIVE_TRIP` updates.
+6. Run a cursor reconciliation every five minutes.
+7. On link loss, retry the same verified terminal for up to 45 seconds, using
+   discovery fallback if its transport address changed.
+
+`TerminalOperationCoordinator` serializes cursor sync, terminal settings,
+manual terminal check-in, and policy-transfer command groups. Trip ACKs remain
+inside the active cursor operation so the firmware can advance its stream.
+Manual **Sync Now** uses the same coordinator.
+
+## 5. Policy and schedule flow
+
+`PolicyScheduleService` selects periods from weekday-assigned named templates
+or a date-specific override. No-school dates resolve no active period.
+First/last windows independently evaluate `Allow`, `Warn`, or `Lock`.
+
+Terminal enforcement is optional and off by default. When enabled,
+`BellPolicyProtocol` resolves the next 14 days into no more than 96 compact
+dated windows. The firmware stages and commits that copy, persists it, and
+evaluates only new checkouts. Missing cache dates fail open; an existing pass can
+always check back in. Current terminal hardware has no speaker, so kiosk
+warnings are visual and configured sounds remain desktop-only.
+
+On receipt of a trip, the client resolves its checkout timestamp and records the
+teacher workspace, schedule name, and class section. Enriched CSV export uses
+that captured context rather than whatever schedule happens to be active later.
+
+## 6. UI surfaces
+
+| Surface | Current behavior |
+| --- | --- |
+| Find Terminal | Lists matching kiosks with name, availability, signal quality, and RSSI dBm |
+| Dashboard | Live pass state/timers, recent trips, overdue report, and daily-guideline alerts |
+| Trips | Search, filter, sort, paginate, and export enriched local history |
+| Roster | Two-phase CSV mapping/import and teacher-workspace roster management |
+| Policies & Bell Times | Named templates, weekday periods, class sections, date exceptions, actions, sound preview, and opt-in kiosk enforcement |
+| Terminal Settings | Teacher details, authenticated kiosk rename, ID-length setting, and last paired device |
+| Mini Window | Current period/window and pass availability; student names are not shown |
+
+The teacher-started checkout action is labelled **Start Pass**. It is distinct
+from the authenticated `MANUAL_CHECKIN` protocol command, which closes an
+existing kiosk pass at the teacher's request.
+
+## 7. Privacy boundary
+
+Student names, rosters, grades, and class-section labels remain in the local
+desktop database/UI. They are not sent to the kiosk or a website. BLE trip
+records contain student IDs and timestamps. The policy cache contains only
+dates, minute offsets, and numeric actions. Diagnostic data is not uploaded
+automatically.
+
+## 8. Verification boundary
+
+Mac testing is sufficient for shared ViewModel/core behavior, SQLite migration,
+schedule evaluation, exports, operation serialization, preview behavior, native
+firmware unit tests, and the macOS BLE adapter.
+
+A Windows PC is required for WinRT discovery/RSSI, GATT connection and
+reconnect, bond reuse, credential-vault persistence, and packaged-app behavior.
+Those Windows-specific behaviors have not yet been verified on physical Windows
+hardware. A physical ESP32 is required for final persisted rename, offline
+policy screen/enforcement, two-nearby-terminal isolation, and long-running BLE
+stability tests.

@@ -16,9 +16,10 @@ reporting, and local roster enrichment described below are implemented in the
 shared SQLite core and Universal client. Workbook files remain intentionally
 out of scope: export them to CSV before import.
 
-The current implementation calls the teacher workspace a `profile` and scopes
-all roster rows to it. A future class-section association is required before one
-teacher workspace can select different rosters automatically by bell period.
+The storage schema still calls a teacher workspace a `profile`. Students are
+scoped to that workspace, while `roster_enrollments` allows one student to
+belong to multiple class sections. Bell periods select and record a class
+section without switching teacher workspaces.
 
 When students use the Hallzee kiosk, they enter only their numeric student ID (e.g. `10482`). In the raw sync database, records only contain this number. Teachers need immediate visual recognition of student names on their dashboard and in historical trip logs (e.g., displaying `Alex Rivera (Period 2)` instead of just `10482`).
 
@@ -65,6 +66,13 @@ CREATE TABLE IF NOT EXISTS roster_students (
 );
 
 CREATE INDEX IF NOT EXISTS idx_roster_name ON roster_students(last_name, first_name);
+
+CREATE TABLE IF NOT EXISTS roster_enrollments (
+    profile_id TEXT NOT NULL,
+    student_id TEXT NOT NULL,
+    class_section TEXT NOT NULL,
+    PRIMARY KEY (profile_id, student_id, class_section)
+);
 ```
 
 ### Display Enrichment Query (Joined View)

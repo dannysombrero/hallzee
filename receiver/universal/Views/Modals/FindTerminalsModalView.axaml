@@ -29,6 +29,9 @@
                       <StackPanel Grid.Column="1" VerticalAlignment="Center">
                         <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="14" Foreground="#0F172A" />
                         <TextBlock Text="{Binding Id, StringFormat='ID: {0}'}" FontSize="11" Foreground="#64748B" />
+                        <TextBlock FontSize="11" Foreground="#0369A1">
+                          <Run Text="{Binding SignalQuality}" /><Run Text=" · " /><Run Text="{Binding SignalStrengthText}" />
+                        </TextBlock>
                       </StackPanel>
                       <StackPanel Grid.Column="2" Orientation="Horizontal">
                         <Border Background="#FEF3C7" CornerRadius="6" Padding="8,3" VerticalAlignment="Center" IsVisible="{Binding IsInUse}">

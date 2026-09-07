@@ -6,7 +6,7 @@ namespace BathroomSync.Universal.ViewModels;
 
 public sealed class TerminalSettingsViewModel : INotifyPropertyChanged {
   readonly ITerminalRepository terminalRepository;
-  readonly ITerminalConnection connection;
+  readonly Func<string, Task> sendCommand;
   readonly string classroomInfoFilePath;
   readonly Action? onClassroomInfoChanged;
   int maxStudentIdLength = 10;
@@ -20,12 +20,12 @@ public sealed class TerminalSettingsViewModel : INotifyPropertyChanged {
 
   public TerminalSettingsViewModel(
     ITerminalRepository terminalRepository,
-    ITerminalConnection connection,
+    Func<string, Task> sendCommand,
     string? appDataPath = null,
     Action? onClassroomInfoChanged = null
   ) {
     this.terminalRepository = terminalRepository;
-    this.connection = connection;
+    this.sendCommand = sendCommand;
     this.onClassroomInfoChanged = onClassroomInfoChanged;
 
     classroomInfoFilePath = string.IsNullOrEmpty(appDataPath)
@@ -178,13 +178,20 @@ public sealed class TerminalSettingsViewModel : INotifyPropertyChanged {
     private set { statusColor = value; OnPropertyChanged(); }
   }
 
-  public async Task ApplySettingsAsync(string terminalId = "preview-hallzee") {
+  public void SetFailure(string message) {
+    StatusMessage = message;
+    StatusColor = "#EF4444";
+  }
+
+  public async Task<bool> ApplySettingsAsync(string terminalId = "preview-hallzee") {
     StatusMessage = "Applying settings to terminal…";
     StatusColor = "#0284C7";
 
     try {
-      var command = KioskSettingsProtocol.BuildStudentIdLengthCommand(MaxStudentIdLength) + "\n";
-      await connection.SendAsync(command);
+      var idCommand = KioskSettingsProtocol.BuildStudentIdLengthCommand(MaxStudentIdLength);
+      var nameCommand = TerminalIdentityProtocol.BuildSetTerminalName(TerminalName);
+      await sendCommand(idCommand);
+      await sendCommand(nameCommand);
 
       terminalRepository.SaveTerminal(new TerminalDeviceConfig(
         TerminalId: terminalId,
@@ -193,11 +200,13 @@ public sealed class TerminalSettingsViewModel : INotifyPropertyChanged {
         MaxIdLength: MaxStudentIdLength
       ));
 
-      StatusMessage = $"Applied maximum student ID length: {MaxStudentIdLength}";
+      StatusMessage = $"Applied kiosk name “{TerminalName}” and maximum student ID length {MaxStudentIdLength}.";
       StatusColor = "#10B981";
+      return true;
     } catch (Exception ex) {
       StatusMessage = $"Failed to apply settings: {ex.Message}";
       StatusColor = "#EF4444";
+      return false;
     }
   }
 

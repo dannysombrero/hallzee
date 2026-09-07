@@ -175,7 +175,7 @@ class Program
             {
                 foundDevices[idStr] = name;
                 foundPeripherals[idStr] = peripheral;
-                EmitEvent("Discovered", new { Id = idStr, Name = name, IsInUse = inUse });
+                EmitEvent("Discovered", new { Id = idStr, Name = name, IsInUse = inUse, Rssi = RSSI.Int32Value });
             }
         }
         

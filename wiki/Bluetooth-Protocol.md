@@ -73,9 +73,14 @@ the retry a safe duplicate and ACKs it again.
 | `AUTH,2,<client_id>,<proof>` | Authenticate the persisted owner |
 | `GET_SETTINGS` | Read all supported persisted kiosk settings |
 | `GET_ACTIVE_PASS` | Query current active in-flight checkout pass status |
+| `GET_ACTIVE_PASSES` | Query all current active checkouts |
 | `MANUAL_CHECKIN` | Teacher check-in of the active pass; records the completed trip with status `MANUAL` |
 | `SET,MAX_ID_LENGTH,<4-16>` | Persist the maximum accepted student-ID length |
 | `SET,MAX_ACTIVE_PASSES,<1-8>` | Persist the maximum number of simultaneous active passes; the oldest active pass remains the client-visible pass |
+| `SET,TERMINAL_NAME,<name>` | Persist and advertise a validated 1–24 character kiosk name |
+| `POLICY_BEGIN,<0\|1>` | Begin an atomic offline bell-policy update; `0` disables terminal enforcement |
+| `POLICY_WINDOW,<YYYYMMDD>,<start>,<end>,<first_end>,<last_start>,<first_action>,<last_action>` | Stage one resolved dated window; minutes are after midnight and action values are Allow=0, Warn=1, Lock=2 |
+| `POLICY_COMMIT,<count>` | Commit the staged policy only when `count` matches the received window count |
 | `TIME_CURSOR,...,<id>` | Set local time and send records with trip ID greater than `id` |
 | `TIME,...` | Legacy compatibility: set time and send records whose terminal sync flag is unset |
 | `SYNC_START` | Legacy compatibility: send records whose terminal sync flag is unset |
@@ -96,6 +101,9 @@ Carriage returns are ignored.
 | `SETTINGS,MAX_ID_LENGTH,<value>` | Current persisted maximum student-ID length |
 | `SETTINGS_ACK,MAX_ID_LENGTH,<value>` | Setting was saved successfully |
 | `SETTINGS_ERROR,MAX_ID_LENGTH,<reason>` | Setting was rejected without changing the stored value |
+| `SETTINGS_ACK,TERMINAL_NAME,<name>` | Kiosk name was persisted and applied to BLE advertising |
+| `POLICY_ACK,BEGIN` / `POLICY_ACK,WINDOW` / `POLICY_ACK,COMMIT,<count>` | Offline bell-policy transfer step succeeded |
+| `POLICY_ERROR,<reason>` | Bell-policy transfer was rejected; the previous committed policy remains authoritative |
 | `ACTIVE_PASS,<student_id>,<epoch>` | Active checkout student ID and unix epoch timestamp |
 | `ACTIVE_PASS,NONE` | Pass is currently available (no active checkout) |
 | `EVENT,CHECKOUT,<id>,<epoch>` | Real-time notification: student checked out |
@@ -124,7 +132,8 @@ Carriage returns are ignored.
 
 ## Kiosk settings
 
-The first persisted kiosk setting is `MAX_ID_LENGTH`. Its default is 10 and
+Persisted kiosk settings include `MAX_ID_LENGTH`, terminal name, active-pass
+capacity, and the optional dated bell-policy cache. The ID-length default is 10 and
 its accepted range is 4–16. The lower bound preserves access to the four-digit
 local administrator codes. The firmware rejects a shorter value while an
 active checkout has a longer ID, returning `ACTIVE_ID_TOO_LONG`. Other error

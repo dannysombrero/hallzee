@@ -21,6 +21,7 @@ public sealed class SyncViewModel : INotifyPropertyChanged, IDisposable {
   int transferredTrips;
   bool canFind = true;
   bool canSync;
+  TaskCompletionSource<bool>? syncCompletion;
 
   public SyncViewModel(ITerminalConnection connection, string? appDataPath = null, bool isPreviewMode = true) {
     this.connection = connection;
@@ -105,6 +106,7 @@ public sealed class SyncViewModel : INotifyPropertyChanged, IDisposable {
     SetStatus("Connecting", "Opening a secure Bluetooth connection…", "#1261A0");
     try {
       session.Start();
+      syncCompletion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
       SavedTrips = 0;
       TransferTotal = null;
       TransferredTrips = 0;
@@ -113,12 +115,16 @@ public sealed class SyncViewModel : INotifyPropertyChanged, IDisposable {
       var latestTripId = Math.Clamp(storage.GetLatestTripId(), 0L, (long)uint.MaxValue);
       await connection.SendAsync($"TIME_CURSOR,{DateTime.Now:yyyy-MM-dd,HH:mm:ss},{latestTripId}");
       LogEntries.Add($"Connected; requesting trips after durable ID {latestTripId}.");
+      var completed = await Task.WhenAny(syncCompletion.Task, Task.Delay(TimeSpan.FromSeconds(20)));
+      if (completed != syncCompletion.Task) throw new TimeoutException("The terminal did not finish synchronization.");
     } catch (Exception exception) {
       var detail = DescribeException(exception);
       SetStatus("Connection failed", detail, "#B3443C");
       LogEntries.Add($"Connection error: {detail}");
       await connection.DisconnectAsync();
       CanSync = true;
+    } finally {
+      syncCompletion = null;
     }
   }
 
@@ -178,6 +184,7 @@ public sealed class SyncViewModel : INotifyPropertyChanged, IDisposable {
     } else if (update.Status == SyncStatus.Complete) {
       SavedTrips = update.SavedTripCount ?? 0;
       SetStatus("Sync complete", $"{SavedTrips} new trip(s) saved this session.", "#2C8A50");
+      syncCompletion?.TrySetResult(true);
       await connection.DisconnectAsync();
       CanSync = true;
     }

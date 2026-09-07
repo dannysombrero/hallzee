@@ -107,10 +107,18 @@ public sealed class TerminalIdentityProtocolTests {
   [InlineData("")]
   [InlineData("Room,204")]
   [InlineData("Room\n204")]
+  [InlineData("Salón 204")]
   [InlineData("  ")]
   [InlineData("This terminal name is much too long")]
   public void RejectsUnsafeTerminalNames(string name) {
     Assert.False(TerminalIdentityProtocol.TryNormalizeTerminalName(name, out _));
+  }
+
+  [Fact]
+  public void BuildsValidatedTerminalRenameCommand() {
+    Assert.Equal("SET,TERMINAL_NAME,Room 204 Door",
+      TerminalIdentityProtocol.BuildSetTerminalName("  Room 204 Door  "));
+    Assert.Throws<ArgumentException>(() => TerminalIdentityProtocol.BuildSetTerminalName("Room,204"));
   }
 
   [Fact]

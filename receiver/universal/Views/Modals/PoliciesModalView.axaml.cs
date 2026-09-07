@@ -29,7 +29,7 @@ public partial class PoliciesModalView : UserControl {
     if (DataContext is MainViewModel vm) {
       vm.PolicyModal.Save(vm.ActiveProfile.ProfileId);
       vm.Dashboard.Refresh(vm.ActiveProfile.ProfileId);
-      await vm.ApplyPolicyCapacityAsync();
+      await vm.ApplyPolicySettingsAsync();
     }
   }
 
@@ -96,6 +96,16 @@ public partial class PoliciesModalView : UserControl {
       } else if (btn.Tag is BellSchedulePeriod period) {
         vm.PolicyModal.RemovePeriod(period);
       }
+    }
+  }
+
+  void OnAddExceptionClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) vm.PolicyModal.AddException(vm.ActiveProfile.ProfileId);
+  }
+
+  void OnRemoveExceptionClick(object? sender, RoutedEventArgs e) {
+    if (sender is Button { Tag: ScheduleExceptionItemViewModel item } && DataContext is MainViewModel vm) {
+      vm.PolicyModal.RemoveException(item);
     }
   }
 }

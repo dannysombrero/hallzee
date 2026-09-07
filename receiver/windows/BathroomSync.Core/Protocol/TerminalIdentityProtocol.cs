@@ -172,12 +172,23 @@ public static partial class TerminalIdentityProtocol {
 
   public static bool TryNormalizeTerminalName(string name, out string normalized) {
     normalized = name.Trim();
-    if (normalized.Length is < 1 or > 24 || normalized.Any(character =>
-        !(char.IsLetterOrDigit(character) || character is ' ' or '-' or '_' or '(' or ')'))) {
+    if (normalized.Length is < 1 or > 24 || normalized.Any(character => {
+      var isAsciiLetterOrDigit = character is >= 'A' and <= 'Z' or >= 'a' and <= 'z' or >= '0' and <= '9';
+      return !(isAsciiLetterOrDigit || character is ' ' or '-' or '_' or '(' or ')');
+    })) {
       normalized = "";
       return false;
     }
     return true;
+  }
+
+  public static string BuildSetTerminalName(string name) {
+    if (!TryNormalizeTerminalName(name, out var normalized)) {
+      throw new ArgumentException(
+        "Terminal name must be 1–24 letters, numbers, spaces, hyphens, underscores, or parentheses.",
+        nameof(name));
+    }
+    return $"SET,TERMINAL_NAME,{normalized}";
   }
 
   static string[] Split(string message) {

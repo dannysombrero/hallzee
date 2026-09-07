@@ -11,8 +11,10 @@ public:
   void prepareScreenTransition(uint16_t backgroundColor = UI_BACKGROUND);
   void showBluetoothClockSynced(const String &date, const String &time);
   void showCheckedOut(const String &id, const String &time);
+  void showCheckedOutWarning(const String &id, const String &time);
   void showCheckedIn(unsigned long elapsedSeconds);
   void showPassOccupied();
+  void showPolicyLocked();
   void showEnterId();
   void showStudentIdTooLong(uint8_t maximumLength);
   void showStorageError();

@@ -12,6 +12,7 @@
 #include "AppTypes.h"
 #include "ArduinoBluetoothSerialPort.h"
 #include "ArduinoKeypadPort.h"
+#include "BellPolicy.h"
 #include "BluetoothSync.h"
 #include "ClockService.h"
 #include "Config.h"
@@ -61,7 +62,8 @@ ArduinoMonotonicClock monotonicClock;
 TripStorage tripStorage;
 ArduinoBluetoothSerialPort bluetoothSerial;
 SystemTimeProvider systemTime;
-TerminalController terminal(tripStorage, systemTime);
+BellPolicy bellPolicy;
+TerminalController terminal(tripStorage, systemTime, &bellPolicy);
 ClockService terminalClock;
 TerminalIdentity terminalIdentity;
 TerminalSecurity terminalSecurity(terminalIdentity);
@@ -84,7 +86,7 @@ BluetoothSync bluetoothSync(tripStorage, bluetoothSerial, setSystemClock24,
                             handleBluetoothClockSet, getActivePassState,
                             manualCheckInFromDesktop, getActivePassStates,
                             setActivePassCapacity, &terminalIdentity,
-                            &terminalSecurity);
+                            &terminalSecurity, &bellPolicy);
 
 String enteredID = "";
 String serialCommandBuffer = "";
@@ -646,6 +648,21 @@ void submitID() {
     transitionToIdle();
     return;
 
+  case TerminalAction::CheckedOutWithWarning:
+    Serial.print("CHECK OUT WITH BELL WARNING: ");
+    Serial.println(result.id);
+    bluetoothSync.notifyCheckout(
+        result.id, static_cast<uint32_t>(terminal.checkoutTimeFor(result.id)));
+    terminalDisplay.showCheckedOutWarning(result.id, getTimeString());
+    transitionToIdle();
+    return;
+
+  case TerminalAction::PolicyLocked:
+    Serial.println("Checkout blocked by bell-time policy.");
+    terminalDisplay.showPolicyLocked();
+    transitionToIdle();
+    return;
+
   case TerminalAction::CheckedIn: {
     Serial.print("CHECK IN: ");
     Serial.println(result.id);
@@ -791,6 +808,9 @@ void setup() {
   // Storage owns NVS and LittleFS, then restores an active pass before clock
   // setup. The display is intentionally deferred until the clock is set.
   tripStorage.begin();
+  if (!bellPolicy.begin()) {
+    Serial.println("WARNING: Bell policy storage unavailable; terminal enforcement is off.");
+  }
   terminal.setCapacity(tripStorage.getMaxActivePasses());
   terminal.restoreActivePass();
 

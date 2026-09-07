@@ -23,7 +23,10 @@ public sealed class SyncUpdate {
   public IReadOnlyList<ActivePassInfo>? ActivePasses { get; set; }
   public LivePassEvent? LiveEvent { get; set; }
   public bool LiveTripStored { get; set; }
+  public List<StoredTripInfo> StoredTrips { get; } = new();
 }
+
+public record StoredTripInfo(string TerminalId, long TripId, string TripDate, string TimeOut);
 
 public sealed class SyncSession {
   private readonly ITripRepository repository;
@@ -158,6 +161,10 @@ public sealed class SyncSession {
     if (result == TripStoreResult.Saved) {
       savedTripCount++;
       update.Logs.Add($"Saved trip {tripId}");
+    }
+    var fields = payload.Split(',');
+    if (fields.Length >= 4 && long.TryParse(fields[0], out var parsedTripId)) {
+      update.StoredTrips.Add(new StoredTripInfo(terminalId ?? "LEGACY-DEFAULT", parsedTripId, fields[2], fields[3]));
     }
     if (isLiveTrip) update.LiveTripStored = true;
   }

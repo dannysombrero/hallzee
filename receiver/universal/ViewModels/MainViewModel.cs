@@ -18,6 +18,9 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
   readonly SyncSession syncSession;
   readonly TerminalSession? terminalSession;
   readonly ITerminalCredentialStore? ownerCredentialStore;
+  readonly TerminalOperationCoordinator operationCoordinator = new();
+  readonly PolicyScheduleService scheduleService = new();
+  TaskCompletionSource<bool>? syncCompletion;
 
   string activeView = "dashboard";
   string activeModal = "None";
@@ -38,6 +41,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
   CancellationTokenSource? reconnectCancellation;
   bool reconnectInProgress;
   bool intentionalDisconnect;
+  DateTime nextBackgroundSyncAt = DateTime.Now.AddMinutes(5);
 
   public MainViewModel(
     ITerminalConnection connection,
@@ -88,10 +92,11 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
       if (e.PropertyName == nameof(PolicyModal.DurationWarningMinutes)) {
         Dashboard.ThresholdMinutes = PolicyModal.DurationWarningMinutes;
       }
+      if (e.PropertyName == nameof(PolicyModal.MaxDailyPasses)) Dashboard.MaxDailyPasses = PolicyModal.MaxDailyPasses;
     };
     TerminalSettingsModal = new TerminalSettingsViewModel(
       profileRepository,
-      connection,
+      SendProtocolAsync,
       appData,
       HandleClassroomInfoChanged);
     if (!string.IsNullOrWhiteSpace(LastPairedDeviceName)) {
@@ -124,6 +129,10 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
       ActivePass.Tick();
       Dashboard.TickLiveActivePasses();
       UpdatePeriodWindow();
+      if (IsConnected && !IsSyncing && DateTime.Now >= nextBackgroundSyncAt) {
+        nextBackgroundSyncAt = DateTime.Now.AddMinutes(5);
+        _ = SyncNowAsync();
+      }
     }), null, 1000, 1000);
   }
 
@@ -271,6 +280,8 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
       return null;
     }
   }
+
+  public string CurrentTerminalId => lastAuthenticatedTerminalId ?? "preview-hallzee";
 
   public string ConnectedTerminalName {
     get => isConnected ? connectedTerminalName : (!string.IsNullOrWhiteSpace(LastPairedDeviceName) ? LastPairedDeviceName : "No Terminal Connected");
@@ -558,7 +569,9 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     }
   }
 
-  public async Task SyncNowAsync() {
+  public Task SyncNowAsync() => operationCoordinator.RunAsync(SyncNowCoreAsync);
+
+  async Task SyncNowCoreAsync() {
     if (!IsConnected) {
       OpenModal("FindTerminals");
       return;
@@ -577,11 +590,13 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
       } else {
         syncSession.Start(authenticatedTerminalId);
       }
+      syncCompletion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
       await SendProtocolAsync(ActivePassProtocol.BuildGetActivePassesCommand());
       await SendProtocolAsync(terminalSession == null
         ? KioskSettingsProtocol.QueryCommand + "\n"
         : KioskSettingsProtocol.QueryCommand);
       await SendProtocolAsync($"SET,MAX_ACTIVE_PASSES,{PolicyModal.MaxSimultaneousPasses}");
+      await SendBellPolicyCoreAsync();
 
       // The kiosk stores its classroom wall-clock time as a UTC-shaped epoch.
       // Send the Mac's local time so the terminal display and its local records
@@ -592,12 +607,14 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
         : tripRepository.GetRecentTrips(authenticatedTerminalId).FirstOrDefault()?.TripId ?? 0;
       var command = $"TIME_CURSOR,{now:yyyy-MM-dd},{now:HH:mm:ss},{lastTripId}\n";
       await SendProtocolAsync(command);
-
-      LastSyncTimeText = $"Today, {DateTime.Now:h:mm tt} (just now)";
+      var completed = await Task.WhenAny(syncCompletion.Task, Task.Delay(TimeSpan.FromSeconds(20)));
+      if (completed != syncCompletion.Task) throw new TimeoutException("The terminal did not finish synchronization.");
     } catch {
       IsConnected = false;
       LastSyncTimeText = "Sync failed (Terminal offline)";
       IsSyncing = false;
+    } finally {
+      syncCompletion = null;
     }
   }
 
@@ -630,9 +647,11 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
       var status = ActivePass.IsManual ? "MANUAL" : "COMPLETED";
       var payload = $"{tripId},{studentId},{date},{timeOut},{timeIn},{duration},{status}";
       if (ActivePass.IsManual) {
-        tripRepository.StoreManual("LEGACY-DEFAULT", payload, ActivePass.StudentName);
+        tripRepository.StoreManual("DESKTOP", payload, ActivePass.StudentName);
+        AssignTripContext("DESKTOP", tripId, date, timeOut);
       } else {
         tripRepository.Store(payload);
+        AssignTripContext("LEGACY-DEFAULT", tripId, date, timeOut);
       }
 
       if (IsConnected) {
@@ -653,20 +672,51 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     if (connection is PreviewTerminalConnection preview) {
       preview.SimulateCheckin(studentId);
       } else {
-        await SendProtocolAsync($"MANUAL_CHECKIN,{studentId}");
+        await operationCoordinator.RunAsync(() => SendProtocolAsync($"MANUAL_CHECKIN,{studentId}"));
     }
   }
 
-  public async Task ApplyPolicyCapacityAsync() {
-    if (IsConnected) {
-      await SendProtocolAsync($"SET,MAX_ACTIVE_PASSES,{PolicyModal.MaxSimultaneousPasses}");
+  public Task ApplyPolicyCapacityAsync() => ApplyPolicySettingsAsync();
+
+  public Task ApplyPolicySettingsAsync() => operationCoordinator.RunAsync(async () => {
+    if (!IsConnected) return;
+    await SendProtocolAsync($"SET,MAX_ACTIVE_PASSES,{PolicyModal.MaxSimultaneousPasses}");
+    await SendBellPolicyCoreAsync();
+  });
+
+  async Task SendBellPolicyCoreAsync() {
+    var rule = profileRepository.GetPolicyRule(ActiveProfile.ProfileId);
+    foreach (var command in BellPolicyProtocol.BuildTransfer(
+      DateTime.Today,
+      rule,
+      profileRepository.GetBellSchedule(ActiveProfile.ProfileId),
+      profileRepository.GetScheduleExceptions(ActiveProfile.ProfileId))) {
+      await SendProtocolAsync(command);
     }
+  }
+
+  public async Task ApplyTerminalSettingsAsync() {
+    if (!IsConnected) {
+      TerminalSettingsModal.SetFailure("Connect to the kiosk before applying device settings.");
+      return;
+    }
+    await operationCoordinator.RunAsync(async () => {
+      if (await TerminalSettingsModal.ApplySettingsAsync(CurrentTerminalId)) {
+        ConnectedTerminalName = TerminalSettingsModal.TerminalName;
+        if (lastAuthenticatedDevice != null) {
+          lastAuthenticatedDevice = lastAuthenticatedDevice with { Name = ConnectedTerminalName };
+        }
+      }
+    });
   }
 
   public void RefreshActiveProfileData() {
     PolicyModal.Refresh(ActiveProfile.ProfileId);
     Dashboard.ThresholdMinutes = PolicyModal.DurationWarningMinutes;
+    Dashboard.MaxDailyPasses = PolicyModal.MaxDailyPasses;
     Dashboard.Refresh(ActiveProfile.ProfileId);
+    var lastSync = profileRepository.GetLastSuccessfulSync(ActiveProfile.ProfileId);
+    LastSyncTimeText = lastSync.HasValue ? lastSync.Value.ToLocalTime().ToString("MMM d, h:mm tt") : "Never (No sync yet)";
     UpdatePeriodWindow();
   }
 
@@ -687,12 +737,13 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     CurrentTimeDisplay = now.ToString("h:mm  tt");
     OnPropertyChanged(nameof(CurrentTimeDisplay));
 
-    var current = PolicyModal.Periods.FirstOrDefault(period =>
-      IsScheduledOn(period, now.DayOfWeek) &&
-      TryGetPeriodBounds(period, now.Date, out var start, out var end) &&
-      now >= start && now < end);
+    var resolved = scheduleService.ResolvePeriod(
+      now,
+      PolicyModal.Periods.Select(item => item.ToModel()),
+      PolicyModal.Exceptions.Select(item => item.ToModel()));
+    var current = resolved == null ? null : PolicyModal.Periods.FirstOrDefault(item => item.ScheduleId == resolved.Period.ScheduleId);
 
-    if (current is null || !TryGetPeriodBounds(current, now.Date, out var periodStart, out var periodEnd)) {
+    if (current is null || resolved is null) {
       SetPeriodWindow(
         "No current period",
         "Set bell times in Policies & Bell Times",
@@ -721,6 +772,8 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
       return;
     }
 
+    var periodStart = resolved.StartsAt;
+    var periodEnd = resolved.EndsAt;
     var totalSeconds = Math.Max(1, (periodEnd - periodStart).TotalSeconds);
     var elapsedSeconds = Math.Clamp((now - periodStart).TotalSeconds, 0, totalSeconds);
     var remaining = periodEnd - now;
@@ -735,7 +788,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
       SetPeriodWindow(
         current.DisplayTitle,
         range,
-        "First 10 minutes",
+        $"First {firstMinutes} minutes · {PolicyModal.FirstWindowAction}",
         $"Window active · {FormatCountdown(firstWindowEnds - now)} remaining",
         "#F59E0B",
         elapsedSeconds / totalSeconds * 100);
@@ -748,18 +801,20 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
         PopupStatusPrefix = "Pass In Use · Passes open in: ";
         PopupStatusTimer = FormatCountdown(firstWindowEnds - now);
       } else {
-        PopupPillText = "PASSES CLOSED";
-        PopupPillBackground = "#F43F5E";
+        var locked = string.Equals(PolicyModal.FirstWindowAction, "Lock", StringComparison.OrdinalIgnoreCase);
+        var warned = string.Equals(PolicyModal.FirstWindowAction, "Warn", StringComparison.OrdinalIgnoreCase);
+        PopupPillText = locked ? "PASSES CLOSED" : warned ? "PASS WARNING" : "PASS AVAILABLE";
+        PopupPillBackground = locked ? "#F43F5E" : warned ? "#F59E0B" : "#0284C7";
         PopupPillForeground = "#FFFFFF";
-        PopupPillToolTip = "Passes are closed during the beginning-of-class window";
-        PopupStatusPrefix = "Bathroom Window Closed · Passes open in: ";
+        PopupPillToolTip = locked ? "Passes are locked during the beginning-of-class window" : warned ? "Passes show a warning during this window" : "Passes are allowed during this window";
+        PopupStatusPrefix = locked ? "Bathroom Window Closed · Passes open in: " : warned ? "Bell Window Warning · Window ends in: " : "Bathroom Window Open · Window ends in: ";
         PopupStatusTimer = FormatCountdown(firstWindowEnds - now);
       }
     } else if (now >= lastWindowStarts) {
       SetPeriodWindow(
         current.DisplayTitle,
         range,
-        "Last 10 minutes",
+        $"Last {lastMinutes} minutes · {PolicyModal.LastWindowAction}",
         $"Window active · period ends in {FormatCountdown(remaining)}",
         "#E11D48",
         elapsedSeconds / totalSeconds * 100);
@@ -772,11 +827,13 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
         PopupStatusPrefix = "Pass In Use · Period ends in: ";
         PopupStatusTimer = FormatCountdown(remaining);
       } else {
-        PopupPillText = "PASSES CLOSED";
-        PopupPillBackground = "#F43F5E";
+        var locked = string.Equals(PolicyModal.LastWindowAction, "Lock", StringComparison.OrdinalIgnoreCase);
+        var warned = string.Equals(PolicyModal.LastWindowAction, "Warn", StringComparison.OrdinalIgnoreCase);
+        PopupPillText = locked ? "PASSES CLOSED" : warned ? "PASS WARNING" : "PASS AVAILABLE";
+        PopupPillBackground = locked ? "#F43F5E" : warned ? "#F59E0B" : "#0284C7";
         PopupPillForeground = "#FFFFFF";
-        PopupPillToolTip = "Passes are closed during the end-of-class window";
-        PopupStatusPrefix = "Bathroom Window Closed · Period ends in: ";
+        PopupPillToolTip = locked ? "Passes are locked during the end-of-class window" : warned ? "Passes show a warning during this window" : "Passes are allowed during this window";
+        PopupStatusPrefix = locked ? "Bathroom Window Closed · Period ends in: " : warned ? "Bell Window Warning · Period ends in: " : "Bathroom Window Open · Period ends in: ";
         PopupStatusTimer = FormatCountdown(remaining);
       }
     } else {
@@ -784,7 +841,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
         current.DisplayTitle,
         range,
         "Open pass window",
-        $"Last 10-minute window begins in {FormatCountdown(lastWindowStarts - now)}",
+        $"Last {lastMinutes}-minute window begins in {FormatCountdown(lastWindowStarts - now)}",
         "#059669",
         elapsedSeconds / totalSeconds * 100);
 
@@ -806,6 +863,20 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     }
 
     NotifyPopupProperties();
+  }
+
+  void AssignTripContext(string terminalId, long tripId, string tripDate, string timeOut) {
+    if (!DateTime.TryParse($"{tripDate} {timeOut}", out var checkout)) return;
+    var resolved = scheduleService.ResolvePeriod(
+      checkout,
+      profileRepository.GetBellSchedule(ActiveProfile.ProfileId),
+      profileRepository.GetScheduleExceptions(ActiveProfile.ProfileId));
+    tripRepository.AssignTripContext(
+      terminalId,
+      tripId,
+      ActiveProfile.ProfileId,
+      resolved?.ScheduleName,
+      resolved?.ClassSection);
   }
 
   void NotifyPopupProperties() {
@@ -948,12 +1019,13 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
       }
     }
 
-    // A LIVE_TRIP follows the real-time check-in event and is stored immediately.
-    // Refresh only after that durable record arrives so the dashboard gains the
-    // completed activity without requiring a separate Sync Now action.
-    if (update.LiveTripStored) {
-      Dashboard.Refresh(ActiveProfile.ProfileId);
+    foreach (var storedTrip in update.StoredTrips) {
+      AssignTripContext(storedTrip.TerminalId, storedTrip.TripId, storedTrip.TripDate, storedTrip.TimeOut);
     }
+
+    // A LIVE_TRIP follows the real-time check-in event and is stored immediately.
+    // Refresh after its schedule/class context is attached.
+    if (update.LiveTripStored) Dashboard.Refresh(ActiveProfile.ProfileId);
     
     if (update.TransferTotal is not null || update.TransferredTripCount is not null) {
       SyncProgressText = $"Syncing {update.TransferredTripCount ?? 0} of {update.TransferTotal ?? 0} trips...";
@@ -961,8 +1033,12 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
 
     if (update.Status == SyncStatus.Complete) {
       IsSyncing = false;
-      LastSyncTimeText = $"Today, {DateTime.Now:h:mm tt} (just now)";
+      var completedAt = DateTime.UtcNow;
+      profileRepository.SaveLastSuccessfulSync(ActiveProfile.ProfileId, completedAt);
+      LastSyncTimeText = $"Today, {completedAt.ToLocalTime():h:mm tt} (just now)";
+      nextBackgroundSyncAt = DateTime.Now.AddMinutes(5);
       Dashboard.Refresh(ActiveProfile.ProfileId);
+      syncCompletion?.TrySetResult(true);
     }
     
     if (update.OutboundCommands.Count > 0) {
@@ -995,6 +1071,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     connection.TextReceived -= HandleTextReceived;
     connection.ConnectionLost -= HandleConnectionLost;
     terminalSession?.Dispose();
+    operationCoordinator.Dispose();
   }
 
   void StartAutomaticReconnect() {

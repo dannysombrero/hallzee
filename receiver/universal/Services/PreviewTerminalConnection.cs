@@ -5,6 +5,7 @@ namespace BathroomSync.Universal.Services;
 public sealed class PreviewTerminalConnection : ITerminalConnection {
   bool connected;
   int maxStudentIdLength = 10;
+  string terminalName = "Room 204 Door Kiosk (East-204)";
   string? activeStudentId;
   long activeEpoch;
 
@@ -15,7 +16,7 @@ public sealed class PreviewTerminalConnection : ITerminalConnection {
   public async Task<IReadOnlyList<TerminalDevice>> DiscoverAsync() {
     await Task.Delay(600);
     return [
-      new TerminalDevice("EAST-204", "Room 204 Door Kiosk (East-204)", true)
+      new TerminalDevice("EAST-204", terminalName, true, Rssi: -54)
     ];
   }
 
@@ -39,6 +40,14 @@ public sealed class PreviewTerminalConnection : ITerminalConnection {
       } else {
         TextReceived?.Invoke(this, "SETTINGS_ERROR,MAX_ID_LENGTH,INVALID_VALUE\n");
       }
+    } else if (command.StartsWith("SET,TERMINAL_NAME,", StringComparison.Ordinal)) {
+      var requestedName = command[18..].Trim();
+      if (TerminalIdentityProtocol.TryNormalizeTerminalName(requestedName, out var normalized)) {
+        terminalName = normalized;
+        TextReceived?.Invoke(this, $"SETTINGS_ACK,TERMINAL_NAME,{terminalName}\n");
+      } else {
+        TextReceived?.Invoke(this, "SETTINGS_ERROR,TERMINAL_NAME,INVALID_VALUE\n");
+      }
     } else if (command == "GET_ACTIVE_PASS") {
       if (!string.IsNullOrEmpty(activeStudentId) && activeEpoch > 0) {
         TextReceived?.Invoke(this, $"ACTIVE_PASS,{activeStudentId},{activeEpoch}\n");
@@ -53,10 +62,10 @@ public sealed class PreviewTerminalConnection : ITerminalConnection {
       if (lastId == 0) {
         var payload = $"TIME_ACK,OK\n" +
                       $"SYNC_BEGIN,4\n" +
-                      $"TRIP,1,9042,{today} 08:32:00,285,COMPLETED\n" +
-                      $"TRIP,2,10482,{today} 09:12:00,192,COMPLETED\n" +
-                      $"TRIP,3,8831,{today} 09:44:00,340,COMPLETED\n" +
-                      $"TRIP,4,11029,{today} 10:05:00,210,COMPLETED\n" +
+                      $"TRIP,1,9042,{today},08:32:00,08:36:45,285,COMPLETED,0\n" +
+                      $"TRIP,2,10482,{today},09:12:00,09:15:12,192,COMPLETED,0\n" +
+                      $"TRIP,3,8831,{today},09:44:00,09:49:40,340,COMPLETED,0\n" +
+                      $"TRIP,4,11029,{today},10:05:00,10:08:30,210,COMPLETED,0\n" +
                       $"SYNC_END\n";
         TextReceived?.Invoke(this, payload);
       } else {

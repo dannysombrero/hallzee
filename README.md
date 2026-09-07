@@ -11,13 +11,14 @@ records locally and can synchronize them to a desktop receiver over Bluetooth Lo
 | `bathroom-signin.ino` | Firmware composition, UI/controller callbacks, `setup()`, and `loop()` |
 | `Config.h` | Product constants, pin assignments, and display palette |
 | `TerminalController.*` | Active-pass state, check-in/out, reset, and persistence decisions |
+| `BellPolicy.*` | Atomic offline bell-window cache and checkout evaluation |
 | `ClockService.*` | System time setting, formatting, and date validation |
 | `BluetoothSync.*` | BLE GATT connection and incremental record-sync protocol |
 | `KeypadController.*` | Keypad events and the `* + #` reset gesture |
 | `TerminalDisplay.*` | TFT rendering only |
 | `TripStorage.*` | ESP32 Preferences and LittleFS trip-log persistence |
 | `receiver/windows/` | Current Windows sync application |
-| `receiver/universal/` | Shared Avalonia desktop UI preview for the next Windows/macOS client |
+| `receiver/universal/` | Current shared Avalonia desktop UI for Windows and macOS |
 | `receiver/` | Legacy/native macOS receiver |
 | `models/3d/` | Enclosure, mounting, and other Hallzee fabrication files |
 | `docs/` | Architecture and Bluetooth protocol references |
@@ -123,7 +124,10 @@ stable suffix, requires Secure Connections/MITM pairing, and allows one active
 central. The receiver identifies the terminal through the v2 handshake and
 authorizes it with the installation's owner credential. Normal syncs use
 the latest trip ID durably stored in the local SQLite database, so only newer
-records are transferred. Full history remains an explicit recovery operation.
+records are transferred. The assigned terminal reconnects automatically, live
+events stream continuously, and a serialized five-minute reconciliation sync
+recovers missed notifications. Full history remains an explicit recovery
+operation.
 
 See [Bluetooth protocol](docs/bluetooth-protocol.md) and
 [architecture](docs/architecture.md).

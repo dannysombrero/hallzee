@@ -1,6 +1,7 @@
 # Feature Design: Classroom Policies & Bell Schedules
 
-**Status:** Approved Design Spec  
+**Status:** Partially implemented; optional terminal enforcement remains planned
+
 **Target Milestone:** Phase 6 (Add Policy & Automation Features)  
 **Related Issues:** #20, #21  
 **Scope:** Pass capacity limits, duration warning thresholds, 10/10 lockout rules, bell schedule timetable engine, and offline enforcement boundaries.
@@ -27,8 +28,8 @@ To guarantee reliability when the teacher's PC is asleep or disconnected, polici
 | **Pass Capacity (Single Active Pass)** | **Kiosk Terminal** | Fully Enforced | Physical keypad blocks second student checkout while occupied (`ALREADY OCCUPIED`). |
 | **Pass Duration Warning** | **Desktop Client** | Visual Alert on PC | Alerting is for the teacher's awareness on the desktop dashboard. |
 | **Daily Pass Limit per Student** | **Desktop Client** | History Audit | Requires historical SQLite records; kiosk LittleFS remains lightweight. |
-| **10/10 Period Lockout Warning** | **Desktop Client** | Dashboard Alert | Desktop flags checkouts that violate period lockout boundaries based on RTC. |
-| **Bell Schedule Transitions** | **Desktop Client** | Profile Switching | Desktop tracks active period and automatically associates trips with that period. |
+| **10/10 Period Lockout Warning** | **Desktop Client** | Dashboard Alert | Desktop shows the active period window. Terminal enforcement is an optional, teacher-enabled future setting and is off by default. |
+| **Bell Schedule Transitions** | **Desktop Client** | Dashboard context | Desktop tracks the active period. Automatic profile switching and trip-period attribution remain planned. |
 
 ---
 
@@ -99,10 +100,12 @@ public sealed class PolicyEngine : IPolicyEngine {
 
 ---
 
-## Future to-do: bell-aware ten-minute policies and period tracking
+## Remaining work: optional bell-aware terminal policies and period tracking
 
-This is a planned enhancement, not behavior currently enforced by the client or
-terminal.
+The client currently stores and edits policies/bell periods and displays active
+period windows. It does not yet enforce first/last-window actions at the
+terminal, automatically switch profiles, or retain matched-period metadata on
+new trips.
 
 ### Teacher schedule setup
 
@@ -119,8 +122,10 @@ terminal.
 
 ### First/last-ten-minute policy
 
-For every period, teachers will be able to choose an action for the first ten
-minutes and last ten minutes (with the window length configurable):
+For every period, teachers will be able to choose an action for the first and
+last protected windows, with independently configurable window lengths. The
+terminal-enforcement switch is **off by default**. When it is off, these values
+remain desktop guidance and do not restrict kiosk checkout.
 
 | Option | Terminal behavior |
 | --- | --- |
@@ -132,12 +137,12 @@ The Policies/Bell Times screen will offer a small, bundled sound library with
 a preview control, plus `No sound`. Sound is optional and never required for a
 warning or lockout policy.
 
-Because a warning sound or a lock must work when the desktop app is disconnected,
-the selected schedule, exceptions, time windows, and terminal action must be
-synchronized to the ESP32 and evaluated against its clock. The desktop remains
-the editor and source of configuration; the ESP32 stores the active offline
-copy. The terminal needs a clear on-screen explanation when it refuses a
-checkout due to a bell-time policy.
+When a teacher enables terminal enforcement, the selected schedule, exceptions,
+time windows, and terminal action must be synchronized to the ESP32 and
+evaluated against its clock. The desktop remains the editor and source of
+configuration; the ESP32 stores the active offline copy. The terminal needs a
+clear on-screen explanation when it refuses a checkout due to a bell-time
+policy.
 
 ### Period metadata and export
 

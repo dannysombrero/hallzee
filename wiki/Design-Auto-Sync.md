@@ -1,6 +1,7 @@
 # Feature Design: Background Auto-Sync & Connection Orchestration
 
-**Status:** Approved Design Spec  
+**Status:** Partially implemented; orchestration and preferences remain planned
+
 **Target Milestone:** Phase 6 (Add Policy & Automation Features)  
 **Related Issues:** #23  
 **Scope:** Automated BLE connection management, background sync triggers, channel arbitration, and non-blocking desktop UX.
@@ -8,6 +9,20 @@
 ---
 
 ## 1. Problem Statement & User Behavior
+
+### Current implementation
+
+The Universal client already performs an incremental sync after an explicit
+connection, receives `EVENT`/`LIVE_TRIP` notifications while the connection is
+open, and automatically retries the last authenticated terminal for up to 45
+seconds after startup or an unexpected disconnect. This is reconnect and live
+streaming support, not the full configurable auto-sync feature described below.
+
+The remaining work is a persisted teacher preference surface, discovery-driven
+connection when enabled, and one operation coordinator that serializes sync,
+settings, recovery, and policy-transfer writes. Until that coordinator exists,
+the client must not advertise automatic/background synchronization as a fully
+delivered feature.
 
 In the initial release, syncing completed trip logs requires the teacher to manually click **Sync Now** on the desktop interface. While this provides explicit control, teachers in active classrooms benefit from an autonomous background synchronization model:
 
@@ -62,9 +77,10 @@ If a High Priority command is initiated while a background cursor sync is stream
 
 ## 4. Configuration & User Preferences
 
-Auto-sync behavior is configurable in **Settings > Connection Preferences**:
-- `Auto-sync on connection` (Default: **Enabled**)
-- `Keep continuous live connection` (Default: **Enabled** when desktop is active)
+When implemented, auto-sync behavior will be configurable in **Settings >
+Connection Preferences**:
+- `Auto-sync on connection` (Default: **Disabled**)
+- `Keep continuous live connection` (Default: **Disabled**)
 - `Sync interval when connected` (Default: **Real-time event driven**)
 
 ---

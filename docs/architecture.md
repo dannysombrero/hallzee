@@ -58,7 +58,7 @@ To prevent data drift, duplicated configuration systems, and split-brain sync er
 | **Student-ID Length Limit** | Display & Configuration | Optional default preset | Authoritative (Preferences) | Possible (School policy default) | **Terminal Hardware** is authoritative during checkout. |
 | **Terminal Name** | Remembered in UI | Association | Authoritative (Preferences) | Possible (Asset registry) | **Terminal Hardware** stores its own name in non-volatile flash. |
 | **Auto-Sync Preferences** | Yes (Local client config) | Yes (Profile setting) | No | No | **Desktop Client** owns sync timing. |
-| **Maximum Students Out** | Display & UI warning | Yes (Profile setting) | Enforcement planned | Possible | **Terminal** enforces physically; **Profile** configures. |
+| **Maximum Students Out** | Display & UI warning | Yes (Profile setting) | Yes (1–8 active passes) | Possible | **Terminal** enforces physically; **Profile** configures. |
 | **Bell Schedule & Periods** | Yes (Local DB) | Yes (Profile setting) | Optional cache | Possible (School schedule sync) | **Desktop Client** is authoritative. |
 | **Live Active Pass** | UI Display & Timer | Ephemeral cache | Authoritative (Preferences) | Possible (Live status widget) | **Terminal Hardware** owns the current active checkout. |
 
@@ -266,7 +266,7 @@ CREATE TABLE IF NOT EXISTS policy_rules (
 1. **FERPA Compliance:** Student names, grades, and profile information are stored exclusively within the local SQLite database. No roster data is transmitted over the air.
 2. **Bluetooth Hygiene:** Bluetooth advertising packets contain only the device name (`Hallzee`) and standard 128-bit service UUIDs. No telemetry or student IDs are broadcast in advertising payloads.
 3. **Local Encryption & Permissions:** Database files are stored with standard user-level file permissions. On multi-user school computers, data is isolated per Windows user profile.
-4. **Log Sanitization:** Diagnostic logging libraries must filter student IDs and student names, logging only transaction outcome codes and byte counts.
+4. **Local Diagnostics:** Diagnostics and crash reports stay on the teacher's workstation and are never uploaded automatically. Student names may appear when useful for local classroom support, but roster data must never be transmitted to the terminal or an external service.
 
 ---
 

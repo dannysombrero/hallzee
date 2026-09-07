@@ -360,6 +360,11 @@ public sealed record DashboardActivityItem(
 ) {
   public string SortTimestamp { get; init; } = "";
   public DateTime? CheckoutTime { get; init; }
+  public string? TripDate { get; init; }
+  public string FormattedDate =>
+    DateTime.TryParse(TripDate, out var dt) ? dt.ToString("MMM d") : (string.IsNullOrWhiteSpace(TripDate) ? "" : TripDate);
+  public bool HasDate => !string.IsNullOrWhiteSpace(FormattedDate);
+
   public static DashboardActivityItem FromActivePass(ActivePassViewModel pass) => new(
     pass.StudentId!,
     pass.DisplayName,
@@ -370,7 +375,7 @@ public sealed record DashboardActivityItem(
     "#F59E0B",
     "White",
     "#FEF3C7"
-  ) { SortTimestamp = pass.DepartTime ?? "" };
+  ) { SortTimestamp = pass.DepartTime ?? "", TripDate = DateTime.Today.ToString("yyyy-MM-dd") };
 
   public static DashboardActivityItem FromLiveCheckout(string studentId, string? studentName, DateTime? checkoutTime) => new(
     studentId,
@@ -382,7 +387,7 @@ public sealed record DashboardActivityItem(
     "#F59E0B",
     "White",
     "#FEF3C7"
-  ) { SortTimestamp = (checkoutTime ?? DateTime.Now).ToString("O"), CheckoutTime = checkoutTime ?? DateTime.Now };
+  ) { SortTimestamp = (checkoutTime ?? DateTime.Now).ToString("O"), CheckoutTime = checkoutTime ?? DateTime.Now, TripDate = DateTime.Today.ToString("yyyy-MM-dd") };
 
   public static DashboardActivityItem FromTrip(EnrichedTripRecord trip) {
     var isManual = string.Equals(trip.Status, "MANUAL", StringComparison.OrdinalIgnoreCase);
@@ -396,7 +401,7 @@ public sealed record DashboardActivityItem(
       isManual ? "#64748B" : "#10B981",
       "White",
       isManual ? "#E2E8F0" : "#E0F2FE"
-    );
+    ) { TripDate = trip.TripDate };
   }
 }
 

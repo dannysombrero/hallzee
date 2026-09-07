@@ -72,5 +72,19 @@ public sealed class TripsViewModelTests : IDisposable {
     // Sort by TimeOut
     viewModel.ToggleSort("TimeOut");
     Assert.Equal("09:30:00", viewModel.Trips[0].TimeOut);
+
+    // Sort by Date Descending on first click (newest date first)
+    viewModel.ToggleSort("Date");
+    Assert.Equal(2L, viewModel.Trips[0].TripId);
+    Assert.Equal("2026-09-02", viewModel.Trips[0].TripDate);
+    Assert.Equal("Sep 2, 2026", viewModel.Trips[0].FormattedTripDate);
+    Assert.Equal(" ▼", viewModel.DateSortIndicator);
+
+    // Toggle Date to Ascending on second click (oldest date first)
+    viewModel.ToggleSort("Date");
+    Assert.Equal(1L, viewModel.Trips[0].TripId);
+    Assert.Equal("2026-09-01", viewModel.Trips[0].TripDate);
+    Assert.Equal("Sep 1, 2026", viewModel.Trips[0].FormattedTripDate);
+    Assert.Equal(" ▲", viewModel.DateSortIndicator);
   }
 }

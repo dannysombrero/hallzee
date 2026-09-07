@@ -63,6 +63,9 @@ public record EnrichedTripRecord(
 
   public bool HasKnownName => !string.IsNullOrWhiteSpace(ManualName) || !string.IsNullOrWhiteSpace(FullName);
 
+  public string FormattedTripDate =>
+    DateTime.TryParse(TripDate, out var dt) ? dt.ToString("MMM d, yyyy") : (string.IsNullOrWhiteSpace(TripDate) ? "—" : TripDate);
+
   public string TimeInDisplay => string.IsNullOrWhiteSpace(TimeIn) || TimeIn == "—" ? "--:--" : TimeIn;
 
   public string FormattedDuration => FormatDuration(DurationSeconds);

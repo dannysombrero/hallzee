@@ -29,7 +29,7 @@ To guarantee reliability when the teacher's PC is asleep or disconnected, polici
 | **Pass Duration Warning** | **Desktop Client** | Visual Alert on PC | Alerting is for the teacher's awareness on the desktop dashboard. |
 | **Daily Pass Limit per Student** | **Desktop Client** | History Audit | Requires historical SQLite records; kiosk LittleFS remains lightweight. |
 | **10/10 Period Lockout Warning** | **Desktop Client** | Dashboard Alert | Desktop shows the active period window. Terminal enforcement is an optional, teacher-enabled future setting and is off by default. |
-| **Bell Schedule Transitions** | **Desktop Client** | Dashboard context | Desktop tracks the active period. Automatic profile switching and trip-period attribution remain planned. |
+| **Bell Schedule Transitions** | **Desktop Client** | Dashboard context | Desktop tracks the active class section within one teacher workspace. Bell times do not switch teacher profiles; trip-period attribution remains planned. |
 
 ---
 
@@ -104,8 +104,16 @@ public sealed class PolicyEngine : IPolicyEngine {
 
 The client currently stores and edits policies/bell periods and displays active
 period windows. It does not yet enforce first/last-window actions at the
-terminal, automatically switch profiles, or retain matched-period metadata on
-new trips.
+terminal, select a distinct class roster within a teacher workspace, or retain
+matched-period metadata on new trips.
+
+### Teacher workspace decision
+
+A profile represents a teacher workspace, not an individual class. A teacher
+normally has one workspace for a room; schedules identify the active class
+section inside it. Therefore this feature must not implement automatic profile
+switching. Supporting different rosters for multiple class sections will require
+a class-section/roster association beneath the existing profile-scoped storage.
 
 ### Teacher schedule setup
 

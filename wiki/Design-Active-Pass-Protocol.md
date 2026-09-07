@@ -116,12 +116,13 @@ The original single-pass handler is retained here as protocol pseudocode:
 
 ## 5. Verification & Testing Matrix
 
-## Remaining enhancement: teacher-initiated checkout
+## Teacher-initiated checkout
 
-The kiosk now persists up to eight active passes, exposes the capacity setting,
-and reports the oldest active pass to the primary dashboard. Desktop manual
-check-in records `MANUAL`. Teacher-initiated checkout is intentionally not yet
-implemented; it requires a separate authorization and classroom-policy design.
+The kiosk persists up to eight active passes, exposes the capacity setting, and
+reports the oldest active pass to the primary dashboard. The desktop also lets a
+teacher create a manual active checkout from the local client; that pass is
+marked `MANUAL` when it is checked in. This is a desktop-side workflow and does
+not add a separate kiosk `MANUAL_CHECKOUT` command.
 
 | Capability | macOS Testing | Windows Testing | Hardware Required |
 | :--- | :--- | :--- | :--- |

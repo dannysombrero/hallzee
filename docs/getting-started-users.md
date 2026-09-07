@@ -53,7 +53,7 @@ cannot claim or connect to it.
 - Leave the app connected: completed trips stream automatically and a
   five-minute reconciliation sync recovers missed notifications. **Sync Now**
   remains available for an immediate check.
-- Use **Open CSV** or the export controls to create a CSV report.
+- Use **View All** or **History** to inspect the full **Hall Pass Trip History** table, sorted and filterable by Date, Student ID, Name, Departed, Returned, Duration, and Status. Use **Export** to create a CSV report.
 - In **Settings**, save the teacher name and school to update the classroom
   profile card and the app title bar immediately. The **Device** tab shows the
   friendly name and link status of the last paired terminal.

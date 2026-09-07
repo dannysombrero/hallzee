@@ -193,7 +193,7 @@ public sealed class MainViewModelTests : IDisposable {
     Assert.Equal("Period 3", viewModel.CurrentPeriodName);
     Assert.StartsWith("(", viewModel.FormattedPeriodRange);
     Assert.EndsWith(")", viewModel.FormattedPeriodRange);
-    Assert.Equal("PASSES CLOSED", viewModel.PopupPillText);
-    Assert.Equal("Bathroom Window Closed · Passes open in: ", viewModel.PopupStatusPrefix);
+    Assert.Equal("PASS WARNING", viewModel.PopupPillText);
+    Assert.Equal("Bell Window Warning · Window ends in: ", viewModel.PopupStatusPrefix);
   }
 }

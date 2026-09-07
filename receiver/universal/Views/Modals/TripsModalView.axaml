@@ -23,7 +23,7 @@
           
           <!-- ROW 0: CLASSROOM SELECTION & EXPORT ACTION BUTTON -->
           <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="12" VerticalAlignment="Center">
-            <TextBlock Text="Class:" FontWeight="Bold" FontSize="13" Foreground="#334155" VerticalAlignment="Center" />
+            <TextBlock Text="Teacher workspace:" FontWeight="Bold" FontSize="13" Foreground="#334155" VerticalAlignment="Center" />
             <ComboBox Grid.Column="1" Classes="filter-dropdown" ItemsSource="{Binding Profiles}" SelectedItem="{Binding ActiveProfile}" DisplayMemberBinding="{Binding Name}" MinWidth="200" VerticalAlignment="Center" />
             <Border Grid.Column="2" Background="#F1F5F9" CornerRadius="8" Padding="10,4" HorizontalAlignment="Left" VerticalAlignment="Center">
               <TextBlock Text="{Binding TripsModal.TotalTrips, StringFormat='{}{0} Records'}" FontSize="12" FontWeight="SemiBold" Foreground="#475569" />

@@ -19,11 +19,11 @@
         <!-- VIEW SWITCHER: NORMAL LIST VS 2-PHASE CSV IMPORT PREVIEW -->
         <Grid Grid.Row="1">
           <!-- 1. NORMAL ROSTER VIEW -->
-          <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="12" IsVisible="{Binding !RosterModal.IsImportPreviewActive}">
+          <Grid RowDefinitions="Auto,*,Auto" RowSpacing="12" IsVisible="{Binding !RosterModal.IsImportPreviewActive}">
             
             <!-- ROW 0: CLASSROOM SELECTION & CSV IMPORT BUTTON -->
             <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="12" VerticalAlignment="Center">
-              <TextBlock Text="Class:" FontWeight="Bold" FontSize="13" Foreground="#334155" VerticalAlignment="Center" />
+              <TextBlock Text="Teacher workspace:" FontWeight="Bold" FontSize="13" Foreground="#334155" VerticalAlignment="Center" />
               <ComboBox Grid.Column="1" Classes="filter-dropdown" ItemsSource="{Binding Profiles}" SelectedItem="{Binding ActiveProfile}" DisplayMemberBinding="{Binding Name}" MinWidth="200" VerticalAlignment="Center" />
               <Border Grid.Column="2" Background="#F1F5F9" CornerRadius="8" Padding="10,4" HorizontalAlignment="Left" VerticalAlignment="Center">
                 <TextBlock Text="{Binding RosterModal.TotalStudents, StringFormat='{}{0} Enrolled'}" FontSize="12" FontWeight="SemiBold" Foreground="#475569" />
@@ -32,17 +32,8 @@
 
             </Grid>
 
-            <!-- ROW 1: ADD NEW CLASS BAR -->
-            <Border Grid.Row="1" Background="#F0F9FF" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="16" Padding="14,8">
-              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" VerticalAlignment="Center">
-                <TextBlock Text="Add new class:" FontSize="12" FontWeight="SemiBold" Foreground="#64748B" VerticalAlignment="Center" />
-                <TextBox Grid.Column="1" Text="{Binding PolicyModal.NewProfileName}" Watermark="Class / section name (e.g. Period 3 Chemistry)" FontSize="12" />
-                <Button Grid.Column="2" Classes="secondary" Content="+ Create Class" Click="OnCreateClassClick" Padding="12,6" FontSize="12" />
-              </Grid>
-            </Border>
-
-            <!-- ROW 2: STUDENTS LIST / TABLE WITH UNIFIED TABLE STYLES -->
-            <Border Grid.Row="2" Classes="hallzee-table-container">
+            <!-- ROW 1: STUDENTS LIST / TABLE WITH UNIFIED TABLE STYLES -->
+            <Border Grid.Row="1" Classes="hallzee-table-container">
               <Border Classes="hallzee-table-inner">
                 <Grid RowDefinitions="Auto,*">
                   <!-- TABLE HEADER -->
@@ -118,8 +109,8 @@
               </Border>
             </Border>
 
-            <!-- ROW 3: FOOTER STATUS -->
-            <TextBlock Grid.Row="3" Text="{Binding RosterModal.ImportStatusMessage}" Foreground="{Binding RosterModal.ImportStatusColor}" FontSize="13" FontWeight="SemiBold" />
+            <!-- ROW 2: FOOTER STATUS -->
+            <TextBlock Grid.Row="2" Text="{Binding RosterModal.ImportStatusMessage}" Foreground="{Binding RosterModal.ImportStatusColor}" FontSize="13" FontWeight="SemiBold" />
           </Grid>
 
           <!-- 2. TWO-PHASE CSV IMPORT & COLUMN MAPPING VERIFICATION VIEW -->

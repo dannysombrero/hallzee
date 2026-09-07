@@ -1,6 +1,21 @@
 namespace BathroomSync.Core;
 
-public sealed record TerminalDevice(string Id, string Name, bool IsPaired, bool IsInUse = false) {
+public sealed record TerminalDevice(
+  string Id,
+  string Name,
+  bool IsPaired,
+  bool IsInUse = false,
+  int? Rssi = null
+) {
+  public string SignalStrengthText => Rssi is null ? "Signal unavailable" : $"{Rssi} dBm";
+  public string SignalQuality => Rssi switch {
+    >= -60 => "Excellent",
+    >= -70 => "Good",
+    >= -80 => "Fair",
+    null => "Unknown",
+    _ => "Weak"
+  };
+
   public override string ToString() => IsPaired ? $"{Name} (paired)" : Name;
 }
 

@@ -1,8 +1,8 @@
 # Feature Design: Stable Terminal Identity and Exclusive Client Claim
 
-**Status:** Implementation-ready design
+**Status:** Implemented; physical multi-device/platform verification remains
 
-**Target milestone:** Before multi-terminal or background auto-sync rollout
+**Target milestone:** Delivered; verification gate remains
 
 **Scope:** Stable kiosk identity, one-owner authorization, safe multi-terminal storage, profile association, discovery UX, recovery, and platform verification
 
@@ -16,9 +16,10 @@ central enforcement, physical claim gesture, six-digit passkey claim flow,
 availability reporting, same-client automatic reconnect, and a single-terminal
 Universal client v2 path are implemented and compile validated. The physical
 keypad owner-reset gesture and USB owner-reset command are implemented. Desktop
-platform credential-vault adapters are wired for Windows and macOS; physical
-multi-terminal and platform reconnect verification remain planned work in the
-agent packages below. Unclaimed startup, pairing,
+platform credential-vault adapters are wired for Windows and macOS. Terminal
+rename is wired end-to-end, and Windows/macOS discovery surfaces RSSI when the
+platform provides it. Physical multi-terminal and platform reconnect
+verification remain. Unclaimed startup, pairing,
 and owner reset clear stale terminal-side BLE bonds.
 The Universal unit-test path uses an in-memory credential store; physical
 clients use the platform credential-store factory. Cross-restart credential and
@@ -54,31 +55,18 @@ client from reading records or changing terminal state.
 
 ---
 
-## 2. Current State and Gaps
+## 2. Current State and Remaining Verification
 
-The current implementation has useful pieces, but they do not yet form a safe
-multi-terminal model:
+The v2 path now uses stable firmware identity, an exclusive owner claim,
+authenticated commands, terminal-scoped trip keys/cursors, teacher-workspace
+assignment, persisted custom names, automatic reconnect to only the assigned
+terminal, and RSSI-backed discovery labels. A shared operation coordinator
+serializes sync, settings, manual actions, and policy transfers.
 
-- Windows discovery de-duplicates advertisements by the BLE address and places
-  that address in TerminalDevice.Id.
-- macOS discovery uses CoreBluetooth's per-host CBPeripheral.Identifier.
-- every kiosk advertises the same Hallzee name and service UUID;
-- ITerminalConnection owns one process-local transport connection and calls
-  DisconnectAsync() before connecting to another device;
-- SQLite has a terminals table and a trips.terminal_id column, but the active
-  sync workflow does not bind the selected device to either one;
-- firmware trip records do not contain a terminal identity, so imported records
-  currently fall back to DEFAULT;
-- trips.trip_id is the sole primary key and the sync cursor is the global
-  maximum trip ID. Two kiosks can therefore collide or skip records;
-- BLE pairing is not required, there is no owner credential, and the firmware
-  accepts commands from whichever client has the connection;
-- the architecture mentions SET,TERMINAL_NAME, but the current firmware and
-  protocol do not implement it.
-
-Serializing commands inside one app process protects the protocol from local
-write races. It does not establish terminal identity and does not prevent a
-second computer or app instance from connecting later.
+The remaining work in this design is physical validation: two nearby kiosks,
+credential-vault reuse across a real app restart on both macOS and Windows,
+radio-address rotation recovery, and long-running connection stability. These
+cannot be proven by the cross-platform unit-test transports.
 
 ---
 
@@ -856,18 +844,21 @@ The normal owner flow is:
 5. If the terminal reports `CLAIMED`, send `AUTH` with the stored owner key.
 6. After `AUTH_OK`, sync time, active-pass state, settings, and trips normally.
 
-The UI should initially offer **Reconnect with Hallzee-<suffix>?** with
-**Reconnect** and **Choose another terminal** actions. An unexpected live
-disconnect may retry automatically in the background. App startup should ask
-before reconnecting unless a future explicit “always reconnect automatically”
-preference is added.
+The UI reconnects automatically to the assigned authenticated terminal after
+startup or an unexpected disconnect. It retries for 45 seconds and then leaves
+manual **Reconnect** and **Find Terminal** recovery actions. There is no setting
+that disables automatic reconnect.
 
 Pairing mode and the six-digit passkey are used only for an unclaimed terminal
 or after a deliberate physical owner reset. A non-owner desktop may discover a
 claimed terminal but cannot authenticate, sync, rename, change settings, or
 replace ownership.
 
-### 16.2 Current gaps to remove
+### 16.2 Historical gaps (resolved)
+
+The following list records the gaps that motivated packages R1–R7. They are
+retained as design history and are implemented; physical platform verification
+is the outstanding acceptance step.
 
 - `MainViewModel` constructs `InMemoryTerminalCredentialStore` in production.
   The owner key therefore disappears whenever the app exits.

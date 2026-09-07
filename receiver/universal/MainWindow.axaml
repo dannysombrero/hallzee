@@ -30,7 +30,7 @@
               <TextBlock Text="Mini Window" FontSize="11" FontWeight="Bold" />
             </StackPanel>
           </Button>
-          <TextBlock Text="Profile" FontSize="11" FontWeight="Bold" Foreground="#E0F2FE" VerticalAlignment="Center" />
+          <TextBlock Text="Teacher workspace" FontSize="11" FontWeight="Bold" Foreground="#E0F2FE" VerticalAlignment="Center" />
           <ComboBox Width="190" ItemsSource="{Binding Profiles}" SelectedItem="{Binding ActiveProfile}" DisplayMemberBinding="{Binding Name}" />
           <TextBlock Text="v1.5.2-win64" FontSize="11" FontFamily="Cascadia Mono, Menlo, monospace" Foreground="#E0F2FE" VerticalAlignment="Center" />
         </StackPanel>

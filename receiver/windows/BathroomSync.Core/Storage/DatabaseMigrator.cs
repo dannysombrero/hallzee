@@ -3,7 +3,7 @@ using Microsoft.Data.Sqlite;
 namespace BathroomSync.Core;
 
 public static class DatabaseMigrator {
-  public const int CurrentSchemaVersion = 5;
+  public const int CurrentSchemaVersion = 6;
 
   public static void Migrate(SqliteConnection connection) {
     EnsureMigrationTable(connection);
@@ -23,6 +23,9 @@ public static class DatabaseMigrator {
     }
     if (currentVersion < 5) {
       ApplyMigration5(connection);
+    }
+    if (currentVersion < 6) {
+      ApplyMigration6(connection);
     }
   }
 
@@ -340,6 +343,75 @@ public static class DatabaseMigrator {
       migrationCommand.Transaction = transaction;
       migrationCommand.CommandText = "INSERT OR REPLACE INTO schema_migrations (version, applied_at, description) VALUES (5, datetime('now'), 'Manual trip display names');";
       migrationCommand.ExecuteNonQuery();
+      transaction.Commit();
+    } catch {
+      transaction.Rollback();
+      throw;
+    }
+  }
+
+  static void ApplyMigration6(SqliteConnection connection) {
+    using var transaction = connection.BeginTransaction();
+    try {
+      var policyColumns = GetColumnNames(connection, transaction, "policy_rules");
+      var scheduleColumns = GetColumnNames(connection, transaction, "bell_schedules");
+      var tripColumns = GetColumnNames(connection, transaction, "trips");
+      using var command = connection.CreateCommand();
+      command.Transaction = transaction;
+      if (!policyColumns.Contains("terminal_enforcement_enabled")) {
+        command.CommandText = "ALTER TABLE policy_rules ADD COLUMN terminal_enforcement_enabled INTEGER NOT NULL DEFAULT 0;";
+        command.ExecuteNonQuery();
+      }
+      if (!scheduleColumns.Contains("class_section")) {
+        command.CommandText = "ALTER TABLE bell_schedules ADD COLUMN class_section TEXT NOT NULL DEFAULT '';";
+        command.ExecuteNonQuery();
+      }
+      if (!tripColumns.Contains("schedule_name")) {
+        command.CommandText = "ALTER TABLE trips ADD COLUMN schedule_name TEXT;";
+        command.ExecuteNonQuery();
+      }
+      if (!tripColumns.Contains("class_section")) {
+        command.CommandText = "ALTER TABLE trips ADD COLUMN class_section TEXT;";
+        command.ExecuteNonQuery();
+      }
+      if (!tripColumns.Contains("profile_id")) {
+        command.CommandText = "ALTER TABLE trips ADD COLUMN profile_id TEXT NOT NULL DEFAULT 'default';";
+        command.ExecuteNonQuery();
+      }
+      command.CommandText = """
+        CREATE TABLE IF NOT EXISTS schedule_exceptions (
+          exception_id TEXT PRIMARY KEY,
+          profile_id TEXT NOT NULL,
+          exception_date TEXT NOT NULL,
+          schedule_name TEXT NOT NULL DEFAULT '',
+          is_no_school INTEGER NOT NULL DEFAULT 0,
+          UNIQUE(profile_id, exception_date),
+          FOREIGN KEY (profile_id) REFERENCES profiles(profile_id) ON DELETE CASCADE
+        );
+        CREATE INDEX IF NOT EXISTS idx_schedule_exceptions_profile_date
+          ON schedule_exceptions(profile_id, exception_date);
+        CREATE TABLE IF NOT EXISTS roster_enrollments (
+          profile_id TEXT NOT NULL,
+          student_id TEXT NOT NULL,
+          class_section TEXT NOT NULL,
+          PRIMARY KEY (profile_id, student_id, class_section),
+          FOREIGN KEY (profile_id) REFERENCES profiles(profile_id) ON DELETE CASCADE,
+          FOREIGN KEY (student_id, profile_id) REFERENCES roster_students(student_id, profile_id) ON DELETE CASCADE
+        );
+        INSERT OR IGNORE INTO roster_enrollments (profile_id, student_id, class_section)
+          SELECT profile_id, student_id, class_period FROM roster_students
+          WHERE class_period IS NOT NULL AND trim(class_period) != '';
+        CREATE TABLE IF NOT EXISTS sync_state (
+          profile_id TEXT PRIMARY KEY,
+          last_successful_sync_at TEXT,
+          FOREIGN KEY (profile_id) REFERENCES profiles(profile_id) ON DELETE CASCADE
+        );
+        CREATE INDEX IF NOT EXISTS idx_trips_profile_date
+          ON trips(profile_id, trip_date);
+        INSERT OR REPLACE INTO schema_migrations (version, applied_at, description)
+        VALUES (6, datetime('now'), 'Teacher schedule exceptions, class sections, terminal policy option, and trip schedule attribution');
+        """;
+      command.ExecuteNonQuery();
       transaction.Commit();
     } catch {
       transaction.Rollback();

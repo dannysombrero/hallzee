@@ -1,5 +1,6 @@
 #include "BluetoothSync.h"
 
+#include "BellPolicy.h"
 #include "Config.h"
 #ifdef ARDUINO
 #include "TerminalIdentity.h"
@@ -16,7 +17,8 @@ BluetoothSync::BluetoothSync(
   ActivePassListProvider activePassListProvider,
   CapacitySetter capacitySetter,
   TerminalIdentity *identity,
-  TerminalSecurity *security
+  TerminalSecurity *security,
+  BellPolicy *bellPolicy
 ) : tripStorage(tripStorage),
     clockSetter(clockSetter),
     clockSetHandler(clockSetHandler),
@@ -26,7 +28,8 @@ BluetoothSync::BluetoothSync(
     capacitySetter(capacitySetter),
     serial(serial),
     identity(identity),
-    security(security) {}
+    security(security),
+    bellPolicy(bellPolicy) {}
 
 void BluetoothSync::notifyCheckout(const String &studentId, uint32_t checkoutEpoch) {
   if (!ready || !serial.hasClient() || !isAuthorized()) return;
@@ -495,6 +498,73 @@ bool BluetoothSync::processSettingsCommand(const String &command) {
   return true;
 }
 
+bool BluetoothSync::processBellPolicyCommand(const String &command) {
+  if (!bellPolicy) return false;
+  if (command.startsWith("POLICY_BEGIN,")) {
+    const String value = command.substring(13);
+    if (value != "0" && value != "1") {
+      serial.println("POLICY_ERROR,INVALID_BEGIN");
+      return true;
+    }
+    bellPolicy->beginUpdate(value == "1");
+    serial.println("POLICY_ACK,BEGIN");
+    return true;
+  }
+  if (command.startsWith("POLICY_WINDOW,")) {
+    unsigned long dateKey = 0;
+    int start = 0;
+    int end = 0;
+    int firstEnd = 0;
+    int lastStart = 0;
+    int firstDecision = 0;
+    int lastDecision = 0;
+    char extra = '\0';
+    const int parsed = sscanf(command.c_str(), "POLICY_WINDOW,%lu,%d,%d,%d,%d,%d,%d%c",
+      &dateKey, &start, &end, &firstEnd, &lastStart, &firstDecision, &lastDecision, &extra);
+    if (parsed != 7 || firstDecision < 0 || firstDecision > 2 ||
+        lastDecision < 0 || lastDecision > 2) {
+      serial.println("POLICY_ERROR,INVALID_WINDOW");
+      return true;
+    }
+    BellPolicyWindow window;
+    window.dateKey = static_cast<uint32_t>(dateKey);
+    window.startMinute = static_cast<uint16_t>(start);
+    window.endMinute = static_cast<uint16_t>(end);
+    window.firstWindowEndMinute = static_cast<uint16_t>(firstEnd);
+    window.lastWindowStartMinute = static_cast<uint16_t>(lastStart);
+    window.firstDecision = static_cast<BellPolicyDecision>(firstDecision);
+    window.lastDecision = static_cast<BellPolicyDecision>(lastDecision);
+    if (!bellPolicy->addStagedWindow(window)) {
+      serial.println("POLICY_ERROR,INVALID_WINDOW");
+    } else {
+      serial.println("POLICY_ACK,WINDOW");
+    }
+    return true;
+  }
+  if (command.startsWith("POLICY_COMMIT,")) {
+    const String countText = command.substring(14);
+    if (countText.length() == 0) {
+      serial.println("POLICY_ERROR,COMMIT_FAILED");
+      return true;
+    }
+    for (unsigned int index = 0; index < countText.length(); index++) {
+      if (countText.charAt(index) < '0' || countText.charAt(index) > '9') {
+        serial.println("POLICY_ERROR,COMMIT_FAILED");
+        return true;
+      }
+    }
+    const long count = countText.toInt();
+    if (count < 0 || count > MAX_BELL_POLICY_WINDOWS || !bellPolicy->commitUpdate(static_cast<uint8_t>(count))) {
+      serial.println("POLICY_ERROR,COMMIT_FAILED");
+    } else {
+      serial.print("POLICY_ACK,COMMIT,");
+      serial.println(String(count));
+    }
+    return true;
+  }
+  return false;
+}
+
 void BluetoothSync::processCommands() {
   if (!ready) return;
 
@@ -554,6 +624,8 @@ void BluetoothSync::processCommands() {
           }
         } else if (processSettingsCommand(commandBuffer)) {
           // Settings command handled.
+        } else if (processBellPolicyCommand(commandBuffer)) {
+          // Bell policy command handled.
         } else if (commandBuffer.startsWith("TIME_CURSOR,")) {
           uint32_t afterTripID = 0;
           if (processTimeCursorCommand(commandBuffer, afterTripID)) {

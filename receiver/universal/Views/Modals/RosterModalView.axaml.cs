@@ -89,10 +89,6 @@ public partial class RosterModalView : UserControl {
     }
   }
 
-  void OnCreateClassClick(object? sender, RoutedEventArgs e) {
-    if (DataContext is MainViewModel vm) vm.CreateProfileFromPolicy();
-  }
-
   void OnSortStudentClick(object? sender, RoutedEventArgs e) {
     if (DataContext is MainViewModel vm) vm.RosterModal.ToggleSort("Student");
   }

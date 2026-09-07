@@ -30,6 +30,10 @@ public sealed class ProfileAndPolicyRepositoryTests {
       Assert.NotNull(active);
       Assert.Equal("p1", active.ProfileId);
 
+      var syncTime = new DateTime(2026, 9, 7, 14, 30, 0, DateTimeKind.Utc);
+      repo.SaveLastSuccessfulSync("p1", syncTime);
+      Assert.Equal(syncTime, repo.GetLastSuccessfulSync("p1"));
+
       // Delete custom profile
       repo.DeleteProfile("p1");
       all = repo.GetAllProfiles();
@@ -73,7 +77,8 @@ public sealed class ProfileAndPolicyRepositoryTests {
         LockoutEndMinutes: 5,
         FirstWindowAction: "Lock",
         LastWindowAction: "Allow",
-        AlertSound: "Bell"
+        AlertSound: "Bell",
+        TerminalEnforcementEnabled: true
       );
       repo.SavePolicyRule(customPolicy);
 
@@ -86,10 +91,11 @@ public sealed class ProfileAndPolicyRepositoryTests {
       Assert.Equal("Lock", updatedPolicy.FirstWindowAction);
       Assert.Equal("Allow", updatedPolicy.LastWindowAction);
       Assert.Equal("Bell", updatedPolicy.AlertSound);
+      Assert.True(updatedPolicy.TerminalEnforcementEnabled);
 
       // Bell Schedule
       var periods = new[] {
-        new BellSchedulePeriod("p1", "default", "Period 1", "08:30", "09:25", "Mon,Tue,Thu,Fri", "Regular"),
+        new BellSchedulePeriod("p1", "default", "Period 1", "08:30", "09:25", "Mon,Tue,Thu,Fri", "Regular", "Chemistry 1"),
         new BellSchedulePeriod("p2", "default", "Period 2", "09:30", "10:25", "1,2,3,4,5")
       };
       repo.SaveBellSchedule("default", periods);
@@ -101,6 +107,16 @@ public sealed class ProfileAndPolicyRepositoryTests {
       Assert.Equal("Period 2", savedPeriods[1].PeriodName);
       Assert.Equal("Regular", savedPeriods[0].ScheduleName);
       Assert.Equal("Mon,Tue,Thu,Fri", savedPeriods[0].DaysOfWeek);
+      Assert.Equal("Chemistry 1", savedPeriods[0].ClassSection);
+
+      repo.SaveScheduleExceptions("default", new[] {
+        new ScheduleException("ex1", "default", "2026-09-09", "Early Release"),
+        new ScheduleException("ex2", "default", "2026-09-10", "", true)
+      });
+      var exceptions = repo.GetScheduleExceptions("default");
+      Assert.Equal(2, exceptions.Count);
+      Assert.Equal("Early Release", exceptions[0].ScheduleName);
+      Assert.True(exceptions[1].IsNoSchool);
 
       // Re-saving replaces schedule
       repo.SaveBellSchedule("default", new[] {

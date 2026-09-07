@@ -6,6 +6,7 @@
 
 class TerminalIdentity;
 class TerminalSecurity;
+class BellPolicy;
 
 class BluetoothSync {
 public:
@@ -27,7 +28,8 @@ public:
     ActivePassListProvider activePassListProvider = nullptr,
     CapacitySetter capacitySetter = nullptr,
     TerminalIdentity *identity = nullptr,
-    TerminalSecurity *security = nullptr
+    TerminalSecurity *security = nullptr,
+    BellPolicy *bellPolicy = nullptr
   );
 
   void setActivePassProvider(ActivePassProvider provider) {
@@ -54,6 +56,7 @@ private:
   BluetoothSerialPort &serial;
   TerminalIdentity *identity;
   TerminalSecurity *security;
+  BellPolicy *bellPolicy;
 
   bool ready = false;
   bool wasConnected = false;
@@ -77,6 +80,7 @@ private:
   bool processTimeCommand(const String &command);
   bool processTimeCursorCommand(const String &command, uint32_t &afterTripID);
   bool processSettingsCommand(const String &command);
+  bool processBellPolicyCommand(const String &command);
   void sendMaxStudentIdLength();
   void resetSyncState();
   void processAuthenticationCommand(const String &command);

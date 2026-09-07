@@ -4,8 +4,9 @@
 
 TerminalController::TerminalController(
   TripStoragePort &tripStorage,
-  const TimeProvider &timeProvider
-) : tripStorage(tripStorage), timeProvider(timeProvider) {}
+  const TimeProvider &timeProvider,
+  BellPolicy *bellPolicy
+) : tripStorage(tripStorage), timeProvider(timeProvider), bellPolicy(bellPolicy) {}
 
 void TerminalController::restoreActivePass() {
   activeCount = tripStorage.loadActiveCheckouts(activePasses, MAX_ACTIVE_PASSES);
@@ -61,13 +62,16 @@ TerminalActionResult TerminalController::submit(const String &enteredId) {
 
   const int existingIndex = findActivePass(enteredId);
   if (existingIndex < 0 && activeCount < maxSimultaneousPasses) {
-    activePasses[activeCount] = {enteredId, timeProvider.now()};
+    const time_t checkoutTime = timeProvider.now();
+    const BellPolicyDecision policyDecision = bellPolicy ? bellPolicy->evaluate(checkoutTime) : BellPolicyDecision::Allow;
+    if (policyDecision == BellPolicyDecision::Lock) return {TerminalAction::PolicyLocked, enteredId, 0};
+    activePasses[activeCount] = {enteredId, checkoutTime};
     activeCount++;
     if (!persistActivePasses()) {
       activeCount--;
       return {TerminalAction::StorageError, "", 0};
     }
-    return {TerminalAction::CheckedOut, enteredId};
+    return {policyDecision == BellPolicyDecision::Warn ? TerminalAction::CheckedOutWithWarning : TerminalAction::CheckedOut, enteredId};
   }
 
   if (existingIndex < 0) {

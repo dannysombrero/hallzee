@@ -1,4 +1,5 @@
 using Microsoft.Data.Sqlite;
+using System.Globalization;
 
 namespace BathroomSync.Core;
 
@@ -8,6 +9,8 @@ public interface IProfileRepository {
   void SetActiveProfile(string profileId);
   void SaveProfile(ClassroomProfile profile);
   void DeleteProfile(string profileId);
+  DateTime? GetLastSuccessfulSync(string profileId);
+  void SaveLastSuccessfulSync(string profileId, DateTime syncedAt);
 }
 
 public interface IPolicyRepository {
@@ -15,6 +18,8 @@ public interface IPolicyRepository {
   void SavePolicyRule(PolicyRule rule);
   IReadOnlyList<BellSchedulePeriod> GetBellSchedule(string profileId);
   void SaveBellSchedule(string profileId, IEnumerable<BellSchedulePeriod> periods);
+  IReadOnlyList<ScheduleException> GetScheduleExceptions(string profileId);
+  void SaveScheduleExceptions(string profileId, IEnumerable<ScheduleException> exceptions);
 }
 
 public interface ITerminalRepository {
@@ -125,13 +130,36 @@ public sealed class ProfileAndPolicySqliteRepository : IProfileRepository, IPoli
     command.ExecuteNonQuery();
   }
 
+  public DateTime? GetLastSuccessfulSync(string profileId) {
+    using var connection = OpenConnection();
+    using var command = connection.CreateCommand();
+    command.CommandText = "SELECT last_successful_sync_at FROM sync_state WHERE profile_id = $profileId LIMIT 1;";
+    command.Parameters.AddWithValue("$profileId", profileId);
+    var value = command.ExecuteScalar()?.ToString();
+    return DateTime.TryParse(
+      value,
+      CultureInfo.InvariantCulture,
+      DateTimeStyles.RoundtripKind,
+      out var parsed
+    ) ? parsed : null;
+  }
+
+  public void SaveLastSuccessfulSync(string profileId, DateTime syncedAt) {
+    using var connection = OpenConnection();
+    using var command = connection.CreateCommand();
+    command.CommandText = "INSERT INTO sync_state (profile_id, last_successful_sync_at) VALUES ($profileId, $syncedAt) ON CONFLICT(profile_id) DO UPDATE SET last_successful_sync_at = excluded.last_successful_sync_at;";
+    command.Parameters.AddWithValue("$profileId", profileId);
+    command.Parameters.AddWithValue("$syncedAt", syncedAt.ToString("O"));
+    command.ExecuteNonQuery();
+  }
+
   // --- Policy Operations ---
 
   public PolicyRule GetPolicyRule(string profileId) {
     using var connection = OpenConnection();
     using var command = connection.CreateCommand();
     command.CommandText = """
-      SELECT rule_id, profile_id, max_simultaneous_passes, duration_warning_seconds, max_daily_passes_per_student, lockout_start_minutes, lockout_end_minutes, first_window_action, last_window_action, alert_sound
+      SELECT rule_id, profile_id, max_simultaneous_passes, duration_warning_seconds, max_daily_passes_per_student, lockout_start_minutes, lockout_end_minutes, first_window_action, last_window_action, alert_sound, terminal_enforcement_enabled
       FROM policy_rules
       WHERE profile_id = $profileId
       LIMIT 1;
@@ -150,7 +178,8 @@ public sealed class ProfileAndPolicySqliteRepository : IProfileRepository, IPoli
         LockoutEndMinutes: reader.GetInt32(6),
         FirstWindowAction: reader.GetString(7),
         LastWindowAction: reader.GetString(8),
-        AlertSound: reader.GetString(9)
+        AlertSound: reader.GetString(9),
+        TerminalEnforcementEnabled: reader.GetInt32(10) != 0
       );
     }
 
@@ -162,9 +191,9 @@ public sealed class ProfileAndPolicySqliteRepository : IProfileRepository, IPoli
     using var command = connection.CreateCommand();
     command.CommandText = """
       INSERT INTO policy_rules 
-        (rule_id, profile_id, max_simultaneous_passes, duration_warning_seconds, max_daily_passes_per_student, lockout_start_minutes, lockout_end_minutes, first_window_action, last_window_action, alert_sound)
+        (rule_id, profile_id, max_simultaneous_passes, duration_warning_seconds, max_daily_passes_per_student, lockout_start_minutes, lockout_end_minutes, first_window_action, last_window_action, alert_sound, terminal_enforcement_enabled)
       VALUES 
-        ($ruleId, $profileId, $maxSimul, $durWarn, $maxDaily, $lockStart, $lockEnd, $firstAction, $lastAction, $alertSound)
+        ($ruleId, $profileId, $maxSimul, $durWarn, $maxDaily, $lockStart, $lockEnd, $firstAction, $lastAction, $alertSound, $terminalEnforcement)
       ON CONFLICT(profile_id) DO UPDATE SET
         rule_id = excluded.rule_id,
         max_simultaneous_passes = excluded.max_simultaneous_passes,
@@ -174,7 +203,8 @@ public sealed class ProfileAndPolicySqliteRepository : IProfileRepository, IPoli
         lockout_end_minutes = excluded.lockout_end_minutes,
         first_window_action = excluded.first_window_action,
         last_window_action = excluded.last_window_action,
-        alert_sound = excluded.alert_sound;
+        alert_sound = excluded.alert_sound,
+        terminal_enforcement_enabled = excluded.terminal_enforcement_enabled;
       """;
     command.Parameters.AddWithValue("$ruleId", rule.RuleId);
     command.Parameters.AddWithValue("$profileId", rule.ProfileId);
@@ -186,6 +216,7 @@ public sealed class ProfileAndPolicySqliteRepository : IProfileRepository, IPoli
     command.Parameters.AddWithValue("$firstAction", rule.FirstWindowAction);
     command.Parameters.AddWithValue("$lastAction", rule.LastWindowAction);
     command.Parameters.AddWithValue("$alertSound", rule.AlertSound);
+    command.Parameters.AddWithValue("$terminalEnforcement", rule.TerminalEnforcementEnabled ? 1 : 0);
     command.ExecuteNonQuery();
   }
 
@@ -193,7 +224,7 @@ public sealed class ProfileAndPolicySqliteRepository : IProfileRepository, IPoli
     using var connection = OpenConnection();
     using var command = connection.CreateCommand();
     command.CommandText = """
-      SELECT schedule_id, profile_id, period_name, start_time, end_time, days_of_week, schedule_name
+      SELECT schedule_id, profile_id, period_name, start_time, end_time, days_of_week, schedule_name, class_section
       FROM bell_schedules
       WHERE profile_id = $profileId
       ORDER BY start_time ASC;
@@ -210,7 +241,8 @@ public sealed class ProfileAndPolicySqliteRepository : IProfileRepository, IPoli
         StartTime: reader.GetString(3),
         EndTime: reader.GetString(4),
         DaysOfWeek: reader.GetString(5),
-        ScheduleName: reader.GetString(6)
+        ScheduleName: reader.GetString(6),
+        ClassSection: reader.GetString(7)
       ));
     }
     return list;
@@ -229,8 +261,8 @@ public sealed class ProfileAndPolicySqliteRepository : IProfileRepository, IPoli
       using var insertCmd = connection.CreateCommand();
       insertCmd.Transaction = transaction;
       insertCmd.CommandText = """
-        INSERT INTO bell_schedules (schedule_id, profile_id, period_name, start_time, end_time, days_of_week, schedule_name)
-        VALUES ($id, $profileId, $name, $start, $end, $days, $scheduleName);
+        INSERT INTO bell_schedules (schedule_id, profile_id, period_name, start_time, end_time, days_of_week, schedule_name, class_section)
+        VALUES ($id, $profileId, $name, $start, $end, $days, $scheduleName, $classSection);
         """;
       var pId = insertCmd.Parameters.Add("$id", SqliteType.Text);
       var pProfile = insertCmd.Parameters.Add("$profileId", SqliteType.Text);
@@ -239,6 +271,7 @@ public sealed class ProfileAndPolicySqliteRepository : IProfileRepository, IPoli
       var pEnd = insertCmd.Parameters.Add("$end", SqliteType.Text);
       var pDays = insertCmd.Parameters.Add("$days", SqliteType.Text);
       var pScheduleName = insertCmd.Parameters.Add("$scheduleName", SqliteType.Text);
+      var pClassSection = insertCmd.Parameters.Add("$classSection", SqliteType.Text);
 
       pProfile.Value = profileId;
 
@@ -249,6 +282,7 @@ public sealed class ProfileAndPolicySqliteRepository : IProfileRepository, IPoli
         pEnd.Value = period.EndTime;
         pDays.Value = period.DaysOfWeek;
         pScheduleName.Value = period.ScheduleName;
+        pClassSection.Value = period.ClassSection;
         insertCmd.ExecuteNonQuery();
       }
 
@@ -257,6 +291,42 @@ public sealed class ProfileAndPolicySqliteRepository : IProfileRepository, IPoli
       transaction.Rollback();
       throw;
     }
+  }
+
+  public IReadOnlyList<ScheduleException> GetScheduleExceptions(string profileId) {
+    using var connection = OpenConnection();
+    using var command = connection.CreateCommand();
+    command.CommandText = "SELECT exception_id, profile_id, exception_date, schedule_name, is_no_school FROM schedule_exceptions WHERE profile_id = $profileId ORDER BY exception_date;";
+    command.Parameters.AddWithValue("$profileId", profileId);
+    var result = new List<ScheduleException>();
+    using var reader = command.ExecuteReader();
+    while (reader.Read()) {
+      result.Add(new ScheduleException(reader.GetString(0), reader.GetString(1), reader.GetString(2), reader.GetString(3), reader.GetInt32(4) != 0));
+    }
+    return result;
+  }
+
+  public void SaveScheduleExceptions(string profileId, IEnumerable<ScheduleException> exceptions) {
+    using var connection = OpenConnection();
+    using var transaction = connection.BeginTransaction();
+    using (var clear = connection.CreateCommand()) {
+      clear.Transaction = transaction;
+      clear.CommandText = "DELETE FROM schedule_exceptions WHERE profile_id = $profileId;";
+      clear.Parameters.AddWithValue("$profileId", profileId);
+      clear.ExecuteNonQuery();
+    }
+    foreach (var item in exceptions) {
+      using var insert = connection.CreateCommand();
+      insert.Transaction = transaction;
+      insert.CommandText = "INSERT INTO schedule_exceptions (exception_id, profile_id, exception_date, schedule_name, is_no_school) VALUES ($id, $profileId, $date, $name, $noSchool);";
+      insert.Parameters.AddWithValue("$id", string.IsNullOrWhiteSpace(item.ExceptionId) ? Guid.NewGuid().ToString("N") : item.ExceptionId);
+      insert.Parameters.AddWithValue("$profileId", profileId);
+      insert.Parameters.AddWithValue("$date", item.ExceptionDate);
+      insert.Parameters.AddWithValue("$name", item.ScheduleName ?? "");
+      insert.Parameters.AddWithValue("$noSchool", item.IsNoSchool ? 1 : 0);
+      insert.ExecuteNonQuery();
+    }
+    transaction.Commit();
   }
 
   // --- Terminal Operations ---

@@ -10,7 +10,7 @@ public sealed class TerminalSettingsViewModel : INotifyPropertyChanged {
   readonly string classroomInfoFilePath;
   readonly Action? onClassroomInfoChanged;
   int maxStudentIdLength = 10;
-  string terminalName = "Hallzee (Room 204)";
+  string terminalName = "No Device Paired";
   string statusMessage = "";
   string statusColor = "#64748B";
 
@@ -33,6 +33,20 @@ public sealed class TerminalSettingsViewModel : INotifyPropertyChanged {
       : Path.Combine(appDataPath, "classroom-info.json");
 
     LoadClassroomInfo();
+    LoadLastPairedTerminal();
+  }
+
+  void LoadLastPairedTerminal() {
+    try {
+      var all = terminalRepository.GetAllTerminals()
+        .Where(t => !t.TerminalId.StartsWith("LEGACY", StringComparison.OrdinalIgnoreCase));
+      var latest = all.OrderByDescending(t => t.LastSeenAt).FirstOrDefault();
+      if (latest != null && !string.IsNullOrWhiteSpace(latest.CustomName)) {
+        terminalName = latest.CustomName;
+      }
+    } catch {
+      // Best effort load
+    }
   }
 
   public string TeacherName {

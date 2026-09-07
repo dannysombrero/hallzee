@@ -119,8 +119,7 @@
                 </Border>
               </Grid>
 
-              <TextBlock Text="{Binding ConnectedTerminalName}" FontSize="12" FontWeight="Bold" FontFamily="Cascadia Mono, Menlo, monospace" Foreground="#1E293B" TextTrimming="CharacterEllipsis" />
-              <TextBlock Text="Auto-clock synced with Windows RTC" FontSize="11" Foreground="#475569" />
+              <TextBlock Text="Auto-clock synced with system RTC" FontSize="11" Foreground="#475569" />
 
               <!-- DEVICE FRIENDLY NAME & LINK INFO -->
               <Border Background="White" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="12" Padding="10,8" Margin="0,2,0,0">

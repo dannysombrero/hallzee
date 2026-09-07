@@ -51,7 +51,11 @@ cannot claim or connect to it.
 - Use **Sync Now** after activity to copy new trips into the local database.
 - Use **Open CSV** or the export controls to create a CSV report.
 - In **Settings**, save the teacher name and school to update the classroom
-  profile card and the app title bar immediately.
+  profile card and the app title bar immediately. The **Device** tab shows the
+  friendly name and link status of the last paired terminal.
+- In the **Exceeded Time** dashboard card, filter by duration threshold (e.g. `> 7m`)
+  and timeframe (e.g. **Last 2 Weeks**, **Today**, **This Week**, or **All Time**)
+  to spot students with high hallway time.
 
 The app remembers the terminal owner credential on supported production builds,
 so normal reconnects should not require the passkey again. After the first
@@ -70,8 +74,9 @@ window. It remains visible while the main Hallzee app is minimized and displays
 the current class period, a live digital clock, and pass status (e.g.
 **PASSES CLOSED** during lockout windows, **PASS AVAILABLE** during open windows,
 or **PASS UNAVAILABLE** when a student is out) with live period countdowns.
-Set each period's start and end time in **Policies & Bell Times** for this
-display to be accurate.
+The window includes close and minimize controls at the top left (and supports the
+`Esc` key to dismiss). Set each period's start and end time in **Policies & Bell Times**
+for this display to be accurate.
 
 ## If something does not work
 

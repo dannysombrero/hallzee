@@ -12,7 +12,6 @@ public partial class StudentsOutWindow : Window {
 
   public StudentsOutWindow() {
     InitializeComponent();
-    SetupPlatformTitleBar();
     Closing += (_, eventArgs) => {
       if (!closeForShutdown) {
         eventArgs.Cancel = true;
@@ -26,13 +25,11 @@ public partial class StudentsOutWindow : Window {
     Close();
   }
 
-  void SetupPlatformTitleBar() {
-    if (OperatingSystem.IsMacOS()) {
-      CustomTrafficLights.IsVisible = false;
-      TitleText.Margin = new Thickness(74, 0, 0, 0);
-    } else {
-      CustomTrafficLights.IsVisible = true;
-      TitleText.Margin = new Thickness(6, 0, 0, 0);
+  protected override void OnKeyDown(KeyEventArgs e) {
+    base.OnKeyDown(e);
+    if (e.Key == Key.Escape) {
+      Hide();
+      e.Handled = true;
     }
   }
 

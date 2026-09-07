@@ -1,13 +1,20 @@
 # Feature Design: Student Roster Import & ID Enrichment
 
-**Status:** Approved Design Spec  
-**Target Milestone:** Phase 5 (Planned Data Foundations)  
+**Status:** Implemented
+
+**Target Milestone:** Delivered
+
 **Related Issues:** #17  
 **Scope:** Roster CSV parser, column mapping, profile-scoped database storage, display enrichment, and student-ID fallback.
 
 ---
 
 ## 1. Problem Statement & User Behavior
+
+The CSV preview, column auto-detection/mapping, profile-scoped upsert, import
+reporting, and local roster enrichment described below are implemented in the
+shared SQLite core and Universal client. Workbook files remain intentionally
+out of scope: export them to CSV before import.
 
 When students use the Hallzee kiosk, they enter only their numeric student ID (e.g. `10482`). In the raw sync database, records only contain this number. Teachers need immediate visual recognition of student names on their dashboard and in historical trip logs (e.g., displaying `Alex Rivera (Period 2)` instead of just `10482`).
 
@@ -101,4 +108,3 @@ ORDER BY t.trip_id DESC;
 | Join query performance (<10ms for 10,000 trips) | **Yes** | No | No |
 | Desktop UI import dialog & fallback rendering | **Yes** | No | No |
 | Windows native COM file picker & concurrent file read | No | **Yes** | No |
-

@@ -69,6 +69,9 @@ public partial class MainWindow : Window {
   void OnStudentsOutClick(object? sender, RoutedEventArgs e) {
     if (DataContext is not MainViewModel viewModel) return;
     studentsOutWindow ??= new StudentsOutWindow { DataContext = viewModel };
+    if (studentsOutWindow.WindowState == WindowState.Minimized) {
+      studentsOutWindow.WindowState = WindowState.Normal;
+    }
     studentsOutWindow.Show();
     studentsOutWindow.Activate();
   }

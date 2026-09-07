@@ -1,6 +1,7 @@
 # Hallzee Client UI Architecture and Refactor Specification
 
-**Status:** Planning draft for approval  
+**Status:** Current implementation reference and remaining-work plan
+
 **Scope:** Hallzee desktop client UI, uploaded React prototype, and integration boundaries  
 **Non-goal:** This document does not authorize product-feature implementation or intentional visual redesign.
 
@@ -230,24 +231,24 @@ The exact framework router can be chosen during implementation. The route model 
 | State | Owner | Notes |
 | --- | --- | --- |
 | Discovery results | Connection service | Cleared/replaced per discovery run |
-| Selected terminal | Connection service/profile association | Remembered per profile when implemented |
+| Selected terminal | Connection service/profile association | Persisted per profile after authenticated connection |
 | Connection state | Connection service/state machine | Never inferred from label text |
 | Sync state/progress | Sync orchestrator | Exclusive operation; no overlapping sync/settings writes |
 | Last successful sync | Sync service/repository | Persist successful completion time |
-| Live active-pass state | Active-pass service | Not available from `TIME_CURSOR`; requires a planned terminal query/event |
+| Live active-pass state | Active-pass service | `GET_ACTIVE_PASS`/`GET_ACTIVE_PASSES` plus live events; unknown after disconnect |
 | Maximum student-ID length | Terminal settings service | Terminal is authoritative |
-| Terminal name | Terminal settings service | Planned; terminal is authoritative |
+| Terminal name | Terminal settings service | Terminal protocol support exists; desktop-to-terminal rename wiring remains planned |
 
 ### 8.3 Classroom data
 
 | Data | Owner | Authority |
 | --- | --- | --- |
 | Trip records | SQLite repository | Terminal is origin; client is durable local copy |
-| Active trip displayed by client | Active-pass query/event when implemented | Demo-only until the terminal can explicitly report occupied/available state and checkout time |
+| Active trip displayed by client | Active-pass query/event | Live terminal state enriched from the active profile's local roster |
 | Roster | Local roster repository | Active profile |
 | Name/class/period enrichment | Query layer | Derived by joining trips with roster |
-| Policies and bell schedule | Profile repository | Client configuration; offline enforcement decision pending |
-| Auto-sync preferences | Profile repository | Client-only; default off |
+| Policies and bell schedule | Profile repository | Client configuration and active-period display; optional terminal enforcement is planned and off by default |
+| Auto-sync preferences | Profile repository | Planned; current reconnect/live-stream behavior is not yet configurable auto-sync |
 
 ## 9. Domain models
 
@@ -311,15 +312,15 @@ Hooks coordinate UI-facing state; they do not contain protocol parsing or persis
 | --- | --- | --- |
 | Terminal connection | `BluetoothConnectionManager.cs`; `TerminalConnectionPort.cs` | Implemented on Windows |
 | Sync session | `SyncSession.cs` | Implemented and tested |
-| Active-pass state | No production protocol command/event exists | Planned; required before a live occupied/available dashboard |
-| Trip persistence/query | `TripSqliteRepository.cs` | Persistence implemented; UI query API needs expansion |
-| Terminal settings | `KioskSettingsProtocol.cs` plus WinForms flow | Maximum ID length implemented |
+| Active-pass state | `ActivePassProtocol.cs`, `SyncSession.cs`, firmware `BluetoothSync.cpp` | Implemented: query, multi-pass snapshot, events, timer, and live-trip storage |
+| Trip persistence/query | `TripSqliteRepository.cs` | Implemented in the Universal client, including enriched history queries/export |
+| Terminal settings | `KioskSettingsProtocol.cs` plus firmware settings handlers | Maximum ID length and active-pass capacity implemented; terminal rename desktop wiring remains |
 | CSV export | `TripSqliteRepository.ExportCsv` and WinForms actions | Implemented with open issues #7 and #8 |
 | Activity events | Currently logs/string updates | Needs structured translation; issue #9 |
-| Roster storage/import | None in production core | Planned; issue #17 |
-| Profiles/settings | None in production core | Planned; issue #19 |
-| Policy/schedule engine | None | Planned; issues #20 and #21 |
-| Auto-sync orchestrator | Manual cursor sync exists | Planned and disabled; issue #23 |
+| Roster storage/import | `RosterSqliteRepository.cs`, `RosterService.cs` | Implemented: CSV preview/mapping, import, and profile-scoped enrichment |
+| Profiles/settings | `ProfileAndPolicySqliteRepository.cs` | Implemented: profiles, assignments, policies, and bell-period persistence |
+| Policy/schedule engine | Policy and bell-period ViewModels | Implemented as local configuration/display; automatic switching and optional terminal enforcement remain planned |
+| Auto-sync orchestrator | `MainViewModel` reconnect/live-stream path | Partial: reconnect and live streaming work; preferences and a serialized coordinator remain planned |
 
 ### Contract rule
 
@@ -338,23 +339,23 @@ Every contract must have:
 | Sync Now | Real feature | Existing cursor-based `TIME_CURSOR` sync |
 | Automatic clock alignment | Real feature | Existing connection/sync command flow |
 | Last successful sync | Partially represented | Persist on successful sync completion |
-| Live occupied/available state and timer | Demo only today | Requires an active-pass query/event; `TIME_CURSOR` exposes completed/reset records only |
-| Recent trips | Planned UI | SQLite query; issue #18 |
-| Full trip history | Planned UI | SQLite query/filter/sort; issue #18 |
+| Live occupied/available state and timer | Real feature | Active-pass query/snapshot and live events |
+| Recent trips | Real feature | SQLite query with roster enrichment |
+| Full trip history | Real feature | SQLite query/filter/sort and export |
 | Export CSV | Real feature | Existing export service; issue #7 |
 | Open export folder | Real feature needing correction | Open-only behavior; issue #8 |
-| Student name fallback | Prototype behavior | Roster join with safe ID fallback |
-| Roster CSV import | Planned | Issue #17 |
+| Student name fallback | Real feature | Roster join with safe ID fallback |
+| Roster CSV import | Real feature | Two-phase CSV preview/mapping/import |
 | Maximum student-ID length | Real terminal setting | Implemented 4–16 range; terminal authoritative |
-| Terminal assigned name | Planned | Issue #22 |
-| Auto-sync on connection | Planned, default off | Issue #23 |
-| Auto-sync new transactions while connected | Planned, default off | Issue #23 |
-| Pass capacity | Planned | Issue #20; enforcement location unresolved |
-| Overdue warning | Prototype-only proposal | Must be approved before implementation |
-| Daily max per student | Prototype-only proposal | Must be approved before implementation |
-| Bell times | Planned | Issue #20 |
+| Terminal assigned name | Partial | Firmware supports persisted rename; Universal settings currently save a local name only |
+| Auto-sync on connection | Partial | Authenticated reconnect and sync exist; user preference and discovery-driven connection remain planned |
+| Auto-sync new transactions while connected | Real while connected | `EVENT`/`LIVE_TRIP` notifications; user-configurable continuous mode remains planned |
+| Pass capacity | Real feature | Terminal enforces configured 1–8 capacity |
+| Overdue warning | Real feature | Dashboard threshold/display |
+| Daily max per student | Partial | Stored/displayed policy; checkout-time evaluation remains planned |
+| Bell times | Partial | Stored/displayed; automatic switching and optional terminal enforcement remain planned |
 | Pause rules | Planned | Issue #21 |
-| Classroom profile | Planned | Issue #19 |
+| Classroom profile | Real feature | Profile repository and UI selection |
 | Desktop Check In / Simulate Tap | Demo only | `useDemoScenario`; never production command |
 | Sandbox toolbar | Demo only | Development/preview composition only |
 
@@ -392,17 +393,14 @@ Only one of these may use the terminal command channel at a time:
 
 An operation coordinator queues or rejects a second request with a clear UI message. Components must not disable unrelated navigation merely because a terminal operation is active.
 
-### Active-pass state gap
+### Active-pass implementation
 
-The current terminal persists an in-progress checkout in Preferences, but it does not expose that checkout through `TIME_CURSOR`. A numbered, syncable trip is created only after check-in or manual reset. Therefore a production client cannot currently infer whether the pass is occupied, which student is out, or when the active checkout began—even while BLE is connected.
-
-Until an explicit protocol feature is implemented:
-
-- occupied/available status and the running timer remain part of the demo adapter only;
-- the production dashboard must show active-pass state as unavailable/unknown rather than infer it from completed trip history;
-- a connected badge must not imply that active-pass information is live.
-
-The future feature should define a versioned query and/or event such as an active-pass snapshot with `NONE` or the active student ID and checkout timestamp. Exact command names and payloads require a focused protocol design, fragmentation tests, reconnect behavior, and student-data review before implementation.
+`GET_ACTIVE_PASS` and `GET_ACTIVE_PASSES` provide an authenticated snapshot of
+in-progress checkouts. `EVENT,CHECKOUT`, `EVENT,CHECKIN`, and `EVENT,RESET`
+keep the live dashboard current while a connection remains open; `LIVE_TRIP`
+persists completed records immediately. The dashboard calculates elapsed time
+locally and returns to an unknown state on disconnect rather than inferring
+occupancy from completed history.
 
 ## 14. Privacy and safety boundaries
 
@@ -410,7 +408,7 @@ The future feature should define a versioned query and/or event such as an activ
 - Do not send roster names, class names, or periods to the terminal for roster enrichment.
 - Use student IDs only where operationally necessary.
 - Default dashboard history to a compact recent subset.
-- Avoid names and IDs in low-level diagnostic logs unless a specific troubleshooting mode is enabled.
+- Keep diagnostic and crash information local; student names may appear when useful for local classroom support, but diagnostics must never upload roster data or transmit it to a terminal.
 - Require confirmation and audit metadata before future trip editing/deletion.
 - Do not expose admin/dean access until authentication, permissions, and shared storage are explicitly designed.
 
@@ -454,7 +452,13 @@ Capture current outcomes with component/integration tests:
 
 Windows behavior must be reported as unverified until tested on a Windows PC. UI-only preview checks must not be described as Bluetooth validation.
 
-## 16. Phased implementation roadmap
+## 16. Historical implementation roadmap
+
+Phases 1–5 below are substantially delivered in the Universal client. They are
+retained as design history; the remaining work is terminal rename wiring,
+optional terminal bell-policy transfer/enforcement, schedule exceptions and
+period metadata, daily-limit evaluation, RSSI display, and configurable
+serialized auto-sync.
 
 ### Phase 0 — Approve architecture
 
@@ -547,8 +551,8 @@ The Avalonia trip-history modal follows the web client’s light-blue table trea
 | React prototype repository location | Replace/expand `preview-site` rather than create another top-level client | Before Phase 1 |
 | Full history presentation | Dedicated Trips page; dashboard stays compact | Approved direction, formalize in Phase 1 |
 | Desktop-driven check-in/out | Demo only | Before production Dashboard port |
-| Active trip freshness | Demo-only until an explicit active-pass query/event exists; later show live only from that source and label unavailable/stale states | Before real dashboard binding |
-| Policy enforcement location | Offline-essential limits should be terminal-enforced; client configures | Before policy feature design |
+| Active trip freshness | Live while connected through active-pass query/snapshot/events; unknown after disconnect | Delivered |
+| Policy enforcement location | Client configuration by default; terminal bell-policy enforcement is optional and off by default | Before policy-transfer implementation |
 | Continuous Bluetooth connection | Only when future live auto-sync is enabled | Before issue #23 implementation |
 | Trip edit/delete behavior | Require audit trail and clear terminal/client ownership | Before issue #15 design |
 
@@ -566,6 +570,8 @@ The first componentization is complete when:
 - the original uploaded file remains recoverable through version control or an archived reference during review;
 - the resulting structure can be mapped clearly to native Views/ViewModels.
 
-## 21. Immediate next action after approval
+## 21. Current next actions
 
-After this documentation PR merges, create a fresh Phase 1 branch from updated `main`. First add characterization tests for the existing React shell, then move it into `preview-site` and componentize it behind mock services without intentional visual or behavioral changes. Do not add real BLE, SQLite, firmware, active-pass, or other product features in that refactor PR.
+Prioritize the remaining work listed in Section 16. Do not describe reconnect
+or live terminal events as configurable auto-sync until the preference and
+operation-coordinator work is complete.

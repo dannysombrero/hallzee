@@ -16,12 +16,13 @@ central enforcement, physical claim gesture, six-digit passkey claim flow,
 availability reporting, same-client automatic reconnect, and a single-terminal
 Universal client v2 path are implemented and compile validated. The physical
 keypad owner-reset gesture and USB owner-reset command are implemented. Desktop
-platform credential-vault adapters and physical multi-terminal verification
-remain planned work in the agent packages below. Unclaimed startup, pairing,
+platform credential-vault adapters are wired for Windows and macOS; physical
+multi-terminal and platform reconnect verification remain planned work in the
+agent packages below. Unclaimed startup, pairing,
 and owner reset clear stale terminal-side BLE bonds.
-The current
-Universal v2 test path uses an in-memory credential store and is not yet a
-production persistence solution across app restarts.
+The Universal unit-test path uses an in-memory credential store; physical
+clients use the platform credential-store factory. Cross-restart credential and
+reconnect behavior still requires physical platform verification.
 
 ---
 

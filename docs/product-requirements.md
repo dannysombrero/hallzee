@@ -110,7 +110,7 @@ sequenceDiagram
   - Daily/weekly pass limit per student (e.g., max 2 passes per day).
   - "10/10 Rule" or lockout windows (no passes permitted during first/last 10 minutes of class).
 - **FR-POL-3:** Teachers must be able to define bell schedules (period start and end times) to automate profile switching and policy enforcement.
-- **Future bell-time enhancement:** Policies/Bell Times will support named schedule templates, weekday assignments, date-specific exceptions, and distinct schedules for Wednesdays, block days, assemblies, and early-release days. Teachers will choose whether the first and last ten minutes of each period allow passes, warn with an optional selected terminal sound, or lock new checkouts. The terminal will receive an offline copy of the policy, and trips may optionally export the matched schedule and class period.
+- **Future bell-time enhancement:** Policies/Bell Times will support named schedule templates, weekday assignments, date-specific exceptions, and distinct schedules for Wednesdays, block days, assemblies, and early-release days. Teachers will choose whether the first and last ten minutes of each period allow passes, warn with an optional selected terminal sound, or lock new checkouts. Terminal enforcement is optional and disabled by default; when a teacher enables it, the terminal receives an offline copy of the policy. Trips may optionally export the matched schedule and class period.
 
 ### 3.5 Terminal Management & Kiosk Settings
 - **FR-TERM-1:** The desktop client must scan for nearby Hallzee BLE peripherals and display signal strength (RSSI).
@@ -129,7 +129,7 @@ sequenceDiagram
 ### 4.2 Data Privacy & Security (FERPA Compliance)
 - **NFR-PRIV-1:** Student Personally Identifiable Information (PII)—including names, email addresses, grades, and schedules—must NEVER be transmitted over Bluetooth Low Energy to the physical kiosk.
 - **NFR-PRIV-2:** All local database storage on the teacher's workstation must use standard file permissions within the user's OS profile directory.
-- **NFR-PRIV-3:** Diagnostic and crash logs must redact student names and IDs by default.
+- **NFR-PRIV-3:** Diagnostic and crash logs remain local to the teacher's workstation and are never uploaded automatically. Student names may appear in those local diagnostics when useful for classroom support; diagnostic output must not transmit roster data to the terminal or any website.
 
 ### 4.3 Reliability & Power Loss Resilience
 - **NFR-REL-1:** If the ESP32 terminal loses power while a student is checked out, it must restore the active checkout state from non-volatile storage (Preferences) upon reboot.

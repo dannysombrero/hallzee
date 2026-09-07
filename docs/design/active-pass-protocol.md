@@ -1,7 +1,9 @@
 # Feature Design: Live Active-Pass Protocol & Real-Time Tracking
 
-**Status:** Approved Design Spec  
-**Target Milestone:** Phase 4 (Pair Implemented Backend Features)  
+**Status:** Implemented
+
+**Target Milestone:** Delivered
+
 **Related Issues:** #13, #14  
 **Scope:** Closing the active-pass gap between ESP32 Preferences and Desktop UI via BLE query & event notifications.
 
@@ -9,9 +11,9 @@
 
 ## 1. Problem Statement & Background
 
-Currently, the ESP32 terminal persists an in-progress checkout in Non-Volatile Storage (`Preferences`), but the standard `TIME_CURSOR` sync command transfers only finalized (completed or manually reset) records from LittleFS flash. 
+The ESP32 terminal persists in-progress checkouts in Non-Volatile Storage (`Preferences`), while the standard `TIME_CURSOR` sync command transfers only finalized (completed or manually reset) records from LittleFS flash.
 
-Consequently, the desktop client cannot natively determine whether a student is currently out of the room, who that student is, or how long they have been gone without an explicit real-time protocol query.
+The desktop therefore uses the explicit real-time query and notifications below rather than inferring occupancy from completed trip history.
 
 This feature adds an explicit `GET_ACTIVE_PASS` query command and asynchronous live event notifications over the existing BLE GATT channel.
 
@@ -82,10 +84,19 @@ stateDiagram-v2
 
 ---
 
-## 4. Firmware Implementation Notes
+## 4. Implementation
 
 ### `BluetoothSync.cpp`
-- Implement handler for `GET_ACTIVE_PASS`:
+- `BluetoothSync` implements `GET_ACTIVE_PASS`, active-pass events, and
+  `MANUAL_CHECKIN`.
+- The terminal and desktop also implement `GET_ACTIVE_PASSES` and
+  `SET,MAX_ACTIVE_PASSES,<1-8>` for multi-pass classrooms. `GET_ACTIVE_PASS`
+  remains compatible by returning the oldest active checkout.
+- The Universal desktop client calculates elapsed time locally, enriches the
+  active student from the local roster, and returns to an unknown state on
+  disconnect.
+
+The original single-pass handler is retained here as protocol pseudocode:
   ```cpp
   if (strcmp(cmd, "GET_ACTIVE_PASS") == 0) {
       if (terminalController.hasActivePass()) {
@@ -105,14 +116,12 @@ stateDiagram-v2
 
 ## 5. Verification & Testing Matrix
 
-## Deferred enhancement: multiple active passes and teacher controls
+## Remaining enhancement: teacher-initiated checkout
 
-The current kiosk persists one active pass. A future firmware and protocol
-revision will support up to eight simultaneous active passes, a terminal
-setting to allow or disallow that mode, capacity warnings in the desktop
-client, and teacher-initiated manual checkout. The desktop manual check-in
-already records `MANUAL` rather than `MANUAL_RESET`. The desktop will continue to show
-the oldest active pass until it is checked in, then show the next oldest pass.
+The kiosk now persists up to eight active passes, exposes the capacity setting,
+and reports the oldest active pass to the primary dashboard. Desktop manual
+check-in records `MANUAL`. Teacher-initiated checkout is intentionally not yet
+implemented; it requires a separate authorization and classroom-policy design.
 
 | Capability | macOS Testing | Windows Testing | Hardware Required |
 | :--- | :--- | :--- | :--- |

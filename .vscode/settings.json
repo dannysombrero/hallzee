@@ -1,0 +1,9 @@
+{
+  "clangd.fallbackFlags": [
+    "-xc++",
+    "-I."
+  ],
+  "files.associations": {
+    "*.ino": "cpp"
+  }
+}

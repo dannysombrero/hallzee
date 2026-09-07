@@ -153,4 +153,45 @@ public sealed class DashboardViewModelTests : IDisposable {
     Assert.Empty(viewModel.ExceededStudents);
     Assert.True(viewModel.HasNoExceededStudents);
   }
+
+  [Fact]
+  public void TimeframeFilterControlsTripsIncludedInExceededTime() {
+    var now = DateTime.Now;
+    var todayStr = now.ToString("yyyy-MM-dd");
+    var threeDaysAgoStr = now.AddDays(-3).ToString("yyyy-MM-dd");
+    var threeWeeksAgoStr = now.AddDays(-21).ToString("yyyy-MM-dd");
+
+    rosterRepository.SaveStudents("default", new[] {
+      new RosterStudent("2001", "default", "Alice", "Walker", "10", "Period 1"),
+      new RosterStudent("2002", "default", "Bob", "Smith", "10", "Period 2"),
+      new RosterStudent("2003", "default", "Charlie", "Brown", "10", "Period 3")
+    });
+
+    // 2001 has overdue trip today (10m = 600s)
+    tripRepository.Store($"101,2001,{todayStr},09:00:00,09:10:00,600,COMPLETED");
+    // 2002 has overdue trip 3 days ago (11m = 660s)
+    tripRepository.Store($"102,2002,{threeDaysAgoStr},10:00:00,10:11:00,660,COMPLETED");
+    // 2003 has overdue trip 21 days ago (12m = 720s)
+    tripRepository.Store($"103,2003,{threeWeeksAgoStr},11:00:00,11:12:00,720,COMPLETED");
+
+    // Default timeframe is "Last 2 Weeks" -> 2001 and 2002 should be present, 2003 should be excluded
+    viewModel.Refresh("default");
+    Assert.Equal("Last 2 Weeks", viewModel.SelectedTimeframe);
+    Assert.Contains("the last 2 weeks", viewModel.ExceededSubtitleText);
+    Assert.Equal(2, viewModel.ExceededStudents.Count);
+    Assert.Contains(viewModel.ExceededStudents, s => s.StudentId == "2001");
+    Assert.Contains(viewModel.ExceededStudents, s => s.StudentId == "2002");
+    Assert.DoesNotContain(viewModel.ExceededStudents, s => s.StudentId == "2003");
+
+    // Switch to "Today" -> only 2001 should be present
+    viewModel.SelectedTimeframe = "Today";
+    Assert.Contains("today", viewModel.ExceededSubtitleText);
+    Assert.Single(viewModel.ExceededStudents);
+    Assert.Equal("2001", viewModel.ExceededStudents[0].StudentId);
+
+    // Switch to "All Time" -> all 3 should be present
+    viewModel.SelectedTimeframe = "All Time";
+    Assert.Contains("all time", viewModel.ExceededSubtitleText);
+    Assert.Equal(3, viewModel.ExceededStudents.Count);
+  }
 }

@@ -30,18 +30,18 @@
           PointerPressed="OnWindowPointerPressed">
     <Grid RowDefinitions="Auto,Auto,*">
       <!-- 1. TOP TITLE BAR -->
-      <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Height="44" Margin="0" VerticalAlignment="Center">
-        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-          <!-- Custom traffic lights (visible on non-macOS platforms) -->
-          <StackPanel x:Name="CustomTrafficLights" Orientation="Horizontal" Spacing="6" Margin="16,0,10,0" VerticalAlignment="Center">
-            <Button Width="12" Height="12" CornerRadius="6" Background="#FF5F56" BorderThickness="0" Padding="0" Cursor="Hand" Click="OnCloseDotClick" ToolTip.Tip="Close" />
-            <Button Width="12" Height="12" CornerRadius="6" Background="#FFBD2E" BorderThickness="0" Padding="0" Cursor="Hand" Click="OnMinimizeDotClick" ToolTip.Tip="Minimize" />
-            <Border Width="12" Height="12" CornerRadius="6" Background="#27C93F" />
-          </StackPanel>
-
-          <!-- App Title (offset set in code-behind for macOS to clear native traffic lights) -->
-          <TextBlock x:Name="TitleText" Text="Hallzee" FontWeight="Bold" FontSize="14" Foreground="#0F172A" VerticalAlignment="Center" />
+      <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Height="38" Margin="0" VerticalAlignment="Center" Background="#F8FAFC">
+        <!-- Custom traffic lights at top-left (Close & Minimize) -->
+        <StackPanel x:Name="CustomTrafficLights" Orientation="Horizontal" Spacing="7" Margin="14,0,10,0" VerticalAlignment="Center">
+          <Button Width="13" Height="13" CornerRadius="7" Background="#FF5F56" BorderBrush="#E0443E" BorderThickness="0.5" Padding="0" Cursor="Hand" Click="OnCloseDotClick" ToolTip.Tip="Close (Esc)" />
+          <Button Width="13" Height="13" CornerRadius="7" Background="#FFBD2E" BorderBrush="#DEA123" BorderThickness="0.5" Padding="0" Cursor="Hand" Click="OnMinimizeDotClick" ToolTip.Tip="Minimize" />
         </StackPanel>
+
+        <!-- App Title centered -->
+        <TextBlock x:Name="TitleText" Grid.Column="1" Text="Hallzee" FontWeight="Bold" FontSize="13" Foreground="#334155" HorizontalAlignment="Center" VerticalAlignment="Center" />
+
+        <!-- Top Right spacer to balance traffic lights -->
+        <Border Grid.Column="2" Width="48" Height="1" />
       </Grid>
 
       <!-- 2. HEADER DIVIDER -->

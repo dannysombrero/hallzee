@@ -25,7 +25,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
   readonly bool isPreviewMode;
   bool isSyncing;
   string lastSyncTimeText = "Never (No sync yet)";
-  string connectedTerminalName = "Room 204 Door Kiosk (East-204)";
+  string connectedTerminalName = "";
   string profileDetails = "Period 3 (9:15–10:05)";
   string profileTeacher = "Teacher: Dr. Aris Thorne";
   string loadedRosterFileName = "Chemistry_Period3_Students.csv";
@@ -94,6 +94,10 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
       connection,
       appData,
       HandleClassroomInfoChanged);
+    if (!string.IsNullOrWhiteSpace(LastPairedDeviceName)) {
+      connectedTerminalName = LastPairedDeviceName;
+      TerminalSettingsModal.TerminalName = LastPairedDeviceName;
+    }
     FindTerminalsModal = new FindTerminalsViewModel(connection);
     ManualCheckInModal = new ManualCheckInViewModel(rosterService);
 
@@ -217,6 +221,8 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
         OnPropertyChanged(nameof(TopStatusBadgeForeground));
         OnPropertyChanged(nameof(TerminalAvatarBackground));
         OnPropertyChanged(nameof(ConnectedTerminalName));
+        OnPropertyChanged(nameof(TerminalFriendlyNameDisplay));
+        OnPropertyChanged(nameof(TerminalTransportInfoDisplay));
         OnPropertyChanged(nameof(IsReconnectPromptVisible));
       }
     }
@@ -244,20 +250,58 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     private set { syncProgressText = value; OnPropertyChanged(); }
   }
 
-  public string ConnectedTerminalName {
-    get => isConnected ? connectedTerminalName : "No Terminal Connected";
-    set { connectedTerminalName = value; OnPropertyChanged(); OnPropertyChanged(nameof(TerminalFriendlyNameDisplay)); }
+  public string? LastPairedDeviceName {
+    get {
+      if (lastAuthenticatedDevice != null && !string.IsNullOrWhiteSpace(lastAuthenticatedDevice.Name)) {
+        return lastAuthenticatedDevice.Name;
+      }
+      var terminalId = profileRepository.GetAssignedTerminalId(ActiveProfile.ProfileId);
+      if (!string.IsNullOrWhiteSpace(terminalId) && !terminalId.StartsWith("LEGACY", StringComparison.OrdinalIgnoreCase)) {
+        var saved = profileRepository.GetTerminal(terminalId);
+        if (saved != null && !string.IsNullOrWhiteSpace(saved.CustomName)) {
+          return saved.CustomName;
+        }
+      }
+      var all = profileRepository.GetAllTerminals()
+        .Where(t => !t.TerminalId.StartsWith("LEGACY", StringComparison.OrdinalIgnoreCase));
+      var latest = all.OrderByDescending(t => t.LastSeenAt).FirstOrDefault();
+      if (latest != null && !string.IsNullOrWhiteSpace(latest.CustomName)) {
+        return latest.CustomName;
+      }
+      return null;
+    }
   }
 
-  public string TerminalFriendlyNameDisplay =>
-    IsConnected
-      ? (string.IsNullOrWhiteSpace(TerminalSettingsModal?.TerminalName) ? ConnectedTerminalName : TerminalSettingsModal.TerminalName)
-      : "No Device Paired";
+  public string ConnectedTerminalName {
+    get => isConnected ? connectedTerminalName : (!string.IsNullOrWhiteSpace(LastPairedDeviceName) ? LastPairedDeviceName : "No Terminal Connected");
+    set {
+      connectedTerminalName = value ?? "";
+      if (TerminalSettingsModal != null && !string.IsNullOrWhiteSpace(value)) {
+        TerminalSettingsModal.TerminalName = value;
+      }
+      OnPropertyChanged();
+      OnPropertyChanged(nameof(TerminalFriendlyNameDisplay));
+    }
+  }
+
+  public string TerminalFriendlyNameDisplay {
+    get {
+      if (IsConnected) {
+        return !string.IsNullOrWhiteSpace(connectedTerminalName) && connectedTerminalName != "No Terminal Connected"
+          ? connectedTerminalName
+          : (!string.IsNullOrWhiteSpace(LastPairedDeviceName) ? LastPairedDeviceName : "Connected Device");
+      }
+      if (!string.IsNullOrWhiteSpace(LastPairedDeviceName)) {
+        return $"Last paired: {LastPairedDeviceName}";
+      }
+      return "No Device Paired";
+    }
+  }
 
   public string TerminalTransportInfoDisplay =>
     IsConnected
       ? "BLE 4.2+ GATT • Active sync"
-      : "Standby • Ready to discover";
+      : (!string.IsNullOrWhiteSpace(LastPairedDeviceName) ? "Standby • Ready to reconnect" : "Standby • Ready to discover");
 
   public string ProfileDetails {
     get {
@@ -449,7 +493,11 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     CancelAutomaticReconnect();
 
     if (terminalSession == null) {
-      connectedTerminalName = device.Name;
+      lastAuthenticatedDevice = device;
+      ConnectedTerminalName = device.Name;
+      if (TerminalSettingsModal != null) {
+        TerminalSettingsModal.TerminalName = device.Name;
+      }
       var connected = await FindTerminalsModal.ConnectAsync();
       if (connected) {
         IsConnected = true;
@@ -489,7 +537,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
         TransportId: device.Id
       ));
       profileRepository.AssignTerminalToProfile(ActiveProfile.ProfileId, authenticated.TerminalId);
-      connectedTerminalName = authenticated.CustomName;
+      ConnectedTerminalName = authenticated.CustomName;
       lastAuthenticatedDevice = device;
       lastAuthenticatedTerminalId = authenticated.TerminalId;
       FindTerminalsModal.PairingPasskey = "";
@@ -846,7 +894,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
       string.IsNullOrWhiteSpace(saved?.CustomName) ? $"Hallzee ({terminalId})" : saved!.CustomName,
       true,
       false);
-    connectedTerminalName = lastAuthenticatedDevice.Name;
+    ConnectedTerminalName = lastAuthenticatedDevice.Name;
     OnPropertyChanged(nameof(HasReconnectCandidate));
     OnPropertyChanged(nameof(ReconnectCandidateName));
   }
@@ -1044,7 +1092,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
             ClaimStatus: "CLAIMED",
             TransportId: device.Id));
           profileRepository.AssignTerminalToProfile(ActiveProfile.ProfileId, authenticated.TerminalId);
-          connectedTerminalName = authenticated.CustomName;
+          ConnectedTerminalName = authenticated.CustomName;
           IsConnected = true;
           OnPropertyChanged(nameof(IsReconnectPromptVisible));
           await SyncNowAsync();

@@ -101,7 +101,7 @@ public sealed class TripsViewModel : INotifyPropertyChanged {
   string selectedDuration = "All Durations";
 
   public IReadOnlyList<string> TimeframeOptions { get; } = new[] {
-    "All Time", "Today", "This Week", "This Month"
+    "All Time", "Today", "This Week", "Last 2 Weeks", "This Month"
   };
 
   public IReadOnlyList<string> DurationOptions { get; } = new[] {
@@ -187,6 +187,9 @@ public sealed class TripsViewModel : INotifyPropertyChanged {
     } else if (SelectedTimeframe == "This Week") {
       var daysFromMonday = ((int)now.DayOfWeek - (int)DayOfWeek.Monday + 7) % 7;
       startDate = now.Date.AddDays(-daysFromMonday).ToString("yyyy-MM-dd");
+      endDate = now.ToString("yyyy-MM-dd");
+    } else if (SelectedTimeframe == "Last 2 Weeks") {
+      startDate = now.Date.AddDays(-14).ToString("yyyy-MM-dd");
       endDate = now.ToString("yyyy-MM-dd");
     } else if (SelectedTimeframe == "This Month") {
       startDate = new DateTime(now.Year, now.Month, 1).ToString("yyyy-MM-dd");

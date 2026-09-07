@@ -124,6 +124,9 @@ public sealed class MainViewModelTests : IDisposable {
 
   [Fact]
   public async Task ConnectAndSyncWorkflowUpdatesConnectionAndStatus() {
+    Assert.Equal("No Device Paired", viewModel.TerminalFriendlyNameDisplay);
+    Assert.Equal("Standby • Ready to discover", viewModel.TerminalTransportInfoDisplay);
+
     await viewModel.FindTerminalsModal.ScanAsync();
     Assert.NotEmpty(viewModel.FindTerminalsModal.Devices);
 
@@ -131,6 +134,9 @@ public sealed class MainViewModelTests : IDisposable {
 
     Assert.True(viewModel.IsConnected);
     Assert.Equal("CONNECTED", viewModel.ConnectionStatusText);
+    Assert.Equal("Room 204 Door Kiosk (East-204)", viewModel.TerminalFriendlyNameDisplay);
+    Assert.Equal("BLE 4.2+ GATT • Active sync", viewModel.TerminalTransportInfoDisplay);
+    Assert.Equal("Room 204 Door Kiosk (East-204)", viewModel.TerminalSettingsModal.TerminalName);
     Assert.Contains("HELLO,1", connection.SentCommands);
     Assert.Contains("GET_ACTIVE_PASSES\n", connection.SentCommands);
     Assert.Contains("GET_SETTINGS\n", connection.SentCommands);
@@ -138,6 +144,9 @@ public sealed class MainViewModelTests : IDisposable {
     await viewModel.DisconnectAsync();
     Assert.False(viewModel.IsConnected);
     Assert.Equal("OFFLINE", viewModel.ConnectionStatusText);
+    Assert.Equal("Last paired: Room 204 Door Kiosk (East-204)", viewModel.TerminalFriendlyNameDisplay);
+    Assert.Equal("Standby • Ready to reconnect", viewModel.TerminalTransportInfoDisplay);
+    Assert.Equal("Room 204 Door Kiosk (East-204)", viewModel.TerminalSettingsModal.TerminalName);
   }
 
   [Fact]

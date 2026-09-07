@@ -58,6 +58,37 @@ public sealed class DashboardViewModel : INotifyPropertyChanged {
     }
   }
 
+  string selectedTimeframe = "Last 2 Weeks";
+
+  public IReadOnlyList<string> TimeframeOptions { get; } = new[] {
+    "Last 2 Weeks", "Today", "This Week", "This Month", "All Time"
+  };
+
+  public string SelectedTimeframe {
+    get => selectedTimeframe;
+    set {
+      if (selectedTimeframe != value && !string.IsNullOrWhiteSpace(value)) {
+        selectedTimeframe = value;
+        OnPropertyChanged();
+        OnPropertyChanged(nameof(SelectedTimeframeSummaryText));
+        OnPropertyChanged(nameof(ExceededSubtitleText));
+        RefreshExceededTimeStudents();
+      }
+    }
+  }
+
+  public string SelectedTimeframeSummaryText => selectedTimeframe switch {
+    "All Time" => "all time",
+    "Today" => "today",
+    "This Week" => "this week",
+    "Last 2 Weeks" => "the last 2 weeks",
+    "This Month" => "this month",
+    _ => selectedTimeframe.ToLowerInvariant()
+  };
+
+  public string ExceededSubtitleText =>
+    $"Students whose hall pass trips exceeded {thresholdMinutes}m within {SelectedTimeframeSummaryText}.";
+
   public int ThresholdMinutes {
     get => thresholdMinutes;
     set {
@@ -65,6 +96,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged {
         thresholdMinutes = value;
         OnPropertyChanged();
         OnPropertyChanged(nameof(ThresholdBadgeText));
+        OnPropertyChanged(nameof(ExceededSubtitleText));
         RefreshExceededTimeStudents();
       }
     }
@@ -161,9 +193,25 @@ public sealed class DashboardViewModel : INotifyPropertyChanged {
     allExceededStudents.Clear();
     var thresholdSecs = thresholdMinutes * 60;
 
-    // Fetch trips for profile to evaluate threshold
+    var now = DateTime.Now;
+    string? startDate = null;
+
+    if (selectedTimeframe == "Today") {
+      var minDate = now.Date < DateTime.UtcNow.Date ? now.Date : DateTime.UtcNow.Date;
+      startDate = minDate.ToString("yyyy-MM-dd");
+    } else if (selectedTimeframe == "This Week") {
+      var daysFromMonday = ((int)now.DayOfWeek - (int)DayOfWeek.Monday + 7) % 7;
+      startDate = now.Date.AddDays(-daysFromMonday).ToString("yyyy-MM-dd");
+    } else if (selectedTimeframe == "Last 2 Weeks") {
+      startDate = now.Date.AddDays(-14).ToString("yyyy-MM-dd");
+    } else if (selectedTimeframe == "This Month") {
+      startDate = new DateTime(now.Year, now.Month, 1).ToString("yyyy-MM-dd");
+    }
+
+    // Fetch trips for profile to evaluate threshold within timeframe
     var trips = tripRepository.QueryTrips(new TripQueryFilter(
       ProfileId: currentProfileId,
+      StartDate: startDate,
       Limit: 1000,
       OrderBy: "activity DESC"
     ));

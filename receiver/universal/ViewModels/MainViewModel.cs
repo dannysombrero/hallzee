@@ -22,6 +22,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
   string activeView = "dashboard";
   string activeModal = "None";
   bool isConnected = false;
+  readonly bool isPreviewMode;
   bool isSyncing;
   string lastSyncTimeText = "Never (No sync yet)";
   string connectedTerminalName = "Room 204 Door Kiosk (East-204)";
@@ -45,6 +46,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     ITerminalCredentialStore? credentialStore = null
   ) {
     this.connection = connection;
+    this.isPreviewMode = isPreviewMode;
     var appData = appDataPath ?? Path.Combine(
       Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
       "Hallzee",
@@ -109,6 +111,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
 
     ActivePass.PropertyChanged += HandleActivePassPropertyChanged;
     Dashboard.AdditionalActiveTrips.CollectionChanged += HandleAdditionalActiveTripsChanged;
+    PolicyModal.Periods.CollectionChanged += (_, _) => UpdatePeriodWindow();
     UpdatePeriodWindow();
 
     // Start a UI-thread ticker so both the dashboard and the companion window
@@ -137,10 +140,18 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
 
   public string CurrentPeriodName { get; private set; } = "No current period";
   public string CurrentPeriodRange { get; private set; } = "Set bell times in Policies & Bell Times";
+  public string FormattedPeriodRange { get; private set; } = "";
+  public string CurrentTimeDisplay { get; private set; } = DateTime.Now.ToString("h:mm  tt");
   public string PeriodWindowTitle { get; private set; } = "Bell schedule needed";
   public string PeriodWindowDetail { get; private set; } = "Add the current class period to show first and last ten-minute windows.";
   public string PeriodWindowAccent { get; private set; } = "#64748B";
   public double CurrentPeriodProgress { get; private set; }
+  public string PopupPillText { get; private set; } = "PASSES CLOSED";
+  public string PopupPillBackground { get; private set; } = "#F43F5E";
+  public string PopupPillForeground { get; private set; } = "#FFFFFF";
+  public string PopupPillToolTip { get; private set; } = "Passes closed";
+  public string PopupStatusPrefix { get; private set; } = "Bathroom Window Closed · Period ends in: ";
+  public string PopupStatusTimer { get; private set; } = "00:00";
 
   public string ActiveView {
     get => activeView;
@@ -235,8 +246,18 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
 
   public string ConnectedTerminalName {
     get => isConnected ? connectedTerminalName : "No Terminal Connected";
-    set { connectedTerminalName = value; OnPropertyChanged(); }
+    set { connectedTerminalName = value; OnPropertyChanged(); OnPropertyChanged(nameof(TerminalFriendlyNameDisplay)); }
   }
+
+  public string TerminalFriendlyNameDisplay =>
+    IsConnected
+      ? (string.IsNullOrWhiteSpace(TerminalSettingsModal?.TerminalName) ? ConnectedTerminalName : TerminalSettingsModal.TerminalName)
+      : "No Device Paired";
+
+  public string TerminalTransportInfoDisplay =>
+    IsConnected
+      ? "BLE 4.2+ GATT • Active sync"
+      : "Standby • Ready to discover";
 
   public string ProfileDetails {
     get {
@@ -602,16 +623,22 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
   }
 
   void HandleActivePassPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs) {
-    if (eventArgs.PropertyName is nameof(ActivePassViewModel.IsOccupied) or nameof(ActivePassViewModel.IsStatusUnknown)) {
+    if (eventArgs.PropertyName is nameof(ActivePassViewModel.IsOccupied) or nameof(ActivePassViewModel.IsStatusUnknown) or nameof(ActivePassViewModel.DurationDisplay) or nameof(ActivePassViewModel.DisplayName)) {
       OnPropertyChanged(nameof(HasStudentsOut));
+      UpdatePeriodWindow();
     }
   }
 
-  void HandleAdditionalActiveTripsChanged(object? sender, NotifyCollectionChangedEventArgs eventArgs) =>
+  void HandleAdditionalActiveTripsChanged(object? sender, NotifyCollectionChangedEventArgs eventArgs) {
     OnPropertyChanged(nameof(HasStudentsOut));
+    UpdatePeriodWindow();
+  }
 
-  void UpdatePeriodWindow() {
+  public void UpdatePeriodWindow() {
     var now = DateTime.Now;
+    CurrentTimeDisplay = now.ToString("h:mm  tt");
+    OnPropertyChanged(nameof(CurrentTimeDisplay));
+
     var current = PolicyModal.Periods.FirstOrDefault(period =>
       IsScheduledOn(period, now.DayOfWeek) &&
       TryGetPeriodBounds(period, now.Date, out var start, out var end) &&
@@ -625,15 +652,36 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
         "Add the current class period to show first and last ten-minute windows.",
         "#64748B",
         0);
+      FormattedPeriodRange = "";
+
+      if (ActivePass.IsOccupied) {
+        PopupPillText = "PASS UNAVAILABLE";
+        PopupPillBackground = "#F59E0B";
+        PopupPillForeground = "#FFFFFF";
+        PopupPillToolTip = "A student is currently out";
+        PopupStatusPrefix = "Pass In Use · ";
+        PopupStatusTimer = ActivePass.DurationDisplay;
+      } else {
+        PopupPillText = "PASSES CLOSED";
+        PopupPillBackground = "#64748B";
+        PopupPillForeground = "#FFFFFF";
+        PopupPillToolTip = "No class period is currently in session";
+        PopupStatusPrefix = "No Active Period · Schedule needed";
+        PopupStatusTimer = "";
+      }
+      NotifyPopupProperties();
       return;
     }
 
     var totalSeconds = Math.Max(1, (periodEnd - periodStart).TotalSeconds);
     var elapsedSeconds = Math.Clamp((now - periodStart).TotalSeconds, 0, totalSeconds);
     var remaining = periodEnd - now;
-    var firstWindowEnds = periodStart.AddMinutes(10);
-    var lastWindowStarts = periodEnd.AddMinutes(-10);
+    var firstMinutes = PolicyModal.FirstWindowMinutes > 0 ? PolicyModal.FirstWindowMinutes : 10;
+    var lastMinutes = PolicyModal.LastWindowMinutes > 0 ? PolicyModal.LastWindowMinutes : 10;
+    var firstWindowEnds = periodStart.AddMinutes(firstMinutes);
+    var lastWindowStarts = periodEnd.AddMinutes(-lastMinutes);
     var range = $"{periodStart:h:mm tt} – {periodEnd:h:mm tt}";
+    FormattedPeriodRange = FormatPeriodRange(periodStart, periodEnd);
 
     if (now < firstWindowEnds) {
       SetPeriodWindow(
@@ -643,6 +691,22 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
         $"Window active · {FormatCountdown(firstWindowEnds - now)} remaining",
         "#F59E0B",
         elapsedSeconds / totalSeconds * 100);
+
+      if (ActivePass.IsOccupied) {
+        PopupPillText = "PASS UNAVAILABLE";
+        PopupPillBackground = "#F59E0B";
+        PopupPillForeground = "#FFFFFF";
+        PopupPillToolTip = "A student is currently out";
+        PopupStatusPrefix = "Pass In Use · Passes open in: ";
+        PopupStatusTimer = FormatCountdown(firstWindowEnds - now);
+      } else {
+        PopupPillText = "PASSES CLOSED";
+        PopupPillBackground = "#F43F5E";
+        PopupPillForeground = "#FFFFFF";
+        PopupPillToolTip = "Passes are closed during the beginning-of-class window";
+        PopupStatusPrefix = "Bathroom Window Closed · Passes open in: ";
+        PopupStatusTimer = FormatCountdown(firstWindowEnds - now);
+      }
     } else if (now >= lastWindowStarts) {
       SetPeriodWindow(
         current.DisplayTitle,
@@ -651,6 +715,22 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
         $"Window active · period ends in {FormatCountdown(remaining)}",
         "#E11D48",
         elapsedSeconds / totalSeconds * 100);
+
+      if (ActivePass.IsOccupied) {
+        PopupPillText = "PASS UNAVAILABLE";
+        PopupPillBackground = "#F59E0B";
+        PopupPillForeground = "#FFFFFF";
+        PopupPillToolTip = "A student is currently out";
+        PopupStatusPrefix = "Pass In Use · Period ends in: ";
+        PopupStatusTimer = FormatCountdown(remaining);
+      } else {
+        PopupPillText = "PASSES CLOSED";
+        PopupPillBackground = "#F43F5E";
+        PopupPillForeground = "#FFFFFF";
+        PopupPillToolTip = "Passes are closed during the end-of-class window";
+        PopupStatusPrefix = "Bathroom Window Closed · Period ends in: ";
+        PopupStatusTimer = FormatCountdown(remaining);
+      }
     } else {
       SetPeriodWindow(
         current.DisplayTitle,
@@ -659,15 +739,51 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
         $"Last 10-minute window begins in {FormatCountdown(lastWindowStarts - now)}",
         "#059669",
         elapsedSeconds / totalSeconds * 100);
+
+      if (ActivePass.IsOccupied) {
+        PopupPillText = "PASS UNAVAILABLE";
+        PopupPillBackground = "#F59E0B";
+        PopupPillForeground = "#FFFFFF";
+        PopupPillToolTip = "A student is currently out";
+        PopupStatusPrefix = "Pass In Use · Window closes in: ";
+        PopupStatusTimer = FormatCountdown(lastWindowStarts - now);
+      } else {
+        PopupPillText = "PASS AVAILABLE";
+        PopupPillBackground = "#0284C7";
+        PopupPillForeground = "#FFFFFF";
+        PopupPillToolTip = "Pass is currently available";
+        PopupStatusPrefix = "Bathroom Window Open · Window closes in: ";
+        PopupStatusTimer = FormatCountdown(lastWindowStarts - now);
+      }
     }
+
+    NotifyPopupProperties();
   }
 
-  static bool IsScheduledOn(BellPeriodItemViewModel period, DayOfWeek day) => day switch {
+  void NotifyPopupProperties() {
+    OnPropertyChanged(nameof(FormattedPeriodRange));
+    OnPropertyChanged(nameof(PopupPillText));
+    OnPropertyChanged(nameof(PopupPillBackground));
+    OnPropertyChanged(nameof(PopupPillForeground));
+    OnPropertyChanged(nameof(PopupPillToolTip));
+    OnPropertyChanged(nameof(PopupStatusPrefix));
+    OnPropertyChanged(nameof(PopupStatusTimer));
+  }
+
+  static string FormatPeriodRange(DateTime start, DateTime end) {
+    var range = start.ToString("tt") == end.ToString("tt")
+      ? $"{start:h:mm} – {end:h:mm tt}"
+      : $"{start:h:mm tt} – {end:h:mm tt}";
+    return $"({range})";
+  }
+
+  bool IsScheduledOn(BellPeriodItemViewModel period, DayOfWeek day) => day switch {
     DayOfWeek.Monday => period.IsMonday,
     DayOfWeek.Tuesday => period.IsTuesday,
     DayOfWeek.Wednesday => period.IsWednesday,
     DayOfWeek.Thursday => period.IsThursday,
     DayOfWeek.Friday => period.IsFriday,
+    DayOfWeek.Saturday or DayOfWeek.Sunday => isPreviewMode,
     _ => false
   };
 

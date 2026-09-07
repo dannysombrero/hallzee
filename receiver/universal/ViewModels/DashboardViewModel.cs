@@ -122,8 +122,12 @@ public sealed class DashboardViewModel : INotifyPropertyChanged {
 
   public void Refresh(string profileId) {
     currentProfileId = profileId;
+    var localTodayStr = DateTime.Now.ToString("yyyy-MM-dd");
     var todayStr = DateTime.UtcNow.ToString("yyyy-MM-dd");
-    var summary = tripRepository.GetTripSummary(startDate: todayStr, endDate: todayStr, profileId: profileId);
+    var summary = tripRepository.GetTripSummary(startDate: localTodayStr, endDate: localTodayStr, profileId: profileId);
+    if (summary.TotalTrips == 0 && localTodayStr != todayStr) {
+      summary = tripRepository.GetTripSummary(startDate: todayStr, endDate: todayStr, profileId: profileId);
+    }
 
     TotalTripsToday = summary.TotalTrips;
     AverageDurationMinutes = summary.AverageDurationSeconds > 0
@@ -133,10 +137,15 @@ public sealed class DashboardViewModel : INotifyPropertyChanged {
     var filter = new TripQueryFilter(
       SearchText: string.IsNullOrWhiteSpace(QuickSearchText) ? null : QuickSearchText.Trim(),
       ProfileId: profileId,
-      Limit: liveActiveTrips.Count > 0 ? 15 - Math.Min(15, liveActiveTrips.Count) : 15,
+      StartDate: localTodayStr,
+      EndDate: localTodayStr,
+      Limit: 100,
       OrderBy: "activity DESC"
     );
     var raw = tripRepository.QueryTrips(filter);
+    if (raw.Count == 0 && localTodayStr != todayStr) {
+      raw = tripRepository.QueryTrips(filter with { StartDate = todayStr, EndDate = todayStr });
+    }
 
     RecentTrips.Clear();
     foreach (var activeTrip in liveActiveTrips.AsEnumerable().Reverse()) RecentTrips.Add(activeTrip);

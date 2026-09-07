@@ -97,8 +97,19 @@ public sealed class TripsViewModel : INotifyPropertyChanged {
   }
 
   public ObservableCollection<EnrichedTripRecord> Trips { get; } = new();
+  string selectedTimeframe = "All Time";
+  string selectedDuration = "All Durations";
+
+  public IReadOnlyList<string> TimeframeOptions { get; } = new[] {
+    "All Time", "Today", "This Week", "This Month"
+  };
+
+  public IReadOnlyList<string> DurationOptions { get; } = new[] {
+    "All Durations", "Under 5m", "5m – 10m", "Over 10m"
+  };
+
   public IReadOnlyList<string> StatusOptions { get; } = new[] {
-    "All", "Completed", "Manual"
+    "All Statuses", "Completed", "Manual"
   };
 
   public string SearchText {
@@ -106,6 +117,28 @@ public sealed class TripsViewModel : INotifyPropertyChanged {
     set {
       if (searchText != value) {
         searchText = value;
+        OnPropertyChanged();
+        RefreshIfLoaded();
+      }
+    }
+  }
+
+  public string SelectedTimeframe {
+    get => selectedTimeframe;
+    set {
+      if (selectedTimeframe != value) {
+        selectedTimeframe = value;
+        OnPropertyChanged();
+        RefreshIfLoaded();
+      }
+    }
+  }
+
+  public string SelectedDuration {
+    get => selectedDuration;
+    set {
+      if (selectedDuration != value) {
+        selectedDuration = value;
         OnPropertyChanged();
         RefreshIfLoaded();
       }
@@ -143,6 +176,23 @@ public sealed class TripsViewModel : INotifyPropertyChanged {
 
   public void Refresh(string profileId) {
     activeProfileId = profileId;
+
+    var now = DateTime.Now;
+    string? startDate = null;
+    string? endDate = null;
+
+    if (SelectedTimeframe == "Today") {
+      startDate = now.ToString("yyyy-MM-dd");
+      endDate = startDate;
+    } else if (SelectedTimeframe == "This Week") {
+      var daysFromMonday = ((int)now.DayOfWeek - (int)DayOfWeek.Monday + 7) % 7;
+      startDate = now.Date.AddDays(-daysFromMonday).ToString("yyyy-MM-dd");
+      endDate = now.ToString("yyyy-MM-dd");
+    } else if (SelectedTimeframe == "This Month") {
+      startDate = new DateTime(now.Year, now.Month, 1).ToString("yyyy-MM-dd");
+      endDate = now.ToString("yyyy-MM-dd");
+    }
+
     var statusFilter = SelectedStatus switch {
       "Completed" or "COMPLETED" => "COMPLETED",
       "Manual" or "MANUAL" or "MANUAL_RESET" => "MANUAL",
@@ -152,18 +202,28 @@ public sealed class TripsViewModel : INotifyPropertyChanged {
     var filter = new TripQueryFilter(
       SearchText: string.IsNullOrWhiteSpace(SearchText) ? null : SearchText.Trim(),
       Status: statusFilter,
+      StartDate: startDate,
+      EndDate: endDate,
       ProfileId: profileId,
-      Limit: 100
+      Limit: 200
     );
 
     var rawTrips = tripRepository.QueryTrips(filter);
+
+    if (SelectedDuration == "Under 5m") {
+      rawTrips = rawTrips.Where(t => t.DurationSeconds < 300).ToList();
+    } else if (SelectedDuration == "5m – 10m") {
+      rawTrips = rawTrips.Where(t => t.DurationSeconds >= 300 && t.DurationSeconds <= 600).ToList();
+    } else if (SelectedDuration == "Over 10m") {
+      rawTrips = rawTrips.Where(t => t.DurationSeconds > 600).ToList();
+    }
 
     Trips.Clear();
     foreach (var trip in rawTrips) {
       Trips.Add(trip);
     }
     ApplySort();
-    TotalTrips = tripRepository.CountTrips(filter);
+    TotalTrips = Trips.Count;
   }
 
   void RefreshIfLoaded() {

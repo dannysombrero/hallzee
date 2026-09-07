@@ -135,83 +135,93 @@
       <!-- MAIN DASHBOARD 2-COLUMN GRID -->
       <Grid ColumnDefinitions="1.8*,1.2*" ColumnSpacing="20">
         
-        <!-- LEFT COLUMN: RECENT HALL PASS ACTIVITY (2/3 width) -->
-        <Border Grid.Column="0" Background="White" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="22" BoxShadow="0 4 16 0 #0A0284C7" Padding="20">
+        <!-- LEFT COLUMN: RECENT ACTIVITY (matches height of right column) -->
+        <Border Grid.Column="0" Background="White" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="22" BoxShadow="0 4 16 0 #0A0284C7" Padding="20" MaxHeight="{Binding #RightColumnStack.Bounds.Height}">
           <Grid RowDefinitions="Auto,*">
             
             <!-- HEADER -->
             <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,14" VerticalAlignment="Center">
               <StackPanel Spacing="2">
-                <TextBlock Text="Recent Hall Pass Activity" FontSize="16" FontWeight="ExtraBold" Foreground="#0F172A" />
-                <TextBlock Text="Latest completed student trips" FontSize="12" Foreground="#64748B" />
+                <TextBlock Text="Recent Activity" FontSize="16" FontWeight="ExtraBold" Foreground="#0F172A" />
+                <TextBlock Text="Today's completed student trips" FontSize="12" Foreground="#64748B" />
               </StackPanel>
 
               <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
-                <Button Classes="pill-outline" Click="OnExportCsvClick" Padding="14,6">
+                <Button Classes="pill-outline" Click="OnExportCsvClick" Padding="12,6" ToolTip.Tip="Export trips to CSV">
                   <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                     <Path Data="{StaticResource IconDownload}" Width="14" Height="14" Stretch="Uniform" Stroke="#0369A1" StrokeThickness="2" StrokeLineCap="Round" VerticalAlignment="Center" />
-                    <TextBlock Text="Export CSV" FontSize="13" FontWeight="Bold" Foreground="#0369A1" VerticalAlignment="Center" />
+                    <TextBlock Text="Export" FontSize="12" FontWeight="Bold" Foreground="#0369A1" VerticalAlignment="Center" />
                   </StackPanel>
                 </Button>
                 
-                <Button Classes="secondary" Click="OnViewAllClick" Padding="10,6">
+                <Button Classes="secondary" Click="OnViewAllClick" Padding="10,6" ToolTip.Tip="View full trip history">
                   <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                    <TextBlock Text="View All History" FontSize="12" FontWeight="Bold" VerticalAlignment="Center" />
+                    <TextBlock Text="View All" FontSize="12" FontWeight="Bold" VerticalAlignment="Center" />
                     <Path Data="{StaticResource IconChevronRight}" Width="10" Height="10" Stretch="Uniform" Stroke="#0369A1" StrokeThickness="2" StrokeLineCap="Round" VerticalAlignment="Center" />
                   </StackPanel>
                 </Button>
               </StackPanel>
             </Grid>
 
-            <!-- TRIP ROWS LIST -->
-            <StackPanel Grid.Row="1" Spacing="8">
-              <ItemsControl ItemsSource="{Binding Dashboard.RecentTrips}">
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate>
-                    <Border Background="#F8FAFC" BorderBrush="#E0F2FE" BorderThickness="1" CornerRadius="14" Padding="12,10" Margin="0,2">
-                      <Grid ColumnDefinitions="Auto,2*,3*,Auto" ColumnSpacing="18" VerticalAlignment="Center">
-                        
-                        <!-- AVATAR ICON -->
-                        <Border Grid.Column="0" Width="38" Height="38" CornerRadius="12" Background="{Binding AvatarBackground}" Margin="0,0,12,0" VerticalAlignment="Center">
-                          <Path Data="{StaticResource IconUserCheck}" Width="18" Height="18" Stretch="Uniform" Stroke="#166534" StrokeThickness="2" StrokeLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Border>
-
-                        <!-- STUDENT DETAILS -->
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
-                          <TextBlock Text="{Binding DisplayName}" FontWeight="Bold" FontSize="13" Foreground="#0F172A" />
-                          <TextBlock Text="{Binding StudentId, StringFormat='ID: #{0}'}" FontSize="11" Foreground="#64748B" />
-                        </StackPanel>
-
-                        <!-- TRIP TIMES -->
-                        <StackPanel Grid.Column="2" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="2">
-                          <Grid ColumnDefinitions="28,Auto">
-                            <TextBlock Text="Out:" FontSize="11" Foreground="#64748B" />
-                            <TextBlock Grid.Column="1" Text="{Binding TimeOut}" FontSize="11" Foreground="#64748B" />
-                          </Grid>
-                          <Grid ColumnDefinitions="28,Auto">
-                            <TextBlock Text="In:" FontSize="11" Foreground="#64748B" />
-                            <TextBlock Grid.Column="1" Text="{Binding TimeIn}" FontSize="11" Foreground="#64748B" />
-                          </Grid>
-                        </StackPanel>
-
-                        <!-- DURATION & STATUS PILL -->
-                        <StackPanel Grid.Column="3" HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="2">
-                          <TextBlock Text="{Binding DurationText}" FontWeight="Bold" FontSize="12" Foreground="#0F172A" HorizontalAlignment="Right" />
-                          <Border Classes="status-pill" Background="{Binding StatusBackground}" HorizontalAlignment="Right">
-                            <TextBlock Text="{Binding StatusText}" Foreground="{Binding StatusForeground}" />
+            <!-- SCROLLABLE TRIP ROWS LIST -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+              <StackPanel Spacing="8">
+                <ItemsControl ItemsSource="{Binding Dashboard.RecentTrips}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <Border Background="#F8FAFC" BorderBrush="#E0F2FE" BorderThickness="1" CornerRadius="14" Padding="12,10" Margin="0,2">
+                        <Grid ColumnDefinitions="Auto,2*,3*,Auto" ColumnSpacing="18" VerticalAlignment="Center">
+                          
+                          <!-- AVATAR ICON -->
+                          <Border Grid.Column="0" Width="38" Height="38" CornerRadius="12" Background="{Binding AvatarBackground}" Margin="0,0,12,0" VerticalAlignment="Center">
+                            <Path Data="{StaticResource IconUserCheck}" Width="18" Height="18" Stretch="Uniform" Stroke="#166534" StrokeThickness="2" StrokeLineCap="Round" HorizontalAlignment="Center" VerticalAlignment="Center" />
                           </Border>
-                        </StackPanel>
-                      </Grid>
-                    </Border>
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-            </StackPanel>
+
+                          <!-- STUDENT DETAILS -->
+                          <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                            <TextBlock Text="{Binding DisplayName}" FontWeight="Bold" FontSize="13" Foreground="#0F172A" />
+                            <TextBlock Text="{Binding StudentId, StringFormat='ID: #{0}'}" FontSize="11" Foreground="#64748B" />
+                          </StackPanel>
+
+                          <!-- TRIP TIMES -->
+                          <StackPanel Grid.Column="2" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="2">
+                            <Grid ColumnDefinitions="28,Auto">
+                              <TextBlock Text="Out:" FontSize="11" Foreground="#64748B" />
+                              <TextBlock Grid.Column="1" Text="{Binding TimeOut}" FontSize="11" Foreground="#64748B" />
+                            </Grid>
+                            <Grid ColumnDefinitions="28,Auto">
+                              <TextBlock Text="In:" FontSize="11" Foreground="#64748B" />
+                              <TextBlock Grid.Column="1" Text="{Binding TimeIn}" FontSize="11" Foreground="#64748B" />
+                            </Grid>
+                          </StackPanel>
+
+                          <!-- DURATION & STATUS PILL -->
+                          <StackPanel Grid.Column="3" HorizontalAlignment="Right" VerticalAlignment="Center" Spacing="2">
+                            <TextBlock Text="{Binding DurationText}" FontWeight="Bold" FontSize="12" Foreground="#0F172A" HorizontalAlignment="Right" />
+                            <Border Classes="status-pill" Background="{Binding StatusBackground}" HorizontalAlignment="Right">
+                              <TextBlock Text="{Binding StatusText}" Foreground="{Binding StatusForeground}" />
+                            </Border>
+                          </StackPanel>
+                        </Grid>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <!-- BOTTOM "SHOW MORE" BUTTON -->
+                <Button Classes="secondary" Click="OnViewAllClick" HorizontalAlignment="Center" Margin="0,8,0,4" Padding="16,7" ToolTip.Tip="Open full trip history">
+                  <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                    <TextBlock Text="Show more in history" FontSize="12" FontWeight="Bold" VerticalAlignment="Center" />
+                    <Path Data="{StaticResource IconChevronRight}" Width="11" Height="11" Stretch="Uniform" Stroke="#0369A1" StrokeThickness="2" StrokeLineCap="Round" VerticalAlignment="Center" />
+                  </StackPanel>
+                </Button>
+              </StackPanel>
+            </ScrollViewer>
           </Grid>
         </Border>
 
         <!-- RIGHT COLUMN: STACKPANEL (ROSTER & PASS POLICY + EXCEEDED TIME) -->
-        <StackPanel Grid.Column="1" Spacing="16">
+        <StackPanel Grid.Column="1" x:Name="RightColumnStack" Spacing="16">
 
           <!-- CARD 1: ROSTER & PASS POLICY (1/3 width) -->
           <Border Background="White" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="22" BoxShadow="0 4 16 0 #0A0284C7" Padding="20">

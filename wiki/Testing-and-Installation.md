@@ -298,8 +298,9 @@ start it:
 npm --prefix preview-site start
 ```
 
-Then open <http://localhost:3000> in a browser. Leave the terminal window open
-while using the preview; press `Ctrl+C` in that window when you are done.
+Then open <http://localhost:3000> in a browser for the teacher website, or
+<http://localhost:3000/preview> for the interactive desktop client prototype. Leave the
+terminal window open while using the preview; press `Ctrl+C` in that window when you are done.
 
 After the first run, you can start the preview more quickly with:
 

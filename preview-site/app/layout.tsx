@@ -1,48 +1,27 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import type { Metadata } from 'next';
+import './globals.css';
 
 export const metadata: Metadata = {
-  title: "Hallzee Client Preview",
-  description: "A browser simulation of the Hallzee classroom terminal client.",
+  icons: { icon: '/hallzee-logo.png' },
+  title: 'Hallzee - The hall pass system that handles everything for you',
+  description:
+    'A classroom terminal and desktop app for student checkouts, live pass timers, bell schedules, and searchable trip history. Join the Hallzee waiting list.',
   openGraph: {
-    title: "Hallzee Client Preview",
-    description: "A browser simulation of the Hallzee classroom terminal client.",
-    images: ["/og.png"],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Hallzee Client Preview",
-    description: "A browser simulation of the Hallzee classroom terminal client.",
-    images: ["/og.png"],
-  },
-  icons: {
-    icon: "/hallzee-logo.png",
-    shortcut: "/hallzee-logo.png",
-    apple: "/hallzee-logo.png",
+    title: 'Hallzee - The hall pass system that handles everything for you',
+    description:
+      'A classroom terminal and desktop app for student checkouts, live pass timers, bell schedules, and searchable trip history. Join the Hallzee waiting list.',
+    images: ['/hallzee-logo.png'],
   },
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        {children}
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

@@ -5,7 +5,7 @@
 **Target Milestone:** Delivered
 
 **Related Issues:** #17  
-**Scope:** Roster CSV parser, column mapping, profile-scoped database storage, display enrichment, and student-ID fallback.
+**Scope:** Roster CSV parser, column mapping, teacher-workspace storage, display enrichment, and student-ID fallback.
 
 ---
 
@@ -15,6 +15,10 @@ The CSV preview, column auto-detection/mapping, profile-scoped upsert, import
 reporting, and local roster enrichment described below are implemented in the
 shared SQLite core and Universal client. Workbook files remain intentionally
 out of scope: export them to CSV before import.
+
+The current implementation calls the teacher workspace a `profile` and scopes
+all roster rows to it. A future class-section association is required before one
+teacher workspace can select different rosters automatically by bell period.
 
 When students use the Hallzee kiosk, they enter only their numeric student ID (e.g. `10482`). In the raw sync database, records only contain this number. Teachers need immediate visual recognition of student names on their dashboard and in historical trip logs (e.g., displaying `Alex Rivera (Period 2)` instead of just `10482`).
 
@@ -43,7 +47,8 @@ import intentionally reads CSV text rather than spreadsheet-workbook internals.
 
 ## 2. Data Model & Storage Changes
 
-Rosters are stored in the local SQLite database scoped to specific classroom profiles:
+Rosters are stored in the local SQLite database scoped to a teacher workspace
+(currently named `profile` in the schema):
 
 ```sql
 CREATE TABLE IF NOT EXISTS roster_students (

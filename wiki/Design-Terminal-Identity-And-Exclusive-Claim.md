@@ -38,8 +38,9 @@ After this design is implemented:
 3. A terminal can be claimed by exactly one desktop installation.
 4. A desktop installation may own multiple terminals, but the application keeps
    only one active terminal connection at a time.
-5. A classroom profile selects one terminal; several profiles may intentionally
-   select the same terminal for different class periods.
+5. A teacher workspace selects one terminal. Class periods are schedule contexts
+   inside that workspace, so they do not require separate profiles or terminal
+   assignments.
 6. No trip, active-pass, clock, recovery, or settings command is accepted until
    the connected desktop proves ownership.
 7. Trip IDs and sync cursors are scoped by terminal_id, so terminal A trip 1 and
@@ -93,7 +94,7 @@ second computer or app instance from connecting later.
 | pairing_passkey | Random six-digit value displayed only on the physical kiosk while claim mode is active. It is used once to derive the owner key; it is not stored as the owner credential. |
 | owner_key | 256-bit key derived during claim and stored by the terminal and in the desktop OS credential vault. It is never transmitted. |
 | owner | The one desktop installation whose client_id and owner_key match the terminal's persisted claim. |
-| associated profile | A local classroom profile configured to use a terminal. Association does not grant ownership. |
+| associated teacher workspace | A local teacher workspace configured to use a terminal. Association does not grant ownership. |
 
 The implementation must preserve these invariants:
 

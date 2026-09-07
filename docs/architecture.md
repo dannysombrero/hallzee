@@ -51,15 +51,15 @@ flowchart TB
 
 To prevent data drift, duplicated configuration systems, and split-brain sync errors, every entity in the Hallzee ecosystem has an explicit authority boundary:
 
-| Data or Behavior | Desktop Client | Classroom Profile | Terminal Kiosk | Future Cloud | Authoritative Source |
+| Data or Behavior | Desktop Client | Teacher Workspace | Terminal Kiosk | Future Cloud | Authoritative Source |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Trip History** | Yes (Local SQLite store) | Referenced | Local source (LittleFS) | Possible (read-only audit) | **Terminal** creates; **Client SQLite** is permanent historical authority. |
-| **Student Roster** | Yes (Local DB) | Yes (Scoped to profile) | No (Never sent over BLE) | Possible (SIS integration) | **Desktop Client Profile** is authoritative. |
+| **Student Roster** | Yes (Local DB) | Yes (Scoped to teacher workspace; class-section scope planned) | No (Never sent over BLE) | Possible (SIS integration) | **Desktop Client teacher workspace** is authoritative. |
 | **Student-ID Length Limit** | Display & Configuration | Optional default preset | Authoritative (Preferences) | Possible (School policy default) | **Terminal Hardware** is authoritative during checkout. |
 | **Terminal Name** | Remembered in UI | Association | Authoritative (Preferences) | Possible (Asset registry) | **Terminal Hardware** stores its own name in non-volatile flash. |
-| **Auto-Sync Preferences** | Yes (Local client config) | Yes (Profile setting) | No | No | **Desktop Client** owns sync timing. |
-| **Maximum Students Out** | Display & UI warning | Yes (Profile setting) | Yes (1–8 active passes) | Possible | **Terminal** enforces physically; **Profile** configures. |
-| **Bell Schedule & Periods** | Yes (Local DB) | Yes (Profile setting) | Optional cache | Possible (School schedule sync) | **Desktop Client** is authoritative. |
+| **Auto-Sync Preferences** | Yes (Local client config) | Yes (Teacher-workspace setting) | No | No | **Desktop Client** owns sync timing. |
+| **Maximum Students Out** | Display & UI warning | Yes (Teacher-workspace setting) | Yes (1–8 active passes) | Possible | **Terminal** enforces physically; **Teacher workspace** configures. |
+| **Bell Schedule & Periods** | Yes (Local DB) | Yes (Teacher-workspace setting) | Optional cache | Possible (School schedule sync) | **Desktop Client** is authoritative. |
 | **Live Active Pass** | UI Display & Timer | Ephemeral cache | Authoritative (Preferences) | Possible (Live status widget) | **Terminal Hardware** owns the current active checkout. |
 
 ---
@@ -215,7 +215,7 @@ CREATE TABLE IF NOT EXISTS trips (
 CREATE INDEX IF NOT EXISTS idx_trips_date ON trips(trip_date);
 CREATE INDEX IF NOT EXISTS idx_trips_student ON trips(student_id);
 
--- 2. Classroom Profiles
+-- 2. Teacher Workspaces (stored in the legacy `profiles` table)
 CREATE TABLE IF NOT EXISTS profiles (
     profile_id TEXT PRIMARY KEY,
     name TEXT NOT NULL,

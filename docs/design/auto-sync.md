@@ -18,11 +18,12 @@ open, and automatically retries the last authenticated terminal for up to 45
 seconds after startup or an unexpected disconnect. This is reconnect and live
 streaming support, not the full configurable auto-sync feature described below.
 
-The remaining work is a persisted teacher preference surface, discovery-driven
-connection when enabled, and one operation coordinator that serializes sync,
-settings, recovery, and policy-transfer writes. Until that coordinator exists,
-the client must not advertise automatic/background synchronization as a fully
-delivered feature.
+Reconnect to a previously authenticated terminal is automatic by default and
+is not a teacher preference. The remaining work is a preference surface for
+continuous/background synchronization and one operation coordinator that
+serializes sync, settings, recovery, and policy-transfer writes. Any future
+automatic discovery must target only the terminal assigned to the active
+profile; it must never connect to an arbitrary nearby kiosk.
 
 In the initial release, syncing completed trip logs requires the teacher to manually click **Sync Now** on the desktop interface. While this provides explicit control, teachers in active classrooms benefit from an autonomous background synchronization model:
 
@@ -77,10 +78,10 @@ If a High Priority command is initiated while a background cursor sync is stream
 
 ## 4. Configuration & User Preferences
 
-When implemented, auto-sync behavior will be configurable in **Settings >
+Reconnect to the previously authenticated terminal is always enabled. When
+implemented, background-sync behavior will be configurable in **Settings >
 Connection Preferences**:
-- `Auto-sync on connection` (Default: **Disabled**)
-- `Keep continuous live connection` (Default: **Disabled**)
+- `Keep continuous live connection` (Default: **Enabled**)
 - `Sync interval when connected` (Default: **Real-time event driven**)
 
 ---

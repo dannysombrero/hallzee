@@ -5,6 +5,12 @@
 **Scope:** Hallzee desktop client UI, uploaded React prototype, and integration boundaries  
 **Non-goal:** This document does not authorize product-feature implementation or intentional visual redesign.
 
+**Terminology decision:** The current implementation and schema use
+`ClassroomProfile`; product semantics define that entity as a **teacher
+workspace**, normally one per teacher/room. Class periods are class-section
+contexts selected by schedules, not separate profiles. Renaming the UI and
+adding section-scoped roster data are follow-up implementation work.
+
 ## Phase 1 implementation status
 
 The canonical React prototype is consolidated under `preview-site` with a thin route/application entry, typed domain models, a shared mock provider (`HallzeeProvider`), reusable shell (`AppShell`), SVG icon set (`Icons.tsx`), modal dialogs (`TripsModal`, `RosterModal`, `PoliciesModal`, `TerminalSettingsModal`, `SettingsModal`, `TerminalSearchDialog`), and central `DashboardPage`. Sub-pages open as modal pop-ups over the dashboard with backdrop blur, preserving the dashboard context and canonical UI styling.
@@ -222,7 +228,7 @@ The exact framework router can be chosen during implementation. The route model 
 | State | Owner | Persistence |
 | --- | --- | --- |
 | Current route | App/router | Session only |
-| Active profile ID | Profile service | Local settings database |
+| Active teacher workspace ID | Profile service | Local settings database (currently named `profile`) |
 | Toast queue | Toast provider | None |
 | Demo mode/scenario | Demo provider | Session only; absent from production |
 
@@ -231,7 +237,7 @@ The exact framework router can be chosen during implementation. The route model 
 | State | Owner | Notes |
 | --- | --- | --- |
 | Discovery results | Connection service | Cleared/replaced per discovery run |
-| Selected terminal | Connection service/profile association | Persisted per profile after authenticated connection |
+| Selected terminal | Connection service/teacher-workspace association | Persisted per teacher workspace after authenticated connection |
 | Connection state | Connection service/state machine | Never inferred from label text |
 | Sync state/progress | Sync orchestrator | Exclusive operation; no overlapping sync/settings writes |
 | Last successful sync | Sync service/repository | Persist successful completion time |
@@ -244,11 +250,11 @@ The exact framework router can be chosen during implementation. The route model 
 | Data | Owner | Authority |
 | --- | --- | --- |
 | Trip records | SQLite repository | Terminal is origin; client is durable local copy |
-| Active trip displayed by client | Active-pass query/event | Live terminal state enriched from the active profile's local roster |
-| Roster | Local roster repository | Active profile |
+| Active trip displayed by client | Active-pass query/event | Live terminal state enriched from the active teacher workspace's local roster |
+| Roster | Local roster repository | Teacher workspace; future class-section selection |
 | Name/class/period enrichment | Query layer | Derived by joining trips with roster |
 | Policies and bell schedule | Profile repository | Client configuration and active-period display; optional terminal enforcement is planned and off by default |
-| Auto-sync preferences | Profile repository | Planned; current reconnect/live-stream behavior is not yet configurable auto-sync |
+| Auto-sync preferences | Profile repository | Reconnect is automatic; continuous/background synchronization preferences remain planned |
 
 ## 9. Domain models
 
@@ -320,7 +326,7 @@ Hooks coordinate UI-facing state; they do not contain protocol parsing or persis
 | Roster storage/import | `RosterSqliteRepository.cs`, `RosterService.cs` | Implemented: CSV preview/mapping, import, and profile-scoped enrichment |
 | Profiles/settings | `ProfileAndPolicySqliteRepository.cs` | Implemented: profiles, assignments, policies, and bell-period persistence |
 | Policy/schedule engine | Policy and bell-period ViewModels | Implemented as local configuration/display; automatic switching and optional terminal enforcement remain planned |
-| Auto-sync orchestrator | `MainViewModel` reconnect/live-stream path | Partial: reconnect and live streaming work; preferences and a serialized coordinator remain planned |
+| Auto-sync orchestrator | `MainViewModel` reconnect/live-stream path | Partial: automatic reconnect and live streaming work; continuous-sync preferences and a serialized coordinator remain planned |
 
 ### Contract rule
 
@@ -348,14 +354,13 @@ Every contract must have:
 | Roster CSV import | Real feature | Two-phase CSV preview/mapping/import |
 | Maximum student-ID length | Real terminal setting | Implemented 4–16 range; terminal authoritative |
 | Terminal assigned name | Partial | Firmware supports persisted rename; Universal settings currently save a local name only |
-| Auto-sync on connection | Partial | Authenticated reconnect and sync exist; user preference and discovery-driven connection remain planned |
+| Auto-sync on connection | Real for the assigned terminal | Authenticated startup/drop reconnect and sync are automatic; arbitrary-nearby-terminal connection is never automatic |
 | Auto-sync new transactions while connected | Real while connected | `EVENT`/`LIVE_TRIP` notifications; user-configurable continuous mode remains planned |
 | Pass capacity | Real feature | Terminal enforces configured 1–8 capacity |
 | Overdue warning | Real feature | Dashboard threshold/display |
 | Daily max per student | Partial | Stored/displayed policy; checkout-time evaluation remains planned |
 | Bell times | Partial | Stored/displayed; automatic switching and optional terminal enforcement remain planned |
-| Pause rules | Planned | Issue #21 |
-| Classroom profile | Real feature | Profile repository and UI selection |
+| Teacher workspace | Real feature, terminology update pending | Profile repository and UI selection currently provide the storage/selection |
 | Desktop Check In / Simulate Tap | Demo only | `useDemoScenario`; never production command |
 | Sandbox toolbar | Demo only | Development/preview composition only |
 
@@ -457,8 +462,8 @@ Windows behavior must be reported as unverified until tested on a Windows PC. UI
 Phases 1–5 below are substantially delivered in the Universal client. They are
 retained as design history; the remaining work is terminal rename wiring,
 optional terminal bell-policy transfer/enforcement, schedule exceptions and
-period metadata, daily-limit evaluation, RSSI display, and configurable
-serialized auto-sync.
+period metadata, daily-limit evaluation, RSSI display, and serialized
+continuous-sync controls.
 
 ### Phase 0 — Approve architecture
 
@@ -523,9 +528,7 @@ Order:
 
 - Terminal naming.
 - Pass-policy and bell-schedule engine.
-- Pause/resume policy behavior.
-- Auto-sync on connection.
-- Auto-sync new transactions while actively connected.
+- Continuous/background sync preferences and operation coordination.
 
 These require individual feature designs before implementation.
 
@@ -553,7 +556,7 @@ The Avalonia trip-history modal follows the web client’s light-blue table trea
 | Desktop-driven check-in/out | Demo only | Before production Dashboard port |
 | Active trip freshness | Live while connected through active-pass query/snapshot/events; unknown after disconnect | Delivered |
 | Policy enforcement location | Client configuration by default; terminal bell-policy enforcement is optional and off by default | Before policy-transfer implementation |
-| Continuous Bluetooth connection | Only when future live auto-sync is enabled | Before issue #23 implementation |
+| Continuous Bluetooth connection | Reconnect is automatic; continuous background connection follows the policy selected by the teacher | Before continuous-sync preference implementation |
 | Trip edit/delete behavior | Require audit trail and clear terminal/client ownership | Before issue #15 design |
 
 ## 20. Definition of done for the first refactor

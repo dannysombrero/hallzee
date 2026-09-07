@@ -1,33 +1,33 @@
 #include <Adafruit_GFX.h>
 #if defined(HALLZEE_ILI9341)
-#include <Adafruit_ILI9341.h>
+#include "HallzeeLogoData.h"
 #include "Ili9341DisplayPort.h"
 #include "fonts/DMSansBold12pt7b.h"
 #include "fonts/DMSansRegular6pt7b.h"
-#include "HallzeeLogoData.h"
+#include <Adafruit_ILI9341.h>
 #else
-#include <Adafruit_ST7735.h>
 #include "St7735DisplayPort.h"
+#include <Adafruit_ST7735.h>
 #endif
-#include <SPI.h>
-#include <Keypad.h>
-#include "ArduinoKeypadPort.h"
-#include "ArduinoBluetoothSerialPort.h"
 #include "AppTypes.h"
+#include "ArduinoBluetoothSerialPort.h"
+#include "ArduinoKeypadPort.h"
 #include "BluetoothSync.h"
 #include "ClockService.h"
 #include "Config.h"
 #include "KeypadController.h"
 #include "MonotonicClock.h"
 #include "StudentIdPolicy.h"
+#include "TerminalController.h"
+#include "TerminalDisplay.h"
 #include "TerminalIdentity.h"
 #include "TerminalSecurity.h"
-#include "TerminalDisplay.h"
-#include "TerminalController.h"
 #include "TimeProvider.h"
 #include "TripStorage.h"
-#include <time.h>
+#include <Keypad.h>
+#include <SPI.h>
 #include <sys/time.h>
+#include <time.h>
 
 #if !defined(CONFIG_BT_ENABLED) || !defined(CONFIG_BLUEDROID_ENABLED)
 #error Bluetooth BLE is not enabled for this ESP32 board configuration.
@@ -38,28 +38,19 @@ Adafruit_ILI9341 tft(TFT_CS, TFT_DC, TFT_RST);
 Ili9341DisplayPort displayPort(tft);
 #else
 Adafruit_ST7735 tft =
-  Adafruit_ST7735(TFT_CS, TFT_DC, TFT_MOSI, TFT_SCLK, TFT_RST);
+    Adafruit_ST7735(TFT_CS, TFT_DC, TFT_MOSI, TFT_SCLK, TFT_RST);
 St7735DisplayPort displayPort(tft);
 #endif
 TerminalDisplay terminalDisplay(displayPort);
 
 char keys[KEYPAD_ROWS][KEYPAD_COLS] = {
-  {'1', '2', '3'},
-  {'4', '5', '6'},
-  {'7', '8', '9'},
-  {'*', '0', '#'}
-};
+    {'1', '2', '3'}, {'4', '5', '6'}, {'7', '8', '9'}, {'*', '0', '#'}};
 
 byte rowPins[KEYPAD_ROWS] = {32, 33, 25, 26};
 byte colPins[KEYPAD_COLS] = {27, 14, 13};
 
-Keypad keypad = Keypad(
-  makeKeymap(keys),
-  rowPins,
-  colPins,
-  KEYPAD_ROWS,
-  KEYPAD_COLS
-);
+Keypad keypad =
+    Keypad(makeKeymap(keys), rowPins, colPins, KEYPAD_ROWS, KEYPAD_COLS);
 ArduinoKeypadPort arduinoKeypad(keypad);
 ArduinoMonotonicClock monotonicClock;
 
@@ -75,14 +66,8 @@ ClockService terminalClock;
 TerminalIdentity terminalIdentity;
 TerminalSecurity terminalSecurity(terminalIdentity);
 
-void setSystemClock24(
-  int year,
-  int month,
-  int day,
-  int hour,
-  int minute,
-  int second
-);
+void setSystemClock24(int year, int month, int day, int hour, int minute,
+                      int second);
 void handleBluetoothClockSet();
 bool getActivePassState(String &activeId, uint32_t &checkoutEpoch);
 uint8_t getActivePassStates(ActiveCheckout *checkouts, uint8_t maximum);
@@ -95,18 +80,11 @@ void resetOwnerFromKeypad();
 
 void drawStartupLogo();
 
-BluetoothSync bluetoothSync(
-  tripStorage,
-  bluetoothSerial,
-  setSystemClock24,
-  handleBluetoothClockSet,
-  getActivePassState,
-  manualCheckInFromDesktop,
-  getActivePassStates,
-  setActivePassCapacity,
-  &terminalIdentity,
-  &terminalSecurity
-);
+BluetoothSync bluetoothSync(tripStorage, bluetoothSerial, setSystemClock24,
+                            handleBluetoothClockSet, getActivePassState,
+                            manualCheckInFromDesktop, getActivePassStates,
+                            setActivePassCapacity, &terminalIdentity,
+                            &terminalSecurity);
 
 String enteredID = "";
 String serialCommandBuffer = "";
@@ -181,67 +159,36 @@ void startPairingMode() {
   }
   bluetoothSerial.setPairingPasskey(terminalSecurity.pairingPasskey());
   pairingUiActive = true;
-  terminalDisplay.showPairing(
-    terminalIdentity.terminalSuffix(),
-    terminalSecurity.pairingPasskey()
-  );
+  terminalDisplay.showPairing(terminalIdentity.terminalSuffix(),
+                              terminalSecurity.pairingPasskey());
 }
 
-bool isSetupMode() {
-  return setupMode;
-}
+bool isSetupMode() { return setupMode; }
 
-bool isResetAllowed() {
-  return terminal.hasActivePass();
-}
+bool isResetAllowed() { return terminal.hasActivePass(); }
 
-KeypadController keypadController(
-  arduinoKeypad,
-  monotonicClock,
-  isSetupMode,
-  isResetAllowed,
-  handleSetupKey,
-  handleNormalNumber,
-  handleSingleStar,
-  handleSingleHash,
-  resetCurrentCheckout,
-  isPairingAllowed,
-  startPairingMode,
-  isOwnerResetAllowed,
-  resetOwnerFromKeypad
-);
+KeypadController keypadController(arduinoKeypad, monotonicClock, isSetupMode,
+                                  isResetAllowed, handleSetupKey,
+                                  handleNormalNumber, handleSingleStar,
+                                  handleSingleHash, resetCurrentCheckout,
+                                  isPairingAllowed, startPairingMode,
+                                  isOwnerResetAllowed, resetOwnerFromKeypad);
 
-void setSystemClock24(
-  int year,
-  int month,
-  int day,
-  int hour,
-  int minute,
-  int second
-) {
+void setSystemClock24(int year, int month, int day, int hour, int minute,
+                      int second) {
   terminalClock.set24Hour(year, month, day, hour, minute, second);
   lastDisplayedMinute = -1;
 }
 
-void setSystemClock(
-  int year,
-  int month,
-  int day,
-  int hour,
-  int minute,
-  bool pm
-) {
+void setSystemClock(int year, int month, int day, int hour, int minute,
+                    bool pm) {
   terminalClock.set12Hour(year, month, day, hour, minute, pm);
   lastDisplayedMinute = -1;
 }
 
-String getTimeString() {
-  return terminalClock.timeString();
-}
+String getTimeString() { return terminalClock.timeString(); }
 
-String getDateString() {
-  return terminalClock.dateString();
-}
+String getDateString() { return terminalClock.dateString(); }
 
 int daysInMonth(int month, int year) {
   return ClockService::daysInMonth(month, year);
@@ -269,13 +216,9 @@ void handleBluetoothClockSet() {
 // PARTIAL REDRAW: STUDENT ID
 // ======================================================
 
-void drawIDEntry() {
-  terminalDisplay.drawIdEntry(enteredID);
-}
+void drawIDEntry() { terminalDisplay.drawIdEntry(enteredID); }
 
-void drawClock() {
-  terminalDisplay.drawClock(getTimeString());
-}
+void drawClock() { terminalDisplay.drawClock(getTimeString()); }
 
 void updateClockIfNeeded() {
   if (!terminalClock.isSet()) {
@@ -327,24 +270,16 @@ void showCheckedIn(const String &, unsigned long elapsedSeconds) {
   terminalDisplay.showCheckedIn(elapsedSeconds);
 }
 
-void showWrongID() {
-  terminalDisplay.showPassOccupied();
-}
+void showWrongID() { terminalDisplay.showPassOccupied(); }
 
-void showEnterID() {
-  terminalDisplay.showEnterId();
-}
+void showEnterID() { terminalDisplay.showEnterId(); }
 
-void showStorageError() {
-  terminalDisplay.showStorageError();
-}
+void showStorageError() { terminalDisplay.showStorageError(); }
 
 void showTripLogSummary() {
-  terminalDisplay.showTripLogSummary(
-    tripStorage.isLogReady(),
-    tripStorage.getTripRecordCount(),
-    tripStorage.getLatestTripID()
-  );
+  terminalDisplay.showTripLogSummary(tripStorage.isLogReady(),
+                                     tripStorage.getTripRecordCount(),
+                                     tripStorage.getLatestTripID());
 }
 bool getActivePassState(String &activeId, uint32_t &checkoutEpoch) {
   if (terminal.hasActivePass()) {
@@ -363,7 +298,8 @@ bool manualCheckInFromDesktop(const String &requestedId) {
   const String oldestId = terminal.activeId();
   String studentId;
   unsigned long elapsedSeconds = 0;
-  if (!terminal.manualCheckIn(requestedId, studentId, elapsedSeconds)) return false;
+  if (!terminal.manualCheckIn(requestedId, studentId, elapsedSeconds))
+    return false;
 
   bluetoothSync.notifyCheckin(studentId, elapsedSeconds);
   String completedRecord;
@@ -372,7 +308,9 @@ bool manualCheckInFromDesktop(const String &requestedId) {
     bluetoothSync.notifyCompletedTrip(completedRecord);
   }
   if (studentId == oldestId && terminal.hasActivePass()) {
-    bluetoothSync.notifyCheckout(terminal.activeId(), static_cast<uint32_t>(terminal.activeCheckoutTime()));
+    bluetoothSync.notifyCheckout(
+        terminal.activeId(),
+        static_cast<uint32_t>(terminal.activeCheckoutTime()));
   }
   showCheckedIn(studentId, elapsedSeconds);
   transitionToIdle();
@@ -380,7 +318,8 @@ bool manualCheckInFromDesktop(const String &requestedId) {
 }
 
 bool setActivePassCapacity(uint8_t capacity) {
-  return terminal.setCapacity(capacity) && tripStorage.setMaxActivePasses(capacity);
+  return terminal.setCapacity(capacity) &&
+         tripStorage.setMaxActivePasses(capacity);
 }
 
 void resetCurrentCheckout() {
@@ -405,9 +344,7 @@ void resetCurrentCheckout() {
 // CLOCK SETUP INPUT FIELD
 // ======================================================
 
-void drawSetupEntry() {
-  terminalDisplay.drawClockSetupEntry(setupEntry);
-}
+void drawSetupEntry() { terminalDisplay.drawClockSetupEntry(setupEntry); }
 
 void drawSetupScreen() {
   terminalDisplay.drawClockSetupScreen(setupStep, setupEntry);
@@ -446,14 +383,8 @@ void beginClockSetup() {
 
 void finishClockSetup() {
 
-  setSystemClock(
-    setupYear,
-    setupMonth,
-    setupDay,
-    setupHour,
-    setupMinute,
-    setupPM
-  );
+  setSystemClock(setupYear, setupMonth, setupDay, setupHour, setupMinute,
+                 setupPM);
 
   setupMode = false;
 
@@ -482,172 +413,143 @@ void processSetupEntry() {
     // MONTH
     // --------------------------------------------------
 
-    case SET_MONTH:
+  case SET_MONTH:
 
-      if (value < 1 || value > 12) {
+    if (value < 1 || value > 12) {
 
-        showInvalidValue(
-          "Month must be 1-12"
-        );
+      showInvalidValue("Month must be 1-12");
 
-        return;
-      }
+      return;
+    }
 
-      setupMonth = value;
+    setupMonth = value;
 
-      setupStep = SET_DAY;
-      setupEntry = "";
+    setupStep = SET_DAY;
+    setupEntry = "";
 
-      drawSetupScreen();
+    drawSetupScreen();
 
-      break;
+    break;
 
     // --------------------------------------------------
     // DAY
     // --------------------------------------------------
 
-    case SET_DAY:
+  case SET_DAY:
 
-      if (
-        value < 1 ||
-        value > 31 ||
-        (setupMonth == 2 && value > 29) ||
-        (
-          (
-            setupMonth == 4 ||
-            setupMonth == 6 ||
-            setupMonth == 9 ||
-            setupMonth == 11
-          )
-          &&
-          value > 30
-        )
-      ) {
+    if (value < 1 || value > 31 || (setupMonth == 2 && value > 29) ||
+        ((setupMonth == 4 || setupMonth == 6 || setupMonth == 9 ||
+          setupMonth == 11) &&
+         value > 30)) {
 
-        showInvalidValue("Invalid day");
+      showInvalidValue("Invalid day");
 
-        return;
-      }
+      return;
+    }
 
-      setupDay = value;
+    setupDay = value;
 
-      setupStep = SET_YEAR;
-      setupEntry = "";
+    setupStep = SET_YEAR;
+    setupEntry = "";
 
-      drawSetupScreen();
+    drawSetupScreen();
 
-      break;
+    break;
 
     // --------------------------------------------------
     // YEAR
     // --------------------------------------------------
 
-    case SET_YEAR:
+  case SET_YEAR:
 
-      if (value < 2024 || value > 2099) {
+    if (value < 2024 || value > 2099) {
 
-        showInvalidValue(
-          "Use YYYY: 2024-2099"
-        );
+      showInvalidValue("Use YYYY: 2024-2099");
 
-        return;
-      }
+      return;
+    }
 
-      setupYear = value;
+    setupYear = value;
 
-      if (
-        setupDay >
-        daysInMonth(
-          setupMonth,
-          setupYear
-        )
-      ) {
+    if (setupDay > daysInMonth(setupMonth, setupYear)) {
 
-        showInvalidValue(
-          "Date does not exist"
-        );
+      showInvalidValue("Date does not exist");
 
-        setupStep = SET_DAY;
-        setupEntry = "";
-
-        return;
-      }
-
-      setupStep = SET_HOUR;
+      setupStep = SET_DAY;
       setupEntry = "";
 
-      drawSetupScreen();
+      return;
+    }
 
-      break;
+    setupStep = SET_HOUR;
+    setupEntry = "";
+
+    drawSetupScreen();
+
+    break;
 
     // --------------------------------------------------
     // HOUR
     // --------------------------------------------------
 
-    case SET_HOUR:
+  case SET_HOUR:
 
-      if (value < 1 || value > 12) {
+    if (value < 1 || value > 12) {
 
-        showInvalidValue(
-          "Hour must be 1-12"
-        );
+      showInvalidValue("Hour must be 1-12");
 
-        return;
-      }
+      return;
+    }
 
-      setupHour = value;
+    setupHour = value;
 
-      setupStep = SET_MINUTE;
-      setupEntry = "";
+    setupStep = SET_MINUTE;
+    setupEntry = "";
 
-      drawSetupScreen();
+    drawSetupScreen();
 
-      break;
+    break;
 
     // --------------------------------------------------
     // MINUTE
     // --------------------------------------------------
 
-    case SET_MINUTE:
+  case SET_MINUTE:
 
-      if (value < 0 || value > 59) {
+    if (value < 0 || value > 59) {
 
-        showInvalidValue(
-          "Minute must be 0-59"
-        );
+      showInvalidValue("Minute must be 0-59");
 
-        return;
-      }
+      return;
+    }
 
-      setupMinute = value;
+    setupMinute = value;
 
-      setupStep = SET_AMPM;
-      setupEntry = "";
+    setupStep = SET_AMPM;
+    setupEntry = "";
 
-      drawSetupScreen();
+    drawSetupScreen();
 
-      break;
+    break;
 
     // --------------------------------------------------
     // AM / PM
     // --------------------------------------------------
 
-    case SET_AMPM:
+  case SET_AMPM:
 
-      if (value != 1 && value != 2) {
+    if (value != 1 && value != 2) {
 
-        showInvalidValue(
-          "1 = AM, 2 = PM"
-        );
+      showInvalidValue("1 = AM, 2 = PM");
 
-        return;
-      }
+      return;
+    }
 
-      setupPM = (value == 2);
+    setupPM = (value == 2);
 
-      finishClockSetup();
+    finishClockSetup();
 
-      break;
+    break;
   }
 }
 
@@ -714,70 +616,73 @@ void submitID() {
   const TerminalActionResult result = terminal.submit(submittedID);
 
   switch (result.action) {
-    case TerminalAction::EmptyId:
-      showEnterID();
-      transitionToIdle();
-      return;
+  case TerminalAction::EmptyId:
+    showEnterID();
+    transitionToIdle();
+    return;
 
-    case TerminalAction::StartClockSetup:
-      Serial.println("Clock admin code accepted.");
-      enteredID = "";
-      beginClockSetup();
-      return;
+  case TerminalAction::StartClockSetup:
+    Serial.println("Clock admin code accepted.");
+    enteredID = "";
+    beginClockSetup();
+    return;
 
-    case TerminalAction::ShowTripLog:
-      Serial.println("Trip log summary requested.");
-      showTripLogSummary();
-      transitionToIdle();
-      return;
+  case TerminalAction::ShowTripLog:
+    Serial.println("Trip log summary requested.");
+    showTripLogSummary();
+    transitionToIdle();
+    return;
 
-    case TerminalAction::CheckedOut:
-      Serial.print("CHECK OUT: ");
-      Serial.println(result.id);
-      Serial.print("Date: ");
-      Serial.println(getDateString());
-      Serial.print("Time: ");
-      Serial.println(getTimeString());
-      bluetoothSync.notifyCheckout(result.id, static_cast<uint32_t>(terminal.checkoutTimeFor(result.id)));
-      showCheckedOut(result.id);
-      transitionToIdle();
-      return;
+  case TerminalAction::CheckedOut:
+    Serial.print("CHECK OUT: ");
+    Serial.println(result.id);
+    Serial.print("Date: ");
+    Serial.println(getDateString());
+    Serial.print("Time: ");
+    Serial.println(getTimeString());
+    bluetoothSync.notifyCheckout(
+        result.id, static_cast<uint32_t>(terminal.checkoutTimeFor(result.id)));
+    showCheckedOut(result.id);
+    transitionToIdle();
+    return;
 
-    case TerminalAction::CheckedIn: {
-      Serial.print("CHECK IN: ");
-      Serial.println(result.id);
-      Serial.print("Date: ");
-      Serial.println(getDateString());
-      Serial.print("Time: ");
-      Serial.println(getTimeString());
-      Serial.print("Duration: ");
-      Serial.print(result.elapsedSeconds);
-      Serial.println(" seconds");
-      bluetoothSync.notifyCheckin(result.id, result.elapsedSeconds);
-      String completedRecord;
-      uint32_t completedTripID = 0;
-      if (tripStorage.getLatestTripRecord(completedRecord, completedTripID)) {
-        bluetoothSync.notifyCompletedTrip(completedRecord);
-      }
-      if (terminal.hasActivePass()) {
-        bluetoothSync.notifyCheckout(terminal.activeId(), static_cast<uint32_t>(terminal.activeCheckoutTime()));
-      }
-      showCheckedIn(result.id, result.elapsedSeconds);
-      transitionToIdle();
-      return;
+  case TerminalAction::CheckedIn: {
+    Serial.print("CHECK IN: ");
+    Serial.println(result.id);
+    Serial.print("Date: ");
+    Serial.println(getDateString());
+    Serial.print("Time: ");
+    Serial.println(getTimeString());
+    Serial.print("Duration: ");
+    Serial.print(result.elapsedSeconds);
+    Serial.println(" seconds");
+    bluetoothSync.notifyCheckin(result.id, result.elapsedSeconds);
+    String completedRecord;
+    uint32_t completedTripID = 0;
+    if (tripStorage.getLatestTripRecord(completedRecord, completedTripID)) {
+      bluetoothSync.notifyCompletedTrip(completedRecord);
     }
+    if (terminal.hasActivePass()) {
+      bluetoothSync.notifyCheckout(
+          terminal.activeId(),
+          static_cast<uint32_t>(terminal.activeCheckoutTime()));
+    }
+    showCheckedIn(result.id, result.elapsedSeconds);
+    transitionToIdle();
+    return;
+  }
 
-    case TerminalAction::StorageError:
-      showStorageError();
-      transitionToIdle();
-      return;
+  case TerminalAction::StorageError:
+    showStorageError();
+    transitionToIdle();
+    return;
 
-    case TerminalAction::PassOccupied:
-      Serial.print("Rejected ID: ");
-      Serial.println(submittedID);
-      showWrongID();
-      transitionToIdle();
-      return;
+  case TerminalAction::PassOccupied:
+    Serial.print("Rejected ID: ");
+    Serial.println(submittedID);
+    showWrongID();
+    transitionToIdle();
+    return;
   }
 }
 void handleNormalNumber(char key) {
@@ -809,10 +714,7 @@ void handleSingleStar() {
 // HANDLE SINGLE # RELEASE
 // ======================================================
 
-void handleSingleHash() {
-
-  submitID();
-}
+void handleSingleHash() { submitID(); }
 
 // ======================================================
 // SERIAL DIAGNOSTIC COMMANDS
@@ -821,14 +723,16 @@ void handleSingleHash() {
 void processSerialCommands() {
   while (Serial.available()) {
     const char command = static_cast<char>(Serial.read());
-    if (command == '\r') continue;
+    if (command == '\r')
+      continue;
     if (command == '\n') {
       serialCommandBuffer.trim();
       if (serialCommandBuffer == "p" || serialCommandBuffer == "P") {
-      tripStorage.printTripLog();
+        tripStorage.printTripLog();
       } else if (serialCommandBuffer == "OWNER_RESET") {
         bluetoothSerial.disconnectClient();
-        if (terminalSecurity.resetOwner() && bluetoothSerial.clearBondedDevices()) {
+        if (terminalSecurity.resetOwner() &&
+            bluetoothSerial.clearBondedDevices()) {
           Serial.println("OWNER_RESET,OK");
         } else {
           Serial.println("OWNER_RESET,FAILED");
@@ -850,7 +754,8 @@ void processSerialCommands() {
 // MULTI-KEY PROCESSING
 // ======================================================
 
-// Keypad event interpretation and the * + # hold gesture live in KeypadController.cpp.
+// Keypad event interpretation and the * + # hold gesture live in
+// KeypadController.cpp.
 
 // ======================================================
 // SETUP
@@ -863,16 +768,16 @@ void setup() {
   delay(500);
 
   Serial.println();
-  Serial.println(
-    "Hallzee Starting..."
-  );
+  Serial.println("Hallzee Starting...");
 
   const bool identityStorageReady = terminalIdentity.begin();
   const bool securityStorageReady = terminalSecurity.begin();
   if (!identityStorageReady || !securityStorageReady) {
     Serial.println("ERROR: terminal identity/security storage unavailable.");
-    if (!identityStorageReady) Serial.println("Identity storage: UNAVAILABLE");
-    if (!securityStorageReady) Serial.println("Owner storage: UNAVAILABLE");
+    if (!identityStorageReady)
+      Serial.println("Identity storage: UNAVAILABLE");
+    if (!securityStorageReady)
+      Serial.println("Owner storage: UNAVAILABLE");
   }
 
   bluetoothSync.begin();
@@ -889,7 +794,8 @@ void setup() {
   terminal.setCapacity(tripStorage.getMaxActivePasses());
   terminal.restoreActivePass();
 
-  Serial.println("Serial commands: p = print trip log; OWNER_RESET = clear terminal owner");
+  Serial.println("Serial commands: p = print trip log; OWNER_RESET = clear "
+                 "terminal owner");
 
   keypadController.begin();
 
@@ -901,8 +807,10 @@ void setup() {
   tft.begin(20000000);
   // In the physical Hallzee enclosure, rotation 3 is right-side up.
   // Map rotation 1 to 3 (and 3 to 1) so standard rotation 1 displays upright.
-  const uint8_t effectiveRotation = (HALLZEE_DISPLAY_ROTATION == 1) ? 3 :
-                                    ((HALLZEE_DISPLAY_ROTATION == 3) ? 1 : HALLZEE_DISPLAY_ROTATION);
+  const uint8_t effectiveRotation =
+      (HALLZEE_DISPLAY_ROTATION == 1)
+          ? 3
+          : ((HALLZEE_DISPLAY_ROTATION == 3) ? 1 : HALLZEE_DISPLAY_ROTATION);
   tft.setRotation(effectiveRotation);
 #else
   tft.initR(INITR_BLACKTAB);

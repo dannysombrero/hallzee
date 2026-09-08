@@ -13,6 +13,7 @@
 #include "TerminalController.h"
 #include "TripRecordCodec.h"
 #include "TerminalDisplay.h"
+#include "TerminalIdentity.h"
 #include "support/RecordingDisplay.h"
 
 namespace {
@@ -156,6 +157,7 @@ public:
 class FakeBluetoothSerial : public BluetoothSerialPort {
 public:
   bool beginSucceeds = true;
+  bool renameSucceeds = true;
   bool connected = false;
   std::string input;
   std::vector<std::string> output;
@@ -164,6 +166,11 @@ public:
   std::string partialLine;
 
   bool begin(const char *name) override { deviceName = name; return beginSucceeds; }
+  bool setDeviceName(const char *name) override {
+    if (!renameSucceeds) return false;
+    deviceName = name;
+    return true;
+  }
   void setPin(const char *value, size_t) override { pin = value; }
   bool hasClient() override { return connected; }
   int available() override { return static_cast<int>(input.size()); }
@@ -753,6 +760,54 @@ int ownerReleaseRequests = 0;
 bool ownerReleaseSucceeds = true;
 bool fakeReleaseOwner() { ownerReleaseRequests++; return ownerReleaseSucceeds; }
 
+void testTerminalRenamePersistenceAndFailures() {
+  Preferences::stored.clear();
+  TerminalIdentity identity;
+  identity.begin();
+  const String originalId = identity.terminalId();
+  FakeTripStorage storage;
+  FakeBluetoothSerial serial;
+  BluetoothSync sync(storage, serial, setBluetoothClock, onBluetoothClockSet,
+    nullptr, nullptr, nullptr, nullptr, &identity);
+  sync.begin();
+  serial.connected = true;
+  serial.input = "SET,TERMINAL_NAME,Room 204\n";
+  sync.poll();
+  expectTrue(contains(serial.output, "SETTINGS_ACK,TERMINAL_NAME,Room 204"), "valid rename is acknowledged");
+  TerminalIdentity restarted;
+  restarted.begin();
+  expectTrue(restarted.customName() == "Room 204", "rename survives reboot with NVS namespace limit");
+  expectTrue(restarted.terminalId() == originalId, "rename retains stable device identity");
+
+  Preferences::failWrite = true;
+  serial.output.clear();
+  serial.input = "SET,TERMINAL_NAME,Room 205\n";
+  sync.poll();
+  expectTrue(contains(serial.output, "SETTINGS_ERROR,TERMINAL_NAME,STORAGE_FAILED"), "storage failures are not invalid names");
+  expectTrue(identity.customName() == "Room 204" && serial.deviceName == "Room 204", "failed save restores discovery name");
+  expectTrue(!contains(serial.output, "SETTINGS_ACK,TERMINAL_NAME,Room 205"), "failed save is never acknowledged");
+  Preferences::failWrite = false;
+
+  serial.renameSucceeds = false;
+  serial.input = "SET,TERMINAL_NAME,Room 206\n";
+  sync.poll();
+  expectTrue(contains(serial.output, "SETTINGS_ERROR,TERMINAL_NAME,BLE_UPDATE_FAILED"), "BLE failure has its own error");
+  expectTrue(identity.customName() == "Room 204", "BLE failure does not persist a new name");
+  serial.renameSucceeds = true;
+
+  serial.input = "SET,TERMINAL_NAME,Room,207\n";
+  sync.poll();
+  expectTrue(contains(serial.output, "SETTINGS_ERROR,TERMINAL_NAME,INVALID_VALUE"), "invalid name remains rejected");
+  expectTrue(identity.customName() == "Room 204" && serial.deviceName == "Room 204", "invalid name does not change device");
+
+  Preferences::failOpen = true;
+  TerminalIdentity unavailable;
+  unavailable.begin();
+  expectTrue(unavailable.terminalId() == originalId && !unavailable.setCustomName("Room 208"), "unavailable storage keeps identity usable without false save success");
+  Preferences::failOpen = false;
+  Preferences::stored.clear();
+}
+
 void testBluetoothOwnerRelease() {
   FakeTripStorage storage;
   FakeBluetoothSerial serial;
@@ -1084,6 +1139,7 @@ int main() {
   testTerminalEnforcesConfiguredMultiPassCapacity();
   testBellPolicyLocksWarnsAndFailsOpenOutsideCache();
   testKeypadControllerInterpretsKeysAndResetGesture();
+  testTerminalRenamePersistenceAndFailures();
   testBluetoothOwnerRelease();
   testBluetoothProtocolAndRecovery();
   testBluetoothFailureAndValidationPaths();

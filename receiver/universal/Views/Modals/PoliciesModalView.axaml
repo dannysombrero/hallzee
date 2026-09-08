@@ -5,10 +5,10 @@
              x:DataType="vm:MainViewModel">
   <Border Background="#99000000" Padding="32,24" PointerPressed="OnBackdropPointerPressed">
     <Border Classes="hallzee-modal-window" MaxWidth="1040" MaxHeight="640" VerticalAlignment="Center" HorizontalAlignment="Stretch">
-      <Grid RowDefinitions="Auto,Auto,Auto,Auto,*" RowSpacing="12">
+      <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="10">
         
         <!-- ROW 0: HEADER -->
-        <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,4">
+        <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,2">
           <StackPanel Spacing="2">
             <TextBlock Text="Hall Pass Policies &amp; Schedule" FontSize="22" FontWeight="Bold" Foreground="#111B33" />
             <TextBlock Text="Configure classroom pass limits, grace periods, and timetable." FontSize="14" Foreground="#617694" />
@@ -16,36 +16,98 @@
           <Button Grid.Column="1" Classes="icon-circle secondary" Content="✕" FontSize="14" FontWeight="Bold" Click="OnCloseClick" />
         </Grid>
 
-        <!-- ROW 1: TEACHER WORKSPACE SELECTION -->
-        <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="12" VerticalAlignment="Center">
-          <TextBlock Text="Teacher workspace:" FontWeight="Bold" FontSize="14" Foreground="#334155" VerticalAlignment="Center" />
-          <ComboBox Grid.Column="1" Classes="filter-dropdown" ItemsSource="{Binding Profiles}" SelectedItem="{Binding ActiveProfile}" DisplayMemberBinding="{Binding Name}" MinWidth="200" VerticalAlignment="Center" />
-          <TextBlock Grid.Column="2" Text="" MaxWidth="240" TextTrimming="CharacterEllipsis" Foreground="#10B981" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center" />
-          <Button Grid.Column="3" Classes="pill-secondary" Content="+ Create Teacher Workspace" Click="OnToggleCreateProfileClick" />
-          <Button Grid.Column="4" Classes="hallzee-pill-btn" Content="Save Workspace Settings" Click="OnSavePolicyClick" Padding="16,8" FontSize="13" VerticalAlignment="Center" />
-        </Grid>
+        <!-- ROW 1: REIMAGINED WORKSPACE CONTROL TOOLBAR -->
+        <Border Grid.Row="1" Classes="hallzee-section-white" Padding="14,10">
+          <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,*,Auto" ColumnSpacing="8" VerticalAlignment="Center">
+            
+            <!-- Workspace Scope & Selector -->
+            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+              <Path Data="{StaticResource IconTag}" Width="14" Height="14" Stretch="Uniform" Stroke="#0284C7" StrokeThickness="2" StrokeLineCap="Round" VerticalAlignment="Center" />
+              <TextBlock Text="Workspace:" FontWeight="Bold" FontSize="13" Foreground="#334155" VerticalAlignment="Center" />
+            </StackPanel>
 
-        <!-- ROW 2: EXPANDABLE CREATE NEW PROFILE BAR (SHOWN ONLY WHEN BUTTON CLICKED) -->
-        <Border Grid.Row="2" Classes="hallzee-section" Padding="14,8" IsVisible="{Binding PolicyModal.IsCreatingProfile}">
-          <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
-            <TextBlock Text="Teacher workspace name:" FontSize="12" FontWeight="SemiBold" Foreground="#64748B" VerticalAlignment="Center" />
-            <TextBox Grid.Column="1" Text="{Binding PolicyModal.NewProfileName}" Watermark="Teacher name (e.g. Ms. Rivera)" FontSize="12" />
-            <Button Grid.Column="2" Classes="hallzee-pill-btn" Content="Create Workspace" Click="OnSaveAsProfileClick" Padding="14,6" FontSize="12" />
-            <Button Grid.Column="3" Classes="secondary" Content="Cancel" Click="OnCancelCreateProfileClick" Padding="12,6" FontSize="12" />
+            <ComboBox Grid.Column="1" Classes="filter-dropdown" ItemsSource="{Binding Profiles}" SelectedItem="{Binding ActiveProfile}" DisplayMemberBinding="{Binding Name}" MinWidth="180" VerticalAlignment="Center" />
+
+            <!-- Workspace Actions: Rename & New -->
+            <Button Grid.Column="2" Classes="pill-secondary" Click="OnToggleRenameProfileClick" ToolTip.Tip="Rename active teacher workspace">
+              <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                <Path Data="{StaticResource IconEdit}" Width="12" Height="12" Stretch="Uniform" Stroke="#0369A1" StrokeThickness="1.8" StrokeLineCap="Round" VerticalAlignment="Center" />
+                <TextBlock Text="Rename" FontSize="12" FontWeight="Bold" VerticalAlignment="Center" />
+              </StackPanel>
+            </Button>
+
+            <Button Grid.Column="3" Classes="pill-secondary" Click="OnToggleCreateProfileClick" ToolTip.Tip="Create a new teacher workspace">
+              <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                <Path Data="{StaticResource IconPlus}" Width="11" Height="11" Stretch="Uniform" Stroke="#0369A1" StrokeThickness="2" StrokeLineCap="Round" VerticalAlignment="Center" />
+                <TextBlock Text="New" FontSize="12" FontWeight="Bold" VerticalAlignment="Center" />
+              </StackPanel>
+            </Button>
+
+            <!-- Subtle Vertical Separator -->
+            <Rectangle Grid.Column="4" Width="1" Height="20" Fill="#BAE6FD" Margin="4,0" VerticalAlignment="Center" />
+
+            <!-- Backup / Share: Export & Import -->
+            <StackPanel Grid.Column="5" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+              <Button Classes="pill-secondary" Click="OnExportWorkspaceClick" ToolTip.Tip="Export active workspace rules and schedules to JSON file">
+                <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                  <Path Data="{StaticResource IconDownload}" Width="12" Height="12" Stretch="Uniform" Stroke="#0369A1" StrokeThickness="1.8" StrokeLineCap="Round" VerticalAlignment="Center" />
+                  <TextBlock Text="Export" FontSize="12" FontWeight="Bold" VerticalAlignment="Center" />
+                </StackPanel>
+              </Button>
+
+              <Button Classes="pill-secondary" Click="OnImportWorkspaceClick" ToolTip.Tip="Import a teacher workspace from a Hallzee JSON file">
+                <StackPanel Orientation="Horizontal" Spacing="5" VerticalAlignment="Center">
+                  <Path Data="{StaticResource IconSync}" Width="12" Height="12" Stretch="Uniform" Stroke="#0369A1" StrokeThickness="1.8" StrokeLineCap="Round" VerticalAlignment="Center" />
+                  <TextBlock Text="Import" FontSize="12" FontWeight="Bold" VerticalAlignment="Center" />
+                </StackPanel>
+              </Button>
+            </StackPanel>
+
+            <!-- Primary Action: Save Workspace Settings -->
+            <Button Grid.Column="7" Classes="hallzee-pill-btn" Content="Save Workspace Settings" Click="OnSavePolicyClick" Padding="18,8" FontSize="13" VerticalAlignment="Center" />
+
           </Grid>
         </Border>
 
-        <StackPanel Grid.Row="3" Spacing="6">
-          <StackPanel Orientation="Horizontal" Spacing="10">
-            <Button Classes="pill-secondary" Content="Export Workspace" Click="OnExportWorkspaceClick" ToolTip.Tip="Saves current settings and exports rules, bell schedules, and date exceptions." />
-            <Button Classes="pill-secondary" Content="Import Workspace" Click="OnImportWorkspaceClick" ToolTip.Tip="Creates a new workspace from a Hallzee workspace file." />
-            <TextBlock Text="Share rules and schedules with another teacher" VerticalAlignment="Center" FontSize="12" Foreground="#64748B" />
-          </StackPanel>
-          <TextBlock Text="{Binding PolicyModal.StatusMessage}" TextWrapping="Wrap" FontSize="12" Foreground="#334155" />
+        <!-- ROW 2: DYNAMIC INLINE ACTION PANEL & STATUS FEEDBACK -->
+        <StackPanel Grid.Row="2" Spacing="6">
+          <!-- INLINE RENAME BAR -->
+          <Border Classes="hallzee-section" Padding="14,8" IsVisible="{Binding PolicyModal.IsRenamingProfile}">
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
+              <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                <Path Data="{StaticResource IconEdit}" Width="13" Height="13" Stretch="Uniform" Stroke="#0284C7" StrokeThickness="1.8" StrokeLineCap="Round" VerticalAlignment="Center" />
+                <TextBlock Text="Rename workspace:" FontSize="12" FontWeight="SemiBold" Foreground="#334155" VerticalAlignment="Center" />
+              </StackPanel>
+              <TextBox Grid.Column="1" Text="{Binding PolicyModal.RenameProfileName}" KeyDown="OnRenameTextBoxKeyDown" Watermark="Enter new workspace name" FontSize="12" />
+              <Button Grid.Column="2" Classes="hallzee-pill-btn" Content="Save Name" Click="OnSaveRenameProfileClick" Padding="14,6" FontSize="12" />
+              <Button Grid.Column="3" Classes="secondary" Content="Cancel" Click="OnCancelRenameProfileClick" Padding="12,6" FontSize="12" />
+            </Grid>
+          </Border>
+
+          <!-- INLINE CREATE BAR -->
+          <Border Classes="hallzee-section" Padding="14,8" IsVisible="{Binding PolicyModal.IsCreatingProfile}">
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
+              <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                <Path Data="{StaticResource IconPlus}" Width="12" Height="12" Stretch="Uniform" Stroke="#0284C7" StrokeThickness="2" StrokeLineCap="Round" VerticalAlignment="Center" />
+                <TextBlock Text="New workspace name:" FontSize="12" FontWeight="SemiBold" Foreground="#334155" VerticalAlignment="Center" />
+              </StackPanel>
+              <TextBox Grid.Column="1" Text="{Binding PolicyModal.NewProfileName}" KeyDown="OnNewProfileTextBoxKeyDown" Watermark="Teacher name (e.g. Ms. Rivera)" FontSize="12" />
+              <Button Grid.Column="2" Classes="hallzee-pill-btn" Content="Create Workspace" Click="OnSaveAsProfileClick" Padding="14,6" FontSize="12" />
+              <Button Grid.Column="3" Classes="secondary" Content="Cancel" Click="OnCancelCreateProfileClick" Padding="12,6" FontSize="12" />
+            </Grid>
+          </Border>
+
+          <!-- STATUS FEEDBACK (ONLY SHOWN WHEN MESSAGE EXISTS) -->
+          <Border Background="#E0F2FE" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="10" Padding="12,6" HorizontalAlignment="Left" IsVisible="{Binding PolicyModal.HasStatusMessage}">
+            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+              <Path Data="{StaticResource IconCheck}" Width="12" Height="12" Stretch="Uniform" Stroke="#0284C7" StrokeThickness="2.2" StrokeLineCap="Round" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding PolicyModal.StatusMessage}" FontSize="12" FontWeight="SemiBold" Foreground="#0369A1" VerticalAlignment="Center" />
+            </StackPanel>
+          </Border>
         </StackPanel>
 
         <!-- ROW 3: DOUBLE-COLUMN MAIN CONTENT -->
-        <ScrollViewer Grid.Row="4" VerticalScrollBarVisibility="Auto" Margin="0,4,0,0">
+        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" Margin="0,4,0,0">
           <Grid ColumnDefinitions="*,*" ColumnSpacing="24">
             
             <!-- LEFT COLUMN: PASS POLICY RULES & BELL-TIME WINDOWS -->

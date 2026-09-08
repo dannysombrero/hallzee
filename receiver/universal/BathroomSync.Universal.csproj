@@ -8,6 +8,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>HallzeeSync.Universal</AssemblyName>
+    <AvaloniaTelemetryOptOut>true</AvaloniaTelemetryOptOut>
   </PropertyGroup>
 
   <ItemGroup>

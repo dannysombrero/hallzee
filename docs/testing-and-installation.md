@@ -3,6 +3,15 @@
 This guide explains which checks can be done on a Mac and which require a
 Windows PC.
 
+## Planned Bluetooth firmware updates
+
+Wireless firmware installation is not available yet. The
+[firmware update plan](design/bluetooth-firmware-updates.md) covers one-time USB setup, version reporting from
+the connected terminal, manual `.hallzee-fw` package import, GitHub Releases,
+and later **Check for software updates**. It includes phase gates and Mac,
+Windows, and physical ESP32 verification requirements. Continue using the USB
+flash workflows below until the feature ships.
+
 ## Roster, workspace sharing, and terminal UI checks
 
 Mac testing is sufficient for manual roster entry, workspace import/export,
@@ -36,6 +45,21 @@ physical Windows PC.
    keys; the clock entry must remain intact if pairing expires.
 7. Rename the terminal and confirm its **Terminal: [name]** header, discovery
    name, and OS title **Hallzee Desktop Client · terminal name** update.
+
+## Terminal rename storage fix
+
+If a valid name is rejected with `SETTINGS_ERROR,TERMINAL_NAME,INVALID_VALUE`,
+flash the current firmware using the normal flash workflow below (no full erase
+or owner reset is needed). The old `hallzee_identity` NVS namespace was 16
+characters; ESP32 permits only 15. The corrected `hallzee_id` namespace allows
+names to persist, and storage/BLE failures now have separate error responses.
+
+Mac testing is sufficient for the native rename/persistence regression tests.
+With a physical ESP32, save **Room 204**, restart it, and confirm the header,
+Device settings, and discovery retain the name and unique ID. A Mac can verify
+that firmware behavior. A Windows PC is required to verify the Windows-specific
+WinRT name write and refreshed discovery name; that Windows behavior has not
+yet been verified on physical hardware.
 
 ## Device settings and unpair verification
 

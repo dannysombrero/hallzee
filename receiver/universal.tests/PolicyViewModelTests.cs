@@ -200,4 +200,42 @@ public sealed class PolicyViewModelTests : IDisposable {
     Assert.True(viewModel.IsEarliestFirst);
     Assert.Equal("Period 1", viewModel.Periods[0].PeriodName);
   }
+
+  [Fact]
+  public void RenameProfileStateTogglesAndCancelsCorrectly() {
+    Assert.False(viewModel.IsRenamingProfile);
+    Assert.Empty(viewModel.RenameProfileName);
+
+    viewModel.ToggleRenameProfile("Room 101");
+    Assert.True(viewModel.IsRenamingProfile);
+    Assert.Equal("Room 101", viewModel.RenameProfileName);
+    Assert.False(viewModel.IsCreatingProfile);
+
+    // Toggling create cancels rename
+    viewModel.ToggleCreateProfile();
+    Assert.False(viewModel.IsRenamingProfile);
+    Assert.True(viewModel.IsCreatingProfile);
+
+    // Toggling rename cancels create
+    viewModel.ToggleRenameProfile("Room 202");
+    Assert.True(viewModel.IsRenamingProfile);
+    Assert.Equal("Room 202", viewModel.RenameProfileName);
+    Assert.False(viewModel.IsCreatingProfile);
+
+    // Cancel
+    viewModel.CancelRenameProfile();
+    Assert.False(viewModel.IsRenamingProfile);
+    Assert.Empty(viewModel.RenameProfileName);
+  }
+
+  [Fact]
+  public void StatusMessageTriggersHasStatusMessage() {
+    Assert.False(viewModel.HasStatusMessage);
+
+    viewModel.StatusMessage = "Workspace renamed to \"Chemistry AP\".";
+    Assert.True(viewModel.HasStatusMessage);
+
+    viewModel.StatusMessage = "";
+    Assert.False(viewModel.HasStatusMessage);
+  }
 }

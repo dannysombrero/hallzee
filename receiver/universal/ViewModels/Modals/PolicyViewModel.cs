@@ -346,8 +346,10 @@ public sealed class PolicyViewModel : INotifyPropertyChanged {
   string lastWindowAction = "Warn";
   string alertSound = "Chime";
   string newProfileName = "";
+  string renameProfileName = "";
   string statusMessage = "";
   bool isCreatingProfile;
+  bool isRenamingProfile;
   bool terminalEnforcementEnabled;
   string newExceptionDate = DateTime.Today.ToString("yyyy-MM-dd");
   string newExceptionScheduleName = "Regular";
@@ -363,11 +365,56 @@ public sealed class PolicyViewModel : INotifyPropertyChanged {
     }
   }
 
+  public bool IsRenamingProfile {
+    get => isRenamingProfile;
+    set {
+      if (isRenamingProfile != value) {
+        isRenamingProfile = value;
+        OnPropertyChanged();
+      }
+    }
+  }
+
+  public string RenameProfileName {
+    get => renameProfileName;
+    set {
+      if (renameProfileName != value) {
+        renameProfileName = value;
+        OnPropertyChanged();
+      }
+    }
+  }
+
   public void ToggleCreateProfile() {
     IsCreatingProfile = !IsCreatingProfile;
-    if (!IsCreatingProfile) {
+    if (IsCreatingProfile) {
+      IsRenamingProfile = false;
+      RenameProfileName = "";
+      NewProfileName = "";
+    } else {
       NewProfileName = "";
     }
+  }
+
+  public void CancelCreateProfile() {
+    IsCreatingProfile = false;
+    NewProfileName = "";
+  }
+
+  public void ToggleRenameProfile(string currentName = "") {
+    IsRenamingProfile = !IsRenamingProfile;
+    if (IsRenamingProfile) {
+      IsCreatingProfile = false;
+      NewProfileName = "";
+      RenameProfileName = currentName;
+    } else {
+      RenameProfileName = "";
+    }
+  }
+
+  public void CancelRenameProfile() {
+    IsRenamingProfile = false;
+    RenameProfileName = "";
   }
 
   public PolicyViewModel(IPolicyRepository policyRepository) {
@@ -437,8 +484,14 @@ public sealed class PolicyViewModel : INotifyPropertyChanged {
 
   public string StatusMessage {
     get => statusMessage;
-    set { statusMessage = value; OnPropertyChanged(); }
+    set {
+      statusMessage = value;
+      OnPropertyChanged();
+      OnPropertyChanged(nameof(HasStatusMessage));
+    }
   }
+
+  public bool HasStatusMessage => !string.IsNullOrWhiteSpace(statusMessage);
 
   bool isEarliestFirst = true;
 

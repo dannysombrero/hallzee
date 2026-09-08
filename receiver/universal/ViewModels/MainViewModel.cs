@@ -544,6 +544,31 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     ActiveProfile = profile;
     PolicyModal.NewProfileName = "";
     PolicyModal.IsCreatingProfile = false;
+    PolicyModal.StatusMessage = $"Created and switched to workspace \"{name}\".";
+  }
+
+  public void RenameActiveProfile() {
+    var newName = PolicyModal.RenameProfileName.Trim();
+    if (string.IsNullOrWhiteSpace(newName)) return;
+    if (ActiveProfile == null) return;
+
+    if (string.Equals(ActiveProfile.Name, newName, StringComparison.Ordinal)) {
+      PolicyModal.IsRenamingProfile = false;
+      PolicyModal.RenameProfileName = "";
+      return;
+    }
+
+    var updated = ActiveProfile with { Name = newName, UpdatedAt = DateTime.UtcNow };
+    profileRepository.SaveProfile(updated);
+
+    var index = Profiles.IndexOf(ActiveProfile);
+    if (index >= 0) {
+      Profiles[index] = updated;
+    }
+    ActiveProfile = updated;
+    PolicyModal.RenameProfileName = "";
+    PolicyModal.IsRenamingProfile = false;
+    PolicyModal.StatusMessage = $"Workspace renamed to \"{newName}\".";
   }
 
   public async Task ConnectAndSyncAsync() {

@@ -51,6 +51,9 @@ public:
   friend String operator+(const String &left, const char *right) {
     return String(static_cast<std::string>(left) + (right == nullptr ? "" : right));
   }
+  friend String operator+(const String &left, const String &right) {
+    return String(left.value + right.value);
+  }
   operator std::string() const { return value; }
 
   bool operator==(const char *other) const { return value == (other == nullptr ? "" : other); }

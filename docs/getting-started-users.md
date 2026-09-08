@@ -118,6 +118,11 @@ kiosk has no speaker, so selected alert sounds play on the desktop only.
 - Close other Bluetooth apps that may be connected to it.
 - Use **Scan Again**, then retry the connection.
 - If Windows asks for Bluetooth permission, allow the app to use Bluetooth.
+- If a valid terminal name produces `SETTINGS_ERROR,TERMINAL_NAME,INVALID_VALUE`,
+  update the terminal firmware and retry **Settings → Device → pencil → Save**.
+  Older firmware used an overlength storage namespace, preventing every name
+  save and incorrectly reporting a storage failure as an invalid name. The fix
+  does not require erasing the terminal or resetting its owner.
 - If reconnect reports that the terminal is **UNCLAIMED**, flash the current
   terminal firmware and claim it again with the six-digit pairing key.
 - Do not factory-reset or send `OWNER_RESET` unless you are intentionally

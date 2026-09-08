@@ -232,4 +232,17 @@ public sealed class MainViewModelTests : IDisposable {
     Assert.Equal("#F59E0B", viewModel.PopupPillBackground);
   }
 
+  [Fact]
+  public void RenameActiveProfileUpdatesDatabaseAndObservableCollection() {
+    var oldProfileId = viewModel.ActiveProfile.ProfileId;
+    viewModel.PolicyModal.RenameProfileName = "Physics Lab - Rm 302";
+    viewModel.RenameActiveProfile();
+
+    Assert.Equal(oldProfileId, viewModel.ActiveProfile.ProfileId);
+    Assert.Equal("Physics Lab - Rm 302", viewModel.ActiveProfile.Name);
+    Assert.Contains(viewModel.Profiles, p => p.ProfileId == oldProfileId && p.Name == "Physics Lab - Rm 302");
+    Assert.Equal("Workspace renamed to \"Physics Lab - Rm 302\".", viewModel.PolicyModal.StatusMessage);
+    Assert.False(viewModel.PolicyModal.IsRenamingProfile);
+  }
+
 }

@@ -5,7 +5,9 @@
 namespace {
 constexpr char ID_PREFIX[] = "HZ-";
 constexpr char DEFAULT_NAME[] = "Hallzee";
-constexpr char PREFERENCES_NAMESPACE[] = "hallzee_identity";
+// ESP32 NVS namespaces allow at most 15 characters (excluding the terminator).
+constexpr char PREFERENCES_NAMESPACE[] = "hallzee_id";
+static_assert(sizeof(PREFERENCES_NAMESPACE) <= 16, "NVS namespace exceeds 15 characters");
 constexpr char CUSTOM_NAME_KEY[] = "custom_name";
 }
 

@@ -2,8 +2,8 @@
 
 #include "BellPolicy.h"
 #include "Config.h"
-#ifdef ARDUINO
 #include "TerminalIdentity.h"
+#ifdef ARDUINO
 #include "TerminalSecurity.h"
 #endif
 
@@ -282,10 +282,6 @@ void BluetoothSync::processAuthenticationCommand(const String &command) {
 }
 
 bool BluetoothSync::processAuthorizedIdentityCommand(const String &command) {
-#ifndef ARDUINO
-  (void)command;
-  return false;
-#else
   if (!identity || command == "GET_IDENTITY") {
     if (command == "GET_IDENTITY" && identity) {
       serial.print("IDENTITY_INFO,2,");
@@ -298,18 +294,25 @@ bool BluetoothSync::processAuthorizedIdentityCommand(const String &command) {
   }
 
   const String prefix = "SET,TERMINAL_NAME,";
-  if (!command.startsWith(prefix)) return false;
+  if (!command.startsWith(prefix.c_str())) return false;
   const String requestedName = command.substring(prefix.length());
-  if (!TerminalIdentity::isValidCustomName(requestedName) ||
-      !serial.setDeviceName((advertisedInUse ? requestedName.substring(0, 23) + "-INUSE" : requestedName).c_str()) ||
-      !identity->setCustomName(requestedName)) {
+  if (!TerminalIdentity::isValidCustomName(requestedName)) {
     serial.println("SETTINGS_ERROR,TERMINAL_NAME,INVALID_VALUE");
+    return true;
+  }
+  if (!serial.setDeviceName((advertisedInUse ? requestedName.substring(0, 23) + "-INUSE" : requestedName).c_str())) {
+    serial.println("SETTINGS_ERROR,TERMINAL_NAME,BLE_UPDATE_FAILED");
+    return true;
+  }
+  if (!identity->setCustomName(requestedName)) {
+    // Restore discovery to the persisted name if the write failed.
+    serial.setDeviceName(identity->advertisedName(advertisedInUse).c_str());
+    serial.println("SETTINGS_ERROR,TERMINAL_NAME,STORAGE_FAILED");
     return true;
   }
   serial.print("SETTINGS_ACK,TERMINAL_NAME,");
   serial.println(requestedName);
   return true;
-#endif
 }
 
 void BluetoothSync::sendNextTrip() {

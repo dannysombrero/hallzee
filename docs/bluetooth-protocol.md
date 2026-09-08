@@ -104,6 +104,9 @@ Carriage returns are ignored.
 | `SETTINGS_ACK,MAX_ID_LENGTH,<value>` | Setting was saved successfully |
 | `SETTINGS_ERROR,MAX_ID_LENGTH,<reason>` | Setting was rejected without changing the stored value |
 | `SETTINGS_ACK,TERMINAL_NAME,<name>` | Kiosk name was persisted and applied to BLE advertising |
+| `SETTINGS_ERROR,TERMINAL_NAME,INVALID_VALUE` | Name violates the 1–24 character ASCII name rules |
+| `SETTINGS_ERROR,TERMINAL_NAME,STORAGE_FAILED` | Name storage could not be opened or written; previous name remains authoritative |
+| `SETTINGS_ERROR,TERMINAL_NAME,BLE_UPDATE_FAILED` | Bluetooth could not apply the name; no new name was persisted |
 | `POLICY_ACK,BEGIN` / `POLICY_ACK,WINDOW` / `POLICY_ACK,COMMIT,<count>` | Offline bell-policy transfer step succeeded |
 | `POLICY_ERROR,<reason>` | Bell-policy transfer was rejected; the previous committed policy remains authoritative |
 | `ACTIVE_PASS,<student_id>,<epoch>` | Active checkout student ID and unix epoch timestamp |

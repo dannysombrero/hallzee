@@ -39,6 +39,7 @@ records locally and can synchronize them to a desktop receiver over Bluetooth Lo
   - [Classroom Policies & Bell Schedules](docs/design/policy-and-schedules.md) — Pass limits, 10/10 lockout rules, and timetable engine.
   - [Background Auto-Sync](docs/design/auto-sync.md) — Autonomous connection management and channel arbitration.
   - [Terminal Identity & Exclusive Claim](docs/design/terminal-identity-and-exclusive-claim.md) — Stable kiosk IDs, one-owner authorization, safe multi-terminal storage, and implementation plan.
+  - [Bluetooth Firmware Updates](docs/design/bluetooth-firmware-updates.md) — Planned version reporting, firmware packages on GitHub, desktop-to-terminal installation, and future update checks.
 
 ## Hardware
 

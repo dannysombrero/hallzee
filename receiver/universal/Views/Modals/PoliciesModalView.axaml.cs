@@ -86,14 +86,51 @@ public partial class PoliciesModalView : UserControl {
 
   void OnCancelCreateProfileClick(object? sender, RoutedEventArgs e) {
     if (DataContext is MainViewModel vm) {
-      vm.PolicyModal.IsCreatingProfile = false;
-      vm.PolicyModal.NewProfileName = "";
+      vm.PolicyModal.CancelCreateProfile();
     }
   }
 
   void OnSaveAsProfileClick(object? sender, RoutedEventArgs e) {
     if (DataContext is MainViewModel vm) {
       vm.CreateProfileFromPolicy();
+    }
+  }
+
+  void OnToggleRenameProfileClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) {
+      vm.PolicyModal.ToggleRenameProfile(vm.ActiveProfile?.Name ?? "");
+    }
+  }
+
+  void OnCancelRenameProfileClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) {
+      vm.PolicyModal.CancelRenameProfile();
+    }
+  }
+
+  void OnSaveRenameProfileClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) {
+      vm.RenameActiveProfile();
+    }
+  }
+
+  void OnRenameTextBoxKeyDown(object? sender, KeyEventArgs e) {
+    if (e.Key == Key.Enter && DataContext is MainViewModel vm) {
+      e.Handled = true;
+      vm.RenameActiveProfile();
+    } else if (e.Key == Key.Escape && DataContext is MainViewModel vmEscape) {
+      e.Handled = true;
+      vmEscape.PolicyModal.CancelRenameProfile();
+    }
+  }
+
+  void OnNewProfileTextBoxKeyDown(object? sender, KeyEventArgs e) {
+    if (e.Key == Key.Enter && DataContext is MainViewModel vm) {
+      e.Handled = true;
+      vm.CreateProfileFromPolicy();
+    } else if (e.Key == Key.Escape && DataContext is MainViewModel vmEscape) {
+      e.Handled = true;
+      vmEscape.PolicyModal.CancelCreateProfile();
     }
   }
 

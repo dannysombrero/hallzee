@@ -7,8 +7,12 @@ finished app, use [Getting started: normal users](getting-started-users.md).
 ## Start from a clean computer
 
 Download the repository from GitHub with **Code → Download ZIP**, then unzip
-it. Git, Arduino CLI, the ESP32 board package, libraries, and .NET do not need
-to be installed first for the scripted workflows.
+it anywhere. Open Terminal (macOS) or PowerShell (Windows) in the **project
+root**, the extracted folder containing `README.md`, `bathroom-signin.ino`,
+and `scripts/`. All commands below use paths relative to that folder; no
+particular download location or folder name is required. Git, Arduino CLI,
+the ESP32 board package, libraries, and .NET do not need to be installed first
+for the scripted workflows.
 
 ## Assemble and flash a terminal
 

@@ -1,5 +1,24 @@
 # Feature Design: Stable Terminal Identity and Exclusive Client Claim
 
+## Discovery and physical identification
+
+The discovery name carries `-INUSE` when the terminal is claimed **or** has an
+active pass. This badge describes availability to a new teacher; the v2 identity
+response still reports ownership and active-pass availability separately, and
+authentication permits the remembered owner to reconnect. The BLE service UUID
+is advertised separately from the name-bearing scan response. Name changes are
+refreshed while disconnected or when the current owner disconnects. Windows
+preserves a received name/status when a later service-only advertisement arrives;
+macOS prefers the advertised local name over the OS cache.
+
+Pairing can begin from any date/time setup step using the usual five-second
+`*` + `#` chord. The full terminal ID and friendly name appear with the six-digit
+passkey. Key releases do not edit the clock, and timeout resumes the same setup
+step. The terminal header displays **Terminal: [name]**;
+long names are abbreviated there. The full name is retained in identity/settings.
+Names carrying `-INUSE` are limited to a 23-character base to fit the 29-byte
+BLE name field without losing the status suffix.
+
 **Status:** Implemented; physical multi-device/platform verification remains
 
 **Target milestone:** Delivered; verification gate remains

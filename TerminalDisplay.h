@@ -28,7 +28,8 @@ public:
   void drawClockSetupScreen(ClockSetupStep step, const String &entry);
   void showInvalidClockValue(const String &message);
   void showClockSet(const String &date, const String &time);
-  void showPairing(const String &suffix, uint32_t passkey);
+  void showPairing(const String &terminalId, const String &friendlyName, uint32_t passkey);
+  void setFriendlyName(const String &name) { friendlyName = name; }
   void showPairingComplete(const String &suffix);
   void showPairingError(const String &message);
   void showOwnerReset();
@@ -36,4 +37,6 @@ public:
 private:
   DisplayPort &display;
   bool clockSetupActive = false;
+  String friendlyName;
+  void drawTerminalLabel();
 };

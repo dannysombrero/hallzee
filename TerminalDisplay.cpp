@@ -470,10 +470,10 @@ void TerminalDisplay::drawClock(const String &time) {
   display.print(time);
   return;
   }
-  display.fillRect(102, 7, 53, 11, UI_NAVY);
+  display.fillRect(102, 1, 53, 11, UI_NAVY);
   display.setTextColor(DISPLAY_WHITE);
   display.setTextSize(1);
-  display.setCursor(104, 8);
+  display.setCursor(104, 2);
   display.print(time);
 }
 
@@ -523,8 +523,8 @@ void TerminalDisplay::drawIdleScreen(const String &currentOutId, const String &e
   display.println("HALLZEE");
   display.setTextColor(UI_FIELD);
   display.setFont(DisplayFont::DMSansRegular6);
-  display.setCursor(12, 31);
-  display.println("T E R M I N A L");
+  display.setCursor(12, 29);
+  drawTerminalLabel();
   display.setTextColor(UI_TEXT);
 
   const bool available = currentOutId.length() == 0;
@@ -573,7 +573,7 @@ void TerminalDisplay::drawIdleScreen(const String &currentOutId, const String &e
   display.println("HALLZEE");
   display.setTextColor(UI_BACKGROUND);
   display.setCursor(9, 14);
-  display.println("TERMINAL");
+  drawTerminalLabel();
 
   const uint16_t stateColor = currentOutId.length() == 0 ? UI_GREEN : UI_RED;
   display.fillRoundRect(8, 28, 144, 31, 6, UI_PANEL);
@@ -652,8 +652,8 @@ void TerminalDisplay::drawClockSetupScreen(ClockSetupStep step, const String &en
       display.println("HALLZEE");
       display.setTextColor(UI_FIELD);
       display.setFont(DisplayFont::DMSansRegular6);
-      display.setCursor(12, 31);
-      display.println("T E R M I N A L");
+      display.setCursor(12, 29);
+      drawTerminalLabel();
       display.setTextColor(DISPLAY_WHITE);
       display.setFont(DisplayFont::DMSansBold9);
       display.setCursor(187, 24);
@@ -664,6 +664,10 @@ void TerminalDisplay::drawClockSetupScreen(ClockSetupStep step, const String &en
       display.setCursor(12, 56);
       display.println("SET DATE & TIME");
 
+      display.setFont(DisplayFont::DMSansRegular6);
+      display.setCursor(12, 120);
+      display.println("Pair: hold * + # for 5 seconds");
+      display.setFont(DisplayFont::DMSansBold9);
       display.setCursor(12, 146);
       display.println("ENTER VALUE");
 
@@ -730,6 +734,8 @@ void TerminalDisplay::drawClockSetupScreen(ClockSetupStep step, const String &en
   display.fillRoundRect(10, 77, 140, 23, 4, UI_PANEL_DARK);
   display.setCursor(10, 114);
   display.print("* CLEAR");
+  display.setCursor(10, 103);
+  display.println("Pair: * + # for 5s");
   display.setCursor(106, 114);
   display.print("# NEXT");
   drawClockSetupEntry(entry);
@@ -782,27 +788,43 @@ void TerminalDisplay::showClockSet(const String &date, const String &time) {
 }
 
 void TerminalDisplay::showPairing(
-  const String &suffix,
+  const String &terminalId,
+  const String &name,
   uint32_t passkey
 ) {
   prepareScreenTransition(UI_BACKGROUND);
+  display.setFont(DisplayFont::BuiltIn);
+  display.setTextWrap(false);
+  const bool large = display.isNative320x240();
   display.setTextColor(UI_TEXT);
   display.setTextSize(2);
-  display.setCursor(10, 8);
+  display.setCursor(10, large ? 16 : 6);
   display.println("PAIRING");
   display.setTextSize(1);
-  display.setCursor(10, 29);
-  display.print("Hallzee-");
-  display.println(suffix);
-  display.setCursor(10, 49);
+  display.setCursor(10, large ? 52 : 28);
+  display.println(name);
+  display.setCursor(10, large ? 72 : 43);
+  display.print("ID: ");
+  display.println(terminalId);
+  display.setCursor(10, large ? 105 : 62);
   display.println("ENTER THIS PASSKEY");
-  display.setTextSize(2);
-  display.setCursor(10, 68);
-  if (passkey < 100000) display.print("0");
-  display.println(String(passkey));
-  display.setCursor(10, 101);
+  display.setTextSize(large ? 3 : 2);
+  display.setCursor(10, large ? 130 : 78);
+  String digits = String(passkey);
+  while (digits.length() < 6) digits = String("0") + digits.c_str();
+  display.println(digits);
   display.setTextSize(1);
+  display.setCursor(10, large ? 192 : 108);
   display.println("Enter passkey in app");
+}
+
+void TerminalDisplay::drawTerminalLabel() {
+  display.setFont(DisplayFont::BuiltIn);
+  display.setTextSize(1);
+  // The full name is visible in pairing; abbreviate only the narrow header.
+  display.print("Terminal: ");
+  const unsigned int limit = 15;
+  display.println(friendlyName.length() > limit ? friendlyName.substring(0, limit - 3) + "..." : friendlyName);
 }
 
 void TerminalDisplay::showPairingComplete(const String &suffix) {

@@ -25,7 +25,7 @@ records locally and can synchronize them to a desktop receiver over Bluetooth Lo
 
 ## Getting started, contributor guides & design documentation
 
-- [Getting started: normal users](docs/getting-started-users.md) — Download the latest Universal app, pair a terminal, and sync trips.
+- [Getting started: normal users](docs/getting-started-users.md) — Download the app, pair a terminal, add students, share workspace settings, and sync trips.
 - [Getting started: developers](docs/getting-started-developers.md) — Set up a clean computer, wire/flash hardware, run the app locally, and test changes.
 - [Installation and testing guide](docs/testing-and-installation.md) — Detailed hardware wiring, Mac vs. Windows verification rules, and one-command bootstraps.
 - **Level 1 (PRD):** [Product & Requirements Document](docs/product-requirements.md) — Product vision, personas, classroom workflows, and FERPA privacy boundaries.
@@ -56,8 +56,15 @@ also documented there and mirrored in `Config.h` and [WOKWI.md](WOKWI.md).
 
 ## Firmware build
 
-The firmware targets the original ESP32 family with Bluetooth Low Energy
-available. Install the ESP32 Arduino core and these libraries:
+Extract or clone the project anywhere, then open Terminal (macOS) or PowerShell
+(Windows) in the **project root**: the folder containing this README,
+`bathroom-signin.ino`, and `scripts/`. All commands use paths relative to that
+folder. See the [installation guide](docs/testing-and-installation.md#first-day-start-from-nothing)
+for opening a terminal in the right folder.
+
+The firmware targets the original ESP32 family with Bluetooth Low Energy.
+The platform scripts install Arduino CLI, the ESP32 board package, and these
+libraries automatically:
 
 - Adafruit GFX Library
 - Adafruit ST7735 and ST7789 Library

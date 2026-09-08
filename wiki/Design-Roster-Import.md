@@ -1,5 +1,13 @@
 # Feature Design: Student Roster Import & ID Enrichment
 
+## Manual roster entry
+
+The roster modal also accepts a numeric student ID, name, and optional grade
+and class/period. `RosterService.AddStudent` trims input, preserves leading
+zeros, requires an identity/name, and rejects an existing ID in that workspace.
+It uses the same student/enrollment storage as CSV import. Switching workspaces
+refreshes the roster immediately.
+
 **Status:** Implemented
 
 **Target Milestone:** Delivered

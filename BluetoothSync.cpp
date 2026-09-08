@@ -64,7 +64,8 @@ void BluetoothSync::notifyCompletedTrip(const String &record) {
 void BluetoothSync::begin() {
   String advertisedName = BLUETOOTH_DEVICE_NAME;
 #ifdef ARDUINO
-  if (identity) advertisedName = identity->advertisedName();
+  advertisedInUse = security && security->hasOwner();
+  if (identity) advertisedName = identity->advertisedName(advertisedInUse);
 #endif
   ready = serial.begin(advertisedName.c_str());
 
@@ -79,10 +80,10 @@ void BluetoothSync::begin() {
 
 void BluetoothSync::updateAvailability(bool inUse) {
 #ifdef ARDUINO
+  inUse = inUse || (security && security->hasOwner());
   if (!identity || advertisedInUse == inUse) return;
-  advertisedInUse = inUse;
   String advertisedName = identity->advertisedName(inUse);
-  serial.setDeviceName(advertisedName.c_str());
+  if (serial.setDeviceName(advertisedName.c_str())) advertisedInUse = inUse;
 #else
   (void)inUse;
   (void)advertisedInUse;
@@ -300,7 +301,7 @@ bool BluetoothSync::processAuthorizedIdentityCommand(const String &command) {
   if (!command.startsWith(prefix)) return false;
   const String requestedName = command.substring(prefix.length());
   if (!TerminalIdentity::isValidCustomName(requestedName) ||
-      !serial.setDeviceName(requestedName.c_str()) ||
+      !serial.setDeviceName((advertisedInUse ? requestedName.substring(0, 23) + "-INUSE" : requestedName).c_str()) ||
       !identity->setCustomName(requestedName)) {
     serial.println("SETTINGS_ERROR,TERMINAL_NAME,INVALID_VALUE");
     return true;

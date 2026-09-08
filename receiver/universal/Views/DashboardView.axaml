@@ -6,6 +6,8 @@
   <ScrollViewer VerticalScrollBarVisibility="Auto">
     <StackPanel Margin="24,20" Spacing="20" MaxWidth="1100">
 
+      <TextBlock Text="{Binding CheckInError}" IsVisible="{Binding HasCheckInError}" TextWrapping="Wrap" Foreground="#DC2626" />
+
       <!-- HERO ACTIVE PASS CARD -->
       <Border Background="{Binding ActivePass.HeroCardBackground}" BorderBrush="{Binding ActivePass.HeroCardBorderBrush}" BorderThickness="2" CornerRadius="22" BoxShadow="0 4 20 0 #0D000000" Padding="20">
         <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">

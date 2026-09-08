@@ -1,5 +1,22 @@
 # Feature Design: Classroom Policies & Bell Schedules
 
+## Workspace transfer
+
+**Export Workspace** saves current edits and writes a versioned
+`Hallzee Workspace` JSON package containing the workspace name, policy rule,
+bell schedule templates with class sections, and date exceptions. Student
+rosters, trip history, terminal assignments, and owner credentials are omitted.
+**Import Workspace** validates the format/version, rule values, times, days,
+and exceptions, then writes a new workspace in one SQLite transaction. Profile,
+rule, schedule, and exception identifiers are regenerated. Existing workspaces
+are preserved; the imported workspace is selected for review. Applying settings
+to connected hardware remains the **Save Workspace Settings** action.
+
+The mini window displays **WINDOW OPEN** in green for allowed/Warn windows,
+**WINDOW CLOSED** for Lock windows or no active period, and **PASS IN USE** in
+orange whenever a pass is occupied. A zero-minute window is disabled and
+intersecting windows use the stricter action.
+
 **Status:** Implemented; physical kiosk validation remains
 
 **Target Milestone:** Delivered

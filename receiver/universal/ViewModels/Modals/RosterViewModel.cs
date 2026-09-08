@@ -143,6 +143,27 @@ public sealed class RosterViewModel : INotifyPropertyChanged {
     }
   }
 
+  string newStudentId = "", newFirstName = "", newLastName = "", newGrade = "", newPeriod = "";
+  public string NewStudentId { get => newStudentId; set { newStudentId = value; OnPropertyChanged(); } }
+  public string NewFirstName { get => newFirstName; set { newFirstName = value; OnPropertyChanged(); } }
+  public string NewLastName { get => newLastName; set { newLastName = value; OnPropertyChanged(); } }
+  public string NewGrade { get => newGrade; set { newGrade = value; OnPropertyChanged(); } }
+  public string NewPeriod { get => newPeriod; set { newPeriod = value; OnPropertyChanged(); } }
+
+  public bool AddStudent(string profileId) {
+    try {
+      rosterService.AddStudent(new RosterStudent(NewStudentId, profileId, NewFirstName, NewLastName, NewGrade, NewPeriod));
+      NewStudentId = NewFirstName = NewLastName = NewGrade = NewPeriod = "";
+      Refresh(profileId);
+      ImportStatusMessage = "Student added.";
+      ImportStatusColor = "#10B981";
+      return true;
+    } catch (Exception ex) {
+      SetErrorMessage(ex.Message);
+      return false;
+    }
+  }
+
   public void Refresh(string profileId) {
     var list = rosterService.GetRoster(profileId);
     Students.Clear();

@@ -230,6 +230,7 @@ public class MacAgentTerminalConnection : ITerminalConnection
                             ? parsedRssi
                             : (int?)null;
                         if (id != null) {
+                            discoveredDevices.RemoveAll(device => device.Id == id);
                             discoveredDevices.Add(new TerminalDevice(id, name ?? "Hallzee", false, inUse, rssi));
                         }
                         break;

@@ -103,7 +103,8 @@ void KeypadController::processEvents() {
 }
 
 void KeypadController::checkResetCombo() {
-  if (isSetupMode() && (!isOwnerResetAllowed || !isOwnerResetAllowed())) {
+  if (isSetupMode() && (!isOwnerResetAllowed || !isOwnerResetAllowed()) &&
+      (!isPairingAllowed || !isPairingAllowed())) {
     return;
   }
 

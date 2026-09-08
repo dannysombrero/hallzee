@@ -437,7 +437,7 @@ public sealed class PolicyViewModel : INotifyPropertyChanged {
 
   public string StatusMessage {
     get => statusMessage;
-    private set { statusMessage = value; OnPropertyChanged(); }
+    set { statusMessage = value; OnPropertyChanged(); }
   }
 
   bool isEarliestFirst = true;

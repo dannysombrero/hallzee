@@ -28,6 +28,30 @@ public sealed class RosterViewModelTests : IDisposable {
   }
 
   [Fact]
+  public void ManualAddPreservesLeadingZerosAndRejectsDuplicateOrInvalidIds() {
+    viewModel.NewStudentId = " 001234 ";
+    viewModel.NewFirstName = " Avery ";
+    viewModel.NewLastName = "Chen";
+    viewModel.NewGrade = "7";
+    viewModel.NewPeriod = "Period 2";
+    Assert.True(viewModel.AddStudent("default"));
+    var student = Assert.Single(rosterService.GetRoster("default"));
+    Assert.Equal("001234", student.StudentId);
+    Assert.Equal("Avery Chen", student.FullName);
+    Assert.Equal("Period 2", student.ClassPeriod);
+    viewModel.NewStudentId = "001234";
+    viewModel.NewFirstName = "Different";
+    Assert.False(viewModel.AddStudent("default"));
+    Assert.Equal("Avery Chen", rosterService.LookupStudent("default", "001234")!.FullName);
+    viewModel.NewStudentId = "12,34";
+    Assert.False(viewModel.AddStudent("default"));
+    viewModel.NewStudentId = "9999";
+    viewModel.NewFirstName = "";
+    Assert.False(viewModel.AddStudent("default"));
+    Assert.Single(rosterService.GetRoster("default"));
+  }
+
+  [Fact]
   public void TwoPhaseImportFlowPreviewsAndImportsSuccessfully() {
     var csvPath = Path.Combine(Path.GetDirectoryName(tempDbPath)!, "test_roster.csv");
     File.WriteAllText(csvPath, """

@@ -5,7 +5,7 @@
         x:Class="BathroomSync.Universal.MainWindow"
         x:DataType="vm:MainViewModel"
         Width="1120" Height="740" MinWidth="940" MinHeight="640"
-        Title="Hallzee Desktop Client · Room 204 • Period 3 (Chemistry AP)">
+        Title="{Binding WindowTitle}">
   
   <Window.Background>
     <ImageBrush Source="avares://HallzeeSync.Universal/Assets/background.jpg" Stretch="UniformToFill" AlignmentX="Left" AlignmentY="Center" />

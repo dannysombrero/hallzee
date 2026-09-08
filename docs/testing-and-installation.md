@@ -3,6 +3,40 @@
 This guide explains which checks can be done on a Mac and which require a
 Windows PC.
 
+## Roster, workspace sharing, and terminal UI checks
+
+Mac testing is sufficient for manual roster entry, workspace import/export,
+activity deduplication, mini-window status, title binding, and shared UI tests.
+A physical ESP32 is required to verify pairing from all six date/time steps,
+full identity/name rendering, and discovery updates after claim, reset, and
+rename. Flash the updated firmware for the claimed-terminal discovery change.
+A Windows PC is required to verify the WinRT advertisement/scan-response merge,
+Windows native file dialogs and title bar, and owner reconnect through Windows
+Bluetooth. Those Windows-specific behaviors have not yet been verified on a
+physical Windows PC.
+
+1. Add a student with a leading-zero ID, name, grade, and class/period; restart
+   and confirm it persists. A repeated ID must show an error without replacing
+   the student. Switch workspaces and confirm the roster changes.
+2. Export a workspace with Warn/Lock rules, multiple schedule templates, and
+   date exceptions. Import it twice; each import must create a separate
+   workspace with matching settings and no roster, trips, or terminal claim.
+   Invalid files must leave existing workspaces intact.
+3. Check in a terminal pass from the desktop, then sync again. Recent Activity
+   must contain one completed record. Teacher-started passes still save locally.
+4. Mini Window shows green **WINDOW OPEN** when allowed, **WINDOW CLOSED** when
+   locked or outside a period, and orange **PASS IN USE** when a student is out.
+5. Find Nearby Terminals shows **Signal Strength:** followed by four ascending
+   bars, the quality label, and RSSI in dBm. Excellent fills four bars, Good
+   three, Fair two, and Weak one; unavailable readings leave all bars gray.
+   The selected row remains blue. Claimed terminals show
+   **IN USE** even without an active pass; their remembered owner can reconnect.
+6. From date/time setup, hold `*` + `#` for five seconds on an unclaimed terminal.
+   Pairing shows the full ID, friendly name, and six-digit passkey. Release the
+   keys; the clock entry must remain intact if pairing expires.
+7. Rename the terminal and confirm its **Terminal: [name]** header, discovery
+   name, and OS title **Hallzee Desktop Client · terminal name** update.
+
 ## Automatic reconnect verification
 
 After completing the first Bluetooth claim on a Windows PC, close and reopen
@@ -49,8 +83,17 @@ before enabling **Erase All Flash Before Sketch Upload** in Arduino IDE.
 
 You do not need Git, Arduino, .NET, or any project libraries installed in
 advance. First open the project on GitHub, choose **Code → Download ZIP**, and
-unzip it in your Downloads folder. Plug the ESP32 terminal into your computer
-before using the Mac command below. The commands download the required build
+unzip it anywhere on your computer. All commands below run from the **project
+root**: the extracted folder containing `README.md`, `bathroom-signin.ino`,
+and `scripts/`. Its name and location do not matter.
+
+Open a terminal in that folder before pasting a command. On macOS, select the
+folder in Finder and choose **Services → New Terminal at Folder** from its
+context menu. On Windows, open the folder in File Explorer and choose
+**Open in Terminal** (using a PowerShell tab). If you already have the project
+open in an editor, use its integrated terminal at the project root.
+
+Plug in the ESP32 before flashing. The scripts download the required build
 tools automatically.
 
 ## Hardware you should have
@@ -151,10 +194,10 @@ the firmware; it is not derived from the USB port name.
 
 ### Flash the terminal from a Mac
 
-Open **Terminal**, paste this one command, and press Return:
+From the project root in **Terminal**, paste this command and press Return:
 
 ```sh
-bash "$HOME/Downloads/hallzee-mono-main/scripts/flash-terminal-macos.sh"
+bash scripts/flash-terminal-macos.sh
 ```
 
 The script downloads Arduino CLI, ESP32 board support, and required libraries,
@@ -165,7 +208,7 @@ unplug the others and run the same command again.
 For the red 240×320 ILI9341 module, run this instead:
 
 ```sh
-bash "$HOME/Downloads/hallzee-mono-main/scripts/flash-terminal-macos.sh" --display ili9341
+bash scripts/flash-terminal-macos.sh --display ili9341
 ```
 
 The standard enclosure mounts the display right-side up with default settings.
@@ -177,11 +220,10 @@ then pass the matching path as the final argument, for example
 
 ### Flash the terminal from Windows
 
-After downloading and unzipping the project, plug in the ESP32, open
-**PowerShell**, and run:
+Plug in the ESP32, open **PowerShell** in the project root, and run:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File "$HOME\Downloads\hallzee-mono-main\scripts\flash-terminal-windows.ps1"
+powershell -ExecutionPolicy Bypass -File scripts/flash-terminal-windows.ps1
 ```
 
 The same requirements apply: use a USB **data** cable, connect only one USB
@@ -191,14 +233,14 @@ It installs the Arduino tools, board support, and libraries automatically.
 For the red 240×320 ILI9341 module:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File "$HOME\Downloads\hallzee-mono-main\scripts\flash-terminal-windows.ps1" -Display ili9341
+powershell -ExecutionPolicy Bypass -File scripts/flash-terminal-windows.ps1 -Display ili9341
 ```
 
 If more than one serial device is listed, open **Device Manager → Ports
 (COM & LPT)**, identify the ESP32's `COM` number, and supply it explicitly:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File "$HOME\Downloads\hallzee-mono-main\scripts\flash-terminal-windows.ps1" -Port COM5
+powershell -ExecutionPolicy Bypass -File scripts/flash-terminal-windows.ps1 -Port COM5
 ```
 
 Combine `-Port COM5 -Display ili9341` when needed. Add `-Rotation 3` when the
@@ -225,14 +267,14 @@ This still needs no connected terminal and does not erase or replace firmware.
 
 ### Build the Windows desktop app from a Windows PC
 
-Open **PowerShell**, paste this one command, and press Enter:
+From the project root in **PowerShell**, paste this command and press Enter:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File "$HOME\Downloads\hallzee-mono-main\scripts\build-windows-client.ps1"
+powershell -ExecutionPolicy Bypass -File scripts/build-windows-client.ps1
 ```
 
 The script downloads the .NET 8 build tools, then creates the Windows app in
-the downloaded project’s `artifacts\BathroomSync-Windows` folder. Open that
+the project’s `artifacts\BathroomSync-Windows` folder. Open that
 folder and run `HallzeeSync.Universal.exe`.
 
 ### Download the latest ready-to-run Windows app
@@ -397,8 +439,8 @@ sure the ESP32 terminal is powered on, then use the desktop app to find and
 sync `Hallzee-XXXX`. Initial ownership requires holding `*` and `#` on an
 unclaimed, unoccupied terminal for five seconds, releasing both keys, and
 entering the displayed six-digit Bluetooth passkey. One continuous key hold
-starts only one pairing session. A kiosk with an active checkout advertises `INUSE`
-and is shown as **In Use**. The remembered owner may reconnect and authenticate
+starts only one pairing session. A claimed kiosk or one with an active checkout advertises `INUSE`
+and is shown as **IN USE**. The remembered owner may reconnect and authenticate
 without the pairing passkey; a different client cannot claim or connect to it.
 Do not treat the advertised name or BLE address as proof of terminal identity.
 

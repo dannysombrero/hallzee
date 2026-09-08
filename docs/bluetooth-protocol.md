@@ -77,6 +77,7 @@ the retry a safe duplicate and ACKs it again.
 | `MANUAL_CHECKIN` | Teacher check-in of the active pass; records the completed trip with status `MANUAL` |
 | `SET,MAX_ID_LENGTH,<4-16>` | Persist the maximum accepted student-ID length |
 | `SET,MAX_ACTIVE_PASSES,<1-8>` | Persist the maximum number of simultaneous active passes; the oldest active pass remains the client-visible pass |
+| `RELEASE_OWNER` | Authenticated owner-only unpair; rejects active passes, preserves trips/settings/identity, and clears owner state and terminal BLE bonds |
 | `SET,TERMINAL_NAME,<name>` | Persist and advertise a validated 1–24 character kiosk name |
 | `POLICY_BEGIN,<0\|1>` | Begin an atomic offline bell-policy update; `0` disables terminal enforcement |
 | `POLICY_WINDOW,<YYYYMMDD>,<start>,<end>,<first_end>,<last_start>,<first_action>,<last_action>` | Stage one resolved dated window; minutes are after midnight and action values are Allow=0, Warn=1, Lock=2 |
@@ -97,6 +98,7 @@ Carriage returns are ignored.
 | `IDENTITY,2,<terminal_id>,<suffix>,<UNCLAIMED\|CLAIMED>,<AVAILABLE\|IN_USE>,<nonce>` | Stable terminal identity, availability, and fresh handshake challenge |
 | `CLAIM_OK,2,<terminal_id>,<commit_nonce>` | Claim proof accepted; desktop may store its derived credential |
 | `AUTH_OK,2,<terminal_id>,<custom_name>` | Ownership committed and application commands are authorized |
+| `OWNER_RELEASED` | Owner release succeeded; the client may remove its saved owner credential and workspace assignments before disconnecting |
 | `IDENTITY_INFO,2,<terminal_id>,<custom_name>` | Authenticated identity reread |
 | `SETTINGS,MAX_ID_LENGTH,<value>` | Current persisted maximum student-ID length |
 | `SETTINGS_ACK,MAX_ID_LENGTH,<value>` | Setting was saved successfully |
@@ -118,6 +120,9 @@ Carriage returns are ignored.
 | `ACK_ERROR,INVALID_ID` | ACK did not contain a numeric ID |
 | `ACK_ERROR,UNEXPECTED_ID` | ACK did not match the pending trip |
 | `ACK_ERROR,MARK_FAILED` | Legacy unsynced mode could not persist its sync flag |
+| `ERROR,ACTIVE_PASS` | Owner release refused while a student pass is active |
+| `ERROR,OWNER_RELEASE_FAILED` | Owner release could not be persisted |
+| `ERROR,UNSUPPORTED_COMMAND` | Owner-release handler is unavailable |
 | `ERROR,UNKNOWN_COMMAND` | Command was not recognized |
 | `ERROR,AUTH_REQUIRED` | Application command arrived before authorization |
 | `ERROR,AUTH_FAILED_CLAIM` | Initial claim proof was malformed or invalid |
@@ -129,6 +134,23 @@ Carriage returns are ignored.
 | `ERROR,ALREADY_CLAIMED` | A claim was attempted against an owned terminal |
 | `ERROR,TERMINAL_IN_USE` | The kiosk currently has an active checkout and cannot accept a new claim; its authenticated owner may still reconnect |
 | `ERROR,UPGRADE_REQUIRED` | Legacy protocol is not accepted by the secured firmware |
+
+## Owner release
+
+`RELEASE_OWNER` passes the same authenticated-session gate as settings writes.
+The firmware refuses it while any pass is active, clears owner authorization,
+and sends `OWNER_RELEASED`. It allows up to 500 ms for the acknowledgement to
+leave before disconnecting and clearing terminal-side BLE bonds (or cleans up
+sooner if the client disconnects). The terminal ID, friendly name, settings, and
+trip history remain. A new owner must enter physical pairing mode.
+
+The desktop waits for that exact response before deleting its owner credential
+and workspace assignments. On rejection, timeout, or connection failure, it
+keeps the saved credential and reports that release was not confirmed. If the
+ACK was lost after firmware released ownership, local and terminal state may
+need recovery via a fresh physical claim. Ordinary connection loss/close keeps
+ownership and supports reconnect. OS-side cached Bluetooth entries are not
+removed by this protocol.
 
 ## Kiosk settings
 

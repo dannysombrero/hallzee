@@ -37,6 +37,31 @@ physical Windows PC.
 7. Rename the terminal and confirm its **Terminal: [name]** header, discovery
    name, and OS title **Hallzee Desktop Client · terminal name** update.
 
+## Device settings and unpair verification
+
+Mac testing is sufficient for the shared status/ID UI, explicit rename controls,
+and automated release success/failure tests. A physical ESP32 with the updated
+firmware is required to verify owner removal, acknowledgement delivery, and a
+fresh physical claim. A Windows PC is required to verify the Windows-specific
+WinRT BLE disconnect, terminal bond removal/re-pair interaction, and Windows
+credential-vault cleanup. These Windows behaviors have not yet been verified on
+physical hardware; compiling both firmware profiles is not a hardware test.
+
+1. Open **Settings → Device**. Confirm status is readable while connected,
+   syncing, reconnecting, and offline. Match the selectable unique ID to the
+   terminal's pairing screen.
+2. Click the name's pencil icon. Cancel must keep the original name. Save must
+   update the terminal, desktop title, and remembered name after its ACK.
+   **Apply ID Limit** must not save a pending name edit.
+3. Confirm **Disconnect & Unpair** shows its notice and is disabled while
+   disconnected, syncing, saving, or a pass is active.
+4. With no active passes, unpair. Confirm the app disconnects, retains trip
+   history, and does not auto-reconnect after an app restart. The terminal should
+   advertise as available and allow a new five-second pairing gesture/passkey.
+5. Pair again, including from another computer. If the OS retains a stale bond,
+   forget/remove its Bluetooth entry before retrying. An unsupported release on
+   old firmware must report failure without deleting the saved owner credential.
+
 ## Automatic reconnect verification
 
 After completing the first Bluetooth claim on a Windows PC, close and reopen

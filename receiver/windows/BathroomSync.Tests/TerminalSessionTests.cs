@@ -127,6 +127,27 @@ public sealed class TerminalSessionTests {
     Assert.Contains(connection.SentCommands, command => command.StartsWith("CLAIM_COMMIT,2,", StringComparison.Ordinal));
   }
 
+  [Fact]
+  public async Task AuthorizedRequestRequiresExactCompleteAckAndKeepsKeyOnCancellation() {
+    var connection = new FakeTerminalConnection(claimed: true);
+    var credentials = new InMemoryTerminalCredentialStore();
+    credentials.SaveOwnerKey(TerminalId, TerminalIdentityProtocol.DeriveOwnerKey("807481", TerminalId, ClientId));
+    using var session = new TerminalSession(connection, credentials, ClientId);
+    await Assert.ThrowsAsync<InvalidOperationException>(() => session.RequestAuthorizedAsync("RELEASE_OWNER", "OWNER_RELEASED"));
+    await session.OpenAsync(new TerminalDevice("transport-1", "Hallzee", true));
+    await session.AuthenticateAsync();
+    var request = session.RequestAuthorizedAsync("RELEASE_OWNER", "OWNER_RELEASED");
+    connection.Emit("SETTINGS_ACK,MAX_ID_LENGTH,10\nOWNER_RELE");
+    Assert.False(request.IsCompleted);
+    connection.Emit("ASED\n");
+    await request;
+    using var cancellation = new CancellationTokenSource();
+    request = session.RequestAuthorizedAsync("RELEASE_OWNER", "OWNER_RELEASED", cancellation.Token);
+    cancellation.Cancel();
+    await Assert.ThrowsAnyAsync<OperationCanceledException>(() => request);
+    Assert.True(credentials.TryGetOwnerKey(TerminalId, out _));
+  }
+
   sealed class FakeTerminalConnection : ITerminalConnection {
     readonly bool claimed;
     readonly bool inUse;

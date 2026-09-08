@@ -415,6 +415,20 @@ public sealed class ProfileAndPolicySqliteRepository : IProfileRepository, IPoli
     command.ExecuteNonQuery();
   }
 
+  public void ForgetTerminalPairing(string terminalId) {
+    using var connection = OpenConnection();
+    using var transaction = connection.BeginTransaction();
+    using var command = connection.CreateCommand();
+    command.Transaction = transaction;
+    command.CommandText = """
+      DELETE FROM profile_terminal_assignments WHERE terminal_id = $id;
+      UPDATE terminals SET claim_status = 'UNCLAIMED', transport_id = NULL, ble_address = NULL WHERE terminal_id = $id;
+      """;
+    command.Parameters.AddWithValue("$id", terminalId);
+    command.ExecuteNonQuery();
+    transaction.Commit();
+  }
+
   public void DeleteTerminal(string terminalId) {
     using var connection = OpenConnection();
     using var command = connection.CreateCommand();

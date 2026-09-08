@@ -17,6 +17,7 @@ public:
   using ActivePassListProvider = uint8_t (*)(ActiveCheckout *checkouts, uint8_t maximum);
   using ManualCheckInHandler = bool (*)(const String &studentId);
   using CapacitySetter = bool (*)(uint8_t);
+  using OwnerReleaseHandler = bool (*)();
 
   BluetoothSync(
     TripStoragePort &tripStorage,
@@ -37,6 +38,7 @@ public:
   }
 
   void begin();
+  void setOwnerReleaseHandler(OwnerReleaseHandler handler) { ownerReleaseHandler = handler; }
   void poll();
   void updateAvailability(bool inUse);
 
@@ -70,6 +72,7 @@ private:
   String commitNonce;
   unsigned long authorizationStartedAt = 0;
   bool advertisedInUse = false;
+  OwnerReleaseHandler ownerReleaseHandler = nullptr;
 
   void updateConnection();
   void processCommands();

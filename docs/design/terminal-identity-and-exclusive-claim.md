@@ -366,6 +366,7 @@ After AUTH_OK, existing commands retain their meanings. Add:
 
 | Command | Response | Meaning |
 | --- | --- | --- |
+| RELEASE_OWNER | OWNER_RELEASED | Authenticated owner releases pairing while no passes are active; terminal disconnects and clears BLE bonds after acknowledging. |
 | GET_IDENTITY | IDENTITY_INFO,2,<terminal_id>,<custom_name> | Re-read authenticated identity. |
 | SET,TERMINAL_NAME,<name> | SETTINGS_ACK,TERMINAL_NAME,<name> | Persist and advertise a validated custom name. |
 
@@ -618,8 +619,19 @@ seconds afterward starts the normal unclaimed pairing mode. This path preserves
 trips, settings, the terminal name, and the stable terminal ID. It must not be
 available while a student is checked out.
 
-There is no BLE ownership-reset command. A later transfer feature may add an
-owner-authorized transfer window, but it is outside this design.
+The authenticated BLE `RELEASE_OWNER` command is exposed by **Settings → Device
+→ Disconnect & Unpair**. It rejects active passes, clears owner state, and sends
+`OWNER_RELEASED` before a delayed disconnect and terminal bond cleanup (up to
+500 ms). Only after that response does the desktop delete its owner credential,
+remove every workspace assignment to this terminal, and mark its retained
+terminal row unclaimed without deleting trips. Failed/unconfirmed requests keep
+the local credential. Ordinary disconnects retain ownership. OS-side Bluetooth
+entries can remain and may need Forget/Remove before a fresh claim.
+
+Device settings shows connection status and the stable ID. Renaming starts via
+a pencil icon with Save/Cancel controls; the client persists the new name only
+after the matching `SETTINGS_ACK`. Applying the ID limit does not rename the
+terminal or overwrite its saved claim/transport metadata.
 
 ---
 
@@ -1106,7 +1118,7 @@ Tasks:
    start, or a documented bond-repair operation. Never clear a claimed owner's
    bond during ordinary boot or disconnect.
 4. Continue rejecting `CLAIM` while claimed. Reassignment requires the physical
-   10-second owner reset while unoccupied.
+   10-second owner reset or authenticated **Disconnect & Unpair** while unoccupied.
 5. Keep the 10-second unauthenticated-session timeout, but restart it for each
    new GATT connection and allow immediate subsequent owner reconnect attempts.
 6. Ensure `AUTH_OK` always includes a valid non-empty custom/advertised name.

@@ -42,6 +42,22 @@ public partial class TerminalSettingsModalView : UserControl {
     }
   }
 
+  void OnEditNameClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm && vm.CanEditDevice) vm.TerminalSettingsModal.BeginNameEdit();
+  }
+
+  void OnCancelNameClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) vm.TerminalSettingsModal.CancelNameEdit();
+  }
+
+  async void OnSaveNameClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) await vm.SaveTerminalNameAsync();
+  }
+
+  async void OnDisconnectAndUnpairClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) await vm.DisconnectAndUnpairAsync();
+  }
+
   async void OnApplyClick(object? sender, RoutedEventArgs e) {
     if (DataContext is MainViewModel vm) {
       await vm.ApplyTerminalSettingsAsync();

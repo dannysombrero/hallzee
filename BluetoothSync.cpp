@@ -583,6 +583,19 @@ void BluetoothSync::processCommands() {
         }
         if (!isAuthorized()) {
           processAuthenticationCommand(commandBuffer);
+        } else if (commandBuffer == "RELEASE_OWNER") {
+          String activeId;
+          uint32_t checkoutEpoch = 0;
+          if (activePassProvider && activePassProvider(activeId, checkoutEpoch)) {
+            serial.println("ERROR,ACTIVE_PASS");
+          } else if (!ownerReleaseHandler) {
+            serial.println("ERROR,UNSUPPORTED_COMMAND");
+          } else if (!ownerReleaseHandler()) {
+            serial.println("ERROR,OWNER_RELEASE_FAILED");
+          } else {
+            authorizationStartedAt = 0;
+            serial.println("OWNER_RELEASED");
+          }
         } else if (processAuthorizedIdentityCommand(commandBuffer)) {
           // Identity command handled.
         } else if (commandBuffer == "HELLO,1") {

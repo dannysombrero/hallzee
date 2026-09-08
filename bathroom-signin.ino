@@ -122,6 +122,7 @@ void drawIdleScreen();
 void transitionToIdle(bool clearEnteredId = true);
 
 bool pairingUiActive = false;
+String displayedFriendlyName;
 
 bool isPairingAllowed() {
   return !terminal.hasActivePass() && !terminalSecurity.hasOwner();
@@ -161,7 +162,8 @@ void startPairingMode() {
   }
   bluetoothSerial.setPairingPasskey(terminalSecurity.pairingPasskey());
   pairingUiActive = true;
-  terminalDisplay.showPairing(terminalIdentity.terminalSuffix(),
+  terminalDisplay.showPairing(terminalIdentity.terminalId(),
+                              terminalIdentity.customName(),
                               terminalSecurity.pairingPasskey());
 }
 
@@ -246,6 +248,7 @@ void updateClockIfNeeded() {
 // ======================================================
 
 void drawIdleScreen() {
+  terminalDisplay.setFriendlyName(terminalIdentity.customName());
   terminalDisplay.drawIdleScreen(terminal.activeId(), enteredID);
   lastDisplayedBluetoothState = bluetoothSerial.hasClient();
   terminalDisplay.drawBluetoothStatus(lastDisplayedBluetoothState);
@@ -257,7 +260,8 @@ void transitionToIdle(bool clearEnteredId) {
   if (clearEnteredId) {
     enteredID = "";
   }
-  drawIdleScreen();
+  if (setupMode) terminalDisplay.drawClockSetupScreen(setupStep, setupEntry);
+  else drawIdleScreen();
 }
 
 // ======================================================
@@ -560,6 +564,7 @@ void processSetupEntry() {
 // ======================================================
 
 void handleSetupKey(char key) {
+  if (pairingUiActive) return;
 
   if (key >= '0' && key <= '9') {
 
@@ -703,6 +708,7 @@ void submitID() {
   }
 }
 void handleNormalNumber(char key) {
+  if (pairingUiActive) return;
 
   if (enteredID.length() < tripStorage.getMaxStudentIdLength()) {
     Serial.print("Key pressed: ");
@@ -720,6 +726,7 @@ void handleNormalNumber(char key) {
 // ======================================================
 
 void handleSingleStar() {
+  if (pairingUiActive) return;
 
   enteredID = "";
 
@@ -731,7 +738,7 @@ void handleSingleStar() {
 // HANDLE SINGLE # RELEASE
 // ======================================================
 
-void handleSingleHash() { submitID(); }
+void handleSingleHash() { if (!pairingUiActive) submitID(); }
 
 // ======================================================
 // SERIAL DIAGNOSTIC COMMANDS
@@ -788,6 +795,8 @@ void setup() {
   Serial.println("Hallzee Starting...");
 
   const bool identityStorageReady = terminalIdentity.begin();
+  displayedFriendlyName = terminalIdentity.customName();
+  terminalDisplay.setFriendlyName(displayedFriendlyName);
   const bool securityStorageReady = terminalSecurity.begin();
   if (!identityStorageReady || !securityStorageReady) {
     Serial.println("ERROR: terminal identity/security storage unavailable.");
@@ -927,11 +936,16 @@ void loop() {
   // Bluetooth is passive in Phase 3; it must never block student workflow.
   bluetoothSync.poll();
   bluetoothSync.updateAvailability(terminal.hasActivePass());
+  if (displayedFriendlyName != terminalIdentity.customName()) {
+    displayedFriendlyName = terminalIdentity.customName();
+    terminalDisplay.setFriendlyName(displayedFriendlyName);
+    if (!pairingUiActive && !setupMode) drawIdleScreen();
+  }
 
   // The Bluetooth indicator is a small independent region; do not redraw the
   // rest of the kiosk screen while a desktop client connects or disconnects.
   const bool bluetoothConnected = bluetoothSerial.hasClient();
-  if (bluetoothConnected != lastDisplayedBluetoothState) {
+  if (!pairingUiActive && !setupMode && bluetoothConnected != lastDisplayedBluetoothState) {
     lastDisplayedBluetoothState = bluetoothConnected;
     terminalDisplay.drawBluetoothStatus(bluetoothConnected);
   }
@@ -946,7 +960,7 @@ void loop() {
     transitionToIdle();
   }
 
-  if (setupMode) {
+  if (setupMode || pairingUiActive) {
     return;
   }
 

@@ -43,5 +43,6 @@ private:
   BLECharacteristic *rxCharacteristic = nullptr;
   std::deque<uint8_t> receiveBuffer;
   bool connected = false;
+  String advertisedName;
   uint16_t activeConnectionId = 0xFFFF;
 };

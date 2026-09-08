@@ -159,7 +159,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
   public string PeriodWindowDetail { get; private set; } = "Add the current class period to show first and last ten-minute windows.";
   public string PeriodWindowAccent { get; private set; } = "#64748B";
   public double CurrentPeriodProgress { get; private set; }
-  public string PopupPillText { get; private set; } = "PASSES CLOSED";
+  public string PopupPillText { get; private set; } = "WINDOW CLOSED";
   public string PopupPillBackground { get; private set; } = "#F43F5E";
   public string PopupPillForeground { get; private set; } = "#FFFFFF";
   public string PopupPillToolTip { get; private set; } = "Passes closed";
@@ -231,6 +231,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
         OnPropertyChanged(nameof(TerminalAvatarBackground));
         OnPropertyChanged(nameof(ConnectedTerminalName));
         OnPropertyChanged(nameof(TerminalFriendlyNameDisplay));
+        OnPropertyChanged(nameof(WindowTitle));
         OnPropertyChanged(nameof(TerminalTransportInfoDisplay));
         OnPropertyChanged(nameof(IsReconnectPromptVisible));
       }
@@ -254,6 +255,13 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
 
   public string SyncButtonText => IsSyncing ? "Syncing…" : "Sync Now";
   
+  string checkInError = "";
+  public string CheckInError {
+    get => checkInError;
+    private set { checkInError = value; OnPropertyChanged(); OnPropertyChanged(nameof(HasCheckInError)); }
+  }
+  public bool HasCheckInError => !string.IsNullOrEmpty(CheckInError);
+
   public string SyncProgressText {
     get => syncProgressText;
     private set { syncProgressText = value; OnPropertyChanged(); }
@@ -283,6 +291,8 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
 
   public string CurrentTerminalId => lastAuthenticatedTerminalId ?? "preview-hallzee";
 
+  public string WindowTitle => $"Hallzee Desktop Client · {ConnectedTerminalName}";
+
   public string ConnectedTerminalName {
     get => isConnected ? connectedTerminalName : (!string.IsNullOrWhiteSpace(LastPairedDeviceName) ? LastPairedDeviceName : "No Terminal Connected");
     set {
@@ -292,6 +302,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
       }
       OnPropertyChanged();
       OnPropertyChanged(nameof(TerminalFriendlyNameDisplay));
+      OnPropertyChanged(nameof(WindowTitle));
     }
   }
 
@@ -473,6 +484,18 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     if (openModal) OpenModal("Trips");
   }
 
+  public string ExportWorkspace() {
+    PolicyModal.Save(ActiveProfile.ProfileId);
+    return WorkspaceTransfer.Export(ActiveProfile, profileRepository);
+  }
+
+  public void ImportWorkspace(string json) {
+    var profile = profileRepository.ImportWorkspace(WorkspaceTransfer.Parse(json));
+    Profiles.Add(profile);
+    ActiveProfile = profile;
+    PolicyModal.StatusMessage = "Workspace imported. Rules and bell schedules are ready.";
+  }
+
   public void SwitchProfile(ClassroomProfile profile) {
     ActiveProfile = profile;
   }
@@ -634,8 +657,19 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
   }
 
   public async Task CheckInActivePassAsync() {
+    CheckInError = "";
     if (ActivePass.IsOccupied && !string.IsNullOrEmpty(ActivePass.StudentId)) {
       var studentId = ActivePass.StudentId;
+      if (!ActivePass.IsManual) {
+        if (!IsConnected) {
+          CheckInError = "Reconnect to the terminal to check this student in.";
+          return;
+        }
+        try { await CheckInStudentAsync(studentId); }
+        catch (Exception ex) { CheckInError = $"Check-in failed: {ex.Message}"; }
+        // The terminal's LIVE_TRIP/sync supplies the durable record and its ID.
+        return;
+      }
       var checkoutTime = ActivePass.CheckoutTime ?? DateTime.Now;
       var checkinTime = DateTime.Now;
       var duration = (int)Math.Max(0, (checkinTime - checkoutTime).TotalSeconds);
@@ -644,21 +678,13 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
       var timeIn = checkinTime.ToString("HH:mm:ss");
 
       var tripId = tripRepository.GetLatestTripId() + 1;
-      var status = ActivePass.IsManual ? "MANUAL" : "COMPLETED";
+      const string status = "MANUAL";
       var payload = $"{tripId},{studentId},{date},{timeOut},{timeIn},{duration},{status}";
-      if (ActivePass.IsManual) {
-        tripRepository.StoreManual("DESKTOP", payload, ActivePass.StudentName);
-        AssignTripContext("DESKTOP", tripId, date, timeOut);
-      } else {
-        tripRepository.Store(payload);
-        AssignTripContext("LEGACY-DEFAULT", tripId, date, timeOut);
+      if (tripRepository.StoreManual("DESKTOP", payload, ActivePass.StudentName) != TripStoreResult.Saved) {
+        CheckInError = "Could not save the check-in. Try again.";
+        return;
       }
-
-      if (IsConnected) {
-        try {
-          await CheckInStudentAsync(studentId);
-        } catch { }
-      }
+      AssignTripContext("DESKTOP", tripId, date, timeOut);
 
       ActivePass.SetAvailable();
       Dashboard.ResolveLiveCheckout(studentId);
@@ -712,6 +738,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
 
   public void RefreshActiveProfileData() {
     PolicyModal.Refresh(ActiveProfile.ProfileId);
+    RosterModal.Refresh(ActiveProfile.ProfileId);
     Dashboard.ThresholdMinutes = PolicyModal.DurationWarningMinutes;
     Dashboard.MaxDailyPasses = PolicyModal.MaxDailyPasses;
     Dashboard.Refresh(ActiveProfile.ProfileId);
@@ -753,15 +780,15 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
         0);
       FormattedPeriodRange = "";
 
-      if (ActivePass.IsOccupied) {
-        PopupPillText = "PASS UNAVAILABLE";
+      if (HasStudentsOut) {
+        PopupPillText = "PASS IN USE";
         PopupPillBackground = "#F59E0B";
         PopupPillForeground = "#FFFFFF";
         PopupPillToolTip = "A student is currently out";
         PopupStatusPrefix = "Pass In Use · ";
         PopupStatusTimer = ActivePass.DurationDisplay;
       } else {
-        PopupPillText = "PASSES CLOSED";
+        PopupPillText = "WINDOW CLOSED";
         PopupPillBackground = "#64748B";
         PopupPillForeground = "#FFFFFF";
         PopupPillToolTip = "No class period is currently in session";
@@ -777,8 +804,8 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     var totalSeconds = Math.Max(1, (periodEnd - periodStart).TotalSeconds);
     var elapsedSeconds = Math.Clamp((now - periodStart).TotalSeconds, 0, totalSeconds);
     var remaining = periodEnd - now;
-    var firstMinutes = PolicyModal.FirstWindowMinutes > 0 ? PolicyModal.FirstWindowMinutes : 10;
-    var lastMinutes = PolicyModal.LastWindowMinutes > 0 ? PolicyModal.LastWindowMinutes : 10;
+    var firstMinutes = Math.Max(0, PolicyModal.FirstWindowMinutes);
+    var lastMinutes = Math.Max(0, PolicyModal.LastWindowMinutes);
     var firstWindowEnds = periodStart.AddMinutes(firstMinutes);
     var lastWindowStarts = periodEnd.AddMinutes(-lastMinutes);
     var range = $"{periodStart:h:mm tt} – {periodEnd:h:mm tt}";
@@ -793,8 +820,8 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
         "#F59E0B",
         elapsedSeconds / totalSeconds * 100);
 
-      if (ActivePass.IsOccupied) {
-        PopupPillText = "PASS UNAVAILABLE";
+      if (HasStudentsOut) {
+        PopupPillText = "PASS IN USE";
         PopupPillBackground = "#F59E0B";
         PopupPillForeground = "#FFFFFF";
         PopupPillToolTip = "A student is currently out";
@@ -803,8 +830,8 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
       } else {
         var locked = string.Equals(PolicyModal.FirstWindowAction, "Lock", StringComparison.OrdinalIgnoreCase);
         var warned = string.Equals(PolicyModal.FirstWindowAction, "Warn", StringComparison.OrdinalIgnoreCase);
-        PopupPillText = locked ? "PASSES CLOSED" : warned ? "PASS WARNING" : "PASS AVAILABLE";
-        PopupPillBackground = locked ? "#F43F5E" : warned ? "#F59E0B" : "#0284C7";
+        PopupPillText = locked ? "WINDOW CLOSED" : "WINDOW OPEN";
+        PopupPillBackground = locked ? "#F43F5E" : "#059669";
         PopupPillForeground = "#FFFFFF";
         PopupPillToolTip = locked ? "Passes are locked during the beginning-of-class window" : warned ? "Passes show a warning during this window" : "Passes are allowed during this window";
         PopupStatusPrefix = locked ? "Bathroom Window Closed · Passes open in: " : warned ? "Bell Window Warning · Window ends in: " : "Bathroom Window Open · Window ends in: ";
@@ -819,8 +846,8 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
         "#E11D48",
         elapsedSeconds / totalSeconds * 100);
 
-      if (ActivePass.IsOccupied) {
-        PopupPillText = "PASS UNAVAILABLE";
+      if (HasStudentsOut) {
+        PopupPillText = "PASS IN USE";
         PopupPillBackground = "#F59E0B";
         PopupPillForeground = "#FFFFFF";
         PopupPillToolTip = "A student is currently out";
@@ -829,8 +856,8 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
       } else {
         var locked = string.Equals(PolicyModal.LastWindowAction, "Lock", StringComparison.OrdinalIgnoreCase);
         var warned = string.Equals(PolicyModal.LastWindowAction, "Warn", StringComparison.OrdinalIgnoreCase);
-        PopupPillText = locked ? "PASSES CLOSED" : warned ? "PASS WARNING" : "PASS AVAILABLE";
-        PopupPillBackground = locked ? "#F43F5E" : warned ? "#F59E0B" : "#0284C7";
+        PopupPillText = locked ? "WINDOW CLOSED" : "WINDOW OPEN";
+        PopupPillBackground = locked ? "#F43F5E" : "#059669";
         PopupPillForeground = "#FFFFFF";
         PopupPillToolTip = locked ? "Passes are locked during the end-of-class window" : warned ? "Passes show a warning during this window" : "Passes are allowed during this window";
         PopupStatusPrefix = locked ? "Bathroom Window Closed · Period ends in: " : warned ? "Bell Window Warning · Period ends in: " : "Bathroom Window Open · Period ends in: ";
@@ -845,16 +872,16 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
         "#059669",
         elapsedSeconds / totalSeconds * 100);
 
-      if (ActivePass.IsOccupied) {
-        PopupPillText = "PASS UNAVAILABLE";
+      if (HasStudentsOut) {
+        PopupPillText = "PASS IN USE";
         PopupPillBackground = "#F59E0B";
         PopupPillForeground = "#FFFFFF";
         PopupPillToolTip = "A student is currently out";
         PopupStatusPrefix = "Pass In Use · Window closes in: ";
         PopupStatusTimer = FormatCountdown(lastWindowStarts - now);
       } else {
-        PopupPillText = "PASS AVAILABLE";
-        PopupPillBackground = "#0284C7";
+        PopupPillText = "WINDOW OPEN";
+        PopupPillBackground = "#059669";
         PopupPillForeground = "#FFFFFF";
         PopupPillToolTip = "Pass is currently available";
         PopupStatusPrefix = "Bathroom Window Open · Window closes in: ";
@@ -862,6 +889,15 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
       }
     }
 
+    // Overlapping first/last windows use the same strictest action as the kiosk.
+    var windowRule = new PolicyRule("popup", ActiveProfile.ProfileId,
+      LockoutStartMinutes: firstMinutes, LockoutEndMinutes: lastMinutes,
+      FirstWindowAction: PolicyModal.FirstWindowAction, LastWindowAction: PolicyModal.LastWindowAction);
+    if (!HasStudentsOut && scheduleService.Evaluate(now, resolved, windowRule) == BellWindowDecision.Lock) {
+      PopupPillText = "WINDOW CLOSED";
+      PopupPillBackground = "#F43F5E";
+      PopupPillToolTip = "Passes are locked during this bell window";
+    }
     NotifyPopupProperties();
   }
 

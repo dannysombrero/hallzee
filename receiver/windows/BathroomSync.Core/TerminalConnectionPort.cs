@@ -8,12 +8,23 @@ public sealed record TerminalDevice(
   int? Rssi = null
 ) {
   public string SignalStrengthText => Rssi is null ? "Signal unavailable" : $"{Rssi} dBm";
-  public string SignalQuality => Rssi switch {
-    >= -60 => "Excellent",
-    >= -70 => "Good",
-    >= -80 => "Fair",
-    null => "Unknown",
-    _ => "Weak"
+  public int SignalBarCount => Rssi switch {
+    >= -60 => 4,
+    >= -70 => 3,
+    >= -80 => 2,
+    null => 0,
+    _ => 1
+  };
+  public bool HasSignalBar1 => SignalBarCount >= 1;
+  public bool HasSignalBar2 => SignalBarCount >= 2;
+  public bool HasSignalBar3 => SignalBarCount >= 3;
+  public bool HasSignalBar4 => SignalBarCount >= 4;
+  public string SignalQuality => SignalBarCount switch {
+    4 => "Excellent",
+    3 => "Good",
+    2 => "Fair",
+    1 => "Weak",
+    _ => "Unknown"
   };
 
   public override string ToString() => IsPaired ? $"{Name} (paired)" : Name;

@@ -61,6 +61,30 @@ public sealed class TerminalV2MainViewModelTests {
     }
   }
 
+  [Fact]
+  public async Task DesktopCheckinStoresOnlyTerminalRecordEvenWhenLiveTripIsReplayed() {
+    var folder = Path.Combine(Path.GetTempPath(), "HallzeeCheckinTests", Guid.NewGuid().ToString("N"));
+    Directory.CreateDirectory(folder);
+    var connection = new FakeV2Connection();
+    try {
+      using var vm = new MainViewModel(connection, folder, isPreviewMode: false);
+      await vm.FindTerminalsModal.ScanAsync();
+      vm.FindTerminalsModal.PairingPasskey = "807481";
+      await vm.ConnectAndSyncAsync();
+      var checkout = DateTimeOffset.Now.AddMinutes(-2);
+      connection.Emit($"EVENT,CHECKOUT,001234,{checkout.ToUnixTimeSeconds()}\n");
+      await vm.CheckInActivePassAsync();
+      Assert.Contains("MANUAL_CHECKIN,001234", connection.SentCommands);
+      Assert.True(vm.ActivePass.IsOccupied); // Until the terminal confirms it.
+      Assert.DoesNotContain(vm.Dashboard.RecentTrips, t => t.StudentId == "001234" && t.StatusText != "Out");
+      var trip = $"42,001234,{checkout.LocalDateTime:yyyy-MM-dd},{checkout.LocalDateTime:HH:mm:ss},{DateTime.Now:HH:mm:ss},120,MANUAL";
+      connection.Emit($"EVENT,CHECKIN,001234,120\nLIVE_TRIP,{trip}\n");
+      connection.Emit($"LIVE_TRIP,{trip}\n");
+      Assert.False(vm.ActivePass.IsOccupied);
+      Assert.Single(vm.Dashboard.RecentTrips, t => t.StudentId == "001234");
+    } finally { Directory.Delete(folder, true); }
+  }
+
   sealed class FakeV2Connection : ITerminalConnection {
     bool connected;
     bool claimed;
@@ -119,6 +143,6 @@ public sealed class TerminalV2MainViewModelTests {
       ConnectionLost?.Invoke(this, "Fake connection lost.");
     }
 
-    void Emit(string text) => TextReceived?.Invoke(this, text);
+    public void Emit(string text) => TextReceived?.Invoke(this, text);
   }
 }

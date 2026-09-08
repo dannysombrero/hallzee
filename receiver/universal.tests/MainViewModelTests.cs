@@ -170,7 +170,7 @@ public sealed class MainViewModelTests : IDisposable {
   public void PopupWindowPropertiesReflectLiveClockAndDefaultState() {
     Assert.False(string.IsNullOrWhiteSpace(viewModel.CurrentTimeDisplay));
     Assert.Contains(DateTime.Now.ToString("tt"), viewModel.CurrentTimeDisplay);
-    Assert.Equal("PASSES CLOSED", viewModel.PopupPillText);
+    Assert.Equal("WINDOW CLOSED", viewModel.PopupPillText);
   }
 
   [Fact]
@@ -178,7 +178,7 @@ public sealed class MainViewModelTests : IDisposable {
     viewModel.ManualCheckInModal.StudentName = "Avery Chen";
     viewModel.SubmitManualCheckIn();
 
-    Assert.Equal("PASS UNAVAILABLE", viewModel.PopupPillText);
+    Assert.Equal("PASS IN USE", viewModel.PopupPillText);
     Assert.Contains("Pass In Use", viewModel.PopupStatusPrefix);
   }
 
@@ -193,7 +193,43 @@ public sealed class MainViewModelTests : IDisposable {
     Assert.Equal("Period 3", viewModel.CurrentPeriodName);
     Assert.StartsWith("(", viewModel.FormattedPeriodRange);
     Assert.EndsWith(")", viewModel.FormattedPeriodRange);
-    Assert.Equal("PASS WARNING", viewModel.PopupPillText);
+    Assert.Equal("WINDOW OPEN", viewModel.PopupPillText);
+    Assert.Equal("#059669", viewModel.PopupPillBackground);
     Assert.Equal("Bell Window Warning · Window ends in: ", viewModel.PopupStatusPrefix);
   }
+  [Fact]
+  public async Task WorkspaceImportSwitchesToIndependentRosterAndTitleTracksTerminal() {
+    viewModel.RosterModal.NewStudentId = "001234";
+    viewModel.RosterModal.NewFirstName = "Avery";
+    Assert.True(viewModel.RosterModal.AddStudent(viewModel.ActiveProfile.ProfileId));
+    var original = viewModel.ActiveProfile.ProfileId;
+    viewModel.PolicyModal.MaxSimultaneousPasses = 3;
+    viewModel.ImportWorkspace(viewModel.ExportWorkspace());
+    Assert.NotEqual(original, viewModel.ActiveProfile.ProfileId);
+    Assert.Equal(3, viewModel.PolicyModal.MaxSimultaneousPasses);
+    Assert.Empty(viewModel.RosterModal.Students);
+    await viewModel.FindTerminalsModal.ScanAsync();
+    await viewModel.ConnectAndSyncAsync();
+    viewModel.ConnectedTerminalName = "Room 204";
+    Assert.Equal("Hallzee Desktop Client · Room 204", viewModel.WindowTitle);
+  }
+
+  [Fact]
+  public void OverlappingLockWindowWinsAndOccupiedPassStaysOrange() {
+    var now = DateTime.Now;
+    viewModel.PolicyModal.Periods.Clear();
+    viewModel.PolicyModal.FirstWindowMinutes = 30;
+    viewModel.PolicyModal.LastWindowMinutes = 30;
+    viewModel.PolicyModal.FirstWindowAction = "Warn";
+    viewModel.PolicyModal.LastWindowAction = "Lock";
+    viewModel.PolicyModal.Periods.Add(new BellPeriodItemViewModel(new BellSchedulePeriod(
+      "overlap", viewModel.ActiveProfile.ProfileId, "Class", now.AddMinutes(-5).ToString("HH:mm"),
+      now.AddMinutes(5).ToString("HH:mm"), "Mon,Tue,Wed,Thu,Fri,Sat,Sun")));
+    viewModel.UpdatePeriodWindow();
+    Assert.Equal("WINDOW CLOSED", viewModel.PopupPillText);
+    viewModel.ActivePass.SetOccupied("1234", "Avery", now);
+    Assert.Equal("PASS IN USE", viewModel.PopupPillText);
+    Assert.Equal("#F59E0B", viewModel.PopupPillBackground);
+  }
+
 }

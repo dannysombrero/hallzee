@@ -58,6 +58,11 @@ sealed class BluetoothConnectionManager : ITerminalConnection, ITerminalPairingP
       var inUse = name.EndsWith("-INUSE", StringComparison.OrdinalIgnoreCase);
       var displayName = inUse ? name[..^6] : name;
       lock (found) {
+        // Service-only advertisements can follow the name-bearing scan response.
+        if (string.IsNullOrWhiteSpace(args.Advertisement.LocalName) && found.TryGetValue(args.BluetoothAddress, out var previous)) {
+          found[args.BluetoothAddress] = previous with { Rssi = args.RawSignalStrengthInDBm };
+          return;
+        }
         found[args.BluetoothAddress] = new TerminalDevice(
           args.BluetoothAddress.ToString("X12"), displayName, false, inUse,
           args.RawSignalStrengthInDBm

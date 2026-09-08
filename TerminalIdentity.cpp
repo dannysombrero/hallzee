@@ -42,6 +42,8 @@ String TerminalIdentity::advertisedName(bool inUse) const {
   } else {
     baseName = String(DEFAULT_NAME) + "-" + terminalSuffix();
   }
+  // A name AD field has 29 bytes; reserve all six bytes of the status suffix.
+  if (inUse && baseName.length() > 23) baseName = baseName.substring(0, 23);
   return inUse ? baseName + "-INUSE" : baseName;
 }
 

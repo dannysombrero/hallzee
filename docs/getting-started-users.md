@@ -28,20 +28,24 @@ No .NET installation is required for this self-contained Windows artifact.
 
 ## Connect the terminal the first time
 
-1. Power on the terminal and wait for its clock/setup screen to finish. If it
-   is a fresh terminal, enter the date and time on the keypad as prompted.
+1. Power on the terminal. You can pair directly from any date/time setup
+   step, or enter the date and time on the keypad first.
 2. Make sure no student pass is active.
 3. Hold `*` and `#` together for five seconds, then release both keys.
-4. The terminal displays a six-digit Bluetooth passkey and enters pairing mode.
+4. The terminal displays its full unique ID, friendly name, and six-digit
+   Bluetooth passkey. If pairing expires during clock setup, that setup step returns.
 5. In the app, choose **Find Terminal** or **Find Terminals**.
-6. Select the matching `Hallzee-XXXX` terminal. The list shows signal quality
-   and RSSI in dBm; values closer to zero indicate a stronger nearby signal.
+6. Select the matching `Hallzee-XXXX` terminal. Each row shows **Signal Strength:**,
+   a four-bar indicator, the quality label, and RSSI in dBm. More filled bars
+   mean a stronger signal; unavailable readings leave all bars gray.
    Enter the six-digit passkey when prompted, then choose **Connect** again if
    the dialog asks.
 7. Choose **Sync Now**.
 
-The terminal can have one active owner connection. A terminal with an active
-student checkout is shown as **In Use**. The remembered owner can reconnect
+The terminal can have one active owner connection. A claimed terminal or one
+with an active student checkout is shown as **IN USE**, even when its pass is
+available. Unclaimed, unoccupied terminals show **READY**. The selected row has
+a blue background and border. The remembered owner can reconnect
 without the pairing passkey so the checkout can be completed; other clients
 cannot claim or connect to it.
 
@@ -55,10 +59,13 @@ cannot claim or connect to it.
   remains available for an immediate check.
 - Use **View All** or **History** to inspect the full **Hall Pass Trip History** table, sorted and filterable by Date, Student ID, Name, Departed, Returned, Duration, and Status. Use **Export** to create a CSV report.
 - In **Settings**, save the teacher name and school to update the classroom
-  profile card and the app title bar immediately. The **Device** tab shows the
+  profile card immediately. The OS title bar shows **Hallzee Desktop Client ·
+  terminal name**. The **Device** tab shows the
   friendly name and link status of the last paired terminal.
-- In **Terminal Settings**, edit the kiosk name and apply it while connected.
-  The name is persisted by the kiosk and reused in discovery and reconnect UI.
+- In **Settings → Device**, edit the kiosk name and apply it while connected.
+  The name is persisted by the kiosk and reused in discovery, reconnect UI, and
+  the terminal header as **Terminal: [name]**. Long names are abbreviated in the
+  narrow header; pairing displays the full name.
 - In **Policies & Bell Times**, keep one teacher workspace, create `Regular`
   or alternate schedule templates, assign a class section to each period, and
   add date exceptions for early-release or no-school days. Bell-window actions
@@ -84,8 +91,9 @@ different computer, contact the project owner before clearing its owner state.
 Choose **Mini Window** in the app's top bar to open a compact, always-on-top
 window. It remains visible while the main Hallzee app is minimized and displays
 the current class period, a live digital clock, and pass status (e.g.
-**PASSES CLOSED** during lockout windows, **PASS AVAILABLE** during open windows,
-or **PASS UNAVAILABLE** when a student is out) with live period countdowns.
+**WINDOW CLOSED** during locked windows or outside a scheduled period, green
+**WINDOW OPEN** when passes are allowed (including Warn windows), or orange
+**PASS IN USE** whenever a student is out) with live period countdowns.
 The window includes close and minimize controls at the top left (and supports the
 `Esc` key to dismiss). Set each period's start and end time in **Policies & Bell Times**
 for this display to be accurate.
@@ -108,3 +116,25 @@ kiosk has no speaker, so selected alert sounds play on the desktop only.
 Windows is required for this ready-to-run packaged app and Windows-specific BLE
 behavior. Mac testing is sufficient for the shared app behavior and macOS BLE
 path, but the current Windows artifact has not been verified on macOS.
+
+## Add students and share workspace settings
+
+In **Classroom Roster & Students**, choose the teacher workspace, enter the
+student ID and name, optionally add grade and class/period, then click
+**Add Student**. Numeric IDs keep leading zeros. An existing ID is rejected
+without replacing that student's details. CSV import remains available.
+
+In **Policies & Bell Times**, choose **Export Workspace** and save the
+`.hallzee.json` file. Export saves the current workspace settings and includes
+pass rules, bell schedule templates, class sections, and date exceptions.
+It excludes student rosters, trip history, terminal claims, and credentials.
+The other teacher chooses **Import Workspace** and selects that file. Import
+creates and selects a separate workspace with new identifiers; existing
+workspaces are preserved. Use **Save Workspace Settings** while connected to
+apply the imported rules to that teacher's terminal.
+
+For a terminal pass, desktop **Check In** asks the terminal to complete and
+record the trip. Recent Activity receives one terminal record even if the
+notification is replayed by a later sync. Reconnect before checking in a
+terminal pass while offline. Teacher-started passes are recorded locally.
+The fix prevents new duplicate records; it does not delete older history.

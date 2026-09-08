@@ -19,7 +19,7 @@
         <!-- VIEW SWITCHER: NORMAL LIST VS 2-PHASE CSV IMPORT PREVIEW -->
         <Grid Grid.Row="1">
           <!-- 1. NORMAL ROSTER VIEW -->
-          <Grid RowDefinitions="Auto,*,Auto" RowSpacing="12" IsVisible="{Binding !RosterModal.IsImportPreviewActive}">
+          <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="12" IsVisible="{Binding !RosterModal.IsImportPreviewActive}">
             
             <!-- ROW 0: CLASSROOM SELECTION & CSV IMPORT BUTTON -->
             <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="12" VerticalAlignment="Center">
@@ -32,8 +32,20 @@
 
             </Grid>
 
+            <StackPanel Grid.Row="1" Spacing="6">
+              <TextBlock Text="Add a student · ID and name required" FontWeight="SemiBold" Foreground="#334155" />
+              <Grid ColumnDefinitions="1.2*,1.5*,1.5*,0.8*,1.2*,Auto" ColumnSpacing="8">
+                <TextBox Text="{Binding RosterModal.NewStudentId}" Watermark="Student ID" />
+                <TextBox Grid.Column="1" Text="{Binding RosterModal.NewFirstName}" Watermark="First name" />
+                <TextBox Grid.Column="2" Text="{Binding RosterModal.NewLastName}" Watermark="Last name" />
+                <TextBox Grid.Column="3" Text="{Binding RosterModal.NewGrade}" Watermark="Grade" />
+                <TextBox Grid.Column="4" Text="{Binding RosterModal.NewPeriod}" Watermark="Class / period" />
+                <Button Grid.Column="5" Classes="hallzee-pill-btn" Content="Add Student" Click="OnAddStudentClick" />
+              </Grid>
+            </StackPanel>
+
             <!-- ROW 1: STUDENTS LIST / TABLE WITH UNIFIED TABLE STYLES -->
-            <Border Grid.Row="1" Classes="hallzee-table-container">
+            <Border Grid.Row="2" Classes="hallzee-table-container">
               <Border Classes="hallzee-table-inner">
                 <Grid RowDefinitions="Auto,*">
                   <!-- TABLE HEADER -->
@@ -101,7 +113,7 @@
                       <StackPanel IsVisible="{Binding RosterModal.HasNoStudents}" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8" Margin="32">
                         <Path Data="{StaticResource IconUsers}" Width="36" Height="36" Stretch="Uniform" Stroke="#CBD5E1" StrokeThickness="1.8" StrokeLineCap="Round" HorizontalAlignment="Center" />
                         <TextBlock Text="No students enrolled in this class yet" FontSize="14" FontWeight="Bold" Foreground="#475569" HorizontalAlignment="Center" />
-                        <TextBlock Text="Click 'Import Roster (CSV)' above to upload your roster from a spreadsheet or SIS export." FontSize="12" Foreground="#94A3B8" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" MaxWidth="380" />
+                        <TextBlock Text="Add a student above or import your roster from a CSV file." FontSize="12" Foreground="#94A3B8" HorizontalAlignment="Center" TextWrapping="Wrap" TextAlignment="Center" MaxWidth="380" />
                       </StackPanel>
                     </Panel>
                   </ScrollViewer>
@@ -110,7 +122,7 @@
             </Border>
 
             <!-- ROW 2: FOOTER STATUS -->
-            <TextBlock Grid.Row="2" Text="{Binding RosterModal.ImportStatusMessage}" Foreground="{Binding RosterModal.ImportStatusColor}" FontSize="13" FontWeight="SemiBold" />
+            <TextBlock Grid.Row="3" Text="{Binding RosterModal.ImportStatusMessage}" Foreground="{Binding RosterModal.ImportStatusColor}" FontSize="13" FontWeight="SemiBold" />
           </Grid>
 
           <!-- 2. TWO-PHASE CSV IMPORT & COLUMN MAPPING VERIFICATION VIEW -->

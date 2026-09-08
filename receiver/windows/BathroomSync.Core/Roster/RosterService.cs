@@ -10,6 +10,7 @@ public interface IRosterService {
   IReadOnlyList<EnrichedTripRecord> EnrichTrips(string profileId, IEnumerable<TripRecord> trips);
   IReadOnlyList<RosterStudent> GetRoster(string profileId);
   int CountStudents(string profileId);
+  void AddStudent(RosterStudent student);
   void DeleteStudent(string profileId, string studentId);
   void ClearRoster(string profileId);
 }
@@ -134,6 +135,21 @@ public sealed class RosterService : IRosterService {
 
   public int CountStudents(string profileId) {
     return rosterRepository.CountStudents(profileId);
+  }
+
+  public void AddStudent(RosterStudent student) {
+    var id = student.StudentId.Trim();
+    if (string.IsNullOrWhiteSpace(student.ProfileId) || id.Length == 0 ||
+        id.Any(c => c < '0' || c > '9'))
+      throw new ArgumentException("Enter a numeric student ID.");
+    if (string.IsNullOrWhiteSpace(student.FullName))
+      throw new ArgumentException("Enter a student name.");
+    if (LookupStudent(student.ProfileId, id) != null)
+      throw new ArgumentException("This student ID is already in this workspace.");
+    rosterRepository.SaveStudents(student.ProfileId, new[] { student with {
+      StudentId = id, FirstName = student.FirstName.Trim(), LastName = student.LastName.Trim(),
+      Grade = student.Grade?.Trim(), ClassPeriod = student.ClassPeriod?.Trim()
+    } });
   }
 
   public void DeleteStudent(string profileId, string studentId) {

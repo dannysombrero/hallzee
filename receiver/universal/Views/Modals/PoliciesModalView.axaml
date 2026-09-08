@@ -5,7 +5,7 @@
              x:DataType="vm:MainViewModel">
   <Border Background="#99000000" Padding="32,24" PointerPressed="OnBackdropPointerPressed">
     <Border Classes="hallzee-modal-window" MaxWidth="1040" MaxHeight="640" VerticalAlignment="Center" HorizontalAlignment="Stretch">
-      <Grid RowDefinitions="Auto,Auto,Auto,*" RowSpacing="12">
+      <Grid RowDefinitions="Auto,Auto,Auto,Auto,*" RowSpacing="12">
         
         <!-- ROW 0: HEADER -->
         <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,4">
@@ -20,7 +20,7 @@
         <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="12" VerticalAlignment="Center">
           <TextBlock Text="Teacher workspace:" FontWeight="Bold" FontSize="14" Foreground="#334155" VerticalAlignment="Center" />
           <ComboBox Grid.Column="1" Classes="filter-dropdown" ItemsSource="{Binding Profiles}" SelectedItem="{Binding ActiveProfile}" DisplayMemberBinding="{Binding Name}" MinWidth="200" VerticalAlignment="Center" />
-          <TextBlock Grid.Column="2" Text="{Binding PolicyModal.StatusMessage}" MaxWidth="240" TextTrimming="CharacterEllipsis" Foreground="#10B981" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center" />
+          <TextBlock Grid.Column="2" Text="" MaxWidth="240" TextTrimming="CharacterEllipsis" Foreground="#10B981" FontWeight="SemiBold" FontSize="12" VerticalAlignment="Center" />
           <Button Grid.Column="3" Classes="pill-secondary" Content="+ Create Teacher Workspace" Click="OnToggleCreateProfileClick" />
           <Button Grid.Column="4" Classes="hallzee-pill-btn" Content="Save Workspace Settings" Click="OnSavePolicyClick" Padding="16,8" FontSize="13" VerticalAlignment="Center" />
         </Grid>
@@ -35,8 +35,17 @@
           </Grid>
         </Border>
 
+        <StackPanel Grid.Row="3" Spacing="6">
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <Button Classes="pill-secondary" Content="Export Workspace" Click="OnExportWorkspaceClick" ToolTip.Tip="Saves current settings and exports rules, bell schedules, and date exceptions." />
+            <Button Classes="pill-secondary" Content="Import Workspace" Click="OnImportWorkspaceClick" ToolTip.Tip="Creates a new workspace from a Hallzee workspace file." />
+            <TextBlock Text="Share rules and schedules with another teacher" VerticalAlignment="Center" FontSize="12" Foreground="#64748B" />
+          </StackPanel>
+          <TextBlock Text="{Binding PolicyModal.StatusMessage}" TextWrapping="Wrap" FontSize="12" Foreground="#334155" />
+        </StackPanel>
+
         <!-- ROW 3: DOUBLE-COLUMN MAIN CONTENT -->
-        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" Margin="0,4,0,0">
+        <ScrollViewer Grid.Row="4" VerticalScrollBarVisibility="Auto" Margin="0,4,0,0">
           <Grid ColumnDefinitions="*,*" ColumnSpacing="24">
             
             <!-- LEFT COLUMN: PASS POLICY RULES & BELL-TIME WINDOWS -->

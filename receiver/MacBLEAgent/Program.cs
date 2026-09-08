@@ -168,14 +168,13 @@ class Program
         public override void DiscoveredPeripheral(CBCentralManager central, CBPeripheral peripheral, NSDictionary advertisementData, NSNumber RSSI)
         {
             var idStr = peripheral.Identifier.ToString();
-            var name = peripheral.Name ?? "Hallzee";
+            var name = advertisementData[CBAdvertisement.DataLocalNameKey]?.ToString() ?? peripheral.Name ?? "Hallzee";
             var inUse = name.EndsWith("-INUSE", StringComparison.OrdinalIgnoreCase);
-            if (inUse) name = name[..^6];
-            if (!foundDevices.ContainsKey(idStr))
+            if (!foundDevices.TryGetValue(idStr, out var previousName) || previousName != name)
             {
                 foundDevices[idStr] = name;
                 foundPeripherals[idStr] = peripheral;
-                EmitEvent("Discovered", new { Id = idStr, Name = name, IsInUse = inUse, Rssi = RSSI.Int32Value });
+                EmitEvent("Discovered", new { Id = idStr, Name = inUse ? name[..^6] : name, IsInUse = inUse, Rssi = RSSI.Int32Value });
             }
         }
         

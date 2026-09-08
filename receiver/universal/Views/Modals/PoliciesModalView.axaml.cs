@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Platform.Storage;
 using Avalonia.Interactivity;
 using BathroomSync.Core;
 using BathroomSync.Universal.ViewModels;
@@ -32,6 +33,50 @@ public partial class PoliciesModalView : UserControl {
       await vm.ApplyPolicySettingsAsync();
     }
   }
+
+  bool transferringWorkspace;
+
+  async void OnExportWorkspaceClick(object? sender, RoutedEventArgs e) {
+    if (transferringWorkspace || DataContext is not MainViewModel vm || TopLevel.GetTopLevel(this) is not { } top) return;
+    transferringWorkspace = true;
+    try {
+      await Task.Yield();
+      var file = await top.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions {
+        Title = "Export Hallzee Workspace", SuggestedFileName = "workspace.hallzee.json",
+        DefaultExtension = "json", FileTypeChoices = new[] { WorkspaceFileType }
+      });
+      if (file == null) return;
+      var json = vm.ExportWorkspace();
+      await using (var stream = await file.OpenWriteAsync()) {
+        stream.SetLength(0);
+        await using var writer = new StreamWriter(stream);
+        await writer.WriteAsync(json);
+      }
+      vm.PolicyModal.StatusMessage = "Workspace exported with rules, schedules, and date exceptions.";
+    } catch (Exception ex) {
+      vm.PolicyModal.StatusMessage = $"Export failed: {ex.Message}";
+    } finally { transferringWorkspace = false; }
+  }
+
+  async void OnImportWorkspaceClick(object? sender, RoutedEventArgs e) {
+    if (transferringWorkspace || DataContext is not MainViewModel vm || TopLevel.GetTopLevel(this) is not { } top) return;
+    transferringWorkspace = true;
+    try {
+      await Task.Yield();
+      var files = await top.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions {
+        Title = "Import Hallzee Workspace", AllowMultiple = false, FileTypeFilter = new[] { WorkspaceFileType }
+      });
+      if (files.Count == 0) return;
+      await using var stream = await files[0].OpenReadAsync();
+      using var reader = new StreamReader(stream);
+      var json = await reader.ReadToEndAsync();
+      vm.ImportWorkspace(json);
+    } catch (Exception ex) {
+      vm.PolicyModal.StatusMessage = $"Import failed: {ex.Message}";
+    } finally { transferringWorkspace = false; }
+  }
+
+  static FilePickerFileType WorkspaceFileType => new("Hallzee workspace") { Patterns = new[] { "*.json" } };
 
   void OnToggleCreateProfileClick(object? sender, RoutedEventArgs e) {
     if (DataContext is MainViewModel vm) {

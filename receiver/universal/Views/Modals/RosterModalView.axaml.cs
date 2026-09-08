@@ -26,6 +26,11 @@ public partial class RosterModalView : UserControl {
     }
   }
 
+  void OnAddStudentClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm && vm.RosterModal.AddStudent(vm.ActiveProfile.ProfileId))
+      vm.Dashboard.Refresh(vm.ActiveProfile.ProfileId);
+  }
+
   bool isImporting;
 
   async void OnImportCsvClick(object? sender, RoutedEventArgs e) {

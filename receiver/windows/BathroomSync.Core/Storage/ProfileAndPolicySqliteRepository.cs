@@ -105,7 +105,14 @@ public sealed class ProfileAndPolicySqliteRepository : IProfileRepository, IPoli
 
   public void SaveProfile(ClassroomProfile profile) {
     using var connection = OpenConnection();
+    using var transaction = connection.BeginTransaction();
+    SaveProfile(profile, connection, transaction);
+    transaction.Commit();
+  }
+
+  static void SaveProfile(ClassroomProfile profile, SqliteConnection connection, SqliteTransaction transaction) {
     using var command = connection.CreateCommand();
+    command.Transaction = transaction;
     command.CommandText = """
       INSERT INTO profiles (profile_id, name, is_active, created_at, updated_at)
       VALUES ($id, $name, $isActive, datetime('now'), datetime('now'))
@@ -188,7 +195,14 @@ public sealed class ProfileAndPolicySqliteRepository : IProfileRepository, IPoli
 
   public void SavePolicyRule(PolicyRule rule) {
     using var connection = OpenConnection();
+    using var transaction = connection.BeginTransaction();
+    SavePolicyRule(rule, connection, transaction);
+    transaction.Commit();
+  }
+
+  static void SavePolicyRule(PolicyRule rule, SqliteConnection connection, SqliteTransaction transaction) {
     using var command = connection.CreateCommand();
+    command.Transaction = transaction;
     command.CommandText = """
       INSERT INTO policy_rules 
         (rule_id, profile_id, max_simultaneous_passes, duration_warning_seconds, max_daily_passes_per_student, lockout_start_minutes, lockout_end_minutes, first_window_action, last_window_action, alert_sound, terminal_enforcement_enabled)
@@ -251,46 +265,45 @@ public sealed class ProfileAndPolicySqliteRepository : IProfileRepository, IPoli
   public void SaveBellSchedule(string profileId, IEnumerable<BellSchedulePeriod> periods) {
     using var connection = OpenConnection();
     using var transaction = connection.BeginTransaction();
-    try {
-      using var clearCmd = connection.CreateCommand();
-      clearCmd.Transaction = transaction;
-      clearCmd.CommandText = "DELETE FROM bell_schedules WHERE profile_id = $profileId;";
-      clearCmd.Parameters.AddWithValue("$profileId", profileId);
-      clearCmd.ExecuteNonQuery();
+    SaveBellSchedule(profileId, periods, connection, transaction);
+    transaction.Commit();
+  }
 
-      using var insertCmd = connection.CreateCommand();
-      insertCmd.Transaction = transaction;
-      insertCmd.CommandText = """
-        INSERT INTO bell_schedules (schedule_id, profile_id, period_name, start_time, end_time, days_of_week, schedule_name, class_section)
-        VALUES ($id, $profileId, $name, $start, $end, $days, $scheduleName, $classSection);
-        """;
-      var pId = insertCmd.Parameters.Add("$id", SqliteType.Text);
-      var pProfile = insertCmd.Parameters.Add("$profileId", SqliteType.Text);
-      var pName = insertCmd.Parameters.Add("$name", SqliteType.Text);
-      var pStart = insertCmd.Parameters.Add("$start", SqliteType.Text);
-      var pEnd = insertCmd.Parameters.Add("$end", SqliteType.Text);
-      var pDays = insertCmd.Parameters.Add("$days", SqliteType.Text);
-      var pScheduleName = insertCmd.Parameters.Add("$scheduleName", SqliteType.Text);
-      var pClassSection = insertCmd.Parameters.Add("$classSection", SqliteType.Text);
+  static void SaveBellSchedule(string profileId, IEnumerable<BellSchedulePeriod> periods, SqliteConnection connection, SqliteTransaction transaction) {
+    using var clearCmd = connection.CreateCommand();
+    clearCmd.Transaction = transaction;
+    clearCmd.CommandText = "DELETE FROM bell_schedules WHERE profile_id = $profileId;";
+    clearCmd.Parameters.AddWithValue("$profileId", profileId);
+    clearCmd.ExecuteNonQuery();
 
-      pProfile.Value = profileId;
+    using var insertCmd = connection.CreateCommand();
+    insertCmd.Transaction = transaction;
+    insertCmd.CommandText = """
+      INSERT INTO bell_schedules (schedule_id, profile_id, period_name, start_time, end_time, days_of_week, schedule_name, class_section)
+      VALUES ($id, $profileId, $name, $start, $end, $days, $scheduleName, $classSection);
+      """;
+    var pId = insertCmd.Parameters.Add("$id", SqliteType.Text);
+    var pProfile = insertCmd.Parameters.Add("$profileId", SqliteType.Text);
+    var pName = insertCmd.Parameters.Add("$name", SqliteType.Text);
+    var pStart = insertCmd.Parameters.Add("$start", SqliteType.Text);
+    var pEnd = insertCmd.Parameters.Add("$end", SqliteType.Text);
+    var pDays = insertCmd.Parameters.Add("$days", SqliteType.Text);
+    var pScheduleName = insertCmd.Parameters.Add("$scheduleName", SqliteType.Text);
+    var pClassSection = insertCmd.Parameters.Add("$classSection", SqliteType.Text);
 
-      foreach (var period in periods) {
-        pId.Value = string.IsNullOrWhiteSpace(period.ScheduleId) ? Guid.NewGuid().ToString("N") : period.ScheduleId;
-        pName.Value = period.PeriodName;
-        pStart.Value = period.StartTime;
-        pEnd.Value = period.EndTime;
-        pDays.Value = period.DaysOfWeek;
-        pScheduleName.Value = period.ScheduleName;
-        pClassSection.Value = period.ClassSection;
-        insertCmd.ExecuteNonQuery();
-      }
+    pProfile.Value = profileId;
 
-      transaction.Commit();
-    } catch {
-      transaction.Rollback();
-      throw;
+    foreach (var period in periods) {
+      pId.Value = string.IsNullOrWhiteSpace(period.ScheduleId) ? Guid.NewGuid().ToString("N") : period.ScheduleId;
+      pName.Value = period.PeriodName;
+      pStart.Value = period.StartTime;
+      pEnd.Value = period.EndTime;
+      pDays.Value = period.DaysOfWeek;
+      pScheduleName.Value = period.ScheduleName;
+      pClassSection.Value = period.ClassSection;
+      insertCmd.ExecuteNonQuery();
     }
+
   }
 
   public IReadOnlyList<ScheduleException> GetScheduleExceptions(string profileId) {
@@ -309,6 +322,11 @@ public sealed class ProfileAndPolicySqliteRepository : IProfileRepository, IPoli
   public void SaveScheduleExceptions(string profileId, IEnumerable<ScheduleException> exceptions) {
     using var connection = OpenConnection();
     using var transaction = connection.BeginTransaction();
+    SaveScheduleExceptions(profileId, exceptions, connection, transaction);
+    transaction.Commit();
+  }
+
+  static void SaveScheduleExceptions(string profileId, IEnumerable<ScheduleException> exceptions, SqliteConnection connection, SqliteTransaction transaction) {
     using (var clear = connection.CreateCommand()) {
       clear.Transaction = transaction;
       clear.CommandText = "DELETE FROM schedule_exceptions WHERE profile_id = $profileId;";
@@ -326,7 +344,24 @@ public sealed class ProfileAndPolicySqliteRepository : IProfileRepository, IPoli
       insert.Parameters.AddWithValue("$noSchool", item.IsNoSchool ? 1 : 0);
       insert.ExecuteNonQuery();
     }
+  }
+
+  public ClassroomProfile ImportWorkspace(WorkspacePackage package) {
+    WorkspaceTransfer.Validate(package);
+    var id = Guid.NewGuid().ToString("N");
+    var profile = new ClassroomProfile(id, package.Name.Trim());
+    using var connection = OpenConnection();
+    using var transaction = connection.BeginTransaction();
+    SaveProfile(profile, connection, transaction);
+    SavePolicyRule(package.Rule with { ProfileId = id, RuleId = $"rule-{id}" }, connection, transaction);
+    SaveBellSchedule(id, package.Periods.Select(p => new BellSchedulePeriod(
+      Guid.NewGuid().ToString("N"), id, p.PeriodName, p.StartTime, p.EndTime,
+      p.DaysOfWeek, p.ScheduleName, p.ClassSection)), connection, transaction);
+    SaveScheduleExceptions(id, package.Exceptions.Select(e => e with {
+      ExceptionId = Guid.NewGuid().ToString("N"), ProfileId = id
+    }), connection, transaction);
     transaction.Commit();
+    return profile;
   }
 
   // --- Terminal Operations ---

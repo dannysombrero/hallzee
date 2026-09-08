@@ -90,8 +90,17 @@ bool ArduinoBluetoothSerialPort::begin(const char *deviceName) {
 
   service->start();
   BLEAdvertising *advertising = BLEDevice::getAdvertising();
-  advertising->addServiceUUID(SERVICE_UUID);
+  // Keep the service UUID in the advertisement and the whole name in the
+  // scan response. Rebuild the latter after claims, resets, and renames.
+  BLEAdvertisementData serviceData;
+  serviceData.setFlags(0x06);
+  serviceData.setCompleteServices(BLEUUID(SERVICE_UUID));
   advertising->setScanResponse(true);
+  advertisedName = deviceName;
+  BLEAdvertisementData nameData;
+  nameData.setName(advertisedName);
+  advertising->setScanResponseData(nameData);
+  advertising->setAdvertisementData(serviceData);
   advertising->start();
   return true;
 }
@@ -137,14 +146,22 @@ void ArduinoBluetoothSerialPort::setPairingPasskey(uint32_t passkey) {
 }
 
 bool ArduinoBluetoothSerialPort::setDeviceName(const char *deviceName) {
-  if (!deviceName || !server) return false;
+  if (!deviceName || !server || strlen(deviceName) > 29) return false;
 #if defined(CONFIG_BLUEDROID_ENABLED)
-  return esp_ble_gap_set_device_name(const_cast<char *>(deviceName)) == ESP_OK;
+  if (esp_ble_gap_set_device_name(const_cast<char *>(deviceName)) != ESP_OK) return false;
 #elif defined(CONFIG_NIMBLE_ENABLED)
-  return ble_svc_gap_device_name_set(deviceName) == 0;
+  if (ble_svc_gap_device_name_set(deviceName) != 0) return false;
 #else
   return false;
 #endif
+  advertisedName = deviceName;
+  // An authorized connection remains exclusive. Update its next advertisement
+  // when it disconnects; otherwise refresh discovery immediately.
+  if (!connected) {
+    server->getAdvertising()->stop();
+    restartAdvertising();
+  }
+  return true;
 }
 
 bool ArduinoBluetoothSerialPort::hasClient() { return connected; }
@@ -199,5 +216,10 @@ void ArduinoBluetoothSerialPort::println(const char *text) { send(String(text) +
 void ArduinoBluetoothSerialPort::println(const String &text) { send(text + "\n"); }
 
 void ArduinoBluetoothSerialPort::restartAdvertising() {
-  if (server) server->getAdvertising()->start();
+  if (!server) return;
+  BLEAdvertisementData nameData;
+  nameData.setName(advertisedName);
+  auto *advertising = server->getAdvertising();
+  advertising->setScanResponseData(nameData);
+  advertising->start();
 }

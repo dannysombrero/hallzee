@@ -320,7 +320,9 @@ void testOccupiedIdleScreenGoldenInstructions() {
     "println:HALLZEE",
     "setTextColor:48631",
     "setCursor:9:14",
-    "println:TERMINAL",
+    "setTextSize:1",
+    "print:Terminal: ",
+    "println:",
     "fillRoundRect:8:28:144:31:6:65535",
     "fillRoundRect:8:28:5:31:3:59782",
     "setTextColor:59782",
@@ -715,6 +717,23 @@ void testKeypadControllerInterpretsKeysAndResetGesture() {
     {'*', KeypadEventState::Released}, {'#', KeypadEventState::Released}
   });
   pairingController.poll();
+
+  keypadSetupMode = true;
+  setupKeys.clear();
+  clock.currentMilliseconds = 25000;
+  keypad.batches.push_back({{'*', KeypadEventState::Pressed}, {'#', KeypadEventState::Pressed}});
+  pairingController.poll();
+  clock.currentMilliseconds = 29999;
+  pairingController.poll();
+  expectTrue(pairingCount == 1, "setup pairing waits five seconds");
+  clock.currentMilliseconds = 30000;
+  pairingController.poll();
+  pairingController.poll();
+  expectTrue(pairingCount == 2, "setup pairing fires once");
+  keypad.batches.push_back({{'*', KeypadEventState::Released}, {'#', KeypadEventState::Released}});
+  pairingController.poll();
+  expectTrue(setupKeys.empty(), "pairing chord does not edit the clock");
+  keypadSetupMode = false;
 }
 
 static bool fakeHasActivePass = false;
@@ -988,7 +1007,35 @@ void testCheckedOutScreenIncludesDurationInstruction() {
 
 }  // namespace
 
+class NativeRecordingDisplay : public RecordingDisplay {
+public:
+  bool isNative320x240() const override { return true; }
+};
+
 int main() {
+  {
+    NativeRecordingDisplay display;
+    TerminalDisplay terminal(display);
+    terminal.setFriendlyName("Room 204");
+    terminal.drawClockSetupScreen(SET_MONTH, "");
+    expectTrue(contains(display.commands, "println:Room 204"), "native setup header shows friendly name");
+    expectTrue(contains(display.commands, "println:Pair: hold * + # for 5 seconds"), "native setup explains pairing chord");
+    terminal.showPairing("HZ-A1B2C3D4E5F6", "Ms Rivera Room 204", 123456);
+    expectTrue(contains(display.commands, "println:HZ-A1B2C3D4E5F6"), "native pairing shows full unique ID");
+    expectTrue(contains(display.commands, "println:Ms Rivera Room 204"), "native pairing shows full friendly name");
+  }
+  {
+    RecordingDisplay display;
+    TerminalDisplay terminal(display);
+    terminal.showPairing("HZ-A1B2C3D4E5F6", "Ms Rivera Room 204", 42);
+    expectTrue(contains(display.commands, "println:HZ-A1B2C3D4E5F6"), "pairing shows full unique ID");
+    expectTrue(contains(display.commands, "println:Ms Rivera Room 204"), "pairing shows friendly name");
+    expectTrue(contains(display.commands, "println:000042"), "pairing pads all six passkey digits");
+    display.commands.clear();
+    terminal.setFriendlyName("Room 204");
+    terminal.drawIdleScreen("", "");
+    expectTrue(contains(display.commands, "print:Terminal: ") && contains(display.commands, "println:Room 204"), "header shows friendly name");
+  }
   testEmptyIdEntryGoldenInstructions();
   testLongIdEntryUsesCompactText();
   testStudentIdLimitIsRecheckedAtSubmission();

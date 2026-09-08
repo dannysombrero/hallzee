@@ -123,9 +123,18 @@ void transitionToIdle(bool clearEnteredId = true);
 
 bool pairingUiActive = false;
 String displayedFriendlyName;
+bool ownerReleaseCleanupPending = false;
+unsigned long ownerReleaseStartedAt = 0;
+
+bool releaseOwnerFromDesktop() {
+  if (!terminalSecurity.isAuthorized() || terminal.hasActivePass() || !terminalSecurity.resetOwner()) return false;
+  ownerReleaseCleanupPending = true;
+  ownerReleaseStartedAt = monotonicClock.milliseconds();
+  return true;
+}
 
 bool isPairingAllowed() {
-  return !terminal.hasActivePass() && !terminalSecurity.hasOwner();
+  return !ownerReleaseCleanupPending && !terminal.hasActivePass() && !terminalSecurity.hasOwner();
 }
 
 bool isOwnerResetAllowed() {
@@ -806,6 +815,7 @@ void setup() {
       Serial.println("Owner storage: UNAVAILABLE");
   }
 
+  bluetoothSync.setOwnerReleaseHandler(releaseOwnerFromDesktop);
   bluetoothSync.begin();
   // Do not clear BLE bonds merely because the owner record is unavailable at
   // boot. A transient NVS read failure must not make macOS report
@@ -935,6 +945,13 @@ void loop() {
 
   // Bluetooth is passive in Phase 3; it must never block student workflow.
   bluetoothSync.poll();
+  // Allow the release acknowledgement to reach the owner before closing BLE.
+  if (ownerReleaseCleanupPending && (!bluetoothSerial.hasClient() ||
+      monotonicClock.milliseconds() - ownerReleaseStartedAt >= 500)) {
+    bluetoothSerial.disconnectClient();
+    bluetoothSerial.clearBondedDevices();
+    ownerReleaseCleanupPending = false;
+  }
   bluetoothSync.updateAvailability(terminal.hasActivePass());
   if (displayedFriendlyName != terminalIdentity.customName()) {
     displayedFriendlyName = terminalIdentity.customName();

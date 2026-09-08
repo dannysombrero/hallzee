@@ -96,7 +96,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     };
     TerminalSettingsModal = new TerminalSettingsViewModel(
       profileRepository,
-      SendProtocolAsync,
+      SendDeviceSettingAsync,
       appData,
       HandleClassroomInfoChanged);
     if (!string.IsNullOrWhiteSpace(LastPairedDeviceName)) {
@@ -105,6 +105,8 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     }
     FindTerminalsModal = new FindTerminalsViewModel(connection);
     ManualCheckInModal = new ManualCheckInViewModel(rosterService);
+
+    if (terminalSession != null) terminalSession.StateChanged += HandleTerminalSessionStateChanged;
 
     // Connection events
     connection.TextReceived += HandleTextReceived;
@@ -129,7 +131,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
       ActivePass.Tick();
       Dashboard.TickLiveActivePasses();
       UpdatePeriodWindow();
-      if (IsConnected && !IsSyncing && DateTime.Now >= nextBackgroundSyncAt) {
+      if (IsConnected && !IsSyncing && !IsDeviceBusy && DateTime.Now >= nextBackgroundSyncAt) {
         nextBackgroundSyncAt = DateTime.Now.AddMinutes(5);
         _ = SyncNowAsync();
       }
@@ -220,6 +222,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     private set {
       if (isConnected != value) {
         isConnected = value;
+        NotifyDeviceState();
         OnPropertyChanged();
         OnPropertyChanged(nameof(ConnectionStatusText));
         OnPropertyChanged(nameof(ConnectionStatusColor));
@@ -243,6 +246,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     private set {
       if (isSyncing != value) {
         isSyncing = value;
+        NotifyDeviceState();
         OnPropertyChanged();
         OnPropertyChanged(nameof(ConnectionStatusText));
         OnPropertyChanged(nameof(TopStatusBadgeText));
@@ -275,12 +279,12 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
       var terminalId = profileRepository.GetAssignedTerminalId(ActiveProfile.ProfileId);
       if (!string.IsNullOrWhiteSpace(terminalId) && !terminalId.StartsWith("LEGACY", StringComparison.OrdinalIgnoreCase)) {
         var saved = profileRepository.GetTerminal(terminalId);
-        if (saved != null && !string.IsNullOrWhiteSpace(saved.CustomName)) {
+        if (saved != null && saved.ClaimStatus != "UNCLAIMED" && !string.IsNullOrWhiteSpace(saved.CustomName)) {
           return saved.CustomName;
         }
       }
       var all = profileRepository.GetAllTerminals()
-        .Where(t => !t.TerminalId.StartsWith("LEGACY", StringComparison.OrdinalIgnoreCase));
+        .Where(t => !t.TerminalId.StartsWith("LEGACY", StringComparison.OrdinalIgnoreCase) && t.ClaimStatus != "UNCLAIMED");
       var latest = all.OrderByDescending(t => t.LastSeenAt).FirstOrDefault();
       if (latest != null && !string.IsNullOrWhiteSpace(latest.CustomName)) {
         return latest.CustomName;
@@ -290,6 +294,27 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
   }
 
   public string CurrentTerminalId => lastAuthenticatedTerminalId ?? "preview-hallzee";
+
+  bool isDeviceBusy;
+  public bool IsDeviceBusy {
+    get => isDeviceBusy;
+    private set { isDeviceBusy = value; OnPropertyChanged(); NotifyDeviceState(); }
+  }
+  public bool CanEditDevice => IsConnected && !IsDeviceBusy && !IsSyncing && !IsReconnecting;
+  public bool CanUnpairDevice => CanEditDevice && !HasStudentsOut;
+  public string DeviceUniqueId => terminalSession?.Identity?.TerminalId ?? lastAuthenticatedTerminalId ??
+    profileRepository.GetAssignedTerminalId(ActiveProfile.ProfileId) ?? (IsConnected && isPreviewMode ? "Preview device (simulated)" : "No device paired");
+  public string DeviceConnectionStatus => IsDeviceBusy ? "UPDATING DEVICE" :
+    terminalSession?.State is TerminalSessionState.Connecting or TerminalSessionState.AwaitingIdentity or TerminalSessionState.AwaitingAuthentication
+      ? "CONNECTING" : terminalSession?.State == TerminalSessionState.ClaimRequired ? "PAIRING REQUIRED" : ConnectionStatusText;
+
+  void HandleTerminalSessionStateChanged(object? sender, TerminalSessionState state) => NotifyDeviceState();
+  void NotifyDeviceState() {
+    OnPropertyChanged(nameof(DeviceUniqueId));
+    OnPropertyChanged(nameof(DeviceConnectionStatus));
+    OnPropertyChanged(nameof(CanEditDevice));
+    OnPropertyChanged(nameof(CanUnpairDevice));
+  }
 
   public string WindowTitle => $"Hallzee Desktop Client · {ConnectedTerminalName}";
 
@@ -522,6 +547,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
   }
 
   public async Task ConnectAndSyncAsync() {
+    if (IsDeviceBusy) return;
     var device = FindTerminalsModal.SelectedDevice;
     if (device == null) return;
     CancelAutomaticReconnect();
@@ -572,8 +598,9 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
       ));
       profileRepository.AssignTerminalToProfile(ActiveProfile.ProfileId, authenticated.TerminalId);
       ConnectedTerminalName = authenticated.CustomName;
-      lastAuthenticatedDevice = device;
+      lastAuthenticatedDevice = device with { Name = authenticated.CustomName };
       lastAuthenticatedTerminalId = authenticated.TerminalId;
+      NotifyDeviceState();
       FindTerminalsModal.PairingPasskey = "";
       IsConnected = true;
       CloseModal();
@@ -722,21 +749,77 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
   }
 
   public async Task ApplyTerminalSettingsAsync() {
-    if (!IsConnected) {
-      TerminalSettingsModal.SetFailure("Connect to the kiosk before applying device settings.");
-      return;
-    }
-    await operationCoordinator.RunAsync(async () => {
-      if (await TerminalSettingsModal.ApplySettingsAsync(CurrentTerminalId)) {
-        ConnectedTerminalName = TerminalSettingsModal.TerminalName;
-        if (lastAuthenticatedDevice != null) {
-          lastAuthenticatedDevice = lastAuthenticatedDevice with { Name = ConnectedTerminalName };
+    if (!CanEditDevice) return;
+    IsDeviceBusy = true;
+    try { await operationCoordinator.RunAsync(() => TerminalSettingsModal.ApplySettingsAsync(CurrentTerminalId)); }
+    finally { IsDeviceBusy = false; }
+  }
+
+  public async Task SaveTerminalNameAsync() {
+    if (!CanEditDevice || !TerminalSettingsModal.IsEditingName) return;
+    IsDeviceBusy = true;
+    try {
+      await operationCoordinator.RunAsync(async () => {
+        if (await TerminalSettingsModal.ApplyNameAsync(CurrentTerminalId)) {
+          ConnectedTerminalName = TerminalSettingsModal.TerminalName;
+          if (lastAuthenticatedDevice != null) lastAuthenticatedDevice = lastAuthenticatedDevice with { Name = ConnectedTerminalName };
         }
+      });
+    } finally { IsDeviceBusy = false; }
+  }
+
+  public async Task DisconnectAndUnpairAsync() {
+    if (!CanUnpairDevice) return;
+    IsDeviceBusy = true;
+    intentionalDisconnect = true;
+    CancelAutomaticReconnect();
+    var released = false;
+    TerminalSettingsModal.SetStatus("Releasing terminal ownership…");
+    try {
+      await operationCoordinator.RunAsync(async () => {
+        var terminalId = CurrentTerminalId;
+        if (terminalSession != null)
+          await terminalSession.RequestAuthorizedAsync("RELEASE_OWNER", "OWNER_RELEASED");
+        released = true;
+        // Retain trip history, but remove credentials and every workspace assignment.
+        ownerCredentialStore?.DeleteOwnerKey(terminalId);
+        profileRepository.ForgetTerminalPairing(terminalId);
+        lastAuthenticatedDevice = null;
+        lastAuthenticatedTerminalId = null;
+        FindTerminalsModal.SelectedDevice = null;
+        FindTerminalsModal.Devices.Clear();
+        FindTerminalsModal.PairingPasskey = "";
+        await DisconnectAsync();
+        TerminalSettingsModal.TerminalName = "No Device Paired";
+        TerminalSettingsModal.CancelNameEdit();
+        OnPropertyChanged(nameof(LastPairedDeviceName));
+        OnPropertyChanged(nameof(ConnectedTerminalName));
+        OnPropertyChanged(nameof(TerminalFriendlyNameDisplay));
+        OnPropertyChanged(nameof(WindowTitle));
+        OnPropertyChanged(nameof(HasReconnectCandidate));
+        OnPropertyChanged(nameof(IsReconnectPromptVisible));
+        TerminalSettingsModal.SetStatus("Disconnected and unpaired. Use pairing mode and a new passkey to connect again.");
+      });
+    } catch (Exception ex) {
+      if (released) {
+        try { await DisconnectAsync(); } catch { }
+        TerminalSettingsModal.SetFailure($"Terminal ownership was released, but local cleanup failed: {ex.Message}");
+      } else {
+        TerminalSettingsModal.SetFailure($"Unpair was not confirmed; the saved pairing was retained. {ex.Message} Update terminal firmware if this command is unsupported.");
       }
-    });
+    } finally {
+      intentionalDisconnect = false;
+      IsDeviceBusy = false;
+    }
+  }
+
+  Task SendDeviceSettingAsync(string command) {
+    return terminalSession == null ? connection.SendAsync(command) :
+      terminalSession.RequestAuthorizedAsync(command, "SETTINGS_ACK," + command[4..]);
   }
 
   public void RefreshActiveProfileData() {
+    NotifyDeviceState();
     PolicyModal.Refresh(ActiveProfile.ProfileId);
     RosterModal.Refresh(ActiveProfile.ProfileId);
     Dashboard.ThresholdMinutes = PolicyModal.DurationWarningMinutes;
@@ -750,12 +833,14 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
   void HandleActivePassPropertyChanged(object? sender, PropertyChangedEventArgs eventArgs) {
     if (eventArgs.PropertyName is nameof(ActivePassViewModel.IsOccupied) or nameof(ActivePassViewModel.IsStatusUnknown) or nameof(ActivePassViewModel.DurationDisplay) or nameof(ActivePassViewModel.DisplayName)) {
       OnPropertyChanged(nameof(HasStudentsOut));
+      NotifyDeviceState();
       UpdatePeriodWindow();
     }
   }
 
   void HandleAdditionalActiveTripsChanged(object? sender, NotifyCollectionChangedEventArgs eventArgs) {
     OnPropertyChanged(nameof(HasStudentsOut));
+    NotifyDeviceState();
     UpdatePeriodWindow();
   }
 
@@ -1106,6 +1191,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     Dashboard.AdditionalActiveTrips.CollectionChanged -= HandleAdditionalActiveTripsChanged;
     connection.TextReceived -= HandleTextReceived;
     connection.ConnectionLost -= HandleConnectionLost;
+    if (terminalSession != null) terminalSession.StateChanged -= HandleTerminalSessionStateChanged;
     terminalSession?.Dispose();
     operationCoordinator.Dispose();
   }
@@ -1138,6 +1224,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     reconnectInProgress = true;
     _ = UpdateReconnectCountdownAsync(cancellationToken, device.Name, reconnectWindowSeconds);
     OnPropertyChanged(nameof(IsReconnecting));
+    NotifyDeviceState();
     OnPropertyChanged(nameof(ReconnectPromptTitle));
     OnPropertyChanged(nameof(ConnectionStatusText));
     OnPropertyChanged(nameof(ConnectionStatusColor));
@@ -1240,6 +1327,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     } finally {
       reconnectInProgress = false;
       OnPropertyChanged(nameof(IsReconnecting));
+      NotifyDeviceState();
       OnPropertyChanged(nameof(ConnectionStatusText));
       OnPropertyChanged(nameof(ConnectionStatusColor));
       OnPropertyChanged(nameof(ConnectionBadgeBackground));

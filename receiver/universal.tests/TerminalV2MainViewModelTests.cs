@@ -85,9 +85,81 @@ public sealed class TerminalV2MainViewModelTests {
     } finally { Directory.Delete(folder, true); }
   }
 
+  [Theory]
+  [InlineData(false)]
+  [InlineData(true)]
+  public async Task UnpairClearsOwnershipOnlyAfterTerminalConfirms(bool rejectRelease) {
+    var folder = Path.Combine(Path.GetTempPath(), "HallzeeUnpairTests", Guid.NewGuid().ToString("N"));
+    Directory.CreateDirectory(folder);
+    var connection = new FakeV2Connection { RejectRelease = rejectRelease };
+    var credentials = new InMemoryTerminalCredentialStore();
+    try {
+      using var vm = new MainViewModel(connection, folder, false, credentials);
+      await vm.FindTerminalsModal.ScanAsync();
+      vm.FindTerminalsModal.PairingPasskey = "807481";
+      await vm.ConnectAndSyncAsync();
+      Assert.Equal(TerminalId, vm.DeviceUniqueId);
+      Assert.Equal("CONNECTED", vm.DeviceConnectionStatus);
+      var db = Path.Combine(folder, "hallzee-trips.db");
+      var repo = new ProfileAndPolicySqliteRepository(db);
+      var trips = new TripSqliteRepository(db);
+      trips.Store(TerminalId, "1,001234,2026-09-08,08:00:00,08:01:00,60,COMPLETED");
+      var connectCount = connection.ConnectCount;
+      await vm.DisconnectAndUnpairAsync();
+      Assert.Equal(rejectRelease, credentials.TryGetOwnerKey(TerminalId, out _));
+      Assert.Equal(rejectRelease, vm.IsConnected);
+      Assert.Equal(rejectRelease ? TerminalId : null, repo.GetAssignedTerminalId("default"));
+      Assert.Equal(1, trips.GetLatestTripId(TerminalId));
+      if (rejectRelease) Assert.Contains("not confirmed", vm.TerminalSettingsModal.StatusMessage);
+      else {
+        Assert.False(vm.HasReconnectCandidate);
+        Assert.Equal("No device paired", vm.DeviceUniqueId);
+        Assert.Equal("No Device Paired", vm.TerminalSettingsModal.TerminalName);
+        connection.RaiseConnectionLost();
+        Assert.Equal(connectCount, connection.ConnectCount);
+        using var restarted = new MainViewModel(new FakeV2Connection(), folder, false, credentials);
+        Assert.False(restarted.HasReconnectCandidate);
+      }
+    } finally { Directory.Delete(folder, true); }
+  }
+
+  [Fact]
+  public async Task DeviceNameUsesExplicitEditAndPreservesPairingMetadata() {
+    var folder = Path.Combine(Path.GetTempPath(), "HallzeeRenameTests", Guid.NewGuid().ToString("N"));
+    Directory.CreateDirectory(folder);
+    var connection = new FakeV2Connection();
+    try {
+      using var vm = new MainViewModel(connection, folder, false);
+      await vm.FindTerminalsModal.ScanAsync();
+      vm.FindTerminalsModal.PairingPasskey = "807481";
+      await vm.ConnectAndSyncAsync();
+      vm.TerminalSettingsModal.BeginNameEdit();
+      vm.TerminalSettingsModal.EditedTerminalName = "Cancelled";
+      vm.TerminalSettingsModal.CancelNameEdit();
+      Assert.Equal("Hallzee-A1B2", vm.TerminalSettingsModal.TerminalName);
+      Assert.DoesNotContain(connection.SentCommands, c => c.StartsWith("SET,TERMINAL_NAME,"));
+      vm.TerminalSettingsModal.BeginNameEdit();
+      vm.TerminalSettingsModal.EditedTerminalName = "Room 204";
+      await vm.SaveTerminalNameAsync();
+      Assert.False(vm.TerminalSettingsModal.IsEditingName);
+      Assert.Equal("Hallzee Desktop Client · Room 204", vm.WindowTitle);
+      await vm.ApplyTerminalSettingsAsync();
+      Assert.Single(connection.SentCommands, c => c.StartsWith("SET,TERMINAL_NAME,"));
+      var saved = new ProfileAndPolicySqliteRepository(Path.Combine(folder, "hallzee-trips.db")).GetTerminal(TerminalId)!;
+      Assert.Equal("transport-v2", saved.TransportId);
+      Assert.Equal("CLAIMED", saved.ClaimStatus);
+      vm.ActivePass.SetOccupied("1234", "Avery", DateTime.Now);
+      Assert.False(vm.CanUnpairDevice);
+      await vm.DisconnectAndUnpairAsync();
+      Assert.DoesNotContain("RELEASE_OWNER", connection.SentCommands);
+      Assert.True(vm.IsConnected);
+    } finally { Directory.Delete(folder, true); }
+  }
+
   sealed class FakeV2Connection : ITerminalConnection {
     bool connected;
     bool claimed;
+    public bool RejectRelease { get; init; }
 
     public event EventHandler<string>? TextReceived;
     public event EventHandler<string>? ConnectionLost;
@@ -120,6 +192,11 @@ public sealed class TerminalV2MainViewModelTests {
       } else if (command.StartsWith("CLAIM_COMMIT,2,")) {
         claimed = true;
         Emit($"AUTH_OK,2,{TerminalId},Hallzee-A1B2\n");
+      } else if (command == "RELEASE_OWNER") {
+        if (RejectRelease) Emit("ERROR,OWNER_RELEASE_FAILED\n");
+        else { claimed = false; Emit("OWNER_RELEASED\n"); }
+      } else if (command.StartsWith("SET,TERMINAL_NAME,") || command.StartsWith("SET,MAX_ID_LENGTH,")) {
+        Emit("SETTINGS_ACK," + command[4..] + "\n");
       } else if (command == "GET_ACTIVE_PASSES") {
         Emit("ACTIVE_PASSES\n");
       } else if (command == "GET_SETTINGS") {

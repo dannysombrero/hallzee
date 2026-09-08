@@ -749,6 +749,36 @@ static bool fakeGetActivePass(String &activeId, uint32_t &checkoutEpoch) {
   return false;
 }
 
+int ownerReleaseRequests = 0;
+bool ownerReleaseSucceeds = true;
+bool fakeReleaseOwner() { ownerReleaseRequests++; return ownerReleaseSucceeds; }
+
+void testBluetoothOwnerRelease() {
+  FakeTripStorage storage;
+  FakeBluetoothSerial serial;
+  BluetoothSync sync(storage, serial, setBluetoothClock, onBluetoothClockSet, fakeGetActivePass);
+  sync.begin();
+  serial.connected = true;
+  fakeHasActivePass = false;
+  serial.input = "RELEASE_OWNER\n";
+  sync.poll();
+  expectTrue(contains(serial.output, "ERROR,UNSUPPORTED_COMMAND"), "release needs configured handler");
+  sync.setOwnerReleaseHandler(fakeReleaseOwner);
+  fakeHasActivePass = true;
+  serial.input = "RELEASE_OWNER\n";
+  sync.poll();
+  expectTrue(ownerReleaseRequests == 0 && contains(serial.output, "ERROR,ACTIVE_PASS"), "release protects active passes");
+  fakeHasActivePass = false;
+  ownerReleaseSucceeds = false;
+  serial.input = "RELEASE_OWNER\n";
+  sync.poll();
+  expectTrue(!contains(serial.output, "OWNER_RELEASED") && contains(serial.output, "ERROR,OWNER_RELEASE_FAILED"), "failed release never acknowledges success");
+  ownerReleaseSucceeds = true;
+  serial.input = "RELEASE_OWNER\n";
+  sync.poll();
+  expectTrue(ownerReleaseRequests == 2 && contains(serial.output, "OWNER_RELEASED"), "release acknowledges persisted owner removal");
+}
+
 void testBluetoothProtocolAndRecovery() {
   FakeTripStorage storage;
   storage.syncRecords = {
@@ -1054,6 +1084,7 @@ int main() {
   testTerminalEnforcesConfiguredMultiPassCapacity();
   testBellPolicyLocksWarnsAndFailsOpenOutsideCache();
   testKeypadControllerInterpretsKeysAndResetGesture();
+  testBluetoothOwnerRelease();
   testBluetoothProtocolAndRecovery();
   testBluetoothFailureAndValidationPaths();
   testBluetoothBellPolicyValidation();

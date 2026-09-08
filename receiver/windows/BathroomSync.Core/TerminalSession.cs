@@ -41,6 +41,8 @@ public sealed class TerminalSession : IAsyncDisposable, IDisposable {
   TaskCompletionSource<TerminalIdentity>? identityCompletion;
   TaskCompletionSource<(string TerminalId, string CommitNonce)>? claimCompletion;
   TaskCompletionSource<AuthenticatedTerminalSession>? authCompletion;
+  TaskCompletionSource<string>? commandCompletion;
+  string? expectedCommandResponse;
   TerminalDevice? selectedDevice;
   TerminalIdentity? identity;
   string? expectedTerminalId;
@@ -217,6 +219,22 @@ public sealed class TerminalSession : IAsyncDisposable, IDisposable {
     }
   }
 
+  public async Task RequestAuthorizedAsync(string command, string expectedResponse, CancellationToken cancellationToken = default) {
+    await operationLock.WaitAsync(cancellationToken);
+    try {
+      if (State != TerminalSessionState.Authenticated)
+        throw new InvalidOperationException("Reconnect to the terminal first.");
+      commandCompletion = NewCompletion<string>();
+      expectedCommandResponse = expectedResponse;
+      await connection.SendAsync(command);
+      await WaitAsync(commandCompletion.Task, cancellationToken);
+    } finally {
+      commandCompletion = null;
+      expectedCommandResponse = null;
+      operationLock.Release();
+    }
+  }
+
   public async Task DisconnectAsync() {
     await operationLock.WaitAsync();
     try {
@@ -228,6 +246,7 @@ public sealed class TerminalSession : IAsyncDisposable, IDisposable {
   }
 
   async Task DisconnectCoreAsync() {
+    commandCompletion?.TrySetCanceled();
     identityCompletion?.TrySetCanceled();
     claimCompletion?.TrySetCanceled();
     authCompletion?.TrySetCanceled();
@@ -256,6 +275,15 @@ public sealed class TerminalSession : IAsyncDisposable, IDisposable {
   }
 
   void HandleLine(string line) {
+    if (commandCompletion != null && line == expectedCommandResponse) {
+      commandCompletion.TrySetResult(line);
+      return;
+    }
+    if (commandCompletion != null && (line.StartsWith("ERROR,", StringComparison.Ordinal) ||
+        line.StartsWith("SETTINGS_ERROR,", StringComparison.Ordinal))) {
+      commandCompletion.TrySetException(new InvalidOperationException($"Terminal rejected the request: {line}"));
+    }
+
     if (TerminalIdentityProtocol.TryParseIdentity(line, out var parsedIdentity) && parsedIdentity is not null) {
       identityCompletion?.TrySetResult(parsedIdentity);
       return;
@@ -289,6 +317,7 @@ public sealed class TerminalSession : IAsyncDisposable, IDisposable {
   }
 
   void HandleConnectionLost(object? sender, string detail) {
+    commandCompletion?.TrySetException(new IOException(detail));
     identityCompletion?.TrySetException(new IOException(detail));
     claimCompletion?.TrySetException(new IOException(detail));
     authCompletion?.TrySetException(new IOException(detail));

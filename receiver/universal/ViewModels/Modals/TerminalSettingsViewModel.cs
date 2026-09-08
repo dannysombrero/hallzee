@@ -39,7 +39,7 @@ public sealed class TerminalSettingsViewModel : INotifyPropertyChanged {
   void LoadLastPairedTerminal() {
     try {
       var all = terminalRepository.GetAllTerminals()
-        .Where(t => !t.TerminalId.StartsWith("LEGACY", StringComparison.OrdinalIgnoreCase));
+        .Where(t => !t.TerminalId.StartsWith("LEGACY", StringComparison.OrdinalIgnoreCase) && t.ClaimStatus != "UNCLAIMED");
       var latest = all.OrderByDescending(t => t.LastSeenAt).FirstOrDefault();
       if (latest != null && !string.IsNullOrWhiteSpace(latest.CustomName)) {
         terminalName = latest.CustomName;
@@ -168,6 +168,39 @@ public sealed class TerminalSettingsViewModel : INotifyPropertyChanged {
     }
   }
 
+  bool isEditingName;
+  string editedTerminalName = "";
+  public bool IsEditingName {
+    get => isEditingName;
+    private set { isEditingName = value; OnPropertyChanged(); }
+  }
+  public string EditedTerminalName {
+    get => editedTerminalName;
+    set { editedTerminalName = value; OnPropertyChanged(); }
+  }
+  public void BeginNameEdit() { EditedTerminalName = TerminalName; IsEditingName = true; }
+  public void CancelNameEdit() { EditedTerminalName = TerminalName; IsEditingName = false; }
+  public void SetStatus(string message) { StatusMessage = message; StatusColor = "#0284C7"; }
+
+  public async Task<bool> ApplyNameAsync(string terminalId) {
+    try {
+      var command = TerminalIdentityProtocol.BuildSetTerminalName(EditedTerminalName);
+      var name = command["SET,TERMINAL_NAME,".Length..];
+      SetStatus("Saving terminal name…");
+      await sendCommand(command);
+      var saved = terminalRepository.GetTerminal(terminalId) ?? new TerminalDeviceConfig(terminalId, name);
+      terminalRepository.SaveTerminal(saved with { CustomName = name, LastSeenAt = DateTime.UtcNow });
+      TerminalName = name;
+      CancelNameEdit();
+      StatusMessage = "Terminal name saved.";
+      StatusColor = "#10B981";
+      return true;
+    } catch (Exception ex) {
+      SetFailure($"Could not save terminal name: {ex.Message}");
+      return false;
+    }
+  }
+
   public string StatusMessage {
     get => statusMessage;
     private set { statusMessage = value; OnPropertyChanged(); }
@@ -189,18 +222,10 @@ public sealed class TerminalSettingsViewModel : INotifyPropertyChanged {
 
     try {
       var idCommand = KioskSettingsProtocol.BuildStudentIdLengthCommand(MaxStudentIdLength);
-      var nameCommand = TerminalIdentityProtocol.BuildSetTerminalName(TerminalName);
       await sendCommand(idCommand);
-      await sendCommand(nameCommand);
-
-      terminalRepository.SaveTerminal(new TerminalDeviceConfig(
-        TerminalId: terminalId,
-        CustomName: TerminalName,
-        LastSeenAt: DateTime.UtcNow,
-        MaxIdLength: MaxStudentIdLength
-      ));
-
-      StatusMessage = $"Applied kiosk name “{TerminalName}” and maximum student ID length {MaxStudentIdLength}.";
+      var saved = terminalRepository.GetTerminal(terminalId) ?? new TerminalDeviceConfig(terminalId, TerminalName);
+      terminalRepository.SaveTerminal(saved with { MaxIdLength = MaxStudentIdLength, LastSeenAt = DateTime.UtcNow });
+      StatusMessage = $"Applied maximum student ID length {MaxStudentIdLength}.";
       StatusColor = "#10B981";
       return true;
     } catch (Exception ex) {

@@ -5,7 +5,7 @@
              x:DataType="vm:MainViewModel">
   <!-- OVERLAY WITH GUARANTEED PADDING SO MODAL NEVER CLIPS WINDOW BOUNDS -->
   <Border Background="#99000000" Padding="32,24" PointerPressed="OnBackdropPointerPressed">
-    <Border Classes="hallzee-modal-window" MaxWidth="680" MaxHeight="620" VerticalAlignment="Center" HorizontalAlignment="Stretch">
+    <Border Classes="hallzee-modal-window" MaxWidth="680" MaxHeight="700" VerticalAlignment="Center" HorizontalAlignment="Stretch">
       <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="16">
         
         <!-- HEADER -->
@@ -82,7 +82,8 @@
         </StackPanel>
 
         <!-- TAB 2: DEVICE SETTINGS -->
-        <StackPanel Grid.Row="2" Spacing="16" IsVisible="{Binding TerminalSettingsModal.IsDeviceSelected}">
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" IsVisible="{Binding TerminalSettingsModal.IsDeviceSelected}">
+        <StackPanel Spacing="16">
           
           <!-- STUDENT ID LIMIT -->
           <Border Classes="hallzee-section-white" Padding="20">
@@ -101,23 +102,48 @@
           <Border Classes="hallzee-section-white" Padding="20">
             <StackPanel Spacing="10">
               <TextBlock Text="DEVICE INFORMATION" FontSize="11" FontWeight="Bold" Foreground="#64748B" />
-              <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="8" ColumnSpacing="14">
-                <TextBlock Grid.Row="0" Grid.Column="0" Text="Kiosk Name:" FontSize="12" Foreground="#64748B" VerticalAlignment="Center" />
-                <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding TerminalSettingsModal.TerminalName}" MaxLength="24" Watermark="e.g. Room 204 Door" FontSize="12" />
-                <TextBlock Grid.Row="1" Grid.Column="0" Text="GATT Transport:" FontSize="12" Foreground="#64748B" />
-                <TextBlock Grid.Row="1" Grid.Column="1" Text="Bluetooth Low Energy (BLE 4.2+)" FontSize="12" FontWeight="SemiBold" Foreground="#334155" />
-                <TextBlock Grid.Row="2" Grid.Column="0" Text="Connection:" FontSize="12" Foreground="#64748B" />
-                <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding ConnectionStatusText}" FontSize="12" FontWeight="SemiBold" Foreground="{Binding ConnectionBadgeForeground}" />
+              <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="12" ColumnSpacing="14">
+                <TextBlock Text="Terminal Name:" FontSize="12" Foreground="#64748B" VerticalAlignment="Center" />
+                <Panel Grid.Column="1">
+                  <Grid ColumnDefinitions="*,Auto" IsVisible="{Binding !TerminalSettingsModal.IsEditingName}">
+                    <TextBlock Text="{Binding TerminalSettingsModal.TerminalName}" FontSize="13" FontWeight="SemiBold" Foreground="#334155" VerticalAlignment="Center" TextWrapping="Wrap" />
+                    <Button Grid.Column="1" Classes="secondary" Click="OnEditNameClick" IsEnabled="{Binding CanEditDevice}" ToolTip.Tip="Edit friendly name" AutomationProperties.Name="Edit friendly name" Padding="8">
+                      <Path Data="{StaticResource IconEdit}" Width="15" Height="15" Stretch="Uniform" Stroke="#0369A1" StrokeThickness="2" />
+                    </Button>
+                  </Grid>
+                  <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6" IsVisible="{Binding TerminalSettingsModal.IsEditingName}">
+                    <TextBox Text="{Binding TerminalSettingsModal.EditedTerminalName}" MaxLength="24" Watermark="e.g. Room 204 Door" FontSize="12" IsEnabled="{Binding CanEditDevice}" />
+                    <Button Grid.Column="1" Classes="hallzee-pill-btn" Content="Save" Click="OnSaveNameClick" IsEnabled="{Binding CanEditDevice}" Padding="10,6" />
+                    <Button Grid.Column="2" Classes="secondary" Content="Cancel" Click="OnCancelNameClick" IsEnabled="{Binding !IsDeviceBusy}" Padding="10,6" />
+                  </Grid>
+                </Panel>
+                <TextBlock Grid.Row="1" Text="Unique Device ID:" FontSize="12" Foreground="#64748B" />
+                <SelectableTextBlock Grid.Row="1" Grid.Column="1" Text="{Binding DeviceUniqueId}" FontSize="12" FontWeight="SemiBold" Foreground="#334155" TextWrapping="Wrap" />
+                <TextBlock Grid.Row="2" Text="GATT Transport:" FontSize="12" Foreground="#64748B" />
+                <TextBlock Grid.Row="2" Grid.Column="1" Text="Bluetooth Low Energy (BLE 4.2+)" FontSize="12" FontWeight="SemiBold" Foreground="#334155" TextWrapping="Wrap" />
+                <TextBlock Grid.Row="3" Text="Connection:" FontSize="12" Foreground="#64748B" VerticalAlignment="Center" />
+                <Border Grid.Row="3" Grid.Column="1" Background="{Binding ConnectionBadgeBackground}" CornerRadius="6" Padding="8,4" HorizontalAlignment="Left">
+                  <TextBlock Text="{Binding DeviceConnectionStatus}" FontSize="12" FontWeight="SemiBold" Foreground="White" />
+                </Border>
               </Grid>
             </StackPanel>
           </Border>
+          <Border Classes="hallzee-section-white" Padding="20">
+            <StackPanel Spacing="10">
+              <TextBlock Text="Disconnecting will unpair this computer from the terminal. You will need pairing mode and a new passkey to connect again." FontSize="12" Foreground="#475569" TextWrapping="Wrap" />
+              <TextBlock Text="Check in all active passes before unpairing." IsVisible="{Binding HasStudentsOut}" FontSize="12" Foreground="#B45309" TextWrapping="Wrap" />
+              <TextBlock Text="Connect to the terminal first to release its pairing." IsVisible="{Binding !IsConnected}" FontSize="12" Foreground="#64748B" TextWrapping="Wrap" />
+              <Button Classes="danger" Content="Disconnect &amp; Unpair" Click="OnDisconnectAndUnpairClick" IsEnabled="{Binding CanUnpairDevice}" HorizontalAlignment="Left" Padding="14,8" />
+            </StackPanel>
+          </Border>
         </StackPanel>
+        </ScrollViewer>
 
         <!-- FOOTER ACTIONS -->
         <Grid Grid.Row="3" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
-          <TextBlock Text="{Binding TerminalSettingsModal.StatusMessage}" Foreground="{Binding TerminalSettingsModal.StatusColor}" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center" />
+          <TextBlock Text="{Binding TerminalSettingsModal.StatusMessage}" Foreground="{Binding TerminalSettingsModal.StatusColor}" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center" TextWrapping="Wrap" />
           <Button Grid.Column="1" Classes="hallzee-pill-btn" Content="Save Classroom Info" Click="OnSaveClassroomInfoClick" Padding="16,8" FontSize="13" IsVisible="{Binding TerminalSettingsModal.IsProfileSelected}" />
-          <Button Grid.Column="2" Classes="hallzee-pill-btn" Content="Apply Setting to Kiosk" Click="OnApplyClick" Padding="16,8" FontSize="13" IsVisible="{Binding TerminalSettingsModal.IsDeviceSelected}" />
+          <Button Grid.Column="2" Classes="hallzee-pill-btn" Content="Apply ID Limit" IsEnabled="{Binding CanEditDevice}" Click="OnApplyClick" Padding="16,8" FontSize="13" IsVisible="{Binding TerminalSettingsModal.IsDeviceSelected}" />
         </Grid>
       </Grid>
     </Border>

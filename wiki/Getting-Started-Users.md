@@ -60,12 +60,22 @@ cannot claim or connect to it.
 - Use **View All** or **History** to inspect the full **Hall Pass Trip History** table, sorted and filterable by Date, Student ID, Name, Departed, Returned, Duration, and Status. Use **Export** to create a CSV report.
 - In **Settings**, save the teacher name and school to update the classroom
   profile card immediately. The OS title bar shows **Hallzee Desktop Client ·
-  terminal name**. The **Device** tab shows the
-  friendly name and link status of the last paired terminal.
-- In **Settings → Device**, edit the kiosk name and apply it while connected.
+  terminal name**. The **Device** tab shows the friendly name, selectable unique
+  device ID, and connection status (including connecting, syncing, and offline).
+- In **Settings → Device**, click the pencil beside the terminal name, edit it,
+  and choose **Save** or **Cancel**. Saving requires a connection and confirmation
+  from the terminal; **Apply ID Limit** changes only the student-ID limit.
   The name is persisted by the kiosk and reused in discovery, reconnect UI, and
   the terminal header as **Terminal: [name]**. Long names are abbreviated in the
   narrow header; pairing displays the full name.
+- To release a terminal, connect to it, check in all active passes, and choose
+  **Settings → Device → Disconnect & Unpair**. The notice explains that the
+  next connection requires physical pairing mode and a new passkey. This removes
+  the terminal owner, its BLE bonds, this computer’s saved owner credential, and
+  its workspace assignments; trip history, terminal name, and settings remain.
+  Install the matching current firmware first. If release is not confirmed, the
+  app keeps the saved pairing and reports the failure. An OS Bluetooth entry may
+  remain; use **Forget/Remove device** there if a fresh pairing reports a stale bond.
 - In **Policies & Bell Times**, keep one teacher workspace, create `Regular`
   or alternate schedule templates, assign a class section to each period, and
   add date exceptions for early-release or no-school days. Bell-window actions

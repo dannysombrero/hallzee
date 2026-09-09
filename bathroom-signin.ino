@@ -1,4 +1,5 @@
 #include "FirmwareUpdater.h"
+#include "TouchExperiment.h"
 #include <esp_task_wdt.h>
 #include <Adafruit_GFX.h>
 #if defined(HALLZEE_ILI9341)
@@ -45,6 +46,17 @@ Adafruit_ST7735 tft =
 St7735DisplayPort displayPort(tft);
 #endif
 TerminalDisplay terminalDisplay(displayPort);
+#if defined(HALLZEE_TOUCH_TEST)
+TouchExperiment touchExperiment(tft);
+#endif
+
+bool touchOverlayActive() {
+#if defined(HALLZEE_TOUCH_TEST)
+  return touchExperiment.active();
+#else
+  return false;
+#endif
+}
 
 char keys[KEYPAD_ROWS][KEYPAD_COLS] = {
     {'1', '2', '3'}, {'4', '5', '6'}, {'7', '8', '9'}, {'*', '0', '#'}};
@@ -126,7 +138,13 @@ void transitionToIdle(bool clearEnteredId = true);
 bool firmwareAuthorized() { return terminalSecurity.isAuthorized(); }
 bool firmwareIdle() { return !terminal.hasActivePass(); }
 FirmwareUpdater firmwareUpdater(bluetoothSerial, firmwareAuthorized, firmwareIdle);
-bool firmwareCommand(const String &command) { return firmwareUpdater.command(command); }
+bool firmwareCommand(const String &command) {
+  if (firmwareAuthorized() && touchOverlayActive() && command.startsWith("FW_BEGIN,")) {
+    bluetoothSerial.println("FW_ERROR,BUSY");
+    return true;
+  }
+  return firmwareUpdater.command(command);
+}
 void firmwareFrame(const uint8_t *data, size_t size) { firmwareUpdater.frame(data, size); }
 bool firmwareScreenVisible = false;
 int lastFirmwareProgress = -1;
@@ -144,21 +162,18 @@ bool releaseOwnerFromDesktop() {
 }
 
 bool isPairingAllowed() {
-  return !ownerReleaseCleanupPending && !terminal.hasActivePass() && !terminalSecurity.hasOwner();
+  return !touchOverlayActive() && !ownerReleaseCleanupPending && !terminal.hasActivePass() && !terminalSecurity.hasOwner();
 }
 
 bool isOwnerResetAllowed() {
-  return !terminal.hasActivePass() && terminalSecurity.hasOwner();
+  return !touchOverlayActive() && !terminal.hasActivePass() && terminalSecurity.hasOwner();
 }
 
 void resetOwnerFromKeypad() {
   bluetoothSerial.disconnectClient();
   if (terminalSecurity.resetOwner() && bluetoothSerial.clearBondedDevices()) {
-    // Clock setup can be active immediately after boot. Leave setup mode so
-    // the reset result is not stranded on the setup screen and the terminal
-    // can return to normal operation after the owner is cleared.
-    setupMode = false;
-    setupEntry = "";
+    // Releasing ownership does not set the clock. Preserve the current setup
+    // step and entry so the reset notice returns to date/time setup if needed.
     terminalDisplay.showOwnerReset();
     transitionToIdle();
   } else {
@@ -188,7 +203,7 @@ void startPairingMode() {
 
 bool isSetupMode() { return setupMode; }
 
-bool isResetAllowed() { return terminal.hasActivePass(); }
+bool isResetAllowed() { return !touchOverlayActive() && terminal.hasActivePass(); }
 
 KeypadController keypadController(arduinoKeypad, monotonicClock, isSetupMode,
                                   isResetAllowed, handleSetupKey,
@@ -239,7 +254,12 @@ void handleBluetoothClockSet() {
 // PARTIAL REDRAW: STUDENT ID
 // ======================================================
 
-void drawIDEntry() { terminalDisplay.drawIdEntry(enteredID); }
+void drawIDEntry() {
+#if defined(HALLZEE_TOUCH_TEST)
+  touchExperiment.suppress();
+#endif
+  terminalDisplay.drawIdEntry(enteredID);
+}
 
 void drawClock() { terminalDisplay.drawClock(getTimeString()); }
 
@@ -273,6 +293,9 @@ void drawIdleScreen() {
   terminalDisplay.drawBluetoothStatus(lastDisplayedBluetoothState);
   lastDisplayedMinute = -1;
   updateClockIfNeeded();
+#if defined(HALLZEE_TOUCH_TEST)
+  touchExperiment.decorateIdle(!terminal.hasActivePass());
+#endif
 }
 
 void transitionToIdle(bool clearEnteredId) {
@@ -727,6 +750,7 @@ void submitID() {
   }
 }
 void handleNormalNumber(char key) {
+  if (touchOverlayActive()) return;
   if (pairingUiActive) return;
 
   if (enteredID.length() < tripStorage.getMaxStudentIdLength()) {
@@ -745,6 +769,13 @@ void handleNormalNumber(char key) {
 // ======================================================
 
 void handleSingleStar() {
+#if defined(HALLZEE_TOUCH_TEST)
+  if (touchExperiment.active()) {
+    touchExperiment.close();
+    transitionToIdle();
+    return;
+  }
+#endif
   if (pairingUiActive) return;
 
   enteredID = "";
@@ -757,7 +788,7 @@ void handleSingleStar() {
 // HANDLE SINGLE # RELEASE
 // ======================================================
 
-void handleSingleHash() { if (!pairingUiActive) submitID(); }
+void handleSingleHash() { if (!pairingUiActive && !touchOverlayActive()) submitID(); }
 
 // ======================================================
 // SERIAL DIAGNOSTIC COMMANDS
@@ -772,6 +803,13 @@ void processSerialCommands() {
       serialCommandBuffer.trim();
       if (serialCommandBuffer == "p" || serialCommandBuffer == "P") {
         tripStorage.printTripLog();
+#if defined(HALLZEE_TOUCH_TEST)
+      } else if (serialCommandBuffer == "TOUCH_TEST") {
+        if (!setupMode && !pairingUiActive && !terminal.hasActivePass()) {
+          touchExperiment.open();
+          Serial.println("TOUCH_TEST,OK");
+        } else Serial.println("TOUCH_TEST,BUSY");
+#endif
       } else if (serialCommandBuffer == "OWNER_RESET") {
         bluetoothSerial.disconnectClient();
         if (terminalSecurity.resetOwner() &&
@@ -856,6 +894,13 @@ void setup() {
   keypadController.begin();
 
   // Initialize TFT
+#if defined(HALLZEE_TOUCH_TEST)
+  // The display is write-only. Leave MISO unassigned on VSPI so GPIO19 can
+  // belong exclusively to the separate touch HSPI bus.
+  pinMode(TOUCH_CS, OUTPUT);
+  digitalWrite(TOUCH_CS, HIGH);
+  SPI.begin(TFT_SCLK, -1, TFT_MOSI, TFT_CS);
+#endif
 #if defined(HALLZEE_ILI9341)
   // The native 320x240 layout performs substantially more SPI writes than
   // the legacy 160x128 renderer. 20 MHz leaves useful margin for longer
@@ -873,6 +918,10 @@ void setup() {
   tft.setRotation(1);
 #endif
 
+#if defined(HALLZEE_TOUCH_TEST)
+  touchExperiment.begin();
+  Serial.println("Serial command: TOUCH_TEST = calibration / typing sandbox");
+#endif
   drawStartupLogo();
 
   delay(1800);
@@ -959,6 +1008,11 @@ void loop() {
   // Diagnostic only: send p in Serial Monitor to print local trip records.
   if (!firmwareUpdater.busy()) processSerialCommands();
 
+#if defined(HALLZEE_TOUCH_TEST)
+  if (!firmwareUpdater.busy() && !setupMode && !pairingUiActive &&
+      !terminal.hasActivePass() && touchExperiment.pending()) touchExperiment.open();
+  if (firmwareUpdater.busy() || setupMode || pairingUiActive) touchExperiment.suppress();
+#endif
   if (!firmwareUpdater.busy()) keypadController.poll();
 
   // Bluetooth is passive in Phase 3; it must never block student workflow.
@@ -995,7 +1049,7 @@ void loop() {
   // The Bluetooth indicator is a small independent region; do not redraw the
   // rest of the kiosk screen while a desktop client connects or disconnects.
   const bool bluetoothConnected = bluetoothSerial.hasClient();
-  if (!pairingUiActive && !setupMode && bluetoothConnected != lastDisplayedBluetoothState) {
+  if (!touchOverlayActive() && !pairingUiActive && !setupMode && bluetoothConnected != lastDisplayedBluetoothState) {
     lastDisplayedBluetoothState = bluetoothConnected;
     terminalDisplay.drawBluetoothStatus(bluetoothConnected);
   }
@@ -1013,6 +1067,14 @@ void loop() {
   if (setupMode || pairingUiActive) {
     return;
   }
+
+#if defined(HALLZEE_TOUCH_TEST)
+  const auto touchAction = touchExperiment.poll(!terminal.hasActivePass());
+  if (touchAction == TouchExperiment::Action::Clear) handleSingleStar();
+  else if (touchAction == TouchExperiment::Action::Submit) handleSingleHash();
+  else if (touchAction == TouchExperiment::Action::Closed) transitionToIdle();
+  if (touchExperiment.active()) return;
+#endif
 
   // Only visually update clock when minute changes
   updateClockIfNeeded();

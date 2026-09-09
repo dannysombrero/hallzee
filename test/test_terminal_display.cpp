@@ -15,6 +15,7 @@
 #include "TerminalDisplay.h"
 #include "TerminalIdentity.h"
 #include "FirmwareFrame.h"
+#include "TouchInput.h"
 #include "support/RecordingDisplay.h"
 
 namespace {
@@ -1115,7 +1116,52 @@ public:
   bool isNative320x240() const override { return true; }
 };
 
+void testTouchInput() {
+  TouchCalibration calibration;
+  // Deliberately swapped and reversed axes, as on a rotated panel.
+  const TouchPoint raw[] = {{3800, 300}, {3800, 3700}, {400, 300}};
+  expectTrue(calibration.fit(raw), "touch accepts reversed/swapped calibration");
+  const auto middle = calibration.map({2100, 2000});
+  expectTrue(middle.x == 160 && middle.y == 120, "touch maps calibrated center");
+  const auto fourth = calibration.map({400, 3700});
+  expectTrue(fourth.x == 296 && fourth.y == 216, "touch maps independent fourth corner");
+  const auto outside = calibration.map({4100, 0});
+  expectTrue(outside.x == 0 && outside.y > 0, "touch extrapolates without edge clamping");
+  const TouchRect button{12, 204, 140, 34};
+  expectTrue(button.contains({12, 204}) && !button.contains({152, 204}) &&
+             !button.contains({12, 238}) && !button.contains({-1, 220}), "touch hit bounds exclude gaps/outside");
+  const TouchPoint repeated[] = {{100, 100}, {101, 101}, {102, 102}};
+  expectTrue(!calibration.fit(repeated) && calibration.map({100, 100}).x == -1,
+             "touch refuses degenerate calibration");
+
+  TouchTap tap;
+  expectTrue(tap.update(0, true, 1) == -1 && tap.update(100, true, 1) == -1,
+             "touch held across startup is suppressed");
+  tap.update(110, false, -1); tap.update(180, false, -1);
+  tap.update(200, true, 1); tap.update(240, true, 1);
+  expectTrue(tap.pressed() == 1 && tap.update(5000, true, 1) == -1,
+             "touch holding Submit never repeats or fires before release");
+  tap.update(5010, false, -1);
+  expectTrue(tap.update(5060, false, -1) == -1 && tap.update(5080, false, -1) == 1 &&
+             tap.update(5200, false, -1) == -1, "touch fires exactly once after release debounce");
+  tap.update(5300, true, 0); tap.update(5350, true, 0);
+  tap.update(5360, true, -1); tap.update(5370, true, 0);
+  tap.update(5400, false, -1);
+  expectTrue(tap.update(5470, false, -1) == -1, "slide out and back cancels action");
+  tap.update(5500, true, 1); tap.update(5550, true, 1);
+  tap.update(5560, false, -1);
+  expectTrue(tap.update(5600, true, 1) == -1, "brief pressure dropout does not fire");
+  tap.suppress(); tap.update(5610, false, -1);
+  expectTrue(tap.update(5680, false, -1) == -1, "screen change cancels pending submit");
+  tap.update(5700, true, 1); tap.update(5720, false, -1);
+  expectTrue(tap.update(5790, false, -1) == -1, "touch ignores short noise pulse");
+  tap.update(UINT32_MAX - 20, true, 0); tap.update(30, true, 0);
+  tap.update(40, false, -1);
+  expectTrue(tap.update(110, false, -1) == 0, "touch debounce survives millis rollover");
+}
+
 int main() {
+  testTouchInput();
   {
     NativeRecordingDisplay display;
     TerminalDisplay terminal(display);

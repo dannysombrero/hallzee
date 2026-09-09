@@ -33,7 +33,10 @@ No .NET installation is required for this self-contained Windows artifact.
 2. Make sure no student pass is active.
 3. Hold `*` and `#` together for five seconds, then release both keys.
 4. The terminal displays its full unique ID, friendly name, and six-digit
-   Bluetooth passkey. If pairing expires during clock setup, that setup step returns.
+   Bluetooth passkey. After pairing or an owner reset, incomplete date/time
+   setup resumes at the same step with your entry preserved. Pairing alone does
+   not skip clock setup; either finish it on the keypad or let the connected
+   desktop set the clock through Bluetooth sync.
 5. In the app, choose **Find Terminal** or **Find Terminals**.
 6. Select the matching `Hallzee-XXXX` terminal. Each row shows **Signal Strength:**,
    a four-bar indicator, the quality label, and RSSI in dBm. More filled bars

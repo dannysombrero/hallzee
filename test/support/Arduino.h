@@ -28,6 +28,7 @@ public:
   String(T number) : value(std::to_string(number)) {}
 
   size_t length() const { return value.length(); }
+  void remove(size_t index) { if (index < value.length()) value.erase(index); }
   const char *c_str() const { return value.c_str(); }
   bool startsWith(const char *prefix) const { return value.rfind(prefix, 0) == 0; }
   String substring(size_t start) const { return value.substr(start); }

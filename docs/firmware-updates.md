@@ -89,6 +89,14 @@ The header deliberately uses a bounded text format rather than the design's
 illustrative JSON manifest, keeping the terminal parser small and avoiding a
 new JSON dependency. CRC/checksum-only firmware is never accepted as a release.
 
+The optional [touch experiment](touch-test.md) is currently a USB source-build option,
+not a new signed-package variant. It retains the existing display/orientation
+identity. Installing an ordinary release replaces the experiment with non-touch
+firmware; it does not preserve the touch feature. Exit the calibration/typing
+screen before starting a Bluetooth update (otherwise it reports busy). The
+current touch wiring uses a separate bus on GPIO 16/17/19/4 and may remain
+connected when returning to ordinary firmware.
+
 ## Build and publish
 
 Source builds use the pinned ESP32 Arduino core 3.3.11, which supplies both

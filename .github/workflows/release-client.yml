@@ -70,9 +70,15 @@ jobs:
         run: |
           dotnet publish receiver/universal/BathroomSync.Universal.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false "-p:Version=$env:RELEASE_VERSION" "-p:ReleaseRepository=$env:RELEASE_REPOSITORY" -o publish
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          New-Item packaged -ItemType Directory
-          Compress-Archive publish/* packaged/Hallzee-Windows-win-x64.zip
+      - name: Upload Windows app files (GitHub creates the ZIP)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v6
+        with:
+          name: Hallzee-Windows-win-x64
+          path: publish/
+          if-no-files-found: error
       - uses: actions/upload-artifact@v6
+        if: runner.os == 'macOS'
         with:
           name: Desktop-${{ matrix.rid }}
           path: packaged/*.zip

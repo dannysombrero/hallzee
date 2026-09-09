@@ -88,6 +88,8 @@ def stage(root, platform, destination):
 
 
 def activate(root, platform, source):
+    if source.resolve() == root.resolve() or root.resolve() in source.resolve().parents:
+        raise ValueError('Keep portable dependency artifacts outside the repository scan tree')
     manifest = json.loads((source / 'graphs.json').read_text())
     if manifest.get('platform') != platform:
         raise ValueError('Dependency artifact platform mismatch')

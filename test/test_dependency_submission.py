@@ -60,6 +60,15 @@ class DependencySubmissionTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'checksum mismatch'):
                 submission.activate(source, 'windows', staged)
 
+    def test_portable_artifact_inside_scanned_checkout_is_rejected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            self.fixture(root, 'macos')
+            staged = root / 'dependency-graphs'
+            submission.stage(root, 'macos', staged)
+            with self.assertRaisesRegex(ValueError, 'outside the repository scan tree'):
+                submission.activate(root, 'macos', staged)
+
     def test_project_path_must_stay_in_checkout(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory).resolve()

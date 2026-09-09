@@ -85,9 +85,10 @@ jobs:
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
         with:
           name: nuget-graphs-${{ matrix.platform }}
-          path: dependency-graphs
+          # Keep portable placeholder graphs entirely outside detector scope.
+          path: ${{ runner.temp }}/dependency-graphs
       - name: Verify graphs resolve to real repository projects on Linux
-        run: python3 scripts/prepare-dependency-submission.py activate --platform '${{ matrix.platform }}' --directory dependency-graphs
+        run: python3 scripts/prepare-dependency-submission.py activate --platform '${{ matrix.platform }}' --directory "$RUNNER_TEMP/dependency-graphs"
       - name: Run the official detector without a token or snapshot upload
         run: |
           curl --fail --silent --show-error --location --retry 3 "https://github.com/microsoft/component-detection/releases/download/v${COMPONENT_DETECTION_VERSION}/component-detection-linux-x64" -o "$RUNNER_TEMP/component-detection"
@@ -114,9 +115,9 @@ jobs:
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
         with:
           name: nuget-graphs-${{ matrix.platform }}
-          path: dependency-graphs
+          path: ${{ runner.temp }}/dependency-graphs
       - name: Activate graphs under real repository project paths
-        run: python3 scripts/prepare-dependency-submission.py activate --platform '${{ matrix.platform }}' --directory dependency-graphs
+        run: python3 scripts/prepare-dependency-submission.py activate --platform '${{ matrix.platform }}' --directory "$RUNNER_TEMP/dependency-graphs"
       - name: Require the upload action to use the validated detector release
         env:
           GH_TOKEN: ${{ github.token }}

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Publish the exact tested artifacts from a successful manual Actions build."""
 import argparse
-import base64
 import hashlib
 import json
 import os
@@ -38,6 +37,8 @@ def main():
         metadata_path = root / 'Release-metadata' / 'release.json'
         metadata = json.loads(metadata_path.read_text())
         version, repo = metadata['version'], metadata['repository']
+        if repo != source:
+            raise SystemExit('Rebuild with this repository as the release destination.')
         if not re.fullmatch(r'(0|[1-9][0-9]{0,2})\.(0|[1-9][0-9]{0,2})\.(0|[1-9][0-9]{0,2})', version):
             raise SystemExit('Invalid version in build metadata.')
         if not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+', repo):
@@ -87,15 +88,14 @@ def main():
             raise SystemExit('Version tag already exists; it will not be overwritten.')
         notes = root / 'notes.md'
         notes.write_text((root / 'Release-metadata' / 'notes.md').read_text()
-                         + f'\n\nVersion: {version}\n\n[Teacher guide](https://github.com/{repo}#readme)'
+                         + f'\n\nVersion: {version}\n\n[Teacher guide](https://github.com/{repo}/blob/{run["head_sha"]}/docs/getting-started-users.md)'
+                         + f'\n\n[Corresponding source](https://github.com/{repo}/archive/{run["head_sha"]}.zip)'
                          + f'\n\nSource build: `{run["head_sha"]}`\n')
         gh('release', 'create', tag, *map(str, assets), '--repo', repo, '--draft',
+           '--target', run['head_sha'],
            '--title', f'Hallzee {args.product.title()} {version}', '--notes-file', str(notes))
-        # Only update the public instructions after a complete draft has been uploaded.
-        existing = json.loads(gh('api', f'repos/{repo}/readme'))
-        gh('api', '--method', 'PUT', f'repos/{repo}/contents/{existing["path"]}', '--input', '-', payload={
-            'message': f'Update teacher guide for {tag}', 'sha': existing['sha'],
-            'content': base64.b64encode(guide.encode()).decode()})
+        # Source documentation changes go through pull requests. The tested
+        # teacher guide is attached to the release, never written over README.
         gh('release', 'edit', tag, '--repo', repo, '--draft=false', '--latest=false')
         print(f'Published https://github.com/{repo}/releases/tag/{tag}')
 

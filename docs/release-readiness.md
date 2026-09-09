@@ -33,7 +33,8 @@ workspace isolation, failed writes, and repeated/concurrent completion.
 
 - **Teacher guide:** installation, pairing, daily use, roster/policies, desktop
   updates, firmware/USB setup, and troubleshooting in plain language. Each
-  published release includes it, and publishing updates the public README.
+  published release includes it. The repository README links to the source guide
+  and is maintained through normal source review.
 - **Windows and Mac packaging:** a numbered desktop build produces Windows x64,
   Mac Apple-silicon, and Mac Intel ZIPs. The Mac `.app` includes its native BLE
   helper. The build version is passed into the app and core assembly.

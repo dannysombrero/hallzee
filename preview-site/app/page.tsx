@@ -421,7 +421,7 @@ export default function Home() {
             <Image
               unoptimized
               src="/terminal/checked-in-orange.png"
-              alt="An orange Hallzee terminal mounted on a wall, with its screen showing CHECKED IN, Time away, and an example duration of 6m 07s."
+              alt="A blue Hallzee terminal mounted on a wall, with its screen showing CHECKED IN, Time away, and an example duration of 6m 07s."
               width={1448}
               height={1086}
             />

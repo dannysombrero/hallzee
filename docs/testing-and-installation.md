@@ -1,5 +1,25 @@
 # Installation and testing guide
 
+## Repository hygiene and leak prevention
+
+Root `.gitignore` excludes sensitive file categories: private keys (`*.pem`,
+`*.key`, `*.pfx`, `*.p12` with only `firmware/release-public-key.pem` permitted),
+OS metadata (`.DS_Store`), test coverage outputs (`TestResults/`), local package
+manager caches (`**/.local/`, `Library/`), terminal flash backups (`**/terminal-backups/`),
+and trip/student data exports (`receiver/*.csv`).
+
+Automated repository hygiene validation is enforced by `test/test_repo_hygiene.py`:
+
+```sh
+python3 -m unittest discover -s test -p test_repo_hygiene.py
+```
+
+This test runs in CI on every push to ensure no forbidden files, unpinned keys,
+or private key headers (`BEGIN ... PRIVATE KEY`) are tracked in Git.
+
+A Mac is sufficient to run the hygiene tests and verify Git tracking rules;
+no physical Windows PC is required for this verification.
+
 ## Windows release download
 
 New **Build Desktop Release Packages** runs provide a

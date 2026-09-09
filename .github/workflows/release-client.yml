@@ -48,7 +48,9 @@ jobs:
       - run: dotnet test receiver/universal.tests/BathroomSync.Universal.Tests.csproj -c Release
       - name: Install macOS workload
         if: runner.os == 'macOS'
-        run: sudo dotnet workload install macos
+        run: |
+          dotnet --version
+          sudo "$(command -v dotnet)" workload install macos
       - name: Package Mac app with Bluetooth helper
         if: runner.os == 'macOS'
         env:

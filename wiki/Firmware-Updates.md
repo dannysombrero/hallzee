@@ -201,6 +201,17 @@ and is embedded in `FirmwareRelease.h` and the desktop. Do not print or commit t
 private key, attach it to artifacts, or replace it after installing terminals.
 The signing tool refuses a private key that does not match the pinned public key.
 
+If Actions reports the signing secret is missing, open the **source repository →
+Settings → Environments → firmware-release → Add environment secret**. Name it
+`HALLZEE_FIRMWARE_SIGNING_KEY` and paste the entire contents of the existing
+`.tools/firmware-signing/release-key.pem`, including its BEGIN/END lines, into
+the secret value. Open the file locally in an editor; do not paste it into chat
+or logs. Save it, then rerun the failed firmware job. No paid certificate is
+needed for this firmware signature, and disabling desktop publisher signing
+does not remove this requirement. The build checks for the secret before
+installing build tools; package signing also checks that it matches the pinned
+public key.
+
 For a local developer release after installing the tools with the flash script:
 
 ```sh

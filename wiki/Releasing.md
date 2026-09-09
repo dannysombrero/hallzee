@@ -42,6 +42,11 @@ Mac Apple-silicon and Intel ZIPs, including the native Mac Bluetooth helper.
 Both workflows save the source revision, version, public destination, guide,
 and release notes alongside their downloadable artifacts.
 
+The root `global.json` selects the latest installed stable .NET 8.0 SDK, even
+when the runner also has .NET 9 or 10. The Mac workload installer uses the same
+`dotnet` executable as packaging. This keeps the existing `net8.0-macos` helper
+on its intended toolchain; upgrading that target remains separate work.
+
 Mac packaging explicitly signs and verifies native libraries, including the
 helper's `Contents/MonoBundle` libraries that `codesign --deep` does not discover.
 It also launches the helper without arguments on a matching Mac architecture to

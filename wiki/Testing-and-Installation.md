@@ -1,5 +1,19 @@
 # Installation and testing guide
 
+## Release SDK selection
+
+`global.json` keeps builds on the latest installed stable .NET 8.0 SDK. Existing
+bootstrap scripts and Actions install .NET 8; newer SDKs may remain installed
+alongside it. Run commands from the checkout so this setting is discovered.
+This fixes Mac release builds selecting .NET 10 and failing with `NETSDK1202`
+for the Bluetooth helper. Start a new desktop workflow run after pushing the
+fix; rerunning an older run keeps its older workflow and source.
+
+Mac runners are sufficient to verify both Mac packages; no physical Windows PC
+is required for this SDK-selection fix. The Windows Actions build and tests
+passed in the reported run, but have not yet been rerun with this SDK pin.
+Windows Bluetooth and clean-machine behavior remain unverified.
+
 ## Release workflow input and Windows test cleanup
 
 Desktop release inputs are validated once before the platform matrix. Use
@@ -17,7 +31,7 @@ had completed; production database behavior is unchanged.
 Mac testing is sufficient for input validation and shared test assertions.
 A Windows runner is required to verify Windows file-lock cleanup; the existing
 Actions Windows jobs provide that check, with no physical PC or terminal needed.
-The corrected Windows run has not yet been verified. This does not verify WinRT
+The corrected Windows run passed, as reported on September 9, 2026. This does not verify WinRT
 Bluetooth behavior or replace the release's physical Windows acceptance checks.
 
 

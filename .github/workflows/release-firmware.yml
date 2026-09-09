@@ -29,6 +29,14 @@ jobs:
     runs-on: ubuntu-latest
     environment: firmware-release
     steps:
+      - name: Check firmware signing secret
+        env:
+          RELEASE_KEY: ${{ secrets.HALLZEE_FIRMWARE_SIGNING_KEY }}
+        run: |
+          if [ -z "$RELEASE_KEY" ]; then
+            echo '::error::Missing HALLZEE_FIRMWARE_SIGNING_KEY. In repository Settings > Environments > firmware-release, add an environment secret with this name containing the existing private PEM key. See docs/firmware-updates.md. This is unrelated to paid desktop publisher signing.'
+            exit 1
+          fi
       - uses: actions/checkout@v6
       - uses: actions/setup-dotnet@v5
         with:

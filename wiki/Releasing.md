@@ -12,9 +12,9 @@ Use GitHub's web interface; no local Git, .NET, or Arduino installation is neede
 1. Change the repository visibility to **Public** only after reviewing its
    history and local files for credentials, student data, and unpublished
    material. Rotate anything that was ever committed before making it public.
-2. Choose and commit a software license in `LICENSE`; without one, others can
-   read the code but do not have clear reuse permission. Add a contribution
-   policy and security contact when ready.
+2. The repository is licensed under AGPL-3.0 (for software and firmware)
+   and CC BY-SA 4.0 (for 3D models and hardware) in `LICENSE`; see [License](License).
+   Add a contribution policy and security contact when ready.
 3. The workflows default `HALLZEE_RELEASE_REPOSITORY` to this repository, so no
    repository variable or `HALLZEE_PUBLIC_RELEASE_TOKEN` is needed. The publish
    workflow uses GitHub's built-in token with Actions read and Contents write

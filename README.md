@@ -4,6 +4,9 @@
 [Release review](docs/release-readiness.md) ·
 [Build and publish Windows/Mac downloads](docs/releasing.md)
 
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
+[![Hardware License: CC BY-SA 4.0](https://img.shields.io/badge/Hardware-CC_BY--SA_4.0-orange.svg)](LICENSE)
+
 Hallzee is an ESP32-based school bathroom sign-in terminal. Students
 enter an ID on a 3×4 keypad to check out and back in. The terminal stores trip
 records locally and can synchronize them to a desktop receiver over Bluetooth Low Energy (BLE).
@@ -24,7 +27,7 @@ records locally and can synchronize them to a desktop receiver over Bluetooth Lo
 | `receiver/windows/` | Current Windows sync application |
 | `receiver/universal/` | Current shared Avalonia desktop UI for Windows and macOS |
 | `receiver/` | Legacy/native macOS receiver |
-| `models/3d/` | Enclosure, mounting, and other Hallzee fabrication files |
+| `models/` | Enclosure, mounting, and other Hallzee fabrication 3D models (CC BY-SA 4.0) |
 | `docs/` | Architecture and Bluetooth protocol references |
 
 ## Getting started, contributor guides & design documentation
@@ -195,3 +198,13 @@ readout, occupied/available cards, and physical-key legend. Mac testing is suffi
 behavior; a Windows PC is not required for those checks. A Windows PC is only
 required for Windows-specific desktop packaging/BLE adapter behavior, which is
 not verified by the firmware rendering tests.
+
+## License
+
+Hallzee is open source and open hardware:
+
+- **Software & Firmware:** The ESP32 firmware, C++ components, and .NET Avalonia desktop receiver are licensed under the [GNU Affero General Public License v3.0 (AGPL-3.0)](LICENSE). Copyright © 2026 Hallzee Labs.
+- **Hardware & Enclosures:** All 3D models, CAD designs, and fabrication files located in [`models/`](models) are licensed under the [Creative Commons Attribution-ShareAlike 4.0 International License (CC BY-SA 4.0)](LICENSE). Copyright © 2026 Hallzee Labs.
+
+See the complete [LICENSE](LICENSE) file for full legal terms.
+

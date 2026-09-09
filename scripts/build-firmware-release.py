@@ -6,7 +6,10 @@ for arg in ('version','build','output','key','notes','arduino-data'): p.add_argu
 p.add_argument('--cli',default='arduino-cli'); p.add_argument('--dotnet',default='dotnet')
 a=p.parse_args(); root=pathlib.Path(__file__).resolve().parent.parent
 a.dotnet=shutil.which(a.dotnet) or str(root/'.tools/dotnet'/('dotnet.exe' if __import__('os').name=='nt' else 'dotnet'))
-if not re.fullmatch(r'(0|[1-9]\d{0,2})\.(0|[1-9]\d{0,2})\.(0|[1-9]\d{0,2})',a.version) or not re.fullmatch(r'[a-zA-Z0-9._-]{1,40}',a.build): p.error('Invalid version/build ID')
+if not re.fullmatch(r'(0|[1-9][0-9]{0,2})\.(0|[1-9][0-9]{0,2})\.(0|[1-9][0-9]{0,2})',a.version):
+ p.error(f'Invalid firmware version {a.version!r}. Use major.minor.patch, such as 1.0.0, with each number 0-999 and no leading zeros. The release workflow normalizes v1.0 and 1.0 automatically.')
+if not re.fullmatch(r'[a-zA-Z0-9._-]{1,40}',a.build):
+ p.error(f'Invalid build ID {a.build!r}. Use 1-40 ASCII letters, digits, dots, underscores, or hyphens (a Git commit SHA is valid).')
 out=pathlib.Path(a.output).resolve(); out.mkdir(parents=True,exist_ok=False)
 data=pathlib.Path(a.arduino_data)
 sdk=(data/'packages/esp32/tools/esp32-libs/3.3.11/sdkconfig').read_text()

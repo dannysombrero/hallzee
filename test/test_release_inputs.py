@@ -49,6 +49,23 @@ class ReleaseInputTests(unittest.TestCase):
             self.assertNotIn('AssertionError', result.stderr)
             self.assertFalse(output.exists())
 
+    def test_firmware_builder_reports_invalid_field_before_creating_output(self):
+        builder = SCRIPT.with_name('build-firmware-release.py')
+        for version, build, message in [
+            ('v1.0', 'a' * 40, 'Invalid firmware version'),
+            ('1.0.0', 'a' * 41, 'Invalid build ID'),
+            ('1.0.0', 'bad/build', 'Invalid build ID'),
+        ]:
+            with self.subTest(version=version, build=build), tempfile.TemporaryDirectory() as folder:
+                output = Path(folder) / 'artifacts'
+                result = subprocess.run([sys.executable, str(builder),
+                    '--version', version, '--build', build, '--output', str(output),
+                    '--key', 'unused.pem', '--notes', 'unused.md', '--arduino-data', folder],
+                    capture_output=True, text=True)
+                self.assertEqual(result.returncode, 2)
+                self.assertIn(message, result.stderr)
+                self.assertFalse(output.exists())
+
 
 if __name__ == '__main__':
     unittest.main()

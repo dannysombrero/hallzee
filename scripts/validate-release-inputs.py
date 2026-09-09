@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Normalize desktop release inputs before any platform builds start."""
+"""Normalize desktop and firmware release inputs before any builds start."""
 import os
 import re
 import sys
@@ -33,7 +33,7 @@ def main():
     if os.environ.get('GITHUB_OUTPUT'):
         with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
             output.write(f'version={version}\nrepository={repository}\n')
-    print(f'Desktop version: {version}; release repository: {repository}')
+    print(f'Release version: {version}; release repository: {repository}')
     return 0
 
 

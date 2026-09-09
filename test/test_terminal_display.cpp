@@ -14,6 +14,7 @@
 #include "TripRecordCodec.h"
 #include "TerminalDisplay.h"
 #include "TerminalIdentity.h"
+#include "FirmwareFrame.h"
 #include "support/RecordingDisplay.h"
 
 namespace {
@@ -760,6 +761,23 @@ int ownerReleaseRequests = 0;
 bool ownerReleaseSucceeds = true;
 bool fakeReleaseOwner() { ownerReleaseRequests++; return ownerReleaseSucceeds; }
 
+void testFirmwareFrameBoundaries() {
+  FirmwareFrame decoder;
+  std::vector<uint8_t> frame(527, 0);
+  frame[1]='H'; frame[2]='Z'; frame[3]=1; frame[4]=2;
+  frame[13]=0; frame[14]=2;
+  for (size_t i=0;i<frame.size();i++) {
+    expectTrue(decoder.push(frame[i]) == (i==526), "binary frame completes only at exact length");
+  }
+  decoder.reset();
+  frame[14]=3;
+  for (size_t i=0;i<15;i++) decoder.push(frame[i]);
+  expectTrue(decoder.count==0, "oversized binary frame resets without buffer overflow");
+  frame[14]=2; frame[1]='X';
+  for (size_t i=0;i<15;i++) decoder.push(frame[i]);
+  expectTrue(decoder.count==0, "invalid firmware magic is rejected");
+}
+
 void testTerminalRenamePersistenceAndFailures() {
   Preferences::stored.clear();
   TerminalIdentity identity;
@@ -1139,6 +1157,7 @@ int main() {
   testTerminalEnforcesConfiguredMultiPassCapacity();
   testBellPolicyLocksWarnsAndFailsOpenOutsideCache();
   testKeypadControllerInterpretsKeysAndResetGesture();
+  testFirmwareFrameBoundaries();
   testTerminalRenamePersistenceAndFailures();
   testBluetoothOwnerRelease();
   testBluetoothProtocolAndRecovery();

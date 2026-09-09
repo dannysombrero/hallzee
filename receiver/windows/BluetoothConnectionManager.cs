@@ -12,7 +12,7 @@ using Windows.Devices.Bluetooth.GenericAttributeProfile;
 using Windows.Devices.Enumeration;
 using Windows.Storage.Streams;
 
-sealed class BluetoothConnectionManager : ITerminalConnection, ITerminalPairingPasskeySink {
+sealed class BluetoothConnectionManager : ITerminalBinaryConnection, ITerminalConnection, ITerminalPairingPasskeySink {
   const string TerminalName = "Hallzee";
   static readonly Guid ServiceUuid = Guid.Parse("005924a2-c6e5-4340-9bb8-22d9dd37a283");
   static readonly Guid TxUuid = Guid.Parse("44a359f3-9215-4189-a3cb-e7ce18ad40d6");
@@ -256,17 +256,18 @@ sealed class BluetoothConnectionManager : ITerminalConnection, ITerminalPairingP
     return exception.HResult == 0 ? message : $"{message} (0x{exception.HResult:X8})";
   }
 
-  public async Task SendAsync(string command) {
+  public Task SendAsync(string command) => SendBinaryAsync(Encoding.UTF8.GetBytes(command.EndsWith('\n') ? command : command + "\n"));
+
+  public async Task SendBinaryAsync(byte[] bytes) {
     if (rxCharacteristic is null) throw new InvalidOperationException("Hallzee is not connected.");
-    var normalized = command.EndsWith('\n') ? command : command + "\n";
-    var bytes = Encoding.UTF8.GetBytes(normalized);
 
     await writeLock.WaitAsync();
     try {
       // Default BLE ATT payload is 20 bytes. Chunk commands so time sync and
       // future settings commands work before/without MTU negotiation.
-      for (var offset = 0; offset < bytes.Length; offset += 20) {
-        var length = Math.Min(20, bytes.Length - offset);
+      var payloadSize = Math.Max(20, Math.Min(244, (service?.Session.MaxPduSize ?? 23) - 3));
+      for (var offset = 0; offset < bytes.Length; offset += payloadSize) {
+        var length = Math.Min(payloadSize, bytes.Length - offset);
         using var writer = new DataWriter();
         writer.WriteBytes(bytes.AsSpan(offset, length).ToArray());
         // Authentication commands are sent over an encrypted/MITM-protected

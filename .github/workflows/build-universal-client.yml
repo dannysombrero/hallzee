@@ -7,6 +7,8 @@ on:
       - receiver/universal/**
       - receiver/universal.tests/**
       - receiver/windows/**
+      - tools/FirmwareTool/**
+      - firmware/release-public-key.pem
       - .github/workflows/build-universal-client.yml
 
 concurrency:
@@ -35,6 +37,9 @@ jobs:
 
       - name: Run Universal client tests
         run: dotnet test receiver/universal.tests/BathroomSync.Universal.Tests.csproj --configuration Release
+
+      - name: Build firmware package and USB tool
+        run: dotnet build tools/FirmwareTool/FirmwareTool.csproj --configuration Release
 
       - name: Build Universal client
         run: dotnet build receiver/universal/BathroomSync.Universal.csproj --configuration Release

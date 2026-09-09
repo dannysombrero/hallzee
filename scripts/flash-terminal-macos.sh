@@ -51,6 +51,7 @@ staging_sketch="$staging_root/$sketch_name"
 build_dir="$staging_root/build"
 mkdir -p "$staging_sketch"
 cp "${source_files[@]}" "$staging_sketch/"
+cp "$project_root/firmware/partitions.csv" "$staging_sketch/partitions.csv"
 if [[ -d "$project_root/fonts" ]]; then
   cp -R "$project_root/fonts" "$staging_sketch/"
 fi
@@ -96,7 +97,7 @@ echo "Installing the ESP32 board support and required libraries if needed…"
 "$cli" lib install "Adafruit GFX Library" "Adafruit ST7735 and ST7789 Library" "Adafruit ILI9341" Keypad
 
 echo "Building and flashing Hallzee to ${port}…"
-compile_args=(--fqbn esp32:esp32:esp32 "$staging_sketch" --build-path "$build_dir")
+compile_args=(--fqbn esp32:esp32:esp32 "$staging_sketch" --build-path "$build_dir" --build-property upload.maximum_size=1572864)
 if [[ "$display" == "ili9341" ]]; then
   compile_args+=(--build-property "compiler.cpp.extra_flags=-DHALLZEE_ILI9341 -DHALLZEE_DISPLAY_ROTATION=$rotation")
 fi
@@ -105,9 +106,18 @@ if $compile_only; then
   echo "Compile-only check passed; the ESP32 was not changed."
   exit 0
 fi
-# The larger ILI9341 build is close to the app partition limit and takes
-# longer to transfer. Use a conservative serial speed for reliable uploads
-# through common USB-UART adapters.
-"$cli" upload --fqbn esp32:esp32:esp32 --port "$port" --input-dir "$build_dir" \
-  --upload-property upload.speed=460800
-echo "Done. The Hallzee firmware is now on the ESP32."
+# The first OTA install moves LittleFS. Always use the verified migration path.
+dotnet_cli="$(command -v dotnet || true)"
+if [[ -z "$dotnet_cli" ]] || ! "$dotnet_cli" --list-sdks | grep -q '^8\.'; then
+  dotnet_cli="$tools_dir/dotnet/dotnet"
+  if [[ ! -x "$dotnet_cli" ]] || ! "$dotnet_cli" --list-sdks | grep -q '^8\.'; then
+    curl -fsSL https://dot.net/v1/dotnet-install.sh -o "$tools_dir/dotnet-install.sh"
+    bash "$tools_dir/dotnet-install.sh" --channel 8.0 --install-dir "$tools_dir/dotnet" --no-path
+  fi
+fi
+arduino_data="${ARDUINO_DIRECTORIES_DATA:-$HOME/Library/Arduino15}"
+esptool="$arduino_data/packages/esp32/tools/esptool_py/5.3.1/esptool"
+mklittlefs="$arduino_data/packages/esp32/tools/mklittlefs/4.0.2-db0513a/mklittlefs"
+cp "$arduino_data/packages/esp32/hardware/esp32/$esp32_version/tools/partitions/boot_app0.bin" "$build_dir/boot_app0.bin"
+"$dotnet_cli" run --project "$project_root/tools/FirmwareTool/FirmwareTool.csproj" -- usb \
+  --esptool "$esptool" --mklittlefs "$mklittlefs" --port "$port" --build "$build_dir" --backup "$tools_dir/terminal-backups"

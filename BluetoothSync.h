@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
+#include "FirmwareFrame.h"
 #include "BluetoothSerialPort.h"
 #include "TripStoragePort.h"
 
@@ -37,6 +38,7 @@ public:
     this->activePassProvider = provider;
   }
 
+  void setFirmwareHandlers(bool (*command)(const String &), void (*frame)(const uint8_t *, size_t)) { firmwareCommand = command; firmwareFrame = frame; }
   void begin();
   void setOwnerReleaseHandler(OwnerReleaseHandler handler) { ownerReleaseHandler = handler; }
   void poll();
@@ -48,6 +50,9 @@ public:
   void notifyCompletedTrip(const String &record);
 
 private:
+  bool (*firmwareCommand)(const String &) = nullptr;
+  void (*firmwareFrame)(const uint8_t *, size_t) = nullptr;
+  FirmwareFrame binaryFrame;
   TripStoragePort &tripStorage;
   ClockSetter clockSetter;
   ClockSetHandler clockSetHandler;

@@ -146,6 +146,7 @@ void BluetoothSync::resetSyncState() {
   handshakeNonce = "";
   commitNonce = "";
   authorizationStartedAt = 0;
+  binaryFrame.reset();
 }
 
 bool BluetoothSync::isAuthorized() const {
@@ -574,6 +575,15 @@ void BluetoothSync::processCommands() {
 
   while (serial.available()) {
     const char received = static_cast<char>(serial.read());
+    if (binaryFrame.count || received == 0) {
+      if (binaryFrame.push(static_cast<uint8_t>(received))) {
+        if (isAuthorized() && firmwareFrame) firmwareFrame(binaryFrame.bytes, binaryFrame.count);
+        else serial.println("ERROR,AUTH_REQUIRED");
+        binaryFrame.reset();
+      }
+      commandBuffer = "";
+      continue;
+    }
     if (received == '\r') continue;
 
     if (received == '\n') {
@@ -586,6 +596,8 @@ void BluetoothSync::processCommands() {
         }
         if (!isAuthorized()) {
           processAuthenticationCommand(commandBuffer);
+        } else if (firmwareCommand && firmwareCommand(commandBuffer)) {
+          // Firmware updater owns application commands during a transfer.
         } else if (commandBuffer == "RELEASE_OWNER") {
           String activeId;
           uint32_t checkoutEpoch = 0;

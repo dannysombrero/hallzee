@@ -4,7 +4,9 @@
 #include <BLE2902.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
-#include <deque>
+#include <freertos/FreeRTOS.h>
+#include <freertos/queue.h>
+#include <atomic>
 
 #include "BluetoothSerialPort.h"
 
@@ -15,6 +17,7 @@ public:
   bool begin(const char *deviceName) override;
   void setPin(const char *pin, size_t length) override;
   bool hasClient() override;
+  bool isReady() const { return server && txCharacteristic && rxCharacteristic; }
   void disconnectClient() override;
   bool clearBondedDevices() override;
   void setPairingPasskey(uint32_t passkey) override;
@@ -41,8 +44,8 @@ private:
   BLEServer *server = nullptr;
   BLECharacteristic *txCharacteristic = nullptr;
   BLECharacteristic *rxCharacteristic = nullptr;
-  std::deque<uint8_t> receiveBuffer;
-  bool connected = false;
+  QueueHandle_t receiveQueue = nullptr;
+  std::atomic<bool> connected{false};
   String advertisedName;
   uint16_t activeConnectionId = 0xFFFF;
 };

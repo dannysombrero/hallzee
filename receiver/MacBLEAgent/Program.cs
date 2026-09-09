@@ -68,11 +68,11 @@ class Program
                         var id = cmd["Id"];
                         DispatchQueue.MainQueue.DispatchAsync(() => managerDelegate.Connect(id));
                     }
-                    else if (action == "Send" && cmd.ContainsKey("Data"))
+                    else if ((action == "Send" || action == "SendBinary") && cmd.ContainsKey("Data"))
                     {
                         var data = cmd["Data"];
                         cmd.TryGetValue("RequestId", out var requestId);
-                        DispatchQueue.MainQueue.DispatchAsync(() => managerDelegate.Send(data, requestId));
+                        DispatchQueue.MainQueue.DispatchAsync(() => managerDelegate.Send(data, requestId, action == "SendBinary"));
                     }
                     else if (action == "Disconnect")
                     {
@@ -250,7 +250,7 @@ class Program
             currentWriteCompletesRequest = false;
         }
         
-        public void Send(string data, string? requestId)
+        public void Send(string data, string? requestId, bool binary = false)
         {
             if (targetPeripheral == null || rxCharacteristic == null)
             {
@@ -261,12 +261,15 @@ class Program
                 return;
             }
 
-            data = data.TrimEnd('\r', '\n') + "\n";
-            var bytes = Encoding.UTF8.GetBytes(data);
+            byte[] bytes;
+            try { bytes = binary ? Convert.FromBase64String(data) : Encoding.UTF8.GetBytes(data.TrimEnd('\r', '\n') + "\n"); }
+            catch { EmitEvent("Error", new { Message = "Invalid binary frame", RequestId = requestId }); return; }
+            if (binary && bytes.Length > 527) { EmitEvent("Error", new { Message = "Oversized binary frame", RequestId = requestId }); return; }
+            int payloadSize = Math.Clamp((int)targetPeripheral.GetMaximumWriteValueLength(CBCharacteristicWriteType.WithResponse), 20, 244);
             
-            for (var offset = 0; offset < bytes.Length; offset += 20)
+            for (var offset = 0; offset < bytes.Length; offset += payloadSize)
             {
-                var length = Math.Min(20, bytes.Length - offset);
+                var length = Math.Min(payloadSize, bytes.Length - offset);
                 var finalChunk = offset + length >= bytes.Length;
                 pendingWriteChunks.Enqueue((
                     bytes.Skip(offset).Take(length).ToArray(),

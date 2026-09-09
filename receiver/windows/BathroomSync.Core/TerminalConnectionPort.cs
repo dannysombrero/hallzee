@@ -48,3 +48,7 @@ public sealed class TerminalBondRepairRequiredException : InvalidOperationExcept
   public TerminalBondRepairRequiredException(string message)
     : base("The operating system removed the Bluetooth bond. Repair the Bluetooth connection, then reconnect. " + message) { }
 }
+
+public interface ITerminalBinaryConnection {
+  Task SendBinaryAsync(byte[] frame);
+}

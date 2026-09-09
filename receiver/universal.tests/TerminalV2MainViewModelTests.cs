@@ -156,6 +156,25 @@ public sealed class TerminalV2MainViewModelTests {
     } finally { Directory.Delete(folder, true); }
   }
 
+  [Fact]
+  public async Task FirmwareVersionIsFreshOnlyAfterQueryAndCachedAcrossRestart() {
+    var folder=Path.Combine(Path.GetTempPath(),"HallzeeFirmwareUi",Guid.NewGuid().ToString("N"));
+    var credentials=new InMemoryTerminalCredentialStore(); var connection=new FakeV2Connection();
+    try {
+      using(var vm=new MainViewModel(connection,folder,false,credentials)) {
+        await vm.FindTerminalsModal.ScanAsync(); vm.FindTerminalsModal.PairingPasskey="807481"; await vm.ConnectAndSyncAsync();
+        Assert.Contains("Unknown",vm.FirmwareVersionDisplay); Assert.False(vm.CanLoadFirmware);
+        await vm.RefreshFirmwareInfoAsync();
+        Assert.Equal("1.0.0 (test-fw)",vm.FirmwareVersionDisplay); Assert.True(vm.CanLoadFirmware);
+        await vm.DisconnectAsync();
+        Assert.Equal("Last seen: 1.0.0 (test-fw)",vm.FirmwareVersionDisplay); Assert.False(vm.CanLoadFirmware);
+      }
+      using var restarted=new MainViewModel(new FakeV2Connection(),folder,false,credentials);
+      Assert.Equal("Last seen: 1.0.0 (test-fw)",restarted.FirmwareVersionDisplay);
+      Assert.False(restarted.CanInstallFirmware);
+    } finally { if(Directory.Exists(folder)) Directory.Delete(folder,true); }
+  }
+
   sealed class FakeV2Connection : ITerminalConnection {
     bool connected;
     bool claimed;
@@ -197,6 +216,8 @@ public sealed class TerminalV2MainViewModelTests {
         else { claimed = false; Emit("OWNER_RELEASED\n"); }
       } else if (command.StartsWith("SET,TERMINAL_NAME,") || command.StartsWith("SET,MAX_ID_LENGTH,")) {
         Emit("SETTINGS_ACK," + command[4..] + "\n");
+      } else if (command == "GET_FIRMWARE_INFO") {
+        Emit("FIRMWARE_INFO,1,1.0.0,test-fw,esp32-ili9341-r1,ota-v1,1572864,1,CONFIRMED,1\n");
       } else if (command == "GET_ACTIVE_PASSES") {
         Emit("ACTIVE_PASSES\n");
       } else if (command == "GET_SETTINGS") {

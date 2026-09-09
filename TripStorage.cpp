@@ -54,7 +54,7 @@ bool TripStorage::begin() {
   Serial.print("Next trip ID: ");
   Serial.println(nextTripID);
 
-  return true;
+  return littleFSReady;
 }
 
 void TripStorage::loadActiveCheckout(

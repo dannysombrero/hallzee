@@ -7,4 +7,5 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.29" />
   </ItemGroup>
+  <ItemGroup><EmbeddedResource Include="../../../firmware/release-public-key.pem" LogicalName="Hallzee.FirmwarePublicKey" /></ItemGroup>
 </Project>

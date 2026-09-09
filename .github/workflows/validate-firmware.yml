@@ -7,6 +7,9 @@ on:
       - "*.cpp"
       - "*.h"
       - "test/**"
+      - "firmware/**"
+      - "scripts/flash-terminal*"
+      - "scripts/build-firmware-release.py"
       - ".github/workflows/validate-firmware.yml"
 
 concurrency:
@@ -37,6 +40,8 @@ jobs:
           mkdir -p "$RUNNER_TEMP/hallzee"
           cp ./*.cpp ./*.h "$RUNNER_TEMP/hallzee/"
           cp bathroom-signin.ino "$RUNNER_TEMP/hallzee/hallzee.ino"
-          arduino-cli compile --fqbn esp32:esp32:esp32 "$RUNNER_TEMP/hallzee"
+          cp -R fonts "$RUNNER_TEMP/hallzee/"
+          cp firmware/partitions.csv "$RUNNER_TEMP/hallzee/"
+          arduino-cli compile --build-property upload.maximum_size=1572864 --fqbn esp32:esp32:esp32 "$RUNNER_TEMP/hallzee"
       - name: Compile ILI9341 firmware
-        run: arduino-cli compile --fqbn esp32:esp32:esp32 "$RUNNER_TEMP/hallzee" --build-property "compiler.cpp.extra_flags=-DHALLZEE_ILI9341 -DHALLZEE_DISPLAY_ROTATION=1"
+        run: arduino-cli compile --build-property upload.maximum_size=1572864 --fqbn esp32:esp32:esp32 "$RUNNER_TEMP/hallzee" --build-property "compiler.cpp.extra_flags=-DHALLZEE_ILI9341 -DHALLZEE_DISPLAY_ROTATION=1"

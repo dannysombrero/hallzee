@@ -9,7 +9,7 @@ using BathroomSync.Universal.Services;
 
 namespace BathroomSync.Universal.ViewModels;
 
-public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
+public sealed partial class MainViewModel : INotifyPropertyChanged, IDisposable {
   readonly ITerminalConnection connection;
   readonly TripSqliteRepository tripRepository;
   readonly RosterSqliteRepository rosterRepository;
@@ -57,6 +57,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
       isPreviewMode ? "universal-preview" : "universal"
     );
     exportFolder = Path.Combine(appData, "exports");
+    InitializeFirmware();
     Directory.CreateDirectory(exportFolder);
 
     var dbPath = Path.Combine(appData, "hallzee-trips.db");
@@ -308,8 +309,12 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     terminalSession?.State is TerminalSessionState.Connecting or TerminalSessionState.AwaitingIdentity or TerminalSessionState.AwaitingAuthentication
       ? "CONNECTING" : terminalSession?.State == TerminalSessionState.ClaimRequired ? "PAIRING REQUIRED" : ConnectionStatusText;
 
-  void HandleTerminalSessionStateChanged(object? sender, TerminalSessionState state) => NotifyDeviceState();
+  void HandleTerminalSessionStateChanged(object? sender, TerminalSessionState state) {
+    if(state!=TerminalSessionState.Authenticated) firmwareInfoVerifiedId=null;
+    NotifyDeviceState();
+  }
   void NotifyDeviceState() {
+    NotifyFirmwareState();
     OnPropertyChanged(nameof(DeviceUniqueId));
     OnPropertyChanged(nameof(DeviceConnectionStatus));
     OnPropertyChanged(nameof(CanEditDevice));
@@ -485,6 +490,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
   }
 
   public void CloseModal() {
+    if(IsFirmwareInstalling) return;
     ActiveModal = "None";
     RosterModal.CancelImport();
     ManualCheckInModal.Reset(ActiveProfile.ProfileId);
@@ -644,7 +650,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
     }
   }
 
-  public Task SyncNowAsync() => operationCoordinator.RunAsync(SyncNowCoreAsync);
+  public Task SyncNowAsync() => IsFirmwareInstalling ? Task.CompletedTask : operationCoordinator.RunAsync(SyncNowCoreAsync);
 
   async Task SyncNowCoreAsync() {
     if (!IsConnected) {
@@ -1209,6 +1215,7 @@ public sealed class MainViewModel : INotifyPropertyChanged, IDisposable {
   }
 
   public void Dispose() {
+    firmwareCancellation?.Cancel();
     intentionalDisconnect = true;
     CancelAutomaticReconnect();
     timer?.Dispose();

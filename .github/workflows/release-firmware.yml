@@ -1,0 +1,123 @@
+name: Build Firmware Release Packages
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Firmware version (major.minor.patch, newer than installed terminals)
+        required: true
+      publish:
+        description: Publish immutable GitHub Release after hardware validation
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 8.0.x
+      - run: dotnet test receiver/windows/BathroomSync.Tests/BathroomSync.Tests.csproj
+      - run: dotnet test receiver/universal.tests/BathroomSync.Universal.Tests.csproj
+      - if: runner.os == 'macOS'
+        run: make -C test coverage
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    environment: firmware-release
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 8.0.x
+      - uses: arduino/setup-arduino-cli@v2
+      - name: Install pinned firmware tools
+        run: |
+          arduino-cli config add board_manager.additional_urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core update-index
+          arduino-cli core install esp32:esp32@3.3.11
+          arduino-cli lib install "Adafruit GFX Library" "Adafruit ST7735 and ST7789 Library" "Adafruit ILI9341" Keypad
+      - name: Build and sign packages
+        env:
+          RELEASE_KEY: ${{ secrets.HALLZEE_FIRMWARE_SIGNING_KEY }}
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          test -n "$RELEASE_KEY" || { echo 'Configure HALLZEE_FIRMWARE_SIGNING_KEY in the firmware-release environment.'; exit 1; }
+          umask 077
+          printf '%s\n' "$RELEASE_KEY" > "$RUNNER_TEMP/release-key.pem"
+          trap 'rm -f "$RUNNER_TEMP/release-key.pem"' EXIT
+          python3 scripts/build-firmware-release.py --version "$RELEASE_VERSION" --build "$GITHUB_SHA" --output artifacts/firmware --key "$RUNNER_TEMP/release-key.pem" --notes firmware/release-notes.md --arduino-data "$HOME/.arduino15"
+      - uses: actions/upload-artifact@v6
+        with:
+          name: Firmware-and-USB-images
+          path: artifacts/firmware/
+          if-no-files-found: error
+  usb:
+    needs: build
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            rid: osx-arm64
+          - os: windows-latest
+            rid: win-x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v6
+        with:
+          name: Firmware-and-USB-images
+          path: usb/images
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 8.0.x
+      - uses: arduino/setup-arduino-cli@v2
+      - shell: bash
+        run: |
+          arduino-cli config add board_manager.additional_urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core update-index
+          arduino-cli core install esp32:esp32@3.3.11
+          dotnet publish tools/FirmwareTool/FirmwareTool.csproj -c Release -r '${{ matrix.rid }}' --self-contained true -o usb/tool
+      - name: Validate USB migration without hardware
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          dotnet build tools/FirmwareTool/FirmwareTool.csproj
+          python3 test/test_usb_bootstrap.py --mklittlefs "$HOME/Library/Arduino15/packages/esp32/tools/mklittlefs/4.0.2-db0513a/mklittlefs"
+      - name: Bundle USB tools
+        shell: pwsh
+        run: |
+          $data = if ($IsWindows) { "$env:LOCALAPPDATA/Arduino15" } else { "$HOME/Library/Arduino15" }
+          Copy-Item "$data/packages/esp32/tools/esptool_py/5.3.1/*" usb/tool -Recurse -Force
+          Copy-Item "$data/packages/esp32/tools/mklittlefs/4.0.2-db0513a/*" usb/tool -Recurse -Force
+          Copy-Item scripts/install-usb-* usb/
+          Copy-Item scripts/recover-usb-* usb/
+          Copy-Item firmware/USB-README.md usb/README.md
+          Compress-Archive usb/* "Hallzee-USB-${{ matrix.rid }}.zip"
+      - uses: actions/upload-artifact@v6
+        with:
+          name: USB-${{ matrix.rid }}
+          path: Hallzee-USB-*.zip
+  publish:
+    if: inputs.publish
+    needs: [build, usb]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    environment: firmware-release
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v6
+        with:
+          path: downloads
+      - name: Publish new version without replacing existing assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          gh release create "firmware-v$RELEASE_VERSION" downloads/Firmware-and-USB-images/*.hallzee-fw downloads/USB-*/*.zip --target "$GITHUB_SHA" --title "Hallzee Firmware $RELEASE_VERSION" --notes-file firmware/release-notes.md

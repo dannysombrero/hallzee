@@ -3,3 +3,42 @@ test/build/
 **/obj/
 .tools/
 artifacts/
+
+# OS and environment metadata
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Library/
+
+# Test results and code coverage
+**/TestResults/
+TestResults/
+*.cobertura.xml
+
+# Local package manager and tool state
+**/.local/
+.local/
+
+# Cryptographic keys and certificates (defense-in-depth)
+*.pem
+*.key
+*.pfx
+*.p12
+!firmware/release-public-key.pem
+
+# Data, backups, and exports
+receiver/*.csv
+**/terminal-backups/
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+
+# Environment and cloud hosting configs
+.env*
+.openai/

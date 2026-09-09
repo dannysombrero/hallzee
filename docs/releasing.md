@@ -30,7 +30,13 @@ Do not put the private signing key in the downloads repository.
 ## Build privately
 
 Run **Build Desktop Release Packages** or **Build Firmware Release Packages**
-from the reviewed branch with a new `major.minor.patch` version. Actions installs
+from the reviewed branch with a new `major.minor.patch` version (for example,
+`1.0.0`). The desktop build also accepts `v1.0.0`, `1.0`, and `v1.0`, trimming
+surrounding whitespace and normalizing these to `1.0.0` before building. One
+preflight job validates the version and destination; all platform builds and
+release metadata use its same normalized outputs. Unsupported input now reports
+what to enter instead of a bare `AssertionError`. Firmware versions still use
+the full numeric form, such as `1.0.0`. Actions installs
 its build tools and runs tests. The desktop workflow builds Windows x64 plus
 Mac Apple-silicon and Intel ZIPs, including the native Mac Bluetooth helper.
 Both workflows save the source revision, version, public destination, guide,

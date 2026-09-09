@@ -1,5 +1,26 @@
 # Installation and testing guide
 
+## Release workflow input and Windows test cleanup
+
+Desktop release inputs are validated once before the platform matrix. Use
+`1.0.0`; `v1.0.0`, `1.0`, and `v1.0` are also accepted and normalized to `1.0.0`.
+An invalid value reports an actionable message. After pushing workflow fixes,
+start a new **Run workflow** on that branch; rerunning an old run uses its old
+revision. Firmware releases still require the full numeric version.
+
+Migration and desktop-pass tests disable SQLite pooling for their temporary
+connections, so disposing them releases the database files before cleanup.
+They do not clear global pools or suppress deletion failures. This fixes the
+Windows `fresh.db`/`legacy_upgrade.db` deletion errors reported after assertions
+had completed; production database behavior is unchanged.
+
+Mac testing is sufficient for input validation and shared test assertions.
+A Windows runner is required to verify Windows file-lock cleanup; the existing
+Actions Windows jobs provide that check, with no physical PC or terminal needed.
+The corrected Windows run has not yet been verified. This does not verify WinRT
+Bluetooth behavior or replace the release's physical Windows acceptance checks.
+
+
 ## Teacher-started pass persistence
 
 Updating the app automatically adds schema 7 to the existing database; no reset

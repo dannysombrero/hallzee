@@ -29,15 +29,22 @@ The database uses Microsoft.Data.Sqlite.Core 8.0.30, SQLitePCLRaw configuration
 3.0.5 and SQLite 3.53.4. All 108 core and 86 desktop tests passed on Apple Silicon
 and under Intel/Rosetta, and on Windows in GitHub Actions. Three desktop runtime
 publishes, two USB-tool publishes, and simulated USB checks pass. A deliberately
-vulnerable temporary graph proved CI rejects transitive advisory warnings. See [desktop dependencies](dependency-updates-desktop.md).
+vulnerable temporary graph proved CI rejects transitive advisory warnings.
+See [desktop dependencies](dependency-updates-desktop.md).
 
 ## GitHub settings verified
 
 - Main requires PRs, an up-to-date branch, resolved conversations, and
   **Repository hygiene**. Approvals are off for one maintainer. Force pushes and
   deletion are blocked; administrator bypass remains available for maintenance.
-- Dependency graph/submission, Dependabot alerts/security updates, malware
-  alerts, and grouped security updates are enabled.
+- Dependency graph, Dependabot alerts/security updates, malware alerts, and
+  grouped security updates are enabled. The Linux-only automatic NuGet
+  submission fails on the Windows/Mac projects; its replacement is described
+  in the CI guide. Disable automatic submission after verifying that replacement.
+- **Dependabot on self-hosted runners** is enabled despite having no such
+  runners. Four update runs are queued. Turn that setting off, keep Actions
+  runners enabled, then request a fresh update check; changing the setting alone
+  does not start a run.
 - Workflow tokens default to read-only. Actions creating/approving PRs and
   private-fork workflow execution are off. No self-hosted runners are configured.
 - The `firmware-release` environment now permits **branch `main` only, zero
@@ -50,15 +57,16 @@ vulnerable temporary graph proved CI rejects transitive advisory warnings. See [
 The new unfiltered **PR readiness** check combines desktop tests, complete Mac
 packaging, firmware checks, website checks, dependency audits and redacted
 history scanning. Its first GitHub run passed; adding it as a required check
-remains a repository setting to complete. Existing check names are preserved. The manual dependency-update workflow provides a
-patch instead of pushing to a hardcoded branch. See [CI and security](ci-and-security.md).
+remains a repository setting to complete. Existing check names are preserved.
+The manual dependency-update workflow provides a patch instead of pushing to a
+hardcoded branch. See [CI and security](ci-and-security.md).
 
 ## History sanitation
 
-The refreshed audit through `54024ac` covers 235 reachable commits and 1,709
+The refreshed audit through `e7c6680` covers 236 reachable commits and 1,716
 blobs across local and fetched remote refs. All eight published branch/tag refs
-matched the cached refs when checked. Gitleaks found two historical synthetic protocol keys; the new
-configuration exempts only that exact value in those two tests. The configured
+matched the cached refs when checked. Gitleaks found two historical synthetic
+protocol keys; the new configuration exempts only that exact value in those two tests. The configured
 scan is clear. A temporary Git fixture proved the same value in application
 code still triggers detection. No production private key or credential was
 confirmed by this scan.
@@ -78,6 +86,27 @@ Replace or carefully rebase old clones afterward. GitHub PR refs, caches, forks,
 old Actions logs/artifacts, and downloaded copies require separate review;
 rewriting Git does not erase them. Keep the recovery bundle private and rebuild
 release artifacts after sanitation so their source links use the final history.
+
+The PR-ref audit found targeted history in all 15 advertised PR heads and the
+current PR35 merge ref. Fourteen older heads contain cleanup paths at their tips;
+PR35 has clean current files but retains the earlier history. These read-only
+GitHub refs cannot be replaced with a normal force-push. A private Support
+handoff records affected PRs and the first changed commit; eligibility for
+removing non-sensitive metadata is not assured. Review this before public
+visibility. See [GitHub's sensitive-data removal guidance](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository).
+
+A read-only retention inventory found 148 Actions runs, 74 unexpired artifacts
+(about 3.95 GB), and one 75 MB release download. Artifact names and upload paths
+indicate desktop packages, firmware/USB packages, and small release metadata
+bundles. Their payloads and log contents have not been scanned by this inventory.
+The private report records IDs, source commits, sizes and expiry dates for cleanup.
+
+The existing `windows-client-latest` tag points to `73ee3289`, whose source tree
+still contains the historical trip CSV and hosting metadata. Its generated GitHub
+source ZIP/tar therefore includes those files. This tag is included in the
+sanitized mirror; rewrite it or retire the old release before public visibility.
+The legacy Windows binary was replaced without moving the tag, so its exact
+source provenance is unverified. Publish fresh, immutable versioned releases.
 
 ## Licensing and packaging
 
@@ -120,7 +149,9 @@ checks do not exercise physical Bluetooth, USB devices, or classroom workflows.
 
 1. Save the image changes, merge the reviewed implementation, and coordinate the
    final history rewrite while pushes are paused.
-2. Require the now-passing **PR readiness** check alongside **Repository hygiene**.
+2. Require **PR readiness** alongside **Repository hygiene**; switch Dependabot
+   back to hosted runners, trigger update checks, and finish the NuGet submission
+   replacement setting.
 3. Review old artifacts/logs, switch this repository to Public, enable reporting
    and secret protection, and verify signed-out access.
 4. Build fresh releases, complete physical acceptance, and publish those exact

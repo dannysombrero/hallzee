@@ -1,0 +1,135 @@
+name: Submit resolved NuGet dependencies
+on:
+  push:
+    branches: [main]
+    paths:
+      - '**/*.csproj'
+      - 'Directory.*'
+      - 'global.json'
+      - '**/NuGet.Config'
+      - '**/nuget.config'
+      - '.github/workflows/dependency-submission.yml'
+      - 'scripts/prepare-dependency-submission.py'
+  pull_request:
+    paths:
+      - '**/*.csproj'
+      - 'Directory.*'
+      - 'global.json'
+      - '**/NuGet.Config'
+      - '**/nuget.config'
+      - '.github/workflows/dependency-submission.yml'
+      - 'scripts/prepare-dependency-submission.py'
+      - 'test/test_dependency_submission.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+env:
+  COMPONENT_DETECTION_VERSION: 7.1.13
+concurrency:
+  group: dependency-submission-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  restore:
+    name: Restore NuGet (${{ matrix.platform }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows
+            os: windows-latest
+          - platform: macos
+            os: macos-14
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
+        with:
+          dotnet-version: 8.0.x
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.13'
+      - name: Select supported macOS SDK and install workload
+        if: matrix.platform == 'macos'
+        run: |
+          export DEVELOPER_DIR=/Applications/Xcode_16.2.app/Contents/Developer
+          sudo xcode-select --switch "$DEVELOPER_DIR"
+          echo "DEVELOPER_DIR=$DEVELOPER_DIR" >> "$GITHUB_ENV"
+          sudo "$(command -v dotnet)" workload install macos
+      - name: Test graph transfer and path validation
+        run: python -m unittest discover -s test -p test_dependency_submission.py
+      - name: Restore platform projects
+        run: python scripts/prepare-dependency-submission.py restore --platform '${{ matrix.platform }}'
+      - name: Prepare portable restored graphs
+        run: python scripts/prepare-dependency-submission.py stage --platform '${{ matrix.platform }}' --directory dependency-graphs
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: nuget-graphs-${{ matrix.platform }}
+          path: dependency-graphs/
+          if-no-files-found: error
+          retention-days: 3
+
+  validate_transfer:
+    name: Validate transferred NuGet graphs (${{ matrix.platform }})
+    needs: restore
+    strategy:
+      matrix:
+        platform: [windows, macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          name: nuget-graphs-${{ matrix.platform }}
+          path: dependency-graphs
+      - name: Verify graphs resolve to real repository projects on Linux
+        run: python3 scripts/prepare-dependency-submission.py activate --platform '${{ matrix.platform }}' --directory dependency-graphs
+      - name: Run the official detector without a token or snapshot upload
+        run: |
+          curl --fail --silent --show-error --location --retry 3 "https://github.com/microsoft/component-detection/releases/download/v${COMPONENT_DETECTION_VERSION}/component-detection-linux-x64" -o "$RUNNER_TEMP/component-detection"
+          echo "f2c8c38e247702d6982a2e95f2149e9d6caa159cedbf76865e531d9c54b4056c  $RUNNER_TEMP/component-detection" | sha256sum --check
+          chmod +x "$RUNNER_TEMP/component-detection"
+          "$RUNNER_TEMP/component-detection" scan --SourceDirectory "$GITHUB_WORKSPACE" --ManifestFile "$RUNNER_TEMP/nuget-scan.json" --DetectorsFilter NuGetProjectCentric --DirectoryExclusionList dependency-graphs,preview-site,.git,.tools
+          python3 scripts/prepare-dependency-submission.py verify-scan --platform '${{ matrix.platform }}' --scan "$RUNNER_TEMP/nuget-scan.json"
+
+  submit:
+    name: Submit NuGet (${{ matrix.platform }})
+    if: (github.event_name == 'workflow_dispatch' || github.event_name == 'push') && github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    needs: [restore, validate_transfer]
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [windows, macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          name: nuget-graphs-${{ matrix.platform }}
+          path: dependency-graphs
+      - name: Activate graphs under real repository project paths
+        run: python3 scripts/prepare-dependency-submission.py activate --platform '${{ matrix.platform }}' --directory dependency-graphs
+      - name: Require the upload action to use the validated detector release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          actual="$(gh api repos/microsoft/component-detection/releases/latest --jq .tag_name)"
+          if [[ "$actual" != "v$COMPONENT_DETECTION_VERSION" ]]; then
+            echo "::error::The upload action downloads $actual, but PR validation pins v$COMPONENT_DETECTION_VERSION. Update the detector version/checksum and validate the change before submitting."
+            exit 1
+          fi
+      - name: Submit the resolved platform snapshot
+        uses: actions/component-detection-dependency-submission-action@98beaea5a1227f3db476e4c9ca959a0cacd7ac4f # Official Node 24 revision used by GitHub NuGet autosubmission
+        with:
+          filePath: '.'
+          directoryExclusionList: dependency-graphs,preview-site,.git,.tools
+          detectorsFilter: NuGetProjectCentric
+          correlator: hallzee-nuget-${{ matrix.platform }}

@@ -103,10 +103,11 @@ USB migration on both platforms still require verification.
 ## Validation in this review
 
 - Shared client tests: **86 passed**, including 13 teacher-pass lifecycle cases.
-- Core/protocol tests: **107 passed**, including atomic teacher-pass completion, rollback,
-  concurrent retry, and preservation of existing history.
-- Publication logic: **8 offline tests passed** (failed build, wrong revision,
-  missing assets, same-repository publication, existing tag, and successful draft flow).
+- Core/protocol tests: **108 passed**, including atomic teacher-pass completion,
+  rollback, concurrent retry, preservation of existing history, and native SQLite.
+- Publication logic: **27 offline tests passed**, covering build provenance,
+  source/binary checksums, complete firmware/USB companions, single-ZIP client
+  publication, immutable tags, and the successful draft flow.
 - All workflow YAML parses; shell syntax and whitespace checks pass.
 - The initial Apple-silicon package opened and its dashboard/settings were
   visually inspected, but whole-app signature verification missed invalid
@@ -119,9 +120,13 @@ USB migration on both platforms still require verification.
   This launch exits before Bluetooth use; physical BLE remains unverified here.
 - The original manual-pass failure probes are now covered by passing permanent
   regression tests for restart and terminal status messages.
-- Windows/Intel Mac packaging in Actions and public publication have not yet
-  been executed. Network restrictions prevented NuGet vulnerability-feed lookup;
-  these builds are not a fresh dependency vulnerability audit.
+- [GitHub Actions run 34409156145](https://github.com/dannysombrero/hallzee-mono/actions/runs/34409156145)
+  passed Windows/Mac desktop tests and builds, complete ARM64/Intel Mac packages,
+  Windows/Mac USB executable builds and startup checks, firmware checks, and
+  Linux/Windows website checks. Fresh npm, transitive NuGet, and locked Python
+  audits reported no vulnerabilities. Repository hygiene and secret scans passed.
+- Public publication and physical Windows Bluetooth/USB behavior remain
+  unverified; successful runner builds do not replace release acceptance.
 
 ## Defer without expanding v1.0
 

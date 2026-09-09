@@ -44,6 +44,8 @@ their respective runners, then submits their resolved graphs from Linux using
 GitHub's component-detection action. It preserves the real repository `.csproj`
 paths and uses separate stable Windows/Mac snapshot identifiers. No client
 build, release signing, or firmware installation is involved.
+Portable transfer artifacts stay in the runner's temporary directory, outside
+the detector's source tree; only activated graphs can become submitted manifests.
 
 Relevant PRs exercise both restores and run a checksum-pinned official detector
 against the transferred graphs. They verify every resulting manifest path with

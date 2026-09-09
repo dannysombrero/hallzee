@@ -59,7 +59,10 @@ workflows to publish every supported runtime after a native dependency update.
 The September 9, 2026 verification completed:
 
 - All 108 core tests and 86 desktop UI tests passed on Apple Silicon and again
-  with the Intel .NET runtime under Rosetta.
+  with the Intel .NET runtime under Rosetta. The same suites also passed on
+  Windows and Mac GitHub runners, including loading the actual native SQLite
+  engine. Windows app/tool builds and both complete Mac packages passed in
+  [run 34409156145](https://github.com/dannysombrero/hallzee-mono/actions/runs/34409156145).
 - Fresh transitive advisory scans found no vulnerable NuGet packages in the
   core, desktop, test, USB-tool, legacy Windows-client or Mac-helper graphs.
   Windows-targeted desktop restore also passed with CI audit errors enabled.
@@ -93,8 +96,8 @@ versions. The published ZIP's checksum covers the final signed binaries;
 pre-sign binary hashes would become stale during code signing.
 
 A Mac is sufficient to repeat the Mac tests and Windows cross-publish checks.
-A Windows PC is required to verify the real Windows application launch, native
-SQLite DLL loading, opening/upgrading an existing classroom database, and
-Windows Bluetooth/USB operation. Those physical Windows behaviors have not
-been verified by this dependency update; cross-publishing does not execute the
-Windows binaries. Intel testing above used Rosetta, not a physical Intel Mac.
+Windows CI executes the database/UI tests and verifies native SQLite DLL loading.
+A physical Windows PC is still required to verify the actual app launch,
+opening/upgrading a classroom database, and Windows Bluetooth/USB operation.
+Those physical Windows behaviors remain unverified. Intel runtime execution
+above used Rosetta, not a physical Intel Mac.

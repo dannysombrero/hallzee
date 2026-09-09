@@ -78,8 +78,14 @@ the configuration loads Workers types and the background-preset type includes
 the already-defined sidebar style. Full and production-only npm audits returned
 zero findings.
 
-A Mac is sufficient for these website dependency checks. No physical Windows
-PC is required; native Windows npm-shell execution, actual Windows browser
-execution, and Windows desktop/Bluetooth behavior were not verified by this
-work. Website page content, images, hosting
-configuration, and the live deployment are unchanged.
+GitHub Actions also passed a clean install, zero-finding npm audit, production
+build, all six tests, lint, and full TypeScript checking on both Ubuntu and
+Windows with Node.js 22 in
+[run 34409156145](https://github.com/dannysombrero/hallzee-mono/actions/runs/34409156145).
+This verifies the portable launcher's Windows build path.
+
+A Mac is sufficient for these website dependency checks; no physical Windows
+PC is required. Interactive Windows dev/start sessions, browser behavior, and
+Windows desktop/Bluetooth operation remain unverified by these website checks.
+Website page content, images, hosting configuration, and the live deployment
+are unchanged.

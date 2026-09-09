@@ -27,9 +27,9 @@ See [website dependencies](Dependency-Updates-Web).
 
 The database uses Microsoft.Data.Sqlite.Core 8.0.30, SQLitePCLRaw configuration
 3.0.5 and SQLite 3.53.4. All 108 core and 86 desktop tests passed on Apple Silicon
-and under Intel/Rosetta. Three desktop runtime publishes, two USB-tool publishes,
-and simulated USB checks pass. A deliberately vulnerable temporary graph proved
-CI rejects transitive advisory warnings. See [desktop dependencies](Dependency-Updates-Desktop).
+and under Intel/Rosetta, and on Windows in GitHub Actions. Three desktop runtime
+publishes, two USB-tool publishes, and simulated USB checks pass. A deliberately
+vulnerable temporary graph proved CI rejects transitive advisory warnings. See [desktop dependencies](Dependency-Updates-Desktop).
 
 ## GitHub settings verified
 
@@ -49,14 +49,15 @@ CI rejects transitive advisory warnings. See [desktop dependencies](Dependency-U
 
 The new unfiltered **PR readiness** check combines desktop tests, complete Mac
 packaging, firmware checks, website checks, dependency audits and redacted
-history scanning. Require it after its first successful GitHub run. Existing
-check names are preserved. The manual dependency-update workflow provides a
+history scanning. Its first GitHub run passed; adding it as a required check
+remains a repository setting to complete. Existing check names are preserved. The manual dependency-update workflow provides a
 patch instead of pushing to a hardcoded branch. See [CI and security](CI-and-Security).
 
 ## History sanitation
 
-The audit at `a3cf1c2` covers 234 reachable commits across local and fetched
-remote refs. Gitleaks found two historical synthetic protocol keys; the new
+The refreshed audit through `54024ac` covers 235 reachable commits and 1,709
+blobs across local and fetched remote refs. All eight published branch/tag refs
+matched the cached refs when checked. Gitleaks found two historical synthetic protocol keys; the new
 configuration exempts only that exact value in those two tests. The configured
 scan is clear. A temporary Git fixture proved the same value in application
 code still triggers detection. No production private key or credential was
@@ -108,11 +109,18 @@ trust configuration. The actual rebuilt Mac USB binary/source ZIP pair passes
 the publication hash checks. All 51 release-input, publication, licensing and
 repository-hygiene tests pass; native firmware and touch tests pass too.
 
+[Pull request readiness run 34409156145](https://github.com/dannysombrero/hallzee-mono/actions/runs/34409156145)
+and the separate repository hygiene workflow passed on `54024ac`. This includes
+Windows/Mac desktop tests, both complete Mac packages, Windows/Mac USB executable
+builds and startup checks, Arduino display/touch builds, Linux/Windows website
+builds/tests/lint/TypeScript, and the dependency and secret scans. These runner
+checks do not exercise physical Bluetooth, USB devices, or classroom workflows.
+
 ## Remaining launch steps
 
 1. Save the image changes, merge the reviewed implementation, and coordinate the
    final history rewrite while pushes are paused.
-2. Run the new GitHub workflow and require **PR readiness** after it passes.
+2. Require the now-passing **PR readiness** check alongside **Repository hygiene**.
 3. Review old artifacts/logs, switch this repository to Public, enable reporting
    and secret protection, and verify signed-out access.
 4. Build fresh releases, complete physical acceptance, and publish those exact

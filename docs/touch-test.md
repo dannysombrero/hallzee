@@ -1,10 +1,46 @@
-# Optional 2.8-inch touchscreen experiment
+# Paused 2.8-inch touchscreen experiment
+
+## Current decision and hardware findings
+
+On September 9, 2026, the physical test found that Clear and Submit worked and
+position accuracy was good, but fingers sometimes needed uncomfortable pressure
+to register. Touch is paused. Use the previous keypad-only UI, with plain
+`* CLEAR` and `# SUBMIT` instructions on both touch and non-touch displays;
+button-like decoration would suggest touch support where none is available.
+
+To restore it, run the normal ILI9341 flash command **without `--touch-test` /
+`-TouchTest`**, keeping the installed orientation. See
+[Installation and testing](testing-and-installation.md#restore-the-standard-ui-after-touch-testing).
+The standard build has no calibration prompt, touch actions, or typing sandbox.
+The experiment below remains available only when explicitly enabled for future
+work; its presence in the repository does not enable it in ordinary firmware.
+
+The normal ILI9341 rotation-1 build was restored over USB on a Mac on
+September 9, 2026. Both full-flash backup reads matched; the written firmware,
+partition table, restored files, and unchanged NVS were verified before reset.
+That verifies installation and data retention, not visual inspection or a
+physical keypad regression check. Windows was not reverified for this restore.
+
+### Does calibration have to run every time?
+
+Only this temporary experiment repeats calibration after restart: the measured
+points live in RAM. Future touch firmware could save a successful calibration
+in ESP32 nonvolatile storage, associated with the panel/orientation, and offer
+an explicit Recalibrate action. A measured factory default is another option,
+but should be checked across individual panels rather than assumed universal.
+Neither persistence nor a factory calibration is implemented here.
+
+Calibration maps raw coordinates to the right screen position. It does not
+change the panel's mechanical pressure requirement. Pressure thresholds and
+filtering are a separate tuning question; no sensitivity change is being made
+as part of returning to the standard UI.
 
 This experiment targets the red ILI9341 module with a separate SPI resistive
 touch controller. The labels `T_CLK`, `T_CS`, `T_DIN`, `T_DO`, and `T_IRQ` suggest
-an XPT2046-compatible controller; the chip model and actual finger sensitivity
-still need verification on the physical module. A resistive panel responds to
-pressure, so try a fingertip and a blunt plastic stylus as well as a finger pad.
+an XPT2046-compatible controller; the exact chip model remains unconfirmed. The
+reported finger-sensitivity result above applies to the tested physical module.
+A resistive panel responds to pressure; future testing can compare a fingertip
+and a blunt plastic stylus with a finger pad.
 Do not use a sharp object.
 
 ## Connect four touch wires
@@ -110,8 +146,9 @@ A **Mac plus the physical ESP32/display is sufficient** for these touch checks.
 A Windows PC is **not required** for touch; no Windows-specific touch capability
 is involved. A Windows PC is needed to verify the new PowerShell `-TouchTest`
 bootstrap installation/USB flash path, which has not been verified on Windows.
-Physical sensitivity, calibration, separate-bus wiring, and touch behavior
-have not yet been verified. Native tests cover calibration math, tap timing, and sandbox/control routing;
+The user has verified usable alignment and Clear/Submit operation on the
+physical module, with press sensitivity unsuitable for current use. Long-term
+reliability, other panels, and Windows operation remain unverified. Native tests cover calibration math, tap timing, and sandbox/control routing;
 firmware compilation is not hardware validation. The browser emulator and
 Wokwi do not simulate this controller or finger sensitivity.
 

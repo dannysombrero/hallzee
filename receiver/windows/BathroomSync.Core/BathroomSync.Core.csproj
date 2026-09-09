@@ -3,9 +3,11 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <ReleaseRepository Condition="'$(ReleaseRepository)' == ''">dannysombrero/hallzee-mono</ReleaseRepository>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.29" />
   </ItemGroup>
   <ItemGroup><EmbeddedResource Include="../../../firmware/release-public-key.pem" LogicalName="Hallzee.FirmwarePublicKey" /></ItemGroup>
+  <ItemGroup><AssemblyMetadata Include="ReleaseRepository" Value="$(ReleaseRepository)" /></ItemGroup>
 </Project>

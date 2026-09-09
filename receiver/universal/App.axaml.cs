@@ -8,6 +8,7 @@ namespace BathroomSync.Universal;
 public partial class App : Application {
   public override void OnFrameworkInitializationCompleted() {
     if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop) {
+      MacApplicationIcon.Apply();
       var connection = CreateConnection();
       var previewMode = connection is PreviewTerminalConnection;
       var viewModel = new MainViewModel(

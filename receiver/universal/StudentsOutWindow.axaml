@@ -3,6 +3,7 @@
         xmlns:vm="clr-namespace:BathroomSync.Universal.ViewModels;assembly=HallzeeSync.Universal"
         x:Class="BathroomSync.Universal.StudentsOutWindow"
         x:DataType="vm:MainViewModel"
+        Icon="avares://HallzeeSync.Universal/Assets/hallzee.ico"
         Width="540" Height="300" MinWidth="460" MinHeight="270"
         Title="Hallzee"
         Topmost="True"

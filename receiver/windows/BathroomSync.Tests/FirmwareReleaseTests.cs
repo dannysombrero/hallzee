@@ -17,6 +17,25 @@ public sealed class FirmwareReleaseTests {
     var result=await new FirmwareReleases(http).CheckAsync();
     Assert.Equal("1.10.0",Assert.Single(result.Firmware).Version);
     Assert.Contains("1.1.0 available",result.DesktopStatus);
+    Assert.True(result.DesktopUpdateAvailable);
+  }
+  [Theory]
+  [InlineData("client-v1.0.0")]
+  [InlineData("client-v0.9.0")]
+  [InlineData("windows-client-latest")]
+  public async Task CurrentOlderAndMovingTagsDoNotNotify(string tag) {
+    var json=System.Text.Json.JsonSerializer.Serialize(new[] { new { draft=false, prerelease=false,
+      tag_name=tag, html_url=$"https://github.com/{FirmwareReleases.Repository}/releases/tag/{tag}", assets=Array.Empty<object>() } });
+    using var http=new HttpClient(new FakeHttp(_=>new(HttpStatusCode.OK) { Content=new StringContent(json) }));
+    Assert.False((await new FirmwareReleases(http).CheckAsync()).DesktopUpdateAvailable);
+  }
+  [Fact] public async Task RejectsFirmwareFromAnotherRepository() {
+    using var http=new HttpClient(new FakeHttp(_=>new(HttpStatusCode.OK) { Content=new StringContent("""
+      [{"draft":false,"prerelease":false,"tag_name":"firmware-v1.1.0",
+        "html_url":"https://github.com/unexpected/repository/releases/tag/firmware-v1.1.0",
+        "assets":[{"name":"Hallzee.hallzee-fw","browser_download_url":"https://github.com/unexpected/repository/firmware.hallzee-fw"}]}]
+      """) }));
+    await Assert.ThrowsAsync<InvalidDataException>(()=>new FirmwareReleases(http).CheckAsync());
   }
   [Fact] public async Task NetworkFailureIsNotReportedAsUpToDate() {
     using var http=new HttpClient(new FakeHttp(_=>new(HttpStatusCode.Forbidden)));

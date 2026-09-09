@@ -5,6 +5,7 @@ param(
   [ValidateRange(0, 3)]
   [int]$Rotation = 1,
   [switch]$CompileOnly,
+  [switch]$Fast,
   [switch]$TouchTest,
   [string]$ProjectRoot = (Split-Path -Parent $PSScriptRoot)
 )
@@ -28,7 +29,7 @@ Before continuing, make sure:
   - No other USB serial device is connected, unless you provide its port.
   - You are ready to replace the firmware currently on that ESP32.
 
-No Arduino software needs to be installed first; this script installs what it needs.
+Regular mode installs required Arduino software; fast mode reuses installed dependencies.
 "@
 
 if (-not $Port -and -not $CompileOnly) {
@@ -52,17 +53,21 @@ if (-not (Test-Path $cli)) {
   Remove-Item -Force $archive
 }
 
-Write-Host "Installing the ESP32 board support and required libraries if needed…"
-& $cli core update-index --additional-urls $esp32Index
-if ($LASTEXITCODE -ne 0) { throw "Could not update the Arduino package index." }
-& $cli core install "esp32:esp32@$esp32Version" --additional-urls $esp32Index
-if ($LASTEXITCODE -ne 0) { throw "Could not install the pinned ESP32 core." }
-& $cli lib install "Adafruit GFX Library" "Adafruit ST7735 and ST7789 Library" "Adafruit ILI9341" Keypad
-if ($LASTEXITCODE -ne 0) { throw "Could not install firmware libraries." }
+if (-not $Fast) {
+  Write-Host "Installing the ESP32 board support and required libraries if needed…"
+  & $cli core update-index --additional-urls $esp32Index
+  if ($LASTEXITCODE -ne 0) { throw "Could not update the Arduino package index." }
+  & $cli core install "esp32:esp32@$esp32Version" --additional-urls $esp32Index
+  if ($LASTEXITCODE -ne 0) { throw "Could not install the pinned ESP32 core." }
+  & $cli lib install "Adafruit GFX Library" "Adafruit ST7735 and ST7789 Library" "Adafruit ILI9341" Keypad
+  if ($LASTEXITCODE -ne 0) { throw "Could not install firmware libraries." }
 
-if ($TouchTest) {
-  & $cli lib install "XPT2046_Touchscreen@1.4"
-  if ($LASTEXITCODE -ne 0) { throw "Could not install the touch experiment library." }
+  if ($TouchTest) {
+    & $cli lib install "XPT2046_Touchscreen@1.4"
+    if ($LASTEXITCODE -ne 0) { throw "Could not install the touch experiment library." }
+  }
+} else {
+  Write-Host "Fast mode: using installed board support/libraries. If compilation reports missing tools, run once without -Fast (optionally -CompileOnly)."
 }
 
 # Arduino requires the sketch directory and its main .ino file to share a
@@ -85,7 +90,7 @@ if (Test-Path (Join-Path $ProjectRoot "fonts")) {
 }
 
 try {
-  Write-Host "Building and flashing Hallzee to $Port…"
+  Write-Host "Building Hallzee…"
   $buildProperties = @("--build-property", "upload.maximum_size=1572864")
   if ($Display -eq "ili9341") {
     $extraFlags = "-DHALLZEE_ILI9341 -DHALLZEE_DISPLAY_ROTATION=$Rotation"
@@ -109,8 +114,12 @@ try {
     $esptool = Join-Path $arduinoData "packages/esp32/tools/esptool_py/5.3.1/esptool.exe"
     $mklittlefs = Join-Path $arduinoData "packages/esp32/tools/mklittlefs/4.0.2-db0513a/mklittlefs.exe"
     Copy-Item (Join-Path $arduinoData "packages/esp32/hardware/esp32/$esp32Version/tools/partitions/boot_app0.bin") (Join-Path $buildDir "boot_app0.bin")
-    & $dotnet run --project (Join-Path $ProjectRoot "tools/FirmwareTool/FirmwareTool.csproj") -- usb --esptool $esptool --mklittlefs $mklittlefs --port $Port --build $buildDir --backup (Join-Path $toolsDir "terminal-backups")
-    if ($LASTEXITCODE -ne 0) { throw "OTA USB setup failed. Preserve the terminal backup." }
+    if ($Fast) {
+      & $dotnet run --project (Join-Path $ProjectRoot "tools/FirmwareTool/FirmwareTool.csproj") -- usb-fast --esptool $esptool --port $Port --build $buildDir
+    } else {
+      & $dotnet run --project (Join-Path $ProjectRoot "tools/FirmwareTool/FirmwareTool.csproj") -- usb --esptool $esptool --mklittlefs $mklittlefs --port $Port --build $buildDir --backup (Join-Path $toolsDir "terminal-backups")
+    }
+    if ($LASTEXITCODE -ne 0) { throw "USB flash failed. Preserve any existing terminal backup; see the tool error above." }
   }
 } finally {
   if (Test-Path $stagingRoot) {

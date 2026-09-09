@@ -1,163 +1,163 @@
-# Getting started: normal users
+# Hallzee: the teacher guide
 
-Use this page if you received a Hallzee terminal and need to run the finished
-sync application. Developers should use [Getting started: developers](getting-started-developers.md).
+Hallzee keeps track of classroom hall passes. Students use the terminal by the
+door; you use the app to see who is out, manage your roster, and review trips.
+Day-to-day use does not need internet access. Downloads and update checks do.
 
-## What you need
+## Download Hallzee
 
-- A powered Hallzee terminal with its ESP32, TFT, and keypad already wired.
-- A Windows PC for the current ready-to-run Universal download.
-- Bluetooth enabled on the PC.
+Open [desktop downloads](https://github.com/dannysombrero/hallzee-mono/releases?q=client-v&expanded=true)
+and choose the newest numbered **Client** release. The release notes explain
+what changed. Download the file for your computer under **Assets**:
 
-The downloadable Universal artifact is a self-contained Windows x64 app. A
-Mac build is checked by the workflow but is not currently published as a
-ready-to-run download; Mac users should follow the developer build instructions.
+| Your computer | Download | Install |
+| --- | --- | --- |
+| Windows 10/11, 64-bit Intel/AMD | `Hallzee-Windows-win-x64.zip` | Extract the entire ZIP into a folder, then open `HallzeeSync.Universal.exe`. |
+| Mac with Apple silicon (M1 or later) | `Hallzee-Mac-osx-arm64.zip` | Open the ZIP, drag `Hallzee.app` to Applications, then open it. |
+| Mac with an Intel processor | `Hallzee-Mac-osx-x64.zip` | Open the ZIP, drag `Hallzee.app` to Applications, then open it. |
 
-## Download the latest Universal app
+On a Mac, **Apple menu → About This Mac** shows the chip or processor.
+You do not need Git, .NET, Arduino software, or a GitHub account.
+If no numbered release is listed yet, the public download is not ready.
 
-1. Open the repository's **Actions** tab.
-2. Choose **Build Universal Sync Client**.
-3. Open the latest successful workflow run. If needed, choose **Run workflow**
-   first and wait for it to finish.
-4. Under **Artifacts**, download `HallzeeSync-Universal-Windows`.
-5. Extract the entire downloaded ZIP to a normal folder. Do not run the EXE
-   from inside the ZIP.
-6. Start `HallzeeSync.Universal.exe`.
+School computers may require IT approval to install apps or allow Bluetooth.
+The current packages are not publisher-signed/notarized; ask school IT to
+approve them if Windows or macOS blocks opening them. Do not turn off your
+computer's security protections. Allow Hallzee to use Bluetooth when prompted.
 
-No .NET installation is required for this self-contained Windows artifact.
+## Connect your terminal
 
-## Connect the terminal the first time
+Have your powered terminal nearby and turn on your computer's Bluetooth.
 
-1. Power on the terminal. You can pair directly from any date/time setup
-   step, or enter the date and time on the keypad first.
-2. Make sure no student pass is active.
-3. Hold `*` and `#` together for five seconds, then release both keys.
-4. The terminal displays its full unique ID, friendly name, and six-digit
-   Bluetooth passkey. After pairing or an owner reset, incomplete date/time
-   setup resumes at the same step with your entry preserved. Pairing alone does
-   not skip clock setup; either finish it on the keypad or let the connected
-   desktop set the clock through Bluetooth sync.
-5. In the app, choose **Find Terminal** or **Find Terminals**.
-6. Select the matching `Hallzee-XXXX` terminal. Each row shows **Signal Strength:**,
-   a four-bar indicator, the quality label, and RSSI in dBm. More filled bars
-   mean a stronger signal; unavailable readings leave all bars gray.
-   Enter the six-digit passkey when prompted, then choose **Connect** again if
-   the dialog asks.
-7. Choose **Sync Now**.
+1. With no student checked out, hold `*` and `#` together on the terminal for
+   **five seconds**, then release. Its screen shows a name, unique ID, and
+   six-digit pairing code.
+2. In Hallzee, choose **Find Terminal**. Select the matching terminal and enter
+   its code when asked. Choose **Connect** again if prompted.
+3. Choose **Sync Now**. Hallzee sets the terminal clock and retrieves saved trips.
 
-The terminal can have one active owner connection. A claimed terminal or one
-with an active student checkout is shown as **IN USE**, even when its pass is
-available. Unclaimed, unoccupied terminals show **READY**. The selected row has
-a blue background and border. The remembered owner can reconnect
-without the pairing passkey so the checkout can be completed; other clients
-cannot claim or connect to it.
+You can start pairing even if the terminal is asking you to set its date and
+time. Your computer normally remembers the pairing and reconnects next time.
+A terminal belongs to one computer at a time. **IN USE** may mean it is already
+paired to another computer, not necessarily that a student is out.
 
-## Everyday operation
+## Set up your classroom once
 
-- Students enter their ID and press `#` to check out.
-- They enter the same ID and press `#` to check back in.
-- Press `*` to clear an ID that is being entered.
-- Leave the app connected: completed trips stream automatically and a
-  five-minute reconciliation sync recovers missed notifications. **Sync Now**
-  remains available for an immediate check.
-- Use **View All** or **History** to inspect the full **Hall Pass Trip History** table, sorted and filterable by Date, Student ID, Name, Departed, Returned, Duration, and Status. Use **Export** to create a CSV report.
-- In **Settings**, save the teacher name and school to update the classroom
-  profile card immediately. The OS title bar shows **Hallzee Desktop Client ·
-  terminal name**. The **Device** tab shows the friendly name, selectable unique
-  device ID, and connection status (including connecting, syncing, and offline).
-- In **Settings → Device**, click the pencil beside the terminal name, edit it,
-  and choose **Save** or **Cancel**. Saving requires a connection and confirmation
-  from the terminal; **Apply ID Limit** changes only the student-ID limit.
-  The name is persisted by the kiosk and reused in discovery, reconnect UI, and
-  the terminal header as **Terminal: [name]**. Long names are abbreviated in the
-  narrow header; pairing displays the full name.
-- **Settings → Device** also shows the terminal's firmware version. After the
-  one-time OTA USB setup, use **Install firmware from file…** with a signed
-  `.hallzee-fw` package, or **Check for software updates → Download & Install
-  firmware**. Check in all passes first and keep the terminal powered nearby.
-  See [Firmware updates](firmware-updates.md) for the rollout/verification status.
-- To release a terminal, connect to it, check in all active passes, and choose
-  **Settings → Device → Disconnect & Unpair**. The notice explains that the
-  next connection requires physical pairing mode and a new passkey. This removes
-  the terminal owner, its BLE bonds, this computer’s saved owner credential, and
-  its workspace assignments; trip history, terminal name, and settings remain.
-  Install the matching current firmware first. If release is not confirmed, the
-  app keeps the saved pairing and reports the failure. An OS Bluetooth entry may
-  remain; use **Forget/Remove device** there if a fresh pairing reports a stale bond.
-- In **Policies & Bell Times**, keep one teacher workspace, create `Regular`
-  or alternate schedule templates, assign a class section to each period, and
-  add date exceptions for early-release or no-school days. Bell-window actions
-  are desktop guidance unless **Enforce bell-time lockouts on the terminal** is
-  selected; it is off by default. When enabled, the next 14 days are copied to
-  the kiosk and refreshed by sync.
-- In the **Exceeded Time** dashboard card, filter by duration threshold (e.g. `> 7m`)
-  and timeframe (e.g. **Last 2 Weeks**, **Today**, **This Week**, or **All Time**)
-  to spot students with high hallway time.
+- **Settings → Teacher:** enter your name, school, and room; select
+  **Save Classroom Info**.
+- **Student Roster:** add student IDs and names, or import a roster using the
+  import dialog. Keep leading zeros in IDs. A roster makes names appear in the
+  app; students can still enter their numeric IDs at the terminal.
+- **Policies & Bell Times:** use one workspace for your classroom, with class
+  sections and periods inside it. Set pass capacity and your time warning,
+  enter bell times, and choose **Save Workspace Settings** while connected.
+- **Settings → Device:** use the pencil to name your terminal (for example,
+  `Room 204`). Set the maximum ID length if your school needs a different limit.
 
-The app remembers the terminal owner credential on supported production builds,
-so normal reconnects should not require the passkey again. After the first
-successful connection, the app remembers the terminal's Bluetooth transport and
-automatically reconnects to it when the app starts or the link drops. The app
-then syncs without requiring the date/time or pairing screens. The reconnect
-message counts down for up to 45 seconds; after that, use **Find Terminal** to return
-to manual recovery. The dashboard also leaves a **Reconnect** action for the
-remembered claimed terminal; that action does not require a pairing key. If the terminal was replaced, reset, or paired to a
-different computer, contact the project owner before clearing its owner state.
+Bell-time rules guide the desktop display. To also block new checkouts at the
+terminal, select **Enforce bell-time lockouts on the terminal**. It is off by
+default. **Warn** allows a checkout; **Lock** blocks a new checkout. Students
+already out can always check back in. Sync regularly: the terminal receives
+14 days of bell-time rules. Duration and daily-use warnings help you review
+activity; they do not automatically return students or enforce daily quotas
+at the terminal. Alert sounds play on the computer.
 
-## Put the Mini Window board on display
+## During class
 
-Choose **Mini Window** in the app's top bar to open a compact, always-on-top
-window. It remains visible while the main Hallzee app is minimized and displays
-the current class period, a live digital clock, and pass status (e.g.
-**WINDOW CLOSED** during locked windows or outside a scheduled period, green
-**WINDOW OPEN** when passes are allowed (including Warn windows), or orange
-**PASS IN USE** whenever a student is out) with live period countdowns.
-The window includes close and minimize controls at the top left (and supports the
-`Esc` key to dismiss). Set each period's start and end time in **Policies & Bell Times**
-for this display to be accurate.
+**Going out:** the student types their ID and presses `#`.
+**Coming back:** they type the same ID and press `#` again.
+Press `*` to clear an ID before submitting it.
 
-`Warn` windows show a warning but allow checkout. `Lock` windows reject only
-new checkouts; an already-out student can always check back in. The current
-kiosk has no speaker, so selected alert sounds play on the desktop only.
+Leave Hallzee open and connected for live status. Completed trips sync
+automatically; **Sync Now** retrieves any missed records immediately.
+If Bluetooth disconnects, the terminal still records trips. Live information
+on your computer may be out of date until it reconnects and syncs.
 
-## If something does not work
+| What you want to do | Where to go |
+| --- | --- |
+| See who is out and for how long | Dashboard |
+| Keep pass status visible over other apps | **Mini Window** |
+| Find a previous trip or filter dates/students | **Trip History Log** |
+| Save a report | **Export** in the dashboard or history view |
+| Check in a student who forgot | **Check In** beside their active pass; reconnect first for a terminal pass |
+| Record a teacher-started pass | **Start Pass** on the dashboard; use its **Check In** button when the student returns |
+| Get these instructions | **Help** in the sidebar |
+| Look for a new app or terminal version | **Updates** in the sidebar |
 
-- Confirm the terminal is powered on and showing **AVAILABLE**.
-- Close other Bluetooth apps that may be connected to it.
-- Use **Scan Again**, then retry the connection.
-- If Windows asks for Bluetooth permission, allow the app to use Bluetooth.
-- If a valid terminal name produces `SETTINGS_ERROR,TERMINAL_NAME,INVALID_VALUE`,
-  update the terminal firmware and retry **Settings → Device → pencil → Save**.
-  Older firmware used an overlength storage namespace, preventing every name
-  save and incorrectly reporting a storage failure as an invalid name. The fix
-  does not require erasing the terminal or resetting its owner.
-- If reconnect reports that the terminal is **UNCLAIMED**, flash the current
-  terminal firmware and claim it again with the six-digit pairing key.
-- Do not factory-reset or send `OWNER_RESET` unless you are intentionally
-  reassigning the terminal; that is a developer/test recovery action.
+**Teacher-started passes** are saved immediately on this computer, including
+the original departure time, name/ID, period, destination, and purpose. They
+survive sync, disconnects, and restarting Hallzee. Switch back to the workspace
+where you started the pass to finish it. You can check it in while offline;
+Hallzee saves one completed history record even if you retry. A failed save
+leaves the pass available to retry.
 
-Windows is required for this ready-to-run packaged app and Windows-specific BLE
-behavior. Mac testing is sufficient for the shared app behavior and macOS BLE
-path, but the current Windows artifact has not been verified on macOS.
+A teacher-started pass does not reserve a slot on the physical terminal. If both
+have an active pass, the teacher-started pass stays in the main card and terminal
+passes appear alongside it. Each has its own **Check In** action, even when the
+student IDs match.
 
-## Add students and share workspace settings
+Reports contain student information. Save and share them using your school's
+approved practices. Your roster and trip history stay on this computer.
+**Export Workspace** shares rules and schedules only; it is not a backup of
+students, trip history, or pairing. Updating the app keeps its existing local
+data. Moving to another computer is a separate IT task.
 
-In **Classroom Roster & Students**, choose the teacher workspace, enter the
-student ID and name, optionally add grade and class/period, then click
-**Add Student**. Numeric IDs keep leading zeros. An existing ID is rejected
-without replacing that student's details. CSV import remains available.
+## Update the desktop app
 
-In **Policies & Bell Times**, choose **Export Workspace** and save the
-`.hallzee.json` file. Export saves the current workspace settings and includes
-pass rules, bell schedule templates, class sections, and date exceptions.
-It excludes student rosters, trip history, terminal claims, and credentials.
-The other teacher chooses **Import Workspace** and selects that file. Import
-creates and selects a separate workspace with new identifiers; existing
-workspaces are preserved. Use **Save Workspace Settings** while connected to
-apply the imported rules to that teacher's terminal.
+1. Select **Updates** (also available in **Settings → Device**).
+2. If a new desktop version is available, choose **Open desktop release** and
+   download the ZIP for your computer.
+3. Quit Hallzee. On Windows, extract into a new folder and open the new app.
+   On Mac, replace Hallzee in Applications. Open Hallzee and let it reconnect.
 
-For a terminal pass, desktop **Check In** asks the terminal to complete and
-record the trip. Recent Activity receives one terminal record even if the
-notification is replayed by a later sync. Reconnect before checking in a
-terminal pass while offline. Teacher-started passes are recorded locally.
-The fix prevents new duplicate records; it does not delete older history.
+The version in the top bar shows the app you are running. Checking for updates
+does not install a desktop update automatically. Checks are manual; Hallzee
+does not currently check on startup. If you are offline, continue using the
+installed app and check later.
+
+## Update the terminal firmware
+
+Firmware is the software running on the terminal by the door.
+[Latest firmware releases and USB setup downloads](https://github.com/dannysombrero/hallzee-mono/releases?q=firmware-v&expanded=true)
+are separate from desktop releases. Choose the newest numbered **Firmware**
+release and read its notes.
+
+For a terminal that supports Bluetooth updates:
+
+1. Connect to the terminal. In **Settings → Device**, select **Refresh version**.
+2. Check every student back in. Keep the terminal powered and the computer nearby.
+3. Select **Check for software updates**, then **Download & Install firmware**
+   when a compatible update is offered.
+4. Leave Hallzee open until it confirms **Update complete** after reconnecting.
+
+An update is designed to keep the terminal's name, pairing, settings, and trips.
+If the result is not confirmed, reconnect and refresh its version before trying
+again. A failed check does not mean you are up to date.
+
+For an offline update, download the `.hallzee-fw` asset on another computer,
+copy it over, then choose **Install firmware from file…**. Review the version
+and notes before selecting **Install update**. The app checks the package's
+signature and chooses the image matching your terminal.
+
+If the app says **One-time USB setup required**, ask the person who supplied
+your terminal or school IT to perform that setup. The firmware release includes
+Windows and Apple-silicon Mac USB bundles with their own README and backup
+instructions. This is a one-time preparation, not a normal teacher update.
+Do not erase or factory-reset the terminal to solve an update problem.
+
+## When something isn't working
+
+| Problem | Try this |
+| --- | --- |
+| Terminal isn't listed | Check power and Bluetooth, move closer, and choose **Scan Again**. |
+| Terminal belongs to another computer | Ask its current teacher/IT contact to release it. Pairing is not a data handoff. |
+| Connection dropped | Allow the reconnect countdown to finish, then use **Reconnect** or **Find Terminal**. |
+| History looks incomplete | Reconnect and select **Sync Now**. Check your history filters and selected workspace. |
+| A name is missing | Check that the exact student ID exists in the selected workspace's roster. |
+| Updates cannot be checked | Check your internet connection or try later. School networks may block GitHub downloads. |
+| A firmware button is unavailable | Connect, refresh its version, finish syncing, and check in all active passes. |
+
+Use **Disconnect & Unpair** only when intentionally releasing a terminal.
+It requires a connection and no active passes, and the next pairing needs a
+new code. It preserves trips and settings; school IT should handle reassignment
+between teachers so previous classroom records are not mixed with new ones.

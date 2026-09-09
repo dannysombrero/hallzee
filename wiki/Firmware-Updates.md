@@ -8,7 +8,7 @@ published by this implementation.
 ## Teacher workflow
 
 Perform the one-time USB setup with the existing root-relative flash script in
-[Installation and testing](Testing-and-Installation.md), or use a matching
+[Installation and testing](Testing-and-Installation), or use a matching
 prebuilt USB bundle from a firmware release. The bootstrap enables two larger
 firmware slots and migrates terminal files without erasing pairing or NVS. It
 checks the physical chip/flash size, reads the old flash twice to verify its
@@ -75,13 +75,48 @@ while a terminal version query is pending. An active firmware installation,
 download, or another update check temporarily disables it. Firmware compatibility
 and installation still require fresh information from the connected terminal.
 
-The regular USB flash scripts reuse installed Arduino/.NET tools, but still
-check dependencies, compile the firmware, read and verify a full flash backup,
-repack/verify LittleFS, and write/verify the USB installation on every run—even
-if that terminal already uses the OTA layout. There is currently no fast repeat
-USB path. First-time tool downloads are usually avoided on later runs; the build
-and backup/flash work remain. Use a local firmware package over Bluetooth to
-avoid repeating the USB bootstrap for an ordinary update.
+After the one-time USB setup, use **fast development USB** for repeat source
+flashes. From the repository root:
+
+```sh
+bash scripts/flash-terminal-macos.sh --fast --display ili9341
+```
+
+Windows equivalent:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/flash-terminal-windows.ps1 -Fast -Display ili9341
+```
+
+Omit the display option for ST7735. Keep your usual rotation option, omit touch for normal use, and
+supply a port if multiple serial devices are attached. Fast mode uses installed
+board support/libraries without refreshing package indexes or installing
+libraries; it still compiles current source. If dependencies are missing, run
+once without the fast flag (add `--compile-only` / `-CompileOnly` to install and
+build without touching hardware). First setup on a clean computer remains the
+regular bootstrap in [Installation and testing](Testing-and-Installation).
+
+Fast mode verifies that the installed bootloader and partition table match the
+build before any write. A blank, legacy, or mismatched terminal is rejected;
+run the regular USB setup in that case. It writes/verifies only app0, then
+writes/verifies the boot-selection metadata so the new build boots even after
+a Bluetooth update selected app1. Bootloader, partitions, NVS, and LittleFS are
+not written. It skips the two full-flash reads, backup, filesystem repacking,
+and filesystem upload. There is no measured hardware speedup yet; compilation
+and serial transfer still take time.
+
+This is a local testing workflow: it permits same-version builds and does not
+create a new recovery backup or provide the signed OTA installer's rollback
+and post-boot reconciliation. Check in active passes and sync important trips
+first. Keep power connected. If a write is interrupted, retry fast USB; do not
+assume the previous application will boot. A compatibility failure may leave
+the terminal in its USB bootloader; reset/power-cycle it to resume the old app.
+Use the regular scripts without the fast flag for initial setup/layout changes
+and signed Bluetooth packages for the normal teacher update flow.
+
+The boot-selection behavior follows Espressif's
+[OTA partition documentation](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/ota.html).
+
 
 ## Package format and compatibility
 
@@ -119,9 +154,11 @@ The header deliberately uses a bounded text format rather than the design's
 illustrative JSON manifest, keeping the terminal parser small and avoiding a
 new JSON dependency. CRC/checksum-only firmware is never accepted as a release.
 
-The optional [touch experiment](Touch-Test.md) is currently a USB source-build option,
-not a new signed-package variant. It retains the existing display/orientation
-identity. Installing an ordinary release replaces the experiment with non-touch
+The paused [touch experiment](touch-test.md) remains an explicit USB source-build
+option,
+not a new signed-package variant. Normal use returns to the keypad-only UI:
+omit `--touch-test` / `-TouchTest` when flashing from source. It retains the
+existing display/orientation identity. Installing an ordinary release replaces the experiment with non-touch
 firmware; it does not preserve the touch feature. Exit the calibration/typing
 screen before starting a Bluetooth update (otherwise it reports busy). The
 current touch wiring uses a separate bus on GPIO 16/17/19/4 and may remain
@@ -146,11 +183,14 @@ workflow; Intel Mac users can use the source workflow.
 Run **Build Firmware Release Packages** in GitHub Actions with a new version.
 It tests both desktop platforms, compiles all five firmware variants, checks
 128 KiB of remaining app-slot space, signs one package, and creates USB bundles.
-Initially leave **publish** unchecked: download private Actions artifacts for
-hardware testing. Once those tests pass, use **publish** to create the immutable
-`firmware-v<version>` release. An existing tag/release is not overwritten.
-The checker recognizes independent `client-v<version>` desktop releases; older
-moving `latest` client releases are not presented as versioned update results.
+Download its private Actions artifacts for hardware testing. Once those tests
+pass, run **Publish Tested Release**, select `firmware`, and enter that exact
+build run ID. It publishes to the configured public downloads repository using
+an immutable `firmware-v<version>` tag; no rebuild or asset replacement occurs.
+See [release setup and publication](Releasing) for the public destination,
+token, and teacher README. Desktop releases use independent `client-v<version>`
+tags; the same configured public feed is embedded in the desktop app. Terminals
+receive packages over Bluetooth and do not need a public URL themselves.
 
 Before running the release workflow, configure its protected `firmware-release`
 environment and `HALLZEE_FIRMWARE_SIGNING_KEY` secret. Restrict signing to reviewed
@@ -194,5 +234,5 @@ file selection, reboot reconnect, and retained Windows credential/bond state.
 Physical Windows OTA, Mac OTA, and USB migration behavior have not yet been
 verified. Cross-compilation and simulated migration are not hardware validation.
 
-See the [implementation design and acceptance matrix](Design-Bluetooth-Firmware-Updates.md)
+See the [implementation design and acceptance matrix](design/bluetooth-firmware-updates.md)
 for remaining physical release gates. No attached terminal is flashed by tests.

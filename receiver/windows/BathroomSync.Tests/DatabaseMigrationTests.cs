@@ -21,8 +21,8 @@ public sealed class DatabaseMigrationTests {
 
       // Verify tables exist
       using var cmd = connection.CreateCommand();
-      cmd.CommandText = "SELECT count(*) FROM sqlite_master WHERE type='table' AND name IN ('trips', 'profiles', 'roster_students', 'policy_rules', 'terminals', 'bell_schedules');";
-      Assert.Equal(6L, (long)(cmd.ExecuteScalar() ?? 0L));
+      cmd.CommandText = "SELECT count(*) FROM sqlite_master WHERE type='table' AND name IN ('trips', 'profiles', 'roster_students', 'policy_rules', 'terminals', 'bell_schedules', 'desktop_passes');";
+      Assert.Equal(7L, (long)(cmd.ExecuteScalar() ?? 0L));
 
       // Verify default profile and policy exist
       cmd.CommandText = "SELECT name FROM profiles WHERE profile_id = 'default';";

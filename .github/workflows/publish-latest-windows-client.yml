@@ -1,16 +1,10 @@
-name: Publish Latest Windows Sync App
+name: Legacy Windows Build (use Build Desktop Release Packages)
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - receiver/universal/**
-      - receiver/windows/**
-      - .github/workflows/publish-latest-windows-client.yml
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   publish:
@@ -31,14 +25,3 @@ jobs:
           name: BathroomSync-Windows-Latest
           path: BathroomSync-Windows.zip
           if-no-files-found: error
-      - name: Publish the latest download
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          $tag = "windows-client-latest"
-          gh release view $tag --repo $env:GITHUB_REPOSITORY 2>$null
-          if ($LASTEXITCODE -ne 0) {
-            gh release create $tag --repo $env:GITHUB_REPOSITORY --title "Latest Windows Sync App" --notes "Automatically built from the latest validated Windows client."
-          }
-          gh release upload $tag BathroomSync-Windows.zip --repo $env:GITHUB_REPOSITORY --clobber

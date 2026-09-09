@@ -4,9 +4,13 @@ using System.Text.Json;
 namespace BathroomSync.Core;
 
 public sealed record FirmwareRelease(string Version, Uri Download, Uri Page);
-public sealed record SoftwareUpdateCheck(IReadOnlyList<FirmwareRelease> Firmware, string DesktopStatus, Uri? DesktopDownload);
+public sealed record SoftwareUpdateCheck(IReadOnlyList<FirmwareRelease> Firmware, string DesktopStatus, Uri? DesktopDownload, bool DesktopUpdateAvailable = false);
 public sealed class FirmwareReleases(HttpClient http) {
-  public const string Repository = "dannysombrero/hallzee-mono";
+  public static string Repository { get; } = typeof(FirmwareReleases).Assembly
+    .GetCustomAttributes(typeof(System.Reflection.AssemblyMetadataAttribute), false)
+    .Cast<System.Reflection.AssemblyMetadataAttribute>().Single(a => a.Key == "ReleaseRepository").Value!;
+  public static Uri GuidePage => new($"https://github.com/{Repository}#readme");
+  public static Uri FirmwarePage => new($"https://github.com/{Repository}/releases?q=firmware-v&expanded=true");
   public async Task<SoftwareUpdateCheck> CheckAsync(CancellationToken token = default) {
     var firmware = new List<FirmwareRelease>(); string desktop = "No versioned desktop release found."; Uri? desktopUrl=null; Version? desktopVersion=null;
     // Bound pagination; never mistake a failed request for an empty successful result.
@@ -34,7 +38,8 @@ public sealed class FirmwareReleases(HttpClient http) {
       }
       if(json.RootElement.GetArrayLength()<100) break;
     }
-    return new(firmware.OrderByDescending(f=>FirmwareVersion.Parse(f.Version)).ToArray(),desktop,desktopUrl);
+    return new(firmware.OrderByDescending(f=>FirmwareVersion.Parse(f.Version)).ToArray(),desktop,desktopUrl,
+      desktopVersion != null && desktopVersion > FirmwareVersion.Parse(FirmwarePackage.ClientVersion));
   }
   public async Task<FirmwarePackage> DownloadAsync(FirmwareRelease release, CancellationToken token=default) {
     using var response=await http.GetAsync(TrustedUri(release.Download.AbsoluteUri),HttpCompletionOption.ResponseHeadersRead,token);

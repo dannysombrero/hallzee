@@ -8,6 +8,7 @@ cli="$cli_dir/bin/arduino-cli"
 esp32_index="https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json"
 esp32_version="3.3.11"
 compile_only=false
+fast=false
 port=""
 display="st7735"
 rotation="1"
@@ -15,6 +16,7 @@ touch_test=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --fast) fast=true ;;
     --touch-test) touch_test=true ;;
     --compile-only) compile_only=true ;;
     --display) display="${2:?--display requires st7735 or ili9341}"; shift ;;
@@ -73,7 +75,7 @@ Before continuing, make sure:
   • No other USB serial device is connected, unless you provide its port.
   • You are ready to replace the firmware currently on that ESP32.
 
-No Arduino software needs to be installed first; this script installs what it needs.
+Regular mode installs required Arduino software; fast mode reuses installed dependencies.
 REQUIREMENTS
 
 if [[ -z "$port" && "$compile_only" == false ]]; then
@@ -98,14 +100,18 @@ if [[ ! -x "$cli" ]]; then
   curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | BINDIR="$cli_dir/bin" sh
 fi
 
-echo "Installing the ESP32 board support and required libraries if needed…"
-"$cli" core update-index --additional-urls "$esp32_index"
-"$cli" core install "esp32:esp32@$esp32_version" --additional-urls "$esp32_index"
-"$cli" lib install "Adafruit GFX Library" "Adafruit ST7735 and ST7789 Library" "Adafruit ILI9341" Keypad
+if ! $fast; then
+  echo "Installing the ESP32 board support and required libraries if needed…"
+  "$cli" core update-index --additional-urls "$esp32_index"
+  "$cli" core install "esp32:esp32@$esp32_version" --additional-urls "$esp32_index"
+  "$cli" lib install "Adafruit GFX Library" "Adafruit ST7735 and ST7789 Library" "Adafruit ILI9341" Keypad
 
-if $touch_test; then "$cli" lib install "XPT2046_Touchscreen@1.4"; fi
+  if $touch_test; then "$cli" lib install "XPT2046_Touchscreen@1.4"; fi
+else
+  echo "Fast mode: using installed board support/libraries. If compilation reports missing tools, run once without --fast (optionally --compile-only)."
+fi
 
-echo "Building and flashing Hallzee to ${port}…"
+echo "Building Hallzee…"
 compile_args=(--fqbn esp32:esp32:esp32 "$staging_sketch" --build-path "$build_dir" --build-property upload.maximum_size=1572864)
 if [[ "$display" == "ili9341" ]]; then
   extra_flags="-DHALLZEE_ILI9341 -DHALLZEE_DISPLAY_ROTATION=$rotation"
@@ -117,7 +123,7 @@ if $compile_only; then
   echo "Compile-only check passed; the ESP32 was not changed."
   exit 0
 fi
-# The first OTA install moves LittleFS. Always use the verified migration path.
+# The first OTA install moves LittleFS; fast mode checks the installed layout.
 dotnet_cli="$(command -v dotnet || true)"
 if [[ -z "$dotnet_cli" ]] || ! "$dotnet_cli" --list-sdks | grep -q '^8\.'; then
   dotnet_cli="$tools_dir/dotnet/dotnet"
@@ -130,5 +136,10 @@ arduino_data="${ARDUINO_DIRECTORIES_DATA:-$HOME/Library/Arduino15}"
 esptool="$arduino_data/packages/esp32/tools/esptool_py/5.3.1/esptool"
 mklittlefs="$arduino_data/packages/esp32/tools/mklittlefs/4.0.2-db0513a/mklittlefs"
 cp "$arduino_data/packages/esp32/hardware/esp32/$esp32_version/tools/partitions/boot_app0.bin" "$build_dir/boot_app0.bin"
-"$dotnet_cli" run --project "$project_root/tools/FirmwareTool/FirmwareTool.csproj" -- usb \
-  --esptool "$esptool" --mklittlefs "$mklittlefs" --port "$port" --build "$build_dir" --backup "$tools_dir/terminal-backups"
+if $fast; then
+  "$dotnet_cli" run --project "$project_root/tools/FirmwareTool/FirmwareTool.csproj" -- usb-fast \
+    --esptool "$esptool" --port "$port" --build "$build_dir"
+else
+  "$dotnet_cli" run --project "$project_root/tools/FirmwareTool/FirmwareTool.csproj" -- usb \
+    --esptool "$esptool" --mklittlefs "$mklittlefs" --port "$port" --build "$build_dir" --backup "$tools_dir/terminal-backups"
+fi

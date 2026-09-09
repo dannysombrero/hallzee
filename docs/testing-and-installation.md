@@ -1,7 +1,67 @@
 # Installation and testing guide
 
+## Teacher-started pass persistence
+
+Updating the app automatically adds schema 7 to the existing database; no reset
+or firmware update is needed. New teacher passes are saved before the timer
+appears. Terminal sync cannot replace them; restart and workspace switching
+restore the original details. Check-in atomically closes the pass and writes
+one history record. Completed desktop passes stay in their original workspace.
+Previously lost passes cannot be recovered by this migration.
+
+A Mac is sufficient for this shared UI/database fix and its automated tests;
+a Windows PC is not required to validate its persistence logic. No
+Windows-specific Bluetooth capability changed. Windows execution has not been
+reverified for this fix; the wider release still needs its Windows BLE checks.
+
+For a manual check, start a teacher pass, sync, restart the app, switch workspaces
+and back, then check it in offline. Confirm the original details and one history
+record. If a terminal pass has the same ID, check each pass in separately.
+
+
 This guide explains which checks can be done on a Mac and which require a
 Windows PC.
+
+## Desktop app icon
+
+The shared desktop client uses the Hallzee mark in the macOS Dock and Windows
+taskbar, including the Mini Window. Windows builds embed `Assets/hallzee.ico`
+in the executable; Mac packages include `Assets/hallzee.icns` in the app bundle.
+Mac launches from `dotnet run` also set the Dock icon at startup. Rebuild/reopen
+the app to pick up the change; existing downloaded packages are unchanged.
+
+The icon exports are checked in, so normal builds need no extra tools. To
+regenerate them after replacing `receiver/universal/Assets/hallzee-logo.png`,
+run `swift scripts/generate-client-icons.swift` on a Mac from the repository
+root. On a clean Mac, first run `xcode-select --install` and finish Apple's
+command-line tools installer. The exporter preserves transparency and aspect
+ratio and includes small and Retina sizes.
+
+The Release build and a native Mac icon-loading smoke check passed; Avalonia
+also decoded the Windows ICO successfully. A Mac is sufficient to check the
+Dock icon for both a packaged `.app` and an IDE launch. A Windows PC is required to verify the executable/shortcut icon in
+Explorer and the taskbar icon with the main window and Mini Window open,
+including a pinned shortcut after relaunch. Windows icon behavior has not yet
+been verified on a Windows PC.
+
+## Mac Bluetooth helper startup crash
+
+A crash report naming `BathroomSync.MacBLEAgent` with `CODESIGNING, Code 2,
+Invalid Page` means macOS rejected executable code before the helper started.
+The September 9 review package had invalid signatures on the helper's native
+runtime libraries in `Contents/MonoBundle`, even though whole-app verification
+passed. This is a desktop packaging issue; reflashing the terminal does not
+repair it. Quit the old Hallzee copy and use a newly built package in a fresh
+folder rather than merging files into the old `.app`.
+
+The Mac packaging script now signs native libraries before the helper and outer
+app, verifies every library separately, and launches the helper without arguments
+on a matching host architecture. That startup check exits before Bluetooth use.
+The [release workflow](releasing.md) installs the tools and runs these checks.
+A Mac is sufficient to verify this fix; no Windows PC or Windows-specific
+capability is involved. Windows behavior has not been reverified for this change.
+Physical Bluetooth connection and clean-machine installation remain separate
+release checks.
 
 ## Bluetooth firmware updates
 
@@ -12,9 +72,32 @@ migrating existing LittleFS files to the larger app-slot layout. Keep the privat
 backup and do not bypass this migration with a normal Arduino upload.
 
 Local signed firmware packages need no GitHub repository. Public releases are
-required only for online discovery/download. Repeat USB runs reuse installed
-tools but still compile, back up, migrate, and verify; there is no fast repeat
-USB path. See the firmware guide for both workflows and update-feed errors.
+required only for online discovery/download. After the one-time USB setup,
+repeat development flashes can skip the full backup/filesystem migration:
+
+```sh
+bash scripts/flash-terminal-macos.sh --fast --display ili9341
+```
+
+Windows: `powershell -ExecutionPolicy Bypass -File scripts/flash-terminal-windows.ps1 -Fast -Display ili9341`.
+Omit the display option for ST7735; retain your rotation option; omit the touch option for normal use. Fast mode
+still compiles source, requires installed dependencies and a matching device
+bootloader/layout, and makes no new backup. See the firmware guide for recovery
+limits and the regular first-time setup instructions below.
+
+A Mac is sufficient for simulated fast-USB write/failure tests; these and the
+existing migration/recovery tests passed on Mac. The **Validate Firmware and BLE
+Protocol** GitHub Actions workflow installs its test tools and runs the fast-USB
+simulator automatically, without a terminal attached. On a physical ESP32, verify a repeat
+flash both immediately after setup and after a Bluetooth update to app1, then
+check boot, pairing, settings, and trips. A Mac can check these firmware behaviors.
+A Windows PC is required to validate PowerShell `-Fast` forwarding, COM-port
+selection, and the bundled Windows esptool execution. Physical fast USB and
+Windows behavior have not yet been verified.
+
+For terminals moving between teachers, see the proposed
+[reassignment and record provenance design](design/terminal-reassignment.md).
+Owner reset currently preserves trips; it is not a classroom-data handoff.
 
 A Mac is sufficient for the update-check button and unavailable-public-feed
 regression tests; a Windows PC is not required for these shared client checks.
@@ -342,26 +425,19 @@ The script downloads the .NET 8 build tools, then creates the Windows app in
 the project’s `artifacts\BathroomSync-Windows` folder. Open that
 folder and run `HallzeeSync.Universal.exe`.
 
-### Download the latest ready-to-run Windows app
+### Download or publish a desktop app
 
-The latest ready-to-run Windows build is published as an artifact by the
-**Build Universal Sync Client** GitHub Action:
+For teachers, use [the teacher guide](getting-started-users.md). For maintainers,
+[Build, test, and publish Hallzee](releasing.md) covers one-click Actions builds
+of Windows x64 and Mac Apple-silicon/Intel packages, followed by publishing the
+exact tested artifacts to a public downloads repository. Actions installs all
+build prerequisites. The Mac ZIP includes its Bluetooth helper.
 
-1. Open the repository’s **Actions** tab and choose **Build Universal Sync
-   Client**.
-2. Open the latest successful run, or choose **Run workflow** and wait for it
-   to finish.
-3. Download the `HallzeeSync-Universal-Windows` artifact.
-4. Extract the entire ZIP to a normal folder, then run
-   `HallzeeSync.Universal.exe`.
-
-No .NET installation or local build is needed. The artifact is a self-contained
-Windows x64 app. The workflow validates a macOS build but does not currently
-publish a ready-to-run Mac package. See [Getting started: normal users](getting-started-users.md)
-for the user-facing pairing and operation steps.
-
-> The Windows build and physical Bluetooth sync require a Windows PC. The Mac
-> command flashes the terminal, but does not verify Windows Bluetooth discovery.
+Mac testing is sufficient for shared UI and update-feed logic. A Windows PC is
+required for Windows ZIP launch, WinRT pairing/reconnect, native file dialogs,
+and BLE firmware transfer. Those Windows behaviors have not yet been verified.
+Clean-machine Mac installation and physical OTA on both platforms also remain
+release checks; see the [v1.0 review](release-readiness.md).
 
 ## Choose the right way to check a change
 
@@ -497,31 +573,32 @@ FreeSans bitmap fonts rather than the built-in block font.
 For keypad and display-flow checks, open `display-emulator.html` in a browser
 or use the Wokwi setup described in [WOKWI.md](../WOKWI.md).
 
-### Optional 2.8-inch touchscreen test
+### Restore the standard UI after touch testing
 
-For the ILI9341 module with `T_CLK`, `T_CS`, `T_DIN`, `T_DO`, and `T_IRQ` pins,
-see [touch wiring, calibration, and typing tests](touch-test.md). Use direct touch jumpers to GPIO
-16 (`T_CLK`), 17 (`T_DIN`), 19 (`T_DO`), and 4 (`T_CS`) on the ESP-WROOM-32;
-no breadboard or splitter is needed. Keep display wiring on 18/23. After wiring
-with USB disconnected, run from the project root:
+Touch is paused: the September 9, 2026 hardware test found accurate Clear/Submit
+input but excessive pressure for comfortable finger use. Use the original
+keypad-only UI on both touch and non-touch displays, with plain `* CLEAR` and
+`# SUBMIT` instructions rather than button outlines. From the project root:
 
 ```sh
-bash scripts/flash-terminal-macos.sh --display ili9341 --touch-test
+bash scripts/flash-terminal-macos.sh --display ili9341
 ```
 
 Windows equivalent:
-`powershell -ExecutionPolicy Bypass -File scripts/flash-terminal-windows.ps1 -Display ili9341 -TouchTest`.
-Both scripts install the extra XPT2046 library automatically; append
-`--compile-only` / `-CompileOnly` to build without flashing. Only landscape
-rotations 1 and 3 support this experiment. Set the clock with the physical
-keypad or desktop first; calibration then opens when there is no active pass.
-Physical `*` exits calibration or the typing sandbox.
+`powershell -ExecutionPolicy Bypass -File scripts/flash-terminal-windows.ps1 -Display ili9341`.
+Keep your existing rotation option, but **omit `--touch-test` / `-TouchTest`**.
+This restores the normal screen without touch input, the calibration prompt,
+or the typing sandbox. The four separate touch wires may stay connected.
+The normal bootstrap backs up and verifies terminal data during installation.
 
-A Mac plus the physical ESP32/display is sufficient to test touch. No Windows
-PC is required for touch, and no Windows-specific touch capability is involved.
-Windows execution of the new `-TouchTest` bootstrap option has not been verified;
-a Windows PC is required to verify that PowerShell installation/flash path.
-Physical touch sensitivity and alignment remain unverified.
+See the [paused experiment and calibration notes](touch-test.md) for future work.
+The experimental calibration currently lives in RAM; persistent per-device
+calibration could avoid repeating it, but has not been implemented.
+
+A Mac plus the physical ESP32 is sufficient to check the restored UI and keypad.
+No Windows PC is required for that check, and no Windows-specific capability
+changes. Windows flashing and UI behavior have not been reverified for this
+return to the standard UI; verifying the PowerShell USB path requires Windows.
 
 ## Windows / Mac Bluetooth verification
 
@@ -651,8 +728,11 @@ runners satisfy the required runner version automatically.
 | Workflow | Triggers | Platform / Steps | Purpose |
 | :--- | :--- | :--- | :--- |
 | **Validate Firmware and BLE Protocol** (`validate-firmware.yml`) | `pull_request`, `push` (paths: `*.ino`, `*.cpp`, `*.h`, `test/**`), `workflow_dispatch` | macOS (native unit tests & coverage) + Ubuntu (ESP32 Arduino compilation) | Validates firmware builds and BLE protocol tests automatically on changes. |
-| **Build Universal Sync Client** (`build-universal-client.yml`) | `pull_request`, `push` (paths: `receiver/**`), `workflow_dispatch` | macOS & Windows (runs .NET 8 unit tests, builds universal client, uploads Windows artifact) | Ensures cross-platform client builds and test suites pass on both operating systems. |
-| **Publish Latest Windows Sync App** (`publish-latest-windows-client.yml`) | `push` on `main` (paths: `receiver/universal/**`, `receiver/windows/**`), `workflow_dispatch` | Windows (tests, publishes, packages, and releases the Universal v2 executable) | Automatically releases the current passkey-capable Windows client for easy contributor download. |
+| **Build Universal Sync Client** (`build-universal-client.yml`) | `pull_request` (client/core paths), `workflow_dispatch` | macOS & Windows (runs .NET 8 unit tests, builds universal client, uploads Windows artifact) | Ensures cross-platform client builds and test suites pass on both operating systems. |
+| **Build Desktop Release Packages** (`release-client.yml`) | `workflow_dispatch` | Windows x64, Mac ARM64/x64; tests and self-contained packages | Builds versioned private artifacts for acceptance testing. |
+| **Build Firmware Release Packages** (`release-firmware.yml`) | `workflow_dispatch` | Signed firmware and Windows/Mac USB bundles | Builds private firmware artifacts for hardware testing. |
+| **Publish Tested Release** (`publish-release.yml`) | `workflow_dispatch` | Ubuntu; successful build run ID | Publishes the exact tested files and teacher guide to the configured public repository. |
+| **Legacy Windows Build** (`publish-latest-windows-client.yml`) | `workflow_dispatch` | Windows tests and ZIP | Legacy artifact only; no automatic public release. |
 | **Build Windows Sync App** (`build-windows-sync.yml`) | `workflow_dispatch` | Windows (.NET 8 core/Universal tests and artifact generation) | Produces an on-demand Universal v2 Windows artifact. |
 | **Regenerate Preview Lockfile & Tests** (`regenerate-lock-and-test.yml`) | `push` on `refactor/react-client-shell`, `workflow_dispatch` | Ubuntu (Node.js 22 install, lint, and test) | Keeps the web preview prototype dependencies locked and tested. |
 

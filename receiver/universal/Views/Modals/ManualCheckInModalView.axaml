@@ -12,7 +12,7 @@
         <Grid ColumnDefinitions="*,Auto">
           <StackPanel Spacing="2">
             <TextBlock Text="Teacher-Started Pass" FontSize="20" FontWeight="Bold" Foreground="#0F172A" />
-            <TextBlock Text="Assign an active hall pass while a pass is available." FontSize="13" Foreground="#64748B" />
+            <TextBlock Text="This pass is saved on this computer and resumes after a restart. It does not reserve a terminal slot." TextWrapping="Wrap" FontSize="13" Foreground="#64748B" />
           </StackPanel>
           <Button Grid.Column="1" Classes="secondary" Content="✕" Click="OnCancelClick" Width="36" Height="36" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
         </Grid>

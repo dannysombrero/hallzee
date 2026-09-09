@@ -37,6 +37,8 @@ public sealed partial class MainViewModel {
   public bool CanCheckUpdates => !firmwareInstalling && !firmwareChecking;
   public bool CanDownloadFirmware => CanUnpairDevice && firmwareRelease!=null && firmwareInfoVerifiedId==DeviceUniqueId && !firmwareChecking;
   public bool HasDesktopRelease => desktopRelease!=null;
+  public string ClientVersionDisplay => $"v{FirmwarePackage.ClientVersion}";
+  public bool DesktopUpdateAvailable { get; private set; }
   public string FirmwarePackageSummary => firmwarePackage==null ? "" : $"{ConnectedTerminalName} ({firmwareTargetId})\nInstall {firmwarePackage.Version} ({firmwarePackage.Build})\n{firmwarePackage.ReleaseNotes}";
   void InitializeFirmware() {
     try { foreach(var item in JsonSerializer.Deserialize<Dictionary<string,FirmwareInfo>>(File.ReadAllText(FirmwareCachePath)) ?? []) firmwareCache[item.Key]=item.Value; } catch { }
@@ -121,6 +123,7 @@ public sealed partial class MainViewModel {
     firmwareChecking=true; firmwareRelease=null; desktopRelease=null; NotifyFirmwareState(); SoftwareUpdateStatus="Checking GitHub releases…";
     try {
       var service=new FirmwareReleases(firmwareHttp); var check=await service.CheckAsync(); desktopRelease=check.DesktopDownload;
+      DesktopUpdateAvailable=check.DesktopUpdateAvailable; OnPropertyChanged(nameof(DesktopUpdateAvailable));
       string firmwareResult=IsConnected ? "No compatible newer firmware found." : "Connect a terminal to check firmware compatibility.";
       if(IsConnected && firmwareInfoVerifiedId==DeviceUniqueId && KnownFirmware is {} info) {
         foreach(var release in check.Firmware.Where(r=>FirmwareVersion.Parse(r.Version)>FirmwareVersion.Parse(info.Version)).Take(10)) {
@@ -145,5 +148,11 @@ public sealed partial class MainViewModel {
     finally { firmwareChecking=false; NotifyFirmwareState(); }
     if(firmwarePackage!=null) await InstallFirmwareAsync();
   }
-  public void OpenDesktopRelease() { if(desktopRelease!=null) Process.Start(new ProcessStartInfo(desktopRelease.AbsoluteUri) { UseShellExecute=true }); }
+  public void OpenDesktopRelease() { if(desktopRelease!=null) OpenPublicPage(desktopRelease); }
+  public void OpenTeacherGuide() => OpenPublicPage(FirmwareReleases.GuidePage);
+  public void OpenFirmwareReleases() => OpenPublicPage(FirmwareReleases.FirmwarePage);
+  void OpenPublicPage(Uri page) {
+    try { Process.Start(new ProcessStartInfo(page.AbsoluteUri) { UseShellExecute=true }); }
+    catch { SoftwareUpdateStatus=$"Could not open your browser. Visit {page}"; }
+  }
 }

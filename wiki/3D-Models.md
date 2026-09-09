@@ -2,11 +2,9 @@
 
 The repository's canonical 3D-model folder is:
 
-[Browse Hallzee 3D models](https://github.com/dannysombrero/hallzee-mono/tree/main/models/3d)
+[Browse Hallzee 3D models](https://github.com/dannysombrero/hallzee-mono/tree/main/models)
 
-Use it for enclosure, mounting, and other fabrication files. The folder's
-README describes the preferred CAD/print formats and documentation to include
-with each model.
+Use it for enclosure, mounting, and other fabrication files. 3D models and fabrication assets in `models/` are licensed under [Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)](License).
 
-No production model is currently included. This page is the starting point for
-the model library as hardware designs are added.
+Production `.3mf` models for 2.8" terminals and historical 1.8" profiles are available in the repository.
+

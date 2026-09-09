@@ -46,6 +46,12 @@ paths and uses separate stable Windows/Mac snapshot identifiers. No client
 build, release signing, or firmware installation is involved.
 Portable transfer artifacts stay in the runner's temporary directory, outside
 the detector's source tree; only activated graphs can become submitted manifests.
+All listed platform projects are restored. The detector emits manifests for
+projects declaring NuGet packages or package downloads; a project using only
+project references is represented by its referenced projects' manifests. Validation
+checks every emitted path and requires every restored NuGet package name/version
+to appear in the combined platform graph, so that distinction cannot hide a
+missing transitive dependency.
 
 Relevant PRs exercise both restores and run a checksum-pinned official detector
 against the transferred graphs. They verify every resulting manifest path with

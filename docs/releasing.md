@@ -14,12 +14,14 @@ Use GitHub's web interface; no local Git, .NET, or Arduino installation is neede
    material. Rotate anything that was ever committed before making it public.
 2. Original software uses AGPL-3.0-or-later in `LICENSE`; models use CC BY-SA 4.0
    in `models/LICENSE`. See [license](license.md), `COPYRIGHT`, `CONTRIBUTING.md`,
-   and `SECURITY.md`. Complete the outstanding native third-party notice review.
+   and `SECURITY.md`. Follow [release licensing](release-licensing.md) for the
+   exact dependency inventory and source bundles shipped with each release.
 3. The workflows default `HALLZEE_RELEASE_REPOSITORY` to this repository, so no
    repository variable or `HALLZEE_PUBLIC_RELEASE_TOKEN` is needed. The publish
    workflow uses GitHub's built-in token with Actions read and Contents write
    permissions. Keep the existing `firmware-release` environment secret for the
-   private firmware signing key.
+   private firmware signing key. Its deployment rule permits branch `main`
+   only, with no tags. See [CI and security](ci-and-security.md).
 
 For firmware, also configure the existing `firmware-release` environment and
 `HALLZEE_FIRMWARE_SIGNING_KEY`; see [firmware updates](firmware-updates.md).
@@ -32,7 +34,7 @@ Actions logs and build artifacts in a public repository are not private staging.
 Use only synthetic classroom data in builds and artifacts.
 
 Run **Build Desktop Release Packages** or **Build Firmware Release Packages**
-from the reviewed branch with a new `major.minor.patch` version (for example,
+from the protected default branch (`main`) with a new `major.minor.patch` version (for example,
 `1.0.0`). Both builds also accept `v1.0.0`, `1.0`, and `v1.0`, trimming
 surrounding whitespace and normalizing these to `1.0.0` before building. One
 preflight job validates the version and destination; all platform builds and
@@ -74,12 +76,23 @@ The old moving Windows workflow is now a manual legacy build only.
 
 ## Publish the tested files
 
-Run **Publish Tested Release**, select `client` or `firmware`, and enter the
-successful build run ID. It validates the run and expected asset set, refuses
+Run **Publish Tested Release** from the default branch, select `client` or
+`firmware`, and enter the successful build run ID. It validates the run's
+repository, default branch, tested source commit and expected asset set, refuses
 private destinations and existing version tags, uploads a draft, then publishes
 that draft. It attaches the tested guide and SHA-256 checksums. It targets the
 tested source commit and links its source archive. README changes go through
 normal source review; publication does not overwrite the repository README.
+
+Firmware publication also requires the exact firmware/USB third-party source
+archives, `Hallzee-Firmware-Licenses.zip`, and separate Python-source companions
+for Windows and Mac USB tools. It checks archive hashes and matches each
+standalone esptool binary to its source manifest. These source downloads sit
+beside the USB ZIPs; teachers still extract only their platform's USB ZIP.
+
+After history cleanup, merge the prepared fixes and build again. Publication
+rejects a tested commit that is no longer an ancestor of the default branch;
+this keeps the source download links valid. Do not reuse pre-cleanup packages.
 
 The release is created in this same repository. On a partial failure, inspect the
 draft release and workflow log; do not bypass version checks or replace public

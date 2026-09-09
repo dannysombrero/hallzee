@@ -104,7 +104,11 @@ if ! $fast; then
   echo "Installing the ESP32 board support and required libraries if needed…"
   "$cli" core update-index --additional-urls "$esp32_index"
   "$cli" core install "esp32:esp32@$esp32_version" --additional-urls "$esp32_index"
-  "$cli" lib install "Adafruit GFX Library" "Adafruit ST7735 and ST7789 Library" "Adafruit ILI9341" Keypad
+  libraries=()
+  while IFS= read -r library; do
+    [[ -z "$library" || "$library" == \#* ]] || libraries+=("$library")
+  done < "$project_root/firmware/arduino-libraries.txt"
+  "$cli" lib install --no-deps "${libraries[@]}"
 
   if $touch_test; then "$cli" lib install "XPT2046_Touchscreen@1.4"; fi
 else

@@ -1,0 +1,13 @@
+{
+  "ecosystem": "nuget",
+  "name": "xunit.runner.visualstudio",
+  "version": "2.8.2",
+  "license": "Apache-2.0",
+  "source": "https://www.nuget.org/packages/xunit.runner.visualstudio/2.8.2",
+  "authors": "jnewkirk,bradwilson",
+  "license_type": "expression",
+  "license_url": "https://licenses.nuget.org/Apache-2.0",
+  "copyright": "Copyright (C) .NET Foundation",
+  "repository": "https://github.com/xunit/visualstudio.xunit",
+  "repository_commit": "699d445a1aab46a014bce946edc4995b6b46accf"
+}

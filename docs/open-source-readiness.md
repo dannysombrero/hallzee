@@ -1,132 +1,125 @@
 # Open source readiness — September 9, 2026
 
-Hallzee is the project name; Hallzee Labs is the copyright holder for original
-Hallzee work. The remote is still `dannysombrero/hallzee-mono`; this pass does
-not rename the GitHub repository.
+Hallzee is the project name; Hallzee Labs holds the copyright in original
+Hallzee work. `dannysombrero/hallzee-mono` is still private. Implementation is
+isolated on `codex/launch-readiness`, preserving concurrent website image edits
+in the original checkout. This pass does not rename the repository.
 
-## History review and sanitation
+## Dependency fixes
 
-Fetched all configured remote branches/tags. The checkout is not shallow.
-The first audit covered 232 reachable commits; the subsequent local commit
-`a9a3508` brings the sanitation snapshot to 233. Gitleaks 8.30.1 scanned
-all-branch history with redacted output. Its two findings were historical test
-pairing-passkey literals in fake protocol/connection tests, not production
-credentials. No production private key or credential was confirmed by that scan.
-A scanner result is not a proof that all sensitive content is absent.
-
-Deleted files still existed in history: `receiver/bathroom_trips.csv` (three
-data rows), hosting project metadata, a developer machine identifier, and local
-tool/test artifacts. Their contents are intentionally not copied into this report.
-
-A separate sanitized mirror is prepared at
-`.tools/security-audit/reviewed-history.git`. Its commit map is under
-`filter-repo/commit-map`. It removes the historical CSV, hosting metadata,
-`Library/`, `.local/`, `TestResults/`, and `.DS_Store` paths. The targeted
-paths are absent from its reachable history; the same two test fixtures remain.
-The source checkout, its refs, and GitHub history have not been rewritten.
-
-This mirror contains the committed snapshot through `a9a3508`, not the
-uncommitted work prepared afterward. Before replacing remote history, finish
-the pending commit, fetch again, regenerate the sanitized mirror from that
-final state, and compare each branch/tag against its old SHA. Coordinate a
-force-with-lease push of the explicitly reviewed branch/tag refs. Do not use
-`git push --mirror`: local remote-tracking/internal refs are not publication
-targets. Old clones must be replaced or carefully rebased to avoid restoring
-removed history. GitHub caches, pull-request refs, forks, Actions logs/artifacts,
-and already downloaded copies require separate review; a Git rewrite does not
-erase those. Keep the original local copy as a private recovery backup.
-
-## Dependency findings
-
-The session could not read the private GitHub Dependabot dashboard: no browser
-was available, and the installed GitHub connector exposes no alert endpoint.
-These are independent registry audits, not an export of the dashboard.
-
-| Scope | Current result |
+| Scope | Result |
 | --- | --- |
-| npm committed lockfile | 22 affected packages: 13 high, 8 moderate, 1 low, 0 critical |
-| Restored desktop NuGet graph on Mac | High alert for SQLitePCLRaw.lib.e_sqlite3 2.1.6 |
-| GitHub-only alert state and Windows-specific restored graph | Not verified |
+| Website npm audit | Zero full/production findings, previously 22 affected packages |
+| Desktop/tool NuGet graphs | Zero reported vulnerable packages after native SQLite replacement |
+| USB Python build graph | Zero OSV findings across 26 pinned packages after updating cryptography |
+| Authenticated GitHub dashboard | 42 open, 0 closed: 25 high, 13 moderate, 4 low; all in the old website lockfile |
 
-Npm affected packages: @babel/core, @cloudflare/vite-plugin,
-@esbuild-kit/core-utils, @esbuild-kit/esm-loader, baseline-browser-mapping,
-browserslist, drizzle-kit, esbuild, fast-uri, fflate, image-size, js-yaml,
-miniflare, nanoid, postcss, react-server-dom-webpack, sharp, undici, vinext,
-vite, wrangler, and ws. Several entries share a transitive advisory; 22 packages
-does not mean 22 independent remotely exploitable defects.
+GitHub counts individual advisories differently from npm's affected-package
+summary. Alerts remain until the new lockfile reaches the default branch and
+GitHub rescans. No alerts were dismissed.
 
-Prioritize the React server-component and vinext/runtime dependency paths,
-then Cloudflare/Vite and shared transitive packages. The audit proposes
-vinext beta.9, React server components 19.3.0, Vite 8.2.2, and Cloudflare plugin
-1.54.6 as candidate updates. They require compatibility review, especially
-keeping React packages aligned. Do not run `npm audit fix --force`: its
-Drizzle suggestion is a downgrade to 0.18.1, not a routine safe update.
+React/DOM/server components are aligned at 19.2.8; vinext, Vite, Cloudflare and
+affected transitives are updated. Scoped overrides fix Drizzle's obsolete
+esbuild loader and Miniflare's pinned Sharp dependency. Fresh installation,
+production rendering, six website tests, lint and full TypeScript checking pass
+on Node 22. CLI commands no longer depend on POSIX environment assignments.
+See [website dependencies](dependency-updates-web.md).
 
-The [SQLite advisory](https://github.com/advisories/GHSA-2m69-gcr7-jv3q)
-lists no patched version of that package line. Moving to a maintained native
-SQLite distribution needs a deliberate package migration and verification;
-merely bumping Microsoft.Data.Sqlite may leave the vulnerable native library.
-Dependencies were audited, not upgraded or dismissed, in this pass.
+The database uses Microsoft.Data.Sqlite.Core 8.0.30, SQLitePCLRaw configuration
+3.0.5 and SQLite 3.53.4. All 108 core and 86 desktop tests passed on Apple Silicon
+and under Intel/Rosetta. Three desktop runtime publishes, two USB-tool publishes,
+and simulated USB checks pass. A deliberately vulnerable temporary graph proved
+CI rejects transitive advisory warnings. See [desktop dependencies](dependency-updates-desktop.md).
 
-## Dependency automation and security reporting
+## GitHub settings verified
 
-`.github/dependabot.yml` covers weekly GitHub Actions, preview-site npm, and
-all seven NuGet project directories, with limited PR queues and related
-React/Cloudflare/Avalonia groups. Arduino CLI libraries are outside these
-ecosystems and still need manual version review. Version-update scheduling does
-not itself enable security-update PRs or clear existing alerts.
+- Main requires PRs, an up-to-date branch, resolved conversations, and
+  **Repository hygiene**. Approvals are off for one maintainer. Force pushes and
+  deletion are blocked; administrator bypass remains available for maintenance.
+- Dependency graph/submission, Dependabot alerts/security updates, malware
+  alerts, and grouped security updates are enabled.
+- Workflow tokens default to read-only. Actions creating/approving PRs and
+  private-fork workflow execution are off. No self-hosted runners are configured.
+- The `firmware-release` environment now permits **branch `main` only, zero
+  tags**. Its signing secret is present; its contents were not read or changed.
+- Security policy is enabled. Private reporting and further secret-protection
+  controls are unavailable in this personal/private configuration. Enable the
+  available controls after making the repository public, then verify the
+  reporting link in `SECURITY.md`.
 
-`SECURITY.md` defines support for current development and the latest stable
-desktop/firmware releases, private reporting, and best-effort acknowledgment
-within seven days/status within fourteen days. Enable private vulnerability
-reporting in repository settings; this session has not verified that switch.
-The GitHub reporting link replaces the earlier unusable “private message the
-owner on GitHub” fallback.
+The new unfiltered **PR readiness** check combines desktop tests, complete Mac
+packaging, firmware checks, website checks, dependency audits and redacted
+history scanning. Require it after its first successful GitHub run. Existing
+check names are preserved. The manual dependency-update workflow provides a
+patch instead of pushing to a hardcoded branch. See [CI and security](ci-and-security.md).
 
-## Suggested main-branch rules
+## History sanitation
 
-- Require a pull request and resolution of review conversations.
-- Block force pushes and deletion during normal work.
-- While there is only one active maintainer, require zero approvals so the
-  author is not locked out. With a second maintainer, require one approval and
-  dismiss stale approvals when new commits arrive.
-- Require the always-running **Repository hygiene** check after its first
-  successful Actions run. Existing firmware/desktop workflows use path filters;
-  requiring them globally can leave unrelated PRs waiting forever. Add a stable
-  aggregate check before making platform-specific jobs universally required.
-- Permit squash merges; linear history is optional. Do not require deployments,
-  signed commits, or a merge queue for this initial small-maintainer workflow.
-- Restrict `firmware-release` secrets to the reviewed release branch. Require
-  approval for outside-contributor Actions runs and keep PR workflows read-only.
-- Protect published `client-v*` and `firmware-v*` tags against modification or
-  deletion once any planned history cleanup is complete.
+The audit at `a3cf1c2` covers 234 reachable commits across local and fetched
+remote refs. Gitleaks found two historical synthetic protocol keys; the new
+configuration exempts only that exact value in those two tests. The configured
+scan is clear. A temporary Git fixture proved the same value in application
+code still triggers detection. No production private key or credential was
+confirmed by this scan.
 
-These are recommendations; no remote rules or settings were changed.
-GitHub reference: [protected branches](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches).
+Historical removals are `receiver/bathroom_trips.csv`, local hosting metadata,
+a machine identifier under `Library/`, `.local/`, `TestResults/`, and
+`.DS_Store`. Their contents are omitted here. The firmware partition CSV and
+official public verification key must remain intact.
 
-## Licensing and release corrections
+A private sanitized review mirror and recovery bundle are prepared separately.
+Refresh them after the implementation and image commits are saved. Coordinate a
+short pause, fetch again, compare every published branch/tag with its old SHA,
+and push only explicit reviewed refs with leases. Never `git push --mirror`.
+Original refs and published history have not been rewritten by this pass.
 
-`COPYRIGHT` explicitly names Hallzee Labs and preserves AGPL-3.0-or-later for
-original code. Models use CC BY-SA 4.0; full official license texts are included.
-Commercial use remains permitted under those terms. Third-party fonts/code
-retain their own rights. The licensing page no longer claims every private
-modification must be publicly released or that AGPL bans commercial products.
+Replace or carefully rebase old clones afterward. GitHub PR refs, caches, forks,
+old Actions logs/artifacts, and downloaded copies require separate review;
+rewriting Git does not erase them. Keep the recovery bundle private and rebuild
+release artifacts after sanitation so their source links use the final history.
 
-`THIRD-PARTY-NOTICES.md`, the generated 843-package npm/NuGet inventory, DM Sans
-OFL notice, and available NuGet notices are included. Desktop and USB-tool
-outputs copy these notices. Arduino/ESP-IDF component-level source and license
-obligations still need completion; the inventory is not a compliance certificate.
+## Licensing and packaging
 
-Publication now targets the tested commit and links its corresponding source.
-It attaches the teacher guide without overwriting the repository README, so
-publication no longer needs to bypass main-branch protection. A duplicate YAML
-`permissions` key introduced in the earlier hardening pass was also removed.
+Original code remains AGPL-3.0-or-later; models use CC BY-SA 4.0. Copyright names
+Hallzee Labs. Full license texts and separate DM Sans/Inter notices are retained.
+Third-party copyrights remain with their owners.
 
-## Verification scope
+Releases regenerate inventories from their actual restored targets, including
+the Mac helper's runtime pack. Mac notices now live in `Contents/Resources`,
+fixing a reproduced signing failure. Both Mac ZIPs were extracted, strictly
+signature-verified, and their helpers launched; Intel verification used Rosetta.
+The packaged SQLite libraries load 3.53.4.
 
-This pass uses history/dependency scans and tooling/packaging checks, not a
-physical release-acceptance run. Mac is sufficient for these local review tasks.
-A Windows PC is required for actual Windows executable launch, native BLE
-pairing/reconnect, and firmware transfer verification; those Windows behaviors
-have not been reverified here. The private dashboard and native dependency
-license review remain explicitly outstanding.
+Arduino libraries are pinned, including dependencies. Source bundling records
+exact Arduino/ESP-IDF commits, submodules, linked managed components, SDK
+configuration, compiler notices, and USB-tool sources. Keypad's inconsistent
+upstream GPL/LGPL notices are preserved with its source. See
+[release licensing](release-licensing.md) for materials and upstream limits.
+
+Publication verifies repository, default branch, tested commit ancestry and
+source-archive checksums. It refuses missing companions or existing version
+tags, preserves the single Windows ZIP, and attaches the teacher guide without
+overwriting README. Offline publication/input tests pass.
+
+The complete five-variant firmware build also passed, with at least 209,744
+bytes of application-slot headroom. Its isolated test-key package verifies
+against the test key and is correctly rejected by the unchanged official
+trust configuration. The actual rebuilt Mac USB binary/source ZIP pair passes
+the publication hash checks. All 51 release-input, publication, licensing and
+repository-hygiene tests pass; native firmware and touch tests pass too.
+
+## Remaining launch steps
+
+1. Save the image changes, merge the reviewed implementation, and coordinate the
+   final history rewrite while pushes are paused.
+2. Run the new GitHub workflow and require **PR readiness** after it passes.
+3. Review old artifacts/logs, switch this repository to Public, enable reporting
+   and secret protection, and verify signed-out access.
+4. Build fresh releases, complete physical acceptance, and publish those exact
+   artifacts in this same repository.
+
+A Mac is sufficient for local audits, shared tests and Mac package verification.
+A Windows PC is required for actual Windows launch, native database loading,
+WinRT Bluetooth pairing/reconnect, dialogs, firmware transfer and USB recovery.
+Those physical Windows capabilities, OTA on both displays, and clean-machine
+teacher installation remain unverified. See [release readiness](release-readiness.md).

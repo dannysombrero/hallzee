@@ -1,0 +1,13 @@
+{
+  "ecosystem": "nuget",
+  "name": "HarfBuzzSharp.NativeAssets.WebAssembly",
+  "version": "8.3.1.1",
+  "license": "MIT",
+  "source": "https://www.nuget.org/packages/HarfBuzzSharp.NativeAssets.WebAssembly/8.3.1.1",
+  "authors": "Microsoft",
+  "license_type": "expression",
+  "license_url": "https://licenses.nuget.org/MIT",
+  "copyright": "\u00a9 Microsoft Corporation. All rights reserved.",
+  "repository": "https://go.microsoft.com/fwlink/?linkid=868515",
+  "repository_commit": "64f24b1cddb68d30ec0ac6b661964178fc21d5ec"
+}

@@ -1,10 +1,10 @@
-name: Regenerate preview lockfile and run tests
+name: Prepare preview dependency update
 
 on:
   workflow_dispatch: {}
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   regenerate-and-test:
@@ -16,16 +16,16 @@ jobs:
           fetch-depth: 0
 
       - name: Setup Node.js 22
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '22'
 
-      - name: Regenerate preview-site package-lock and install
+      - name: Update the lockfile within declared version ranges
         working-directory: preview-site
         run: |
-          rm -f package-lock.json
-          npm install --package-lock-only
+          npm update --package-lock-only --ignore-scripts
           npm ci
+          npm audit --audit-level=low
 
       - name: Run tests
         working-directory: preview-site
@@ -36,15 +36,16 @@ jobs:
         working-directory: preview-site
         run: |
           npm run lint
+          npx --no-install tsc --noEmit
 
-      - name: Commit regenerated package-lock.json (if changed)
+      - name: Prepare a reviewable patch
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add preview-site/package-lock.json || true
-          if ! git diff --staged --quiet; then
-            git commit -m "Regenerate package-lock.json for preview-site (auto)"
-            git push origin HEAD:refactor/react-client-shell
-          else
-            echo "No changes to package-lock.json"
-          fi
+          git diff --binary -- preview-site/package-lock.json > dependency-update.patch
+      - name: Download and apply on a contributor branch
+        uses: actions/upload-artifact@v6
+        with:
+          name: preview-dependency-update
+          path: |
+            dependency-update.patch
+            preview-site/package-lock.json
+          if-no-files-found: error

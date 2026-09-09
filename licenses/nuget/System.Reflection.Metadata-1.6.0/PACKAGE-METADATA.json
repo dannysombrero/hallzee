@@ -1,0 +1,10 @@
+{
+  "ecosystem": "nuget",
+  "name": "System.Reflection.Metadata",
+  "version": "1.6.0",
+  "license": "REVIEW REQUIRED",
+  "source": "https://www.nuget.org/packages/System.Reflection.Metadata/1.6.0",
+  "authors": "Microsoft",
+  "license_url": "https://github.com/dotnet/corefx/blob/master/LICENSE.TXT",
+  "copyright": "\u00a9 Microsoft Corporation.  All rights reserved."
+}

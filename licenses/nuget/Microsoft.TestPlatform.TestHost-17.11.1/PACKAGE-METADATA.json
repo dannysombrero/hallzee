@@ -1,0 +1,13 @@
+{
+  "ecosystem": "nuget",
+  "name": "Microsoft.TestPlatform.TestHost",
+  "version": "17.11.1",
+  "license": "MIT",
+  "source": "https://www.nuget.org/packages/Microsoft.TestPlatform.TestHost/17.11.1",
+  "authors": "Microsoft",
+  "license_type": "expression",
+  "license_url": "https://licenses.nuget.org/MIT",
+  "copyright": "\u00a9 Microsoft Corporation. All rights reserved.",
+  "repository": "https://github.com/microsoft/vstest",
+  "repository_commit": "58dbd027217ac035a4e9114c9213b11dc0e988bd"
+}

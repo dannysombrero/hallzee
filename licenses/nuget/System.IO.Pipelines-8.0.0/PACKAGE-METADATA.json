@@ -1,0 +1,13 @@
+{
+  "ecosystem": "nuget",
+  "name": "System.IO.Pipelines",
+  "version": "8.0.0",
+  "license": "MIT",
+  "source": "https://www.nuget.org/packages/System.IO.Pipelines/8.0.0",
+  "authors": "Microsoft",
+  "license_type": "expression",
+  "license_url": "https://licenses.nuget.org/MIT",
+  "copyright": "\u00a9 Microsoft Corporation. All rights reserved.",
+  "repository": "https://github.com/dotnet/runtime",
+  "repository_commit": "5535e31a712343a63f5d7d796cd874e563e5ac14"
+}

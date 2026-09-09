@@ -70,6 +70,8 @@ jobs:
         run: |
           dotnet publish receiver/universal/BathroomSync.Universal.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false "-p:Version=$env:RELEASE_VERSION" "-p:ReleaseRepository=$env:RELEASE_REPOSITORY" -o publish
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python3 scripts/generate-dependency-inventory.py --no-npm --rid win-x64 --assets receiver/universal/obj/project.assets.json --publish-dir publish --notices publish/licenses/nuget --output publish/licenses/dependency-inventory.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Upload Windows app files (GitHub creates the ZIP)
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v6

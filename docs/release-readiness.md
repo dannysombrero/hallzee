@@ -11,11 +11,16 @@ code, release workflows, and the packaged Mac UI. It includes findings beyond
 the documentation backlog. No public release or physical firmware flash was
 performed.
 
+The subsequent [open source implementation pass](open-source-readiness.md)
+clears the reported npm/NuGet vulnerabilities, verifies complete Mac packages,
+adds source/license companions and a stable PR check, and restricts firmware
+signing to `main`. It preserves the physical acceptance scope below.
+
 ## Fix or resolve before general release
 
 | Priority | Finding | Smallest useful resolution |
 | --- | --- | --- |
-| High | **Public updates currently return HTTP 404.** The installed development feed points to `dannysombrero/hallzee-mono`, unavailable to unauthenticated clients. | Choose a stable public downloads repository, configure it before building, then publish tested desktop and firmware releases. Verify Help/download/check-for-update from a signed-out browser and both apps. |
+| High | **Public updates currently return HTTP 404.** The installed feed points to this repository, which is still private. | Complete history sanitation, make this same repository public, then publish tested desktop and firmware releases. Verify Help/download/check-for-update signed out and in both apps. |
 | High | **Physical cross-platform release evidence is missing.** Automated tests cannot prove Windows Bluetooth, firmware interruption recovery, or a teacher's clean-machine install. | Complete the short acceptance run below. |
 | Medium | **Terminal reassignment preserves previous trips.** Unpairing is not a classroom-data handoff. | For v1.0, have IT manage reassignment and document that limit. Do not promise teachers they can safely swap terminals themselves until the [reassignment design](design/terminal-reassignment.md) is implemented. |
 | Medium | **Distribution signing is absent.** The Mac package is ad-hoc signed; there is no configured Developer ID notarization or Windows publisher signing. | Agree on an IT-approved pilot installation route. For broad teacher self-installation, configure signing/notarization and test the downloaded, quarantined package. |

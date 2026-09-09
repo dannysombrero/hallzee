@@ -1,0 +1,10 @@
+{
+  "ecosystem": "nuget",
+  "name": "Microsoft.Windows.SDK.NET.Ref",
+  "version": "10.0.19041.56",
+  "license": "REVIEW REQUIRED",
+  "source": "https://www.nuget.org/packages/Microsoft.Windows.SDK.NET.Ref/10.0.19041.56",
+  "authors": "Microsoft",
+  "license_url": "https://aka.ms/WinSDKLicenseURL",
+  "copyright": "\u00a9 Microsoft Corporation. All rights reserved."
+}

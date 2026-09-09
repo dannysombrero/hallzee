@@ -1,5 +1,11 @@
 version: 2
 updates:
+  - package-ecosystem: pip
+    directory: /firmware
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
   - package-ecosystem: github-actions
     directory: /
     schedule:
@@ -33,3 +39,5 @@ updates:
     groups:
       avalonia:
         patterns: ["Avalonia*"]
+      sqlite:
+        patterns: ["Microsoft.Data.Sqlite*", "SQLitePCLRaw.*", "SourceGear.sqlite3"]

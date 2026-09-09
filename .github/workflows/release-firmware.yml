@@ -63,7 +63,11 @@ jobs:
           arduino-cli config add board_manager.additional_urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
           arduino-cli core update-index
           arduino-cli core install esp32:esp32@3.3.11
-          arduino-cli lib install "Adafruit GFX Library" "Adafruit ST7735 and ST7789 Library" "Adafruit ILI9341" Keypad
+          libraries=()
+          while IFS= read -r library; do
+            [[ -z "$library" || "$library" == \#* ]] || libraries+=("$library")
+          done < firmware/arduino-libraries.txt
+          arduino-cli lib install --no-deps "${libraries[@]}"
       - name: Build and sign packages
         env:
           RELEASE_KEY: ${{ secrets.HALLZEE_FIRMWARE_SIGNING_KEY }}
@@ -93,7 +97,7 @@ jobs:
       - uses: actions/download-artifact@v6
         with:
           name: Firmware-and-USB-images
-          path: usb/images
+          path: firmware-build
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 8.0.x
@@ -103,23 +107,40 @@ jobs:
           arduino-cli config add board_manager.additional_urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
           arduino-cli core update-index
           arduino-cli core install esp32:esp32@3.3.11
-          dotnet publish tools/FirmwareTool/FirmwareTool.csproj -c Release -r '${{ matrix.rid }}' --self-contained true -o usb/tool
       - name: Validate USB migration without hardware
         if: runner.os == 'macOS'
         shell: bash
         run: |
           dotnet build tools/FirmwareTool/FirmwareTool.csproj
           python3 test/test_usb_bootstrap.py --mklittlefs "$HOME/Library/Arduino15/packages/esp32/tools/mklittlefs/4.0.2-db0513a/mklittlefs"
+      - name: Publish the exact USB runtime after simulator restores
+        shell: bash
+        env:
+          USB_RID: ${{ matrix.rid }}
+        run: dotnet publish tools/FirmwareTool/FirmwareTool.csproj -c Release -r "$USB_RID" --self-contained true -o usb/tool
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Build standalone USB esptool with locked dependencies and sources
+        run: python scripts/build-usb-esptool.py --output usb/tool --licenses usb/licenses/python --sources usb-python-sources
+      - name: Audit every locked Python dependency
+        run: python scripts/audit-usb-python.py --output python-audit.json
       - name: Bundle USB tools
         shell: pwsh
         run: |
           $data = if ($IsWindows) { "$env:LOCALAPPDATA/Arduino15" } else { "$HOME/Library/Arduino15" }
-          Copy-Item "$data/packages/esp32/tools/esptool_py/5.3.1/*" usb/tool -Recurse -Force
           Copy-Item "$data/packages/esp32/tools/mklittlefs/4.0.2-db0513a/*" usb/tool -Recurse -Force
+          New-Item -ItemType Directory -Path usb/images -Force | Out-Null
+          Copy-Item firmware-build/USB-* usb/images -Recurse
+          Copy-Item firmware-build/licenses usb/ -Recurse
+          Copy-Item firmware-build/SOURCE-AND-LICENSES.md usb/
+          python3 scripts/generate-dependency-inventory.py --no-npm --rid '${{ matrix.rid }}' --assets tools/FirmwareTool/obj/project.assets.json --publish-dir usb/tool --notices usb/tool/licenses/nuget --output usb/tool/licenses/dependency-inventory.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Copy-Item scripts/install-usb-* usb/
           Copy-Item scripts/recover-usb-* usb/
           Copy-Item firmware/USB-README.md usb/README.md
           Compress-Archive usb/* "Hallzee-USB-${{ matrix.rid }}.zip"
+          Move-Item usb-python-sources/Hallzee-USB-Python-Sources.zip "Hallzee-USB-Python-Sources-${{ matrix.rid }}.zip"
       - uses: actions/upload-artifact@v6
         with:
           name: USB-${{ matrix.rid }}

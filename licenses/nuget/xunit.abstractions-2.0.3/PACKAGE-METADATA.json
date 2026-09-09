@@ -1,0 +1,9 @@
+{
+  "ecosystem": "nuget",
+  "name": "xunit.abstractions",
+  "version": "2.0.3",
+  "license": "REVIEW REQUIRED",
+  "source": "https://www.nuget.org/packages/xunit.abstractions/2.0.3",
+  "authors": "James Newkirk,Brad Wilson",
+  "license_url": "https://raw.githubusercontent.com/xunit/xunit/master/license.txt"
+}

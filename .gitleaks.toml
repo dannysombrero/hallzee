@@ -1,0 +1,14 @@
+title = "Hallzee secret scanning"
+
+[extend]
+useDefault = true
+
+# Historical protocol fixtures use this obvious synthetic key. Limit the
+# exception to this exact value AND these two test files, across rewritten SHAs.
+# Other values in these files, and this value elsewhere, are still scanned.
+[[allowlists]]
+description = "Reviewed synthetic protocol claim key in historical unit tests"
+condition = "AND"
+regexTarget = "secret"
+regexes = ['''^0123456789ABCDEF$''']
+paths = ['''^receiver/(universal\.tests/TerminalV2MainViewModelTests\.cs|windows/BathroomSync\.Tests/TerminalIdentityProtocolTests\.cs)$''']

@@ -53,6 +53,36 @@ to another public distribution repository, update the pinned repository in
 token; private development uses downloaded files. A private repository, API
 failure, or rate limit reports a failed check, not “up to date.”
 
+## Local testing, update checks, and repeat USB flashes
+
+A GitHub repository is not required to build or install a local `.hallzee-fw`
+package. Use the local developer build command below, choose a version newer
+than the terminal's installed version, and import the signed package in Device
+settings. The terminal must already have the OTA USB bootstrap and report that
+Bluetooth updates are supported. This uses the current local source; checking
+GitHub does not build a package from uncommitted changes or newer source commits.
+
+Online checks use the public releases in the pinned repository. A private or
+unavailable feed returns an error even when Bluetooth is connected. For HTTP
+404, the client explains that the feed is not publicly accessible and points to
+local file installation. Publishing source or a Git tag alone is insufficient:
+the feed needs a published stable `firmware-v<version>` release with one signed
+`.hallzee-fw` asset (or `client-v<version>` for the desktop). Private testing can
+continue entirely through local packages before those releases are public.
+
+**Check for software updates** is available without a connected terminal and
+while a terminal version query is pending. An active firmware installation,
+download, or another update check temporarily disables it. Firmware compatibility
+and installation still require fresh information from the connected terminal.
+
+The regular USB flash scripts reuse installed Arduino/.NET tools, but still
+check dependencies, compile the firmware, read and verify a full flash backup,
+repack/verify LittleFS, and write/verify the USB installation on every run—even
+if that terminal already uses the OTA layout. There is currently no fast repeat
+USB path. First-time tool downloads are usually avoided on later runs; the build
+and backup/flash work remain. Use a local firmware package over Bluetooth to
+avoid repeating the USB bootstrap for an ordinary update.
+
 ## Package format and compatibility
 
 A `.hallzee-fw` file is a bounded ZIP containing `manifest.txt`, `manifest.sig`,

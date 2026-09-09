@@ -14,6 +14,8 @@ public sealed class FirmwareReleases(HttpClient http) {
       using var request=new HttpRequestMessage(HttpMethod.Get,$"https://api.github.com/repos/{Repository}/releases?per_page=100&page={page}");
       request.Headers.UserAgent.ParseAdd($"Hallzee-Desktop/{FirmwarePackage.ClientVersion}"); request.Headers.Accept.ParseAdd("application/vnd.github+json");
       using var response=await http.SendAsync(request,HttpCompletionOption.ResponseHeadersRead,token);
+      if(response.StatusCode==System.Net.HttpStatusCode.NotFound)
+        throw new HttpRequestException($"The update feed ({Repository}) is not publicly accessible (HTTP 404). It may be private or unavailable. Use Install firmware from file for local testing.",null,response.StatusCode);
       response.EnsureSuccessStatusCode();
       using var stream=await response.Content.ReadAsStreamAsync(token); using var buffer=new MemoryStream();
       await CopyBoundedAsync(stream,buffer,2*1024*1024,token); buffer.Position=0;

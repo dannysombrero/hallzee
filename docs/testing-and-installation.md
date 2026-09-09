@@ -11,6 +11,16 @@ flash scripts below now perform the one-time OTA USB setup, backing up and
 migrating existing LittleFS files to the larger app-slot layout. Keep the private
 backup and do not bypass this migration with a normal Arduino upload.
 
+Local signed firmware packages need no GitHub repository. Public releases are
+required only for online discovery/download. Repeat USB runs reuse installed
+tools but still compile, back up, migrate, and verify; there is no fast repeat
+USB path. See the firmware guide for both workflows and update-feed errors.
+
+A Mac is sufficient for the update-check button and unavailable-public-feed
+regression tests; a Windows PC is not required for these shared client checks.
+No Windows-specific Bluetooth capability changes here, and Windows execution
+has not been reverified for this update-check fix.
+
 Mac tests cover shared package/transfer logic and simulated USB migration with
 the real LittleFS tool. A physical ESP32 is required for interrupted updates,
 retained files/pairing, and failed-boot rollback on both displays. A Windows PC

@@ -22,6 +22,14 @@ public sealed class FirmwareReleaseTests {
     using var http=new HttpClient(new FakeHttp(_=>new(HttpStatusCode.Forbidden)));
     await Assert.ThrowsAsync<HttpRequestException>(()=>new FirmwareReleases(http).CheckAsync());
   }
+  [Fact] public async Task UnavailablePublicFeedExplainsLocalTestingOption() {
+    using var http=new HttpClient(new FakeHttp(_=>new(HttpStatusCode.NotFound)));
+    var error=await Assert.ThrowsAsync<HttpRequestException>(()=>new FirmwareReleases(http).CheckAsync());
+    Assert.Equal(HttpStatusCode.NotFound,error.StatusCode);
+    Assert.Contains(FirmwareReleases.Repository,error.Message);
+    Assert.Contains("not publicly accessible",error.Message);
+    Assert.Contains("Install firmware from file",error.Message);
+  }
   [Fact] public async Task BoundedDownloadStopsBeforeAllocatingOversizedArchive() {
     using var input=new MemoryStream(new byte[1025]); using var output=new MemoryStream();
     await Assert.ThrowsAsync<InvalidDataException>(()=>FirmwareReleases.CopyBoundedAsync(input,output,1024));

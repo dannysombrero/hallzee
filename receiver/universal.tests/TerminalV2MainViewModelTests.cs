@@ -175,10 +175,34 @@ public sealed class TerminalV2MainViewModelTests {
     } finally { if(Directory.Exists(folder)) Directory.Delete(folder,true); }
   }
 
+  [Fact]
+  public async Task UpdateCheckStaysAvailableWhileTerminalVersionQueryIsPending() {
+    var folder=Path.Combine(Path.GetTempPath(),"HallzeeUpdateCheckUi",Guid.NewGuid().ToString("N"));
+    var connection=new FakeV2Connection { HoldFirmwareInfo=true };
+    try {
+      using var vm=new MainViewModel(connection,folder,false);
+      Assert.True(vm.CanCheckUpdates);
+      await vm.FindTerminalsModal.ScanAsync();
+      vm.FindTerminalsModal.PairingPasskey="807481";
+      await vm.ConnectAndSyncAsync();
+      var refresh=vm.RefreshFirmwareInfoAsync();
+      Assert.Contains("GET_FIRMWARE_INFO",connection.SentCommands);
+      Assert.True(vm.IsDeviceBusy);
+      Assert.False(vm.CanLoadFirmware);
+      Assert.True(vm.CanCheckUpdates);
+      connection.Emit("FIRMWARE_INFO,1,1.0.0,test-fw,esp32-ili9341-r1,ota-v1,1572864,1,CONFIRMED,1\n");
+      await refresh;
+      Assert.False(vm.IsDeviceBusy);
+      Assert.True(vm.CanLoadFirmware);
+      Assert.True(vm.CanCheckUpdates);
+    } finally { Directory.Delete(folder,true); }
+  }
+
   sealed class FakeV2Connection : ITerminalConnection {
     bool connected;
     bool claimed;
     public bool RejectRelease { get; init; }
+    public bool HoldFirmwareInfo { get; init; }
 
     public event EventHandler<string>? TextReceived;
     public event EventHandler<string>? ConnectionLost;
@@ -217,7 +241,7 @@ public sealed class TerminalV2MainViewModelTests {
       } else if (command.StartsWith("SET,TERMINAL_NAME,") || command.StartsWith("SET,MAX_ID_LENGTH,")) {
         Emit("SETTINGS_ACK," + command[4..] + "\n");
       } else if (command == "GET_FIRMWARE_INFO") {
-        Emit("FIRMWARE_INFO,1,1.0.0,test-fw,esp32-ili9341-r1,ota-v1,1572864,1,CONFIRMED,1\n");
+        if(!HoldFirmwareInfo) Emit("FIRMWARE_INFO,1,1.0.0,test-fw,esp32-ili9341-r1,ota-v1,1572864,1,CONFIRMED,1\n");
       } else if (command == "GET_ACTIVE_PASSES") {
         Emit("ACTIVE_PASSES\n");
       } else if (command == "GET_SETTINGS") {

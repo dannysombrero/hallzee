@@ -1,0 +1,13 @@
+{
+  "ecosystem": "nuget",
+  "name": "xunit.analyzers",
+  "version": "1.16.0",
+  "license": "Apache-2.0",
+  "source": "https://www.nuget.org/packages/xunit.analyzers/1.16.0",
+  "authors": "jnewkirk,bradwilson,marcind",
+  "license_type": "expression",
+  "license_url": "https://licenses.nuget.org/Apache-2.0",
+  "copyright": "Copyright (C) .NET Foundation",
+  "repository": "https://github.com/xunit/xunit.analyzers",
+  "repository_commit": "c399ff14191b5f0ae95f215e2674c8419d9c4505"
+}

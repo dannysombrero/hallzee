@@ -1,0 +1,13 @@
+{
+  "ecosystem": "nuget",
+  "name": "SkiaSharp.NativeAssets.WebAssembly",
+  "version": "2.88.9",
+  "license": "MIT",
+  "source": "https://www.nuget.org/packages/SkiaSharp.NativeAssets.WebAssembly/2.88.9",
+  "authors": "Microsoft",
+  "license_type": "expression",
+  "license_url": "https://licenses.nuget.org/MIT",
+  "copyright": "\u00a9 Microsoft Corporation. All rights reserved.",
+  "repository": "https://github.com/mono/SkiaSharp",
+  "repository_commit": "9699cdf046a989423a5e5eca68e7fd813486d81c"
+}

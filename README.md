@@ -8,7 +8,7 @@
 the history cleanup, dependency findings, and recommended repository settings.
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
-[![Hardware License: CC BY-SA 4.0](https://img.shields.io/badge/Hardware-CC_BY--SA_4.0-orange.svg)](LICENSE)
+[![Hardware License: CC BY-SA 4.0](https://img.shields.io/badge/Hardware-CC_BY--SA_4.0-orange.svg)](models/LICENSE)
 
 Hallzee is an ESP32-based school bathroom sign-in terminal. Students
 enter an ID on a 3×4 keypad to check out and back in. The terminal stores trip
@@ -38,7 +38,9 @@ records locally and can synchronize them to a desktop receiver over Bluetooth Lo
 - [Getting started: normal users](docs/getting-started-users.md) — Download the app, pair a terminal, add students, share workspace settings, and sync trips.
 - [Getting started: developers](docs/getting-started-developers.md) — Set up a clean computer, wire/flash hardware, run the app locally, and test changes.
 - [Firmware updates and releases](docs/firmware-updates.md) — Initial USB setup, signed package installation, and release workflow.
-- [Installation and testing guide](docs/testing-and-installation.md) — Detailed hardware wiring, Mac vs. Windows verification rules, and one-command bootstraps.
+- [Installation and testing guide](docs/testing-and-installation.md) — One-command bootstraps, local development, and Mac/Windows verification rules.
+- [CI and repository security](docs/ci-and-security.md) — Required PR checks, dependency updates, secret scanning, and release protections.
+- [Release licensing](docs/release-licensing.md) — Exact dependency inventories, third-party notices, and corresponding source downloads.
 - **Level 1 (PRD):** [Product & Requirements Document](docs/product-requirements.md) — Product vision, personas, classroom workflows, and FERPA privacy boundaries.
 - **Level 2 (Architecture):**
   - [System Technical Architecture](docs/architecture.md) — Topology, state ownership decision matrix, SQLite schema, and layer boundaries.

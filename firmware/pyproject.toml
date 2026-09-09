@@ -1,0 +1,14 @@
+# Match the USB artifact matrix. Intel Mac desktop support is unaffected.
+# esptool's Intel-Mac-only cryptography<49 constraint cannot be used for new USB
+# binaries because 50.0.0 is required for current security fixes.
+[project]
+name = "hallzee-usb-build"
+version = "0.0.0"
+requires-python = "==3.13.*"
+dependencies = []
+
+[tool.uv]
+environments = [
+  "sys_platform == 'darwin' and platform_machine == 'arm64'",
+  "sys_platform == 'win32' and platform_machine == 'AMD64'",
+]

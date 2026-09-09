@@ -1,0 +1,11 @@
+{
+  "ecosystem": "nuget",
+  "name": "SourceGear.sqlite3",
+  "version": "3.53.4",
+  "license": "LICENSE.txt",
+  "source": "https://www.nuget.org/packages/SourceGear.sqlite3/3.53.4",
+  "authors": "Eric Sink",
+  "license_type": "file",
+  "license_url": "https://aka.ms/deprecateLicenseUrl",
+  "copyright": "Copyright 2014-2026 SourceGear, LLC"
+}

@@ -1,0 +1,69 @@
+name: Pull request readiness
+on:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: pr-readiness-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  desktop:
+    uses: ./.github/workflows/build-universal-client.yml
+  firmware:
+    uses: ./.github/workflows/validate-firmware.yml
+  website:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: preview-site
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: preview-site/package-lock.json
+      - run: npm ci
+      - run: npm audit --audit-level=low
+      - run: npm test
+      - run: npm run lint
+      - run: npx --no-install tsc --noEmit
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install verified Gitleaks
+        env:
+          GITLEAKS_VERSION: 8.30.1
+        run: |
+          curl --fail --silent --show-error --location --retry 3 "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" -o "$RUNNER_TEMP/gitleaks.tar.gz"
+          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  $RUNNER_TEMP/gitleaks.tar.gz" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/gitleaks.tar.gz" -C "$RUNNER_TEMP" gitleaks
+      - name: Scan reachable history with redacted output
+        run: '"$RUNNER_TEMP/gitleaks" git --redact=100 --log-opts="--all" --config=.gitleaks.toml .'
+  readiness:
+    name: PR readiness
+    if: always()
+    needs: [desktop, firmware, website, secrets]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every validation to succeed
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PY'
+          import json, os, sys
+          results = json.loads(os.environ['RESULTS'])
+          failures = [name for name, job in results.items() if job['result'] != 'success']
+          if failures:
+              sys.exit('Required validation did not succeed: ' + ', '.join(failures))
+          print('Desktop, firmware, website, and secret checks passed.')
+          PY

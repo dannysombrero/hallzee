@@ -22,6 +22,25 @@ dotnet build receiver/MacBLEAgent/BathroomSync.MacBLEAgent.csproj -c Release -r 
 helper="receiver/MacBLEAgent/bin/Release/net8.0-macos/$rid/BathroomSync.MacBLEAgent.app"
 test -x "$helper/Contents/MacOS/BathroomSync.MacBLEAgent"
 ditto "$helper" "$app/Contents/MacOS/BathroomSync.MacBLEAgent.app"
+# Notices are resources, not executable code. In Contents/MacOS, codesign
+# treats dotted package directories as nested bundles and rejects the app.
+for notice in LICENSE COPYRIGHT THIRD-PARTY-NOTICES.md licenses; do
+  mv "$app/Contents/MacOS/$notice" "$app/Contents/Resources/$notice"
+done
+# Workload framework packs are not ordinary NuGet package entries. Ask MSBuild
+# which runtime packs it actually selected rather than guessing installed versions.
+dotnet msbuild receiver/MacBLEAgent/BathroomSync.MacBLEAgent.csproj \
+  -p:RuntimeIdentifier="$rid" -p:Configuration=Release \
+  -target:ResolveFrameworkReferences -getItem:ResolvedFrameworkReference \
+  > "$output/helper-framework-references.json"
+# Capture only this release's restored graphs, including its native helper.
+# The publication checksum covers the final ZIP after codesign changes binaries.
+python3 scripts/generate-dependency-inventory.py --no-npm --rid "$rid" \
+  --assets receiver/universal/obj/project.assets.json \
+  --assets receiver/MacBLEAgent/obj/project.assets.json \
+  --framework-references "$output/helper-framework-references.json" \
+  --notices "$app/Contents/Resources/licenses/nuget" \
+  --output "$app/Contents/Resources/licenses/dependency-inventory.json"
 cat > "$app/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -51,10 +70,12 @@ while IFS= read -r -d '' library; do
 done < <(find "$app" -type f -name '*.dylib' -print0)
 codesign --verify --deep --strict "$app"
 # With no arguments the helper loads its runtime and exits before using Bluetooth.
-# An Intel package built on ARM (or vice versa) needs a matching-host launch check.
+# Use Rosetta when it is already available to exercise Intel packages on ARM.
 if [[ ( "$rid" == osx-arm64 && "$(uname -m)" == arm64 ) ||
       ( "$rid" == osx-x64 && "$(uname -m)" == x86_64 ) ]]; then
   "$app/Contents/MacOS/BathroomSync.MacBLEAgent.app/Contents/MacOS/BathroomSync.MacBLEAgent"
+elif [[ "$rid" == osx-x64 && "$(uname -m)" == arm64 ]] && /usr/bin/arch -x86_64 /usr/bin/true 2>/dev/null; then
+  /usr/bin/arch -x86_64 "$app/Contents/MacOS/BathroomSync.MacBLEAgent.app/Contents/MacOS/BathroomSync.MacBLEAgent"
 else
   echo "Helper launch check skipped: validate $rid on a matching Mac before release."
 fi

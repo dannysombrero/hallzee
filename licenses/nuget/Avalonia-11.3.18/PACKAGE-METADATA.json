@@ -1,0 +1,13 @@
+{
+  "ecosystem": "nuget",
+  "name": "Avalonia",
+  "version": "11.3.18",
+  "license": "MIT",
+  "source": "https://www.nuget.org/packages/Avalonia/11.3.18",
+  "authors": "Avalonia Team",
+  "license_type": "expression",
+  "license_url": "https://licenses.nuget.org/MIT",
+  "copyright": "Copyright 2013-2026 \u00a9 The AvaloniaUI Project",
+  "repository": "https://github.com/AvaloniaUI/Avalonia/",
+  "repository_commit": "aa4265a99041adead000bda1cd6a51857e3b1bf1"
+}

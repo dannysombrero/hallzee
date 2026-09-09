@@ -1,0 +1,3 @@
+# Retain copied upstream notices verbatim, including their original whitespace.
+# This does not exempt application source or documentation from whitespace checks.
+licenses/** -whitespace linguist-vendored

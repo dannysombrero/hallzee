@@ -1,0 +1,13 @@
+{
+  "ecosystem": "nuget",
+  "name": "Newtonsoft.Json",
+  "version": "13.0.1",
+  "license": "MIT",
+  "source": "https://www.nuget.org/packages/Newtonsoft.Json/13.0.1",
+  "authors": "James Newton-King",
+  "license_type": "expression",
+  "license_url": "https://licenses.nuget.org/MIT",
+  "copyright": "Copyright \u00a9 James Newton-King 2008",
+  "repository": "https://github.com/JamesNK/Newtonsoft.Json",
+  "repository_commit": "ae9fe44e1323e91bcbd185ca1a14099fba7c021f"
+}

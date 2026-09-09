@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -139,7 +140,13 @@ public class MacAgentTerminalConnection : ITerminalConnection, ITerminalBinaryCo
             tcpListener.Start();
             var port = ((IPEndPoint)tcpListener.LocalEndpoint).Port;
 
-            var devPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "MacBLEAgent", "bin", "Debug", "net8.0-macos", "osx-arm64", "BathroomSync.MacBLEAgent.app", "Contents", "MacOS", "BathroomSync.MacBLEAgent"));
+            var developmentRid = RuntimeInformation.ProcessArchitecture switch
+            {
+                Architecture.Arm64 => "osx-arm64",
+                Architecture.X64 => "osx-x64",
+                _ => throw new PlatformNotSupportedException("The macOS Bluetooth helper supports Apple Silicon and Intel Macs.")
+            };
+            var devPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "MacBLEAgent", "bin", "Debug", "net8.0-macos", developmentRid, "BathroomSync.MacBLEAgent.app", "Contents", "MacOS", "BathroomSync.MacBLEAgent"));
             
             var releasePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "BathroomSync.MacBLEAgent.app", "Contents", "MacOS", "BathroomSync.MacBLEAgent");
 
@@ -147,9 +154,7 @@ public class MacAgentTerminalConnection : ITerminalConnection, ITerminalBinaryCo
 
             if (!File.Exists(path))
             {
-                devPath = devPath.Replace("osx-arm64", "osx-x64");
-                if (File.Exists(devPath)) path = devPath;
-                else throw new FileNotFoundException($"Could not find MacBLEAgent executable at {path}");
+                throw new FileNotFoundException($"Could not find MacBLEAgent executable at {path}. Build the macOS helper for {developmentRid} first, or use a packaged Hallzee app.");
             }
 
             var startInfo = new ProcessStartInfo

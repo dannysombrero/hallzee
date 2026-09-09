@@ -20,6 +20,11 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
+      - name: Require publication from the protected default branch
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          test "$GITHUB_REF" = "refs/heads/$DEFAULT_BRANCH" || { echo 'Run publication from the protected default branch.'; exit 1; }
       - uses: actions/checkout@v6
       - run: python3 -m unittest discover -s test -p test_publish_release.py
       - name: Publish tested artifacts and public teacher instructions

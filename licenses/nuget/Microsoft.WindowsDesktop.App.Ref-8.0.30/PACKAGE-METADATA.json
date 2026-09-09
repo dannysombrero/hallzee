@@ -1,0 +1,13 @@
+{
+  "ecosystem": "nuget",
+  "name": "Microsoft.WindowsDesktop.App.Ref",
+  "version": "8.0.30",
+  "license": "MIT",
+  "source": "https://www.nuget.org/packages/Microsoft.WindowsDesktop.App.Ref/8.0.30",
+  "authors": "Microsoft",
+  "license_type": "expression",
+  "license_url": "https://licenses.nuget.org/MIT",
+  "copyright": "\u00a9 Microsoft Corporation. All rights reserved.",
+  "repository": "https://github.com/dotnet/windowsdesktop",
+  "repository_commit": "69f0fdb740773a6f766d6ba7e692f5653062c095"
+}

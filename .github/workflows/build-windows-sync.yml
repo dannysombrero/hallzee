@@ -1,6 +1,8 @@
 name: Build Windows Sync App
 on:
   workflow_dispatch:
+permissions:
+  contents: read
 jobs:
   build:
     runs-on: windows-latest
@@ -11,6 +13,7 @@ jobs:
       - run: dotnet test receiver/windows/BathroomSync.Tests/BathroomSync.Tests.csproj --configuration Release -p:CollectCoverage=true -p:Threshold=80 -p:ThresholdType=line -p:ThresholdStat=total
       - run: dotnet test receiver/universal.tests/BathroomSync.Universal.Tests.csproj --configuration Release
       - run: dotnet publish receiver/universal/BathroomSync.Universal.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false -o publish
+      - run: python3 scripts/generate-dependency-inventory.py --no-npm --rid win-x64 --assets receiver/universal/obj/project.assets.json --publish-dir publish --notices publish/licenses/nuget --output publish/licenses/dependency-inventory.json
       - uses: actions/upload-artifact@v6
         with:
           name: HallzeeSync-Windows

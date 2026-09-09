@@ -1,0 +1,13 @@
+{
+  "ecosystem": "nuget",
+  "name": "xunit.core",
+  "version": "2.9.2",
+  "license": "Apache-2.0",
+  "source": "https://www.nuget.org/packages/xunit.core/2.9.2",
+  "authors": "jnewkirk,bradwilson",
+  "license_type": "expression",
+  "license_url": "https://licenses.nuget.org/Apache-2.0",
+  "copyright": "Copyright (C) .NET Foundation",
+  "repository": "https://github.com/xunit/xunit",
+  "repository_commit": "82543a6df6f5f13b5b70f8a9f9ccb41cd676084f"
+}

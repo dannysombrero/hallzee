@@ -1,5 +1,9 @@
 # <img src="docs/images/hallzee-logo.png" alt="Hallzee Logo" width="48" style="vertical-align: middle; margin-right: 8px;" /> Hallzee
 
+**Preparing v1.0:** [Teacher guide](docs/getting-started-users.md) ·
+[Release review](docs/release-readiness.md) ·
+[Build and publish Windows/Mac downloads](docs/releasing.md)
+
 Hallzee is an ESP32-based school bathroom sign-in terminal. Students
 enter an ID on a 3×4 keypad to check out and back in. The terminal stores trip
 records locally and can synchronize them to a desktop receiver over Bluetooth Low Energy (BLE).
@@ -80,6 +84,12 @@ matching folder and `.ino` names:
 bash scripts/flash-terminal-macos.sh /dev/cu.usbserial-XXXX
 ```
 
+After the one-time OTA setup, add `--fast` (Mac) or `-Fast` (Windows) for
+repeat development flashes that skip full backups and filesystem migration.
+See [fast USB testing and its limits](docs/firmware-updates.md#local-testing-update-checks-and-repeat-usb-flashes).
+For shared/moved hardware, see the proposed
+[terminal reassignment design](docs/design/terminal-reassignment.md).
+
 The original 160×128 display remains the default. For the 240×320 ILI9341
 module, use the alternate profile:
 
@@ -96,11 +106,11 @@ The ILI9341 profile uses a conservative 20 MHz SPI clock for reliable updates
 on jumper-wired modules and embeds only the bitmap font sizes used by the
 native terminal UI.
 
-An optional [2.8-inch touch experiment](docs/touch-test.md) adds tappable Clear
-and Submit controls, calibration, and a separate typing sandbox. It requires
-four direct touch connections (GPIO 16/17/19/4; no splitter) and the
-`--touch-test` / `-TouchTest` flag;
-ordinary firmware and release packages keep touch disabled.
+Use the standard keypad-only UI on both display types: Clear and Submit remain
+plain physical-key instructions. The [2.8-inch touch experiment](docs/touch-test.md)
+is paused after hardware testing found good accuracy but uncomfortable press
+sensitivity. Leave out `--touch-test` / `-TouchTest` for normal use; this also
+removes the calibration prompt and typing sandbox.
 
 The supported firmware build uses the `esp32:esp32` Arduino core version
 3.3.11. The Windows equivalent is

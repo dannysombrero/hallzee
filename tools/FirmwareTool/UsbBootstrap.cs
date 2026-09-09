@@ -5,6 +5,34 @@ using BathroomSync.Core;
 
 internal static class UsbBootstrap {
   const int FlashSize=0x400000, NewFsOffset=0x310000, NewFsSize=0xe0000;
+  // Local development only: preserve the existing data partitions and avoid the
+  // full backup/migration. Reset otadata AFTER verifying app0, since an earlier
+  // Bluetooth update may have selected app1. This is not an atomic OTA update.
+  public static async Task UpdateApplicationAsync(string esptool,string port,string build) {
+    var app=One(build,"*.ino.bin"); var boot=One(build,"*.bootloader.bin"); var partitions=One(build,"*.partitions.bin");
+    var bootApp=Path.Combine(build,"boot_app0.bin");
+    var expected=File.ReadAllBytes(partitions);
+    if(expected.Length!=0xc00 || !HasPartition(expected,1,2,0x9000,0x5000) ||
+        !HasPartition(expected,1,0,0xe000,0x2000) ||
+        !HasPartition(expected,0,0x10,0x10000,0x180000) ||
+        !HasPartition(expected,0,0x11,0x190000,0x180000) ||
+        !HasPartition(expected,1,0x82,NewFsOffset,NewFsSize))
+      throw new InvalidDataException("Fast USB requires the Hallzee OTA v1 layout. Run the regular USB setup.");
+    if(new FileInfo(app).Length is < 1 or > 0x180000 ||
+        new FileInfo(boot).Length is < 1 or > 0x7000 || new FileInfo(bootApp).Length!=0x2000)
+      throw new InvalidDataException("Invalid fast USB build sizes; terminal was not changed.");
+    Console.WriteLine("Fast development USB: no new data backup. Checking installed bootloader and partition table…");
+    // A blank/legacy/mismatched device must fail before any write. esptool's
+    // explicit chip selection also rejects other ESP32 families.
+    await Run(esptool,"--chip","esp32","--port",port,"--baud","460800","verify-flash",
+      "0x1000",boot,"0x8000",partitions);
+    await Run(esptool,"--chip","esp32","--port",port,"--baud","460800","write-flash","0x10000",app);
+    await Run(esptool,"--chip","esp32","--port",port,"--baud","460800","verify-flash","0x10000",app);
+    await Run(esptool,"--chip","esp32","--port",port,"--baud","460800","write-flash","0xe000",bootApp);
+    await Run(esptool,"--chip","esp32","--port",port,"--baud","460800","verify-flash","0xe000",bootApp);
+    await Run(esptool,"--chip","esp32","--port",port,"run");
+    Console.WriteLine("Fast USB write verified; terminal restarting. NVS and LittleFS were not written. Confirm the new firmware boots.");
+  }
   public static async Task InstallAsync(string esptool,string mklittlefs,string port,string build,string backupRoot) {
     var app=One(build,"*.ino.bin"); var boot=One(build,"*.bootloader.bin"); var partitions=One(build,"*.partitions.bin");
     var bootApp=Path.Combine(build,"boot_app0.bin");
@@ -109,7 +137,7 @@ internal static class UsbBootstrap {
     foreach(var arg in args) start.ArgumentList.Add(arg);
     using var process=Process.Start(start) ?? throw new IOException("Could not start "+executable);
     var outputTask=process.StandardOutput.ReadToEndAsync(); var errorTask=process.StandardError.ReadToEndAsync();
-    await process.WaitForExitAsync(); var output=await outputTask; Console.Write(output); Console.Error.Write(await errorTask); if(process.ExitCode!=0) throw new IOException($"{Path.GetFileName(executable)} failed ({process.ExitCode}); preserve the backup and retry USB setup.");
+    await process.WaitForExitAsync(); var output=await outputTask; Console.Write(output); Console.Error.Write(await errorTask); if(process.ExitCode!=0) throw new IOException($"{Path.GetFileName(executable)} failed ({process.ExitCode}); preserve any existing backup. If the fast USB compatibility check failed, run the regular USB setup. After a failed write, retry USB before using the terminal.");
     return output;
   }
 }

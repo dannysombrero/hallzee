@@ -3,7 +3,7 @@ using Microsoft.Data.Sqlite;
 namespace BathroomSync.Core;
 
 public static class DatabaseMigrator {
-  public const int CurrentSchemaVersion = 6;
+  public const int CurrentSchemaVersion = 7;
 
   public static void Migrate(SqliteConnection connection) {
     EnsureMigrationTable(connection);
@@ -27,6 +27,7 @@ public static class DatabaseMigrator {
     if (currentVersion < 6) {
       ApplyMigration6(connection);
     }
+    if (currentVersion < 7) ApplyMigration7(connection);
   }
 
   public static int GetCurrentVersion(SqliteConnection connection) {
@@ -348,6 +349,33 @@ public static class DatabaseMigrator {
       transaction.Rollback();
       throw;
     }
+  }
+
+  static void ApplyMigration7(SqliteConnection connection) {
+    using var transaction = connection.BeginTransaction();
+    using var command = connection.CreateCommand();
+    command.Transaction = transaction;
+    command.CommandText = """
+      CREATE TABLE desktop_passes (
+        pass_id TEXT PRIMARY KEY,
+        profile_id TEXT NOT NULL,
+        student_id TEXT NOT NULL,
+        student_name TEXT NOT NULL,
+        checkout_at TEXT NOT NULL,
+        period TEXT NOT NULL,
+        destination TEXT NOT NULL,
+        purpose TEXT NOT NULL,
+        schedule_name TEXT,
+        completed_at TEXT,
+        trip_id INTEGER
+      );
+      CREATE UNIQUE INDEX idx_desktop_pass_active_profile
+        ON desktop_passes(profile_id) WHERE completed_at IS NULL;
+      INSERT INTO schema_migrations (version, applied_at, description)
+      VALUES (7, datetime('now'), 'Durable teacher-started passes with atomic completion');
+      """;
+    command.ExecuteNonQuery();
+    transaction.Commit();
   }
 
   static void ApplyMigration6(SqliteConnection connection) {

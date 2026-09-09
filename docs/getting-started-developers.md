@@ -69,6 +69,61 @@ bash scripts/flash-terminal-macos.sh --compile-only
 powershell -ExecutionPolicy Bypass -File scripts/flash-terminal-windows.ps1 -CompileOnly
 ```
 
+## Faster repeat USB flashes
+
+Run the regular flash command above once to install tools and migrate the
+terminal to the OTA partition layout. For subsequent development flashes:
+
+```sh
+bash scripts/flash-terminal-macos.sh --fast --display ili9341
+```
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/flash-terminal-windows.ps1 -Fast -Display ili9341
+```
+
+Omit the display option for ST7735 and retain the installed rotation. Fast mode
+compiles current source using installed dependencies, checks the existing
+bootloader and partition table, then writes/verifies the application and
+boot-selection metadata. It skips dependency downloads, full-flash backups,
+and filesystem migration; NVS and LittleFS are not written. Same-version
+source builds are allowed. Compilation and serial transfer still take time.
+
+Use the regular command for first setup or a compatibility-check failure.
+Fast mode creates no fresh backup and does not provide the Bluetooth updater's
+rollback protection. Sync important trips and finish active passes first;
+after an interrupted write, retry USB before using the terminal. See
+[firmware updates and fast USB limits](firmware-updates.md#local-testing-update-checks-and-repeat-usb-flashes).
+
+Mac compilation and simulated fast-USB/migration tests passed. A Mac is
+sufficient to check physical boot and data retention, including a fast flash
+after a Bluetooth update. A Windows PC is required to verify PowerShell
+`-Fast` forwarding, COM-port selection, and Windows esptool execution.
+Physical fast-USB speed/retention and Windows behavior remain unverified.
+
+## Designing for terminals moving between teachers
+
+Desktop trips already store the authenticated terminal ID, and enriched CSV
+exports include it. That identifies hardware, not the teacher who used it
+when the trip began. Sync currently assigns classroom context from the active
+workspace, and roster lookups use that workspace's students. Old trips can
+therefore acquire the wrong classroom context or student name after a move.
+Owner reset preserves trips and settings; it is not a data-handoff workflow.
+
+The recommended next design is to capture an immutable assignment ID when each
+pass starts, keep hardware identity separate from workspace ownership, and use
+a storage epoch to prevent trip-number collisions after destructive resets.
+A deliberate transfer flow should finish passes, verify archived history,
+remove the previous classroom's terminal data, then provision the new teacher.
+Legacy records must remain unassigned until explicitly reconciled; a new owner
+must not receive another teacher's records merely because they claimed the
+hardware.
+
+These assignment-aware changes are **proposed, not implemented**. Read the
+[terminal reassignment and record provenance design](design/terminal-reassignment.md)
+for the identity model, migration, handoff failure cases, future school-wide
+sync considerations, and acceptance checks before changing storage or sync.
+
 ## Run the desktop client locally
 
 Install the .NET 8 SDK. On macOS, install Xcode and enable the macOS workload:

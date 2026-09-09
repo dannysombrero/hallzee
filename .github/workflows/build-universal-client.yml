@@ -4,6 +4,11 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
+      - scripts/publish-release.py
+      - scripts/package-client-macos.sh
+      - test/test_publish_release.py
+      - .github/workflows/release-client.yml
+      - .github/workflows/publish-release.yml
       - receiver/universal/**
       - receiver/universal.tests/**
       - receiver/windows/**
@@ -34,6 +39,9 @@ jobs:
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 8.0.x
+
+      - name: Test release publication without network or credentials
+        run: python3 -m unittest discover -s test -p test_publish_release.py
 
       - name: Run Universal client tests
         run: dotnet test receiver/universal.tests/BathroomSync.Universal.Tests.csproj --configuration Release

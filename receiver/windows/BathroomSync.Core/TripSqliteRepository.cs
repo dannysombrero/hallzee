@@ -29,7 +29,7 @@ public interface ITripRepository : ITripStore {
   void AssignTripContext(string terminalId, long tripId, string profileId, string? scheduleName, string? classSection) { }
 }
 
-public sealed class TripSqliteRepository : ITripRepository {
+public sealed partial class TripSqliteRepository : ITripRepository {
   public const string CsvHeader = "trip_id,student_id,date,time_out,time_in,duration_seconds,status";
   public const string EnrichedCsvHeader = "trip_id,student_id,student_name,class_section,schedule_name,grade,trip_date,time_out,time_in,duration_seconds,status,terminal_id,synced_at";
 
@@ -259,7 +259,7 @@ public sealed class TripSqliteRepository : ITripRepository {
       command.Parameters.AddWithValue("$endDate", endDate);
     }
     if (!string.IsNullOrWhiteSpace(profileId)) {
-      whereClauses.Add("(profile_id = $profileId OR profile_id = 'default')");
+      whereClauses.Add("(profile_id = $profileId OR (profile_id = 'default' AND terminal_id <> 'DESKTOP'))");
       command.Parameters.AddWithValue("$profileId", profileId);
     }
 
@@ -405,7 +405,7 @@ public sealed class TripSqliteRepository : ITripRepository {
     }
 
     if (!string.IsNullOrWhiteSpace(filter.ProfileId)) {
-      conditions.Add("(t.profile_id = $profileId OR t.profile_id = 'default')");
+      conditions.Add("(t.profile_id = $profileId OR (t.profile_id = 'default' AND t.terminal_id <> 'DESKTOP'))");
       parameters["$profileId"] = filter.ProfileId;
     }
 

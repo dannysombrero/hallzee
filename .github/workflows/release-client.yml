@@ -1,0 +1,79 @@
+name: Build Desktop Release Packages
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Desktop version (major.minor.patch)
+        required: true
+permissions:
+  contents: read
+env:
+  RELEASE_REPOSITORY: ${{ vars.HALLZEE_RELEASE_REPOSITORY || github.repository }}
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            rid: win-x64
+          - os: macos-14
+            rid: osx-arm64
+          - os: macos-14
+            rid: osx-x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 8.0.x
+      - name: Validate version and destination
+        shell: bash
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          python3 -c 'import os,re; assert re.fullmatch(r"(0|[1-9][0-9]{0,2})\.(0|[1-9][0-9]{0,2})\.(0|[1-9][0-9]{0,2})",os.environ["RELEASE_VERSION"]); assert re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+",os.environ["RELEASE_REPOSITORY"])'
+      - run: dotnet test receiver/windows/BathroomSync.Tests/BathroomSync.Tests.csproj -c Release
+      - run: dotnet test receiver/universal.tests/BathroomSync.Universal.Tests.csproj -c Release
+      - name: Install macOS workload
+        if: runner.os == 'macOS'
+        run: sudo dotnet workload install macos
+      - name: Package Mac app with Bluetooth helper
+        if: runner.os == 'macOS'
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+          CLIENT_RID: ${{ matrix.rid }}
+        run: bash scripts/package-client-macos.sh "$RELEASE_VERSION" "$CLIENT_RID" "$RELEASE_REPOSITORY" packaged
+      - name: Package Windows app
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          dotnet publish receiver/universal/BathroomSync.Universal.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=false "-p:Version=$env:RELEASE_VERSION" "-p:ReleaseRepository=$env:RELEASE_REPOSITORY" -o publish
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          New-Item packaged -ItemType Directory
+          Compress-Archive publish/* packaged/Hallzee-Windows-win-x64.zip
+      - uses: actions/upload-artifact@v6
+        with:
+          name: Desktop-${{ matrix.rid }}
+          path: packaged/*.zip
+          if-no-files-found: error
+  metadata:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Record version, destination, source, and teacher guide
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          mkdir metadata
+          python3 -c 'import json,os; json.dump(dict(product="client",version=os.environ["RELEASE_VERSION"],repository=os.environ["RELEASE_REPOSITORY"],sha=os.environ["GITHUB_SHA"]),open("metadata/release.json","w"))'
+          cp docs/getting-started-users.md metadata/teacher-guide.md
+          cp docs/client-release-notes.md metadata/notes.md
+      - uses: actions/upload-artifact@v6
+        with:
+          name: Release-metadata
+          path: metadata/
+          if-no-files-found: error

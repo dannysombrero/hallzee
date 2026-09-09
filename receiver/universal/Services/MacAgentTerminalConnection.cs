@@ -164,7 +164,8 @@ public class MacAgentTerminalConnection : ITerminalConnection, ITerminalBinaryCo
             if (agentProcess == null) throw new InvalidOperationException("Failed to start MacBLEAgent process.");
 
             // Wait for agent to connect back
-            tcpClient = await tcpListener.AcceptTcpClientAsync();
+            using var startupTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+            tcpClient = await tcpListener.AcceptTcpClientAsync(startupTimeout.Token);
             var stream = tcpClient.GetStream();
             agentOutput = new StreamReader(stream, System.Text.Encoding.UTF8);
             agentInput = new StreamWriter(stream, System.Text.Encoding.UTF8) { AutoFlush = true };
@@ -173,7 +174,16 @@ public class MacAgentTerminalConnection : ITerminalConnection, ITerminalBinaryCo
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Agent Error: {ex.Message}");
+            tcpListener?.Stop();
+            tcpListener = null;
+            tcpClient?.Dispose();
+            tcpClient = null;
+            try { if (agentProcess is { HasExited: false }) agentProcess.Kill(); } catch { }
+            agentProcess?.Dispose();
+            agentProcess = null;
+            agentInput = null;
+            agentOutput = null;
+            throw new IOException("The Mac Bluetooth helper could not start. Check Hallzee's Bluetooth permission in System Settings, then try connecting again.", ex);
         }
     }
 

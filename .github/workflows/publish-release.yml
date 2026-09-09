@@ -1,0 +1,31 @@
+name: Publish Tested Release
+on:
+  workflow_dispatch:
+    inputs:
+      product:
+        description: Product whose artifacts passed hardware testing
+        type: choice
+        options: [client, firmware]
+        required: true
+      run_id:
+        description: Successful Build Desktop/Firmware Release Packages run ID (publish these exact files)
+        required: true
+permissions:
+  actions: read
+  contents: read
+concurrency:
+  group: publish-hallzee-release
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: public-release
+    steps:
+      - uses: actions/checkout@v6
+      - run: python3 -m unittest discover -s test -p test_publish_release.py
+      - name: Publish tested artifacts and public teacher instructions
+        env:
+          GH_TOKEN: ${{ secrets.HALLZEE_PUBLIC_RELEASE_TOKEN }}
+          RELEASE_RUN: ${{ inputs.run_id }}
+          RELEASE_PRODUCT: ${{ inputs.product }}
+        run: python3 scripts/publish-release.py --run "$RELEASE_RUN" --product "$RELEASE_PRODUCT"

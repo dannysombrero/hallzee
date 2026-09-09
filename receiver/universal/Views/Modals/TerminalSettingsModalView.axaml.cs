@@ -76,6 +76,7 @@ public partial class TerminalSettingsModalView : UserControl {
   void OnCancelFirmwareClick(object? sender, RoutedEventArgs e) { if(DataContext is MainViewModel vm) vm.CancelFirmwareUpdate(); }
   async void OnCheckUpdatesClick(object? sender, RoutedEventArgs e) { if(DataContext is MainViewModel vm) await vm.CheckSoftwareUpdatesAsync(); }
   async void OnDownloadFirmwareClick(object? sender, RoutedEventArgs e) { if(DataContext is MainViewModel vm) await vm.DownloadAndInstallFirmwareAsync(); }
+  void OnFirmwareReleasesClick(object? sender, RoutedEventArgs e) { if(DataContext is MainViewModel vm) vm.OpenFirmwareReleases(); }
   void OnDesktopReleaseClick(object? sender, RoutedEventArgs e) { if(DataContext is MainViewModel vm) vm.OpenDesktopRelease(); }
 
   async void OnApplyClick(object? sender, RoutedEventArgs e) {

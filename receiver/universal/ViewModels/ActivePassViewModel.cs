@@ -88,9 +88,9 @@ public sealed class ActivePassViewModel : INotifyPropertyChanged {
       if (IsOccupied) {
         var details = new[] { Purpose, Destination, Period }.Where(value => !string.IsNullOrWhiteSpace(value));
         var suffix = string.Join(" • ", details);
-        return string.IsNullOrWhiteSpace(suffix)
+        return (IsManual ? "Teacher-started pass · " : "") + (string.IsNullOrWhiteSpace(suffix)
           ? $"Departed at {DepartTime ?? "recently"}."
-          : $"Departed at {DepartTime ?? "recently"} • {suffix}.";
+          : $"Departed at {DepartTime ?? "recently"} • {suffix}.");
       }
       return "The physical Hallzee terminal is ready for the next student.";
     }

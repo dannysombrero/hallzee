@@ -5,12 +5,10 @@ on:
       version:
         description: Firmware version (major.minor.patch, newer than installed terminals)
         required: true
-      publish:
-        description: Publish immutable GitHub Release after hardware validation
-        type: boolean
-        default: false
 permissions:
   contents: read
+env:
+  RELEASE_REPOSITORY: ${{ vars.HALLZEE_RELEASE_REPOSITORY || github.repository }}
 jobs:
   test:
     strategy:
@@ -103,21 +101,21 @@ jobs:
         with:
           name: USB-${{ matrix.rid }}
           path: Hallzee-USB-*.zip
-  publish:
-    if: inputs.publish
+  metadata:
     needs: [build, usb]
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    environment: firmware-release
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/download-artifact@v6
-        with:
-          path: downloads
-      - name: Publish new version without replacing existing assets
+      - name: Record version, destination, source, and teacher guide
         env:
-          GH_TOKEN: ${{ github.token }}
           RELEASE_VERSION: ${{ inputs.version }}
         run: |
-          gh release create "firmware-v$RELEASE_VERSION" downloads/Firmware-and-USB-images/*.hallzee-fw downloads/USB-*/*.zip --target "$GITHUB_SHA" --title "Hallzee Firmware $RELEASE_VERSION" --notes-file firmware/release-notes.md
+          mkdir metadata
+          python3 -c 'import json,os; json.dump(dict(product="firmware",version=os.environ["RELEASE_VERSION"],repository=os.environ["RELEASE_REPOSITORY"],sha=os.environ["GITHUB_SHA"]),open("metadata/release.json","w"))'
+          cp docs/getting-started-users.md metadata/teacher-guide.md
+          cp firmware/release-notes.md metadata/notes.md
+      - uses: actions/upload-artifact@v6
+        with:
+          name: Release-metadata
+          path: metadata/
+          if-no-files-found: error

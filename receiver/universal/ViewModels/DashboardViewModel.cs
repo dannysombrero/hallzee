@@ -194,7 +194,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged {
 
     RecentTrips.Clear();
     foreach (var activeTrip in liveActiveTrips.AsEnumerable().Reverse()) RecentTrips.Add(activeTrip);
-    if (liveActiveTrips.Count == 0 && ActivePass.IsOccupied && !string.IsNullOrWhiteSpace(ActivePass.StudentId)) {
+    if ((ActivePass.IsManual || liveActiveTrips.Count == 0) && ActivePass.IsOccupied && !string.IsNullOrWhiteSpace(ActivePass.StudentId)) {
       RecentTrips.Add(DashboardActivityItem.FromActivePass(ActivePass));
     }
     foreach (var t in raw) RecentTrips.Add(DashboardActivityItem.FromTrip(t));
@@ -315,6 +315,8 @@ public sealed class DashboardViewModel : INotifyPropertyChanged {
     OnPropertyChanged(nameof(HasNoExceededStudents));
   }
 
+  public DashboardActivityItem? GetOldestLiveCheckout() => liveActiveTrips.OrderBy(trip => trip.CheckoutTime).FirstOrDefault();
+
   public void RegisterLiveCheckout(string studentId, string? studentName, DateTime? checkoutTime) {
     liveActiveTrips.RemoveAll(item => item.StudentId == studentId);
     liveActiveTrips.Add(DashboardActivityItem.FromLiveCheckout(studentId, studentName, checkoutTime));
@@ -333,7 +335,7 @@ public sealed class DashboardViewModel : INotifyPropertyChanged {
 
   public void RefreshAdditionalActiveTrips() {
     AdditionalActiveTrips.Clear();
-    foreach (var trip in liveActiveTrips.Where(trip => trip.StudentId != ActivePass.StudentId)) {
+    foreach (var trip in liveActiveTrips.Where(trip => ActivePass.IsManual || trip.StudentId != ActivePass.StudentId)) {
       AdditionalActiveTrips.Add(new AdditionalActivePassViewModel(trip));
     }
   }
@@ -375,7 +377,7 @@ public sealed record DashboardActivityItem(
     "#F59E0B",
     "White",
     "#FEF3C7"
-  ) { SortTimestamp = pass.DepartTime ?? "", TripDate = DateTime.Today.ToString("yyyy-MM-dd") };
+  ) { SortTimestamp = pass.CheckoutTime?.ToString("O") ?? "", CheckoutTime = pass.CheckoutTime, TripDate = (pass.CheckoutTime ?? DateTime.Today).ToString("yyyy-MM-dd") };
 
   public static DashboardActivityItem FromLiveCheckout(string studentId, string? studentName, DateTime? checkoutTime) => new(
     studentId,

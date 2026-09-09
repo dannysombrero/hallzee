@@ -16,6 +16,17 @@ public partial class MainWindow : Window {
     if (DataContext is MainViewModel vm) vm.CloseModal();
   }
 
+  void OnHelpClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm) vm.OpenTeacherGuide();
+  }
+
+  async void OnUpdatesClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is not MainViewModel vm || !vm.CanCheckUpdates) return;
+    vm.TerminalSettingsModal.SelectDeviceSubmenu();
+    vm.OpenModal("TerminalSettings");
+    await vm.CheckSoftwareUpdatesAsync();
+  }
+
   void OnTripsClick(object? sender, RoutedEventArgs e) {
     if (DataContext is MainViewModel vm) vm.OpenModal("Trips");
   }

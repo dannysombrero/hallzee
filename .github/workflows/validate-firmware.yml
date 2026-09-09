@@ -7,6 +7,7 @@ on:
       - "*.cpp"
       - "*.h"
       - "test/**"
+      - "tools/FirmwareTool/**"
       - "firmware/**"
       - "scripts/flash-terminal*"
       - "scripts/build-firmware-release.py"
@@ -17,6 +18,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  fast_usb_tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - run: dotnet build tools/FirmwareTool/FirmwareTool.csproj
+      - run: python3 test/test_usb_fast.py
+      - run: bash -n scripts/flash-terminal-macos.sh
+      - name: Parse Windows flash script
+        shell: pwsh
+        run: |
+          $errors = $null
+          $tokens = $null
+          [System.Management.Automation.Language.Parser]::ParseFile("$PWD/scripts/flash-terminal-windows.ps1", [ref]$tokens, [ref]$errors) | Out-Null
+          if ($errors.Count) { throw ($errors -join "`n") }
+
   native_tests:
     runs-on: macos-latest
     steps:

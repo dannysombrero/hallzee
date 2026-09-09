@@ -16,6 +16,8 @@ public sealed partial class MainViewModel : INotifyPropertyChanged, IDisposable 
   readonly ProfileAndPolicySqliteRepository profileRepository;
   readonly RosterService rosterService;
   readonly SyncSession syncSession;
+  readonly ActivePassViewModel terminalActivePass = new();
+  DesktopPass? desktopPass;
   readonly TerminalSession? terminalSession;
   readonly ITerminalCredentialStore? ownerCredentialStore;
   readonly TerminalOperationCoordinator operationCoordinator = new();
@@ -84,6 +86,7 @@ public sealed partial class MainViewModel : INotifyPropertyChanged, IDisposable 
     // Initialize child viewmodels
     ActivePass = new ActivePassViewModel();
     ActivePass.SetUnknown();
+    terminalActivePass.SetUnknown();
 
     Dashboard = new DashboardViewModel(tripRepository, rosterService, ActivePass);
     TripsModal = new TripsViewModel(tripRepository, rosterService);
@@ -441,6 +444,7 @@ public sealed partial class MainViewModel : INotifyPropertyChanged, IDisposable 
         OnPropertyChanged();
         OnPropertyChanged(nameof(HeaderLocationText));
         Dashboard.ClearLiveCheckouts();
+        terminalActivePass.SetUnknown();
         RefreshActiveProfileData();
         UpdatePeriodWindow();
       }
@@ -502,12 +506,43 @@ public sealed partial class MainViewModel : INotifyPropertyChanged, IDisposable 
       ManualCheckInModal.StatusMessage = "Enter a student name or student ID to continue.";
       return;
     }
-    var (id, name, period, destination, purpose) = ManualCheckInModal.ResolvePassDetails();
-    ActivePass.SetOccupied(id, name, DateTime.Now, period, destination, purpose, isManual: true);
-    Dashboard.RegisterLiveCheckout(id, name, DateTime.Now);
+    try {
+      if (tripRepository.GetActiveDesktopPass(ActiveProfile.ProfileId) != null || HasStudentsOut) {
+        ManualCheckInModal.StatusMessage = "Check in the active pass before starting another teacher pass.";
+        return;
+      }
+      var (id, name, period, destination, purpose) = ManualCheckInModal.ResolvePassDetails();
+      var checkout = DateTime.Now;
+      var resolved = scheduleService.ResolvePeriod(checkout,
+        profileRepository.GetBellSchedule(ActiveProfile.ProfileId),
+        profileRepository.GetScheduleExceptions(ActiveProfile.ProfileId));
+      var pass = new DesktopPass(Guid.NewGuid().ToString("N"), ActiveProfile.ProfileId, id, name,
+        checkout, string.IsNullOrWhiteSpace(period) ? resolved?.ClassSection ?? "" : period,
+        destination ?? "", purpose ?? "", resolved?.ScheduleName);
+      tripRepository.StartDesktopPass(pass);
+      desktopPass = pass;
+    } catch (Exception) {
+      ManualCheckInModal.StatusMessage = "Could not save this pass. Nothing was started; try again.";
+      return;
+    }
+    RefreshDisplayedActivePass();
+    CloseModal();
+  }
+
+  void RefreshDisplayedActivePass() {
+    if (desktopPass is {} pass) {
+      ActivePass.SetOccupied(pass.StudentId, pass.StudentName, pass.CheckoutAt,
+        pass.Period, pass.Destination, pass.Purpose, isManual: true);
+    } else if (terminalActivePass.IsOccupied) {
+      ActivePass.SetOccupied(terminalActivePass.StudentId!, terminalActivePass.StudentName,
+        terminalActivePass.CheckoutTime);
+    } else if (terminalActivePass.IsStatusUnknown) {
+      ActivePass.SetUnknown();
+    } else {
+      ActivePass.SetAvailable();
+    }
     Dashboard.RefreshAdditionalActiveTrips();
     Dashboard.Refresh(ActiveProfile.ProfileId);
-    CloseModal();
   }
 
   public void ExportTrips(string exportPath, bool openModal = true) {
@@ -706,9 +741,9 @@ public sealed partial class MainViewModel : INotifyPropertyChanged, IDisposable 
       if (terminalSession != null) await terminalSession.DisconnectAsync();
       else await connection.DisconnectAsync();
       IsConnected = false;
-      ActivePass.SetUnknown();
+      terminalActivePass.SetUnknown();
       Dashboard.ClearLiveCheckouts();
-      Dashboard.Refresh(ActiveProfile.ProfileId);
+      RefreshDisplayedActivePass();
     } finally {
       intentionalDisconnect = false;
     }
@@ -728,26 +763,15 @@ public sealed partial class MainViewModel : INotifyPropertyChanged, IDisposable 
         // The terminal's LIVE_TRIP/sync supplies the durable record and its ID.
         return;
       }
-      var checkoutTime = ActivePass.CheckoutTime ?? DateTime.Now;
-      var checkinTime = DateTime.Now;
-      var duration = (int)Math.Max(0, (checkinTime - checkoutTime).TotalSeconds);
-      var date = checkoutTime.ToString("yyyy-MM-dd");
-      var timeOut = checkoutTime.ToString("HH:mm:ss");
-      var timeIn = checkinTime.ToString("HH:mm:ss");
-
-      var tripId = tripRepository.GetLatestTripId() + 1;
-      const string status = "MANUAL";
-      var payload = $"{tripId},{studentId},{date},{timeOut},{timeIn},{duration},{status}";
-      if (tripRepository.StoreManual("DESKTOP", payload, ActivePass.StudentName) != TripStoreResult.Saved) {
-        CheckInError = "Could not save the check-in. Try again.";
+      if (desktopPass == null) return;
+      try {
+        var completed = tripRepository.CompleteDesktopPass(desktopPass.ProfileId, desktopPass.PassId, DateTime.Now);
+        desktopPass = completed ? null : tripRepository.GetActiveDesktopPass(ActiveProfile.ProfileId);
+      } catch (Exception) {
+        CheckInError = "Could not confirm the check-in. The pass is kept on screen; try again.";
         return;
       }
-      AssignTripContext("DESKTOP", tripId, date, timeOut);
-
-      ActivePass.SetAvailable();
-      Dashboard.ResolveLiveCheckout(studentId);
-      Dashboard.RefreshAdditionalActiveTrips();
-      Dashboard.Refresh(ActiveProfile.ProfileId);
+      RefreshDisplayedActivePass();
     }
   }
 
@@ -850,6 +874,8 @@ public sealed partial class MainViewModel : INotifyPropertyChanged, IDisposable 
   }
 
   public void RefreshActiveProfileData() {
+    desktopPass = tripRepository.GetActiveDesktopPass(ActiveProfile.ProfileId);
+    RefreshDisplayedActivePass();
     NotifyDeviceState();
     PolicyModal.Refresh(ActiveProfile.ProfileId);
     RosterModal.Refresh(ActiveProfile.ProfileId);
@@ -1128,11 +1154,11 @@ public sealed partial class MainViewModel : INotifyPropertyChanged, IDisposable 
     if (update.ActivePass != null) {
       if (update.ActivePass.Status == ActivePassStatus.Occupied && !string.IsNullOrEmpty(update.ActivePass.StudentId)) {
         var student = rosterService.LookupStudent(ActiveProfile.ProfileId, update.ActivePass.StudentId);
-        ActivePass.SetOccupied(update.ActivePass.StudentId, student?.FullName, update.ActivePass.CheckedOutAt);
+        terminalActivePass.SetOccupied(update.ActivePass.StudentId, student?.FullName, update.ActivePass.CheckedOutAt);
         Dashboard.RegisterLiveCheckout(update.ActivePass.StudentId, student?.FullName, update.ActivePass.CheckedOutAt);
         Dashboard.RefreshAdditionalActiveTrips();
       } else {
-        ActivePass.SetAvailable();
+        terminalActivePass.SetAvailable();
         Dashboard.ClearLiveCheckouts();
       }
     }
@@ -1146,9 +1172,9 @@ public sealed partial class MainViewModel : INotifyPropertyChanged, IDisposable 
       var oldest = update.ActivePasses.FirstOrDefault();
       if (oldest != null) {
         var student = rosterService.LookupStudent(ActiveProfile.ProfileId, oldest.StudentId!);
-        ActivePass.SetOccupied(oldest.StudentId!, student?.FullName, oldest.CheckedOutAt);
+        terminalActivePass.SetOccupied(oldest.StudentId!, student?.FullName, oldest.CheckedOutAt);
       } else {
-        ActivePass.SetAvailable();
+        terminalActivePass.SetAvailable();
       }
       Dashboard.RefreshAdditionalActiveTrips();
       Dashboard.Refresh(ActiveProfile.ProfileId);
@@ -1158,17 +1184,25 @@ public sealed partial class MainViewModel : INotifyPropertyChanged, IDisposable 
       if (update.LiveEvent.EventType == LivePassEventType.Checkout) {
         var student = rosterService.LookupStudent(ActiveProfile.ProfileId, update.LiveEvent.StudentId);
         Dashboard.RegisterLiveCheckout(update.LiveEvent.StudentId, student?.FullName, update.LiveEvent.CheckoutTime);
-        if (!ActivePass.IsOccupied) {
-          ActivePass.SetOccupied(update.LiveEvent.StudentId, student?.FullName, update.LiveEvent.CheckoutTime);
+        if (!terminalActivePass.IsOccupied) {
+          terminalActivePass.SetOccupied(update.LiveEvent.StudentId, student?.FullName, update.LiveEvent.CheckoutTime);
         }
         Dashboard.RefreshAdditionalActiveTrips();
         Dashboard.Refresh(ActiveProfile.ProfileId);
       } else if (update.LiveEvent.EventType is LivePassEventType.Checkin or LivePassEventType.Reset) {
         Dashboard.ResolveLiveCheckout(update.LiveEvent.StudentId);
-        if (ActivePass.StudentId == update.LiveEvent.StudentId) ActivePass.SetAvailable();
+        if (terminalActivePass.StudentId == update.LiveEvent.StudentId) terminalActivePass.SetAvailable();
         Dashboard.RefreshAdditionalActiveTrips();
         Dashboard.Refresh(ActiveProfile.ProfileId);
       }
+    }
+
+    if (update.ActivePass != null || update.ActivePasses != null || update.LiveEvent != null) {
+      // Keep the primary terminal pass consistent after one of several students returns.
+      var remaining = Dashboard.GetOldestLiveCheckout();
+      if (!terminalActivePass.IsOccupied && remaining != null)
+        terminalActivePass.SetOccupied(remaining.StudentId, remaining.DisplayName, remaining.CheckoutTime);
+      RefreshDisplayedActivePass();
     }
 
     foreach (var storedTrip in update.StoredTrips) {
@@ -1206,8 +1240,9 @@ public sealed partial class MainViewModel : INotifyPropertyChanged, IDisposable 
   void HandleConnectionLost(object? sender, string detail) {
     IsConnected = false;
     IsSyncing = false;
-    ActivePass.SetUnknown();
+    terminalActivePass.SetUnknown();
     Dashboard.ClearLiveCheckouts();
+    RefreshDisplayedActivePass();
     if (!intentionalDisconnect && terminalSession != null &&
         lastAuthenticatedDevice != null && lastAuthenticatedTerminalId != null) {
       StartAutomaticReconnect();

@@ -45,9 +45,12 @@ try {
     case "recover": {
       await UsbBootstrap.RecoverAsync(Required(args,"--esptool"),Required(args,"--port"),Required(args,"--backup")); break;
     }
+    case "usb-fast": {
+      await UsbBootstrap.UpdateApplicationAsync(Required(args,"--esptool"),Required(args,"--port"),Required(args,"--build")); break;
+    }
     case "usb": {
       await UsbBootstrap.InstallAsync(Required(args,"--esptool"),Required(args,"--mklittlefs"),Required(args,"--port"),Required(args,"--build"),Required(args,"--backup")); break;
     }
-    default: throw new ArgumentException("Commands: pack --version V --build ID --input DIR --output FILE --key PEM --notes FILE; verify --package FILE; usb --esptool EXE --mklittlefs EXE --port PORT --build DIR --backup DIR");
+    default: throw new ArgumentException("Commands: pack --version V --build ID --input DIR --output FILE --key PEM --notes FILE; verify --package FILE; usb --esptool EXE --mklittlefs EXE --port PORT --build DIR --backup DIR; usb-fast --esptool EXE --port PORT --build DIR");
   }
 } catch(Exception ex) { Console.Error.WriteLine(ex.Message); Environment.ExitCode=1; }

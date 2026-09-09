@@ -1,3 +1,5 @@
+#include "FirmwareUpdater.h"
+#include <esp_task_wdt.h>
 #include <Adafruit_GFX.h>
 #if defined(HALLZEE_ILI9341)
 #include "HallzeeLogoData.h"
@@ -120,6 +122,14 @@ void handleSingleHash();
 void resetCurrentCheckout();
 void drawIdleScreen();
 void transitionToIdle(bool clearEnteredId = true);
+
+bool firmwareAuthorized() { return terminalSecurity.isAuthorized(); }
+bool firmwareIdle() { return !terminal.hasActivePass(); }
+FirmwareUpdater firmwareUpdater(bluetoothSerial, firmwareAuthorized, firmwareIdle);
+bool firmwareCommand(const String &command) { return firmwareUpdater.command(command); }
+void firmwareFrame(const uint8_t *data, size_t size) { firmwareUpdater.frame(data, size); }
+bool firmwareScreenVisible = false;
+int lastFirmwareProgress = -1;
 
 bool pairingUiActive = false;
 String displayedFriendlyName;
@@ -797,6 +807,11 @@ void processSerialCommands() {
 void setup() {
 
   Serial.begin(115200);
+  // A stalled first boot must reset so the bootloader can restore the last image.
+  esp_task_wdt_config_t firmwareWatchdog = {15000, 0, true};
+  if (esp_task_wdt_reconfigure(&firmwareWatchdog) == ESP_ERR_INVALID_STATE) esp_task_wdt_init(&firmwareWatchdog);
+  enableLoopWDT();
+  const bool firmwareWatchdogReady = esp_task_wdt_status(nullptr) == ESP_OK;
 
   delay(500);
 
@@ -816,6 +831,7 @@ void setup() {
   }
 
   bluetoothSync.setOwnerReleaseHandler(releaseOwnerFromDesktop);
+  bluetoothSync.setFirmwareHandlers(firmwareCommand, firmwareFrame);
   bluetoothSync.begin();
   // Do not clear BLE bonds merely because the owner record is unavailable at
   // boot. A transient NVS read failure must not make macOS report
@@ -826,8 +842,9 @@ void setup() {
 
   // Storage owns NVS and LittleFS, then restores an active pass before clock
   // setup. The display is intentionally deferred until the clock is set.
-  tripStorage.begin();
-  if (!bellPolicy.begin()) {
+  const bool tripStorageReady = tripStorage.begin();
+  const bool bellPolicyReady = bellPolicy.begin();
+  if (!bellPolicyReady) {
     Serial.println("WARNING: Bell policy storage unavailable; terminal enforcement is off.");
   }
   terminal.setCapacity(tripStorage.getMaxActivePasses());
@@ -863,6 +880,7 @@ void setup() {
   // Until Bluetooth auto-time is added,
   // every true startup asks for date/time.
   beginClockSetup();
+  firmwareUpdater.confirmBoot(identityStorageReady && terminalIdentity.storageReady() && securityStorageReady && tripStorageReady && bellPolicyReady && bluetoothSerial.isReady() && firmwareWatchdogReady);
 }
 
 // Hallzee brand logo splash screen.
@@ -939,12 +957,27 @@ void drawStartupLogo() {
 void loop() {
 
   // Diagnostic only: send p in Serial Monitor to print local trip records.
-  processSerialCommands();
+  if (!firmwareUpdater.busy()) processSerialCommands();
 
-  keypadController.poll();
+  if (!firmwareUpdater.busy()) keypadController.poll();
 
   // Bluetooth is passive in Phase 3; it must never block student workflow.
   bluetoothSync.poll();
+  firmwareUpdater.poll();
+  if (firmwareUpdater.busy()) {
+    if (!firmwareScreenVisible || lastFirmwareProgress != int(firmwareUpdater.progress())) {
+      firmwareScreenVisible = true;
+      lastFirmwareProgress = firmwareUpdater.progress();
+      tft.fillScreen(UI_NAVY); tft.setFont(nullptr); tft.setTextColor(0xffff); tft.setTextSize(1);
+      tft.setCursor(10, 35); tft.print("Updating firmware");
+      tft.setCursor(10, 55); tft.print(String(lastFirmwareProgress) + "% - keep power on");
+    }
+    return;
+  }
+  if (firmwareScreenVisible) {
+    firmwareScreenVisible = false; lastFirmwareProgress = -1;
+    if (setupMode) drawSetupScreen(); else drawIdleScreen();
+  }
   // Allow the release acknowledgement to reach the owner before closing BLE.
   if (ownerReleaseCleanupPending && (!bluetoothSerial.hasClient() ||
       monotonicClock.milliseconds() - ownerReleaseStartedAt >= 500)) {

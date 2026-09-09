@@ -68,6 +68,11 @@ cannot claim or connect to it.
   The name is persisted by the kiosk and reused in discovery, reconnect UI, and
   the terminal header as **Terminal: [name]**. Long names are abbreviated in the
   narrow header; pairing displays the full name.
+- **Settings → Device** also shows the terminal's firmware version. After the
+  one-time OTA USB setup, use **Install firmware from file…** with a signed
+  `.hallzee-fw` package, or **Check for software updates → Download & Install
+  firmware**. Check in all passes first and keep the terminal powered nearby.
+  See [Firmware updates](firmware-updates.md) for the rollout/verification status.
 - To release a terminal, connect to it, check in all active passes, and choose
   **Settings → Device → Disconnect & Unpair**. The notice explains that the
   next connection requires physical pairing mode and a new passkey. This removes

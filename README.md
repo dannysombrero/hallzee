@@ -27,6 +27,7 @@ records locally and can synchronize them to a desktop receiver over Bluetooth Lo
 
 - [Getting started: normal users](docs/getting-started-users.md) — Download the app, pair a terminal, add students, share workspace settings, and sync trips.
 - [Getting started: developers](docs/getting-started-developers.md) — Set up a clean computer, wire/flash hardware, run the app locally, and test changes.
+- [Firmware updates and releases](docs/firmware-updates.md) — Initial USB setup, signed package installation, and release workflow.
 - [Installation and testing guide](docs/testing-and-installation.md) — Detailed hardware wiring, Mac vs. Windows verification rules, and one-command bootstraps.
 - **Level 1 (PRD):** [Product & Requirements Document](docs/product-requirements.md) — Product vision, personas, classroom workflows, and FERPA privacy boundaries.
 - **Level 2 (Architecture):**
@@ -39,7 +40,7 @@ records locally and can synchronize them to a desktop receiver over Bluetooth Lo
   - [Classroom Policies & Bell Schedules](docs/design/policy-and-schedules.md) — Pass limits, 10/10 lockout rules, and timetable engine.
   - [Background Auto-Sync](docs/design/auto-sync.md) — Autonomous connection management and channel arbitration.
   - [Terminal Identity & Exclusive Claim](docs/design/terminal-identity-and-exclusive-claim.md) — Stable kiosk IDs, one-owner authorization, safe multi-terminal storage, and implementation plan.
-  - [Bluetooth Firmware Updates](docs/design/bluetooth-firmware-updates.md) — Planned version reporting, firmware packages on GitHub, desktop-to-terminal installation, and future update checks.
+  - [Bluetooth Firmware Updates](docs/design/bluetooth-firmware-updates.md) — Version reporting, signed packages on GitHub, Bluetooth installation, and update checks; physical release verification pending.
 
 ## Hardware
 

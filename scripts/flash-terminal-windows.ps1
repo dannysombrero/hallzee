@@ -50,8 +50,11 @@ if (-not (Test-Path $cli)) {
 
 Write-Host "Installing the ESP32 board support and required libraries if needed…"
 & $cli core update-index --additional-urls $esp32Index
+if ($LASTEXITCODE -ne 0) { throw "Could not update the Arduino package index." }
 & $cli core install "esp32:esp32@$esp32Version" --additional-urls $esp32Index
+if ($LASTEXITCODE -ne 0) { throw "Could not install the pinned ESP32 core." }
 & $cli lib install "Adafruit GFX Library" "Adafruit ST7735 and ST7789 Library" "Adafruit ILI9341" Keypad
+if ($LASTEXITCODE -ne 0) { throw "Could not install firmware libraries." }
 
 # Arduino requires the sketch directory and its main .ino file to share a
 # basename. The repository name is intentionally independent of that file.
@@ -67,24 +70,36 @@ New-Item -ItemType Directory -Force -Path $stagingSketch | Out-Null
 Copy-Item -Path (Join-Path $ProjectRoot "*.ino") -Destination $stagingSketch
 Copy-Item -Path (Join-Path $ProjectRoot "*.h") -Destination $stagingSketch
 Copy-Item -Path (Join-Path $ProjectRoot "*.cpp") -Destination $stagingSketch
+Copy-Item -Path (Join-Path $ProjectRoot "firmware/partitions.csv") -Destination $stagingSketch
 if (Test-Path (Join-Path $ProjectRoot "fonts")) {
   Copy-Item -Path (Join-Path $ProjectRoot "fonts") -Destination $stagingSketch -Recurse
 }
 
 try {
   Write-Host "Building and flashing Hallzee to $Port…"
-  $buildProperties = @()
+  $buildProperties = @("--build-property", "upload.maximum_size=1572864")
   if ($Display -eq "ili9341") {
-    $buildProperties = @("--build-property", "compiler.cpp.extra_flags=-DHALLZEE_ILI9341 -DHALLZEE_DISPLAY_ROTATION=$Rotation")
+    $buildProperties += @("--build-property", "compiler.cpp.extra_flags=-DHALLZEE_ILI9341 -DHALLZEE_DISPLAY_ROTATION=$Rotation")
   }
   & $cli compile --fqbn esp32:esp32:esp32 $stagingSketch --build-path $buildDir @buildProperties
+  if ($LASTEXITCODE -ne 0) { throw "Firmware compilation failed." }
   if ($CompileOnly) {
     Write-Host "Compile-only check passed; the ESP32 was not changed."
   } else {
-    # Use a conservative upload speed because the larger ILI9341 build takes
-    # longer to transfer through common USB-UART adapters.
-    & $cli upload --fqbn esp32:esp32:esp32 --port $Port --input-dir $buildDir --upload-property upload.speed=460800
-    Write-Host "Done. The Hallzee firmware is now on the ESP32."
+    $dotnetCommand = Get-Command dotnet -ErrorAction SilentlyContinue
+    $hasDotnet8 = $dotnetCommand -and ((& $dotnetCommand.Source --list-sdks) -match '^8\.')
+    $dotnet = if ($hasDotnet8) { $dotnetCommand.Source } else { Join-Path $toolsDir "dotnet/dotnet.exe" }
+    if (-not (Test-Path $dotnet) -or -not ((& $dotnet --list-sdks) -match '^8\.')) {
+      $installer = Join-Path $toolsDir "dotnet-install.ps1"
+      Invoke-WebRequest "https://dot.net/v1/dotnet-install.ps1" -OutFile $installer
+      & $installer -Channel "8.0" -InstallDir (Join-Path $toolsDir "dotnet") -NoPath
+    }
+    $arduinoData = if ($env:ARDUINO_DIRECTORIES_DATA) { $env:ARDUINO_DIRECTORIES_DATA } else { Join-Path $env:LOCALAPPDATA "Arduino15" }
+    $esptool = Join-Path $arduinoData "packages/esp32/tools/esptool_py/5.3.1/esptool.exe"
+    $mklittlefs = Join-Path $arduinoData "packages/esp32/tools/mklittlefs/4.0.2-db0513a/mklittlefs.exe"
+    Copy-Item (Join-Path $arduinoData "packages/esp32/hardware/esp32/$esp32Version/tools/partitions/boot_app0.bin") (Join-Path $buildDir "boot_app0.bin")
+    & $dotnet run --project (Join-Path $ProjectRoot "tools/FirmwareTool/FirmwareTool.csproj") -- usb --esptool $esptool --mklittlefs $mklittlefs --port $Port --build $buildDir --backup (Join-Path $toolsDir "terminal-backups")
+    if ($LASTEXITCODE -ne 0) { throw "OTA USB setup failed. Preserve the terminal backup." }
   }
 } finally {
   if (Test-Path $stagingRoot) {

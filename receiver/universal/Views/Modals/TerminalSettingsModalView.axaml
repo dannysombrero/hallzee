@@ -14,7 +14,7 @@
             <TextBlock Text="Settings" FontSize="20" FontWeight="Bold" Foreground="#0F172A" />
             <TextBlock Text="Configure this teacher workspace and its assigned kiosk." FontSize="13" Foreground="#64748B" />
           </StackPanel>
-          <Button Grid.Column="1" Classes="secondary" Content="✕" Click="OnCloseClick" Width="36" Height="36" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
+          <Button Grid.Column="1" Classes="secondary" Content="✕" Click="OnCloseClick" IsEnabled="{Binding !IsFirmwareInstalling}" Width="36" Height="36" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
         </Grid>
 
         <!-- SUBMENU TAB SELECTOR (Profile, Device) -->
@@ -126,6 +126,32 @@
                   <TextBlock Text="{Binding DeviceConnectionStatus}" FontSize="12" FontWeight="SemiBold" Foreground="White" />
                 </Border>
               </Grid>
+            </StackPanel>
+          </Border>
+          <Border Classes="hallzee-section-white" Padding="20">
+            <StackPanel Spacing="10">
+              <TextBlock Text="FIRMWARE &amp; UPDATES" FontSize="11" FontWeight="Bold" Foreground="#64748B" />
+              <TextBlock Text="{Binding FirmwareVersionDisplay}" FontWeight="SemiBold" Foreground="#334155" TextWrapping="Wrap" />
+              <TextBlock Text="{Binding FirmwareCapabilityDisplay}" FontSize="12" Foreground="#64748B" TextWrapping="Wrap" />
+              <WrapPanel>
+                <Button Classes="secondary" Content="Refresh version" Click="OnRefreshFirmwareClick" IsEnabled="{Binding CanEditDevice}" Margin="0,0,8,8" />
+                <Button Classes="secondary" Content="Install firmware from file…" Click="OnLoadFirmwareClick" IsEnabled="{Binding CanLoadFirmware}" Margin="0,0,0,8" />
+              </WrapPanel>
+              <StackPanel IsVisible="{Binding HasFirmwarePackage}" Spacing="8">
+                <ScrollViewer MaxHeight="140" VerticalScrollBarVisibility="Auto"><TextBlock Text="{Binding FirmwarePackageSummary}" Foreground="#334155" FontSize="12" TextWrapping="Wrap" /></ScrollViewer>
+                <TextBlock Text="Keep the terminal powered and the computer nearby. All passes must be checked in." Foreground="#64748B" TextWrapping="Wrap" FontSize="12" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <Button Classes="hallzee-pill-btn" Content="Install update" Click="OnInstallFirmwareClick" IsEnabled="{Binding CanInstallFirmware}" />
+                  <Button Classes="secondary" Content="Cancel" Click="OnCancelFirmwareClick" IsVisible="{Binding !IsFirmwareInstalling}" />
+                </StackPanel>
+              </StackPanel>
+              <ProgressBar Minimum="0" Maximum="100" Value="{Binding FirmwareProgress}" IsVisible="{Binding IsFirmwareInstalling}" />
+              <Button Classes="secondary" Content="Cancel transfer" Click="OnCancelFirmwareClick" IsVisible="{Binding CanCancelFirmware}" HorizontalAlignment="Left" />
+              <TextBlock Text="{Binding FirmwareStatus}" Foreground="#0369A1" TextWrapping="Wrap" FontSize="12" />
+              <Button Classes="secondary" Content="Check for software updates" Click="OnCheckUpdatesClick" IsEnabled="{Binding CanCheckUpdates}" HorizontalAlignment="Left" />
+              <TextBlock Text="{Binding SoftwareUpdateStatus}" Foreground="#475569" TextWrapping="Wrap" FontSize="12" />
+              <Button Classes="hallzee-pill-btn" Content="Download &amp; Install firmware" Click="OnDownloadFirmwareClick" IsVisible="{Binding CanDownloadFirmware}" HorizontalAlignment="Left" />
+              <Button Classes="secondary" Content="Open desktop release" Click="OnDesktopReleaseClick" IsVisible="{Binding HasDesktopRelease}" HorizontalAlignment="Left" />
             </StackPanel>
           </Border>
           <Border Classes="hallzee-section-white" Padding="20">

@@ -43,6 +43,7 @@ public sealed class TerminalSession : IAsyncDisposable, IDisposable {
   TaskCompletionSource<AuthenticatedTerminalSession>? authCompletion;
   TaskCompletionSource<string>? commandCompletion;
   string? expectedCommandResponse;
+  bool expectedResponsePrefix;
   TerminalDevice? selectedDevice;
   TerminalIdentity? identity;
   string? expectedTerminalId;
@@ -219,18 +220,25 @@ public sealed class TerminalSession : IAsyncDisposable, IDisposable {
     }
   }
 
-  public async Task RequestAuthorizedAsync(string command, string expectedResponse, CancellationToken cancellationToken = default) {
+  public Task<string> RequestAuthorizedAsync(string command, string expectedResponse, CancellationToken cancellationToken = default) =>
+    ExchangeAuthorizedAsync(command, null, expectedResponse, false, cancellationToken);
+
+  public async Task<string> ExchangeAuthorizedAsync(string? command, byte[]? frame, string expectedResponse, bool prefix = false, CancellationToken cancellationToken = default) {
     await operationLock.WaitAsync(cancellationToken);
     try {
-      if (State != TerminalSessionState.Authenticated)
-        throw new InvalidOperationException("Reconnect to the terminal first.");
+      if (State != TerminalSessionState.Authenticated) throw new InvalidOperationException("Reconnect to the terminal first.");
       commandCompletion = NewCompletion<string>();
       expectedCommandResponse = expectedResponse;
-      await connection.SendAsync(command);
-      await WaitAsync(commandCompletion.Task, cancellationToken);
+      expectedResponsePrefix = prefix;
+      if (frame != null) {
+        if (connection is not ITerminalBinaryConnection binary) throw new NotSupportedException("This Bluetooth transport needs a client update.");
+        await binary.SendBinaryAsync(frame).WaitAsync(TimeSpan.FromSeconds(30), cancellationToken);
+      } else await connection.SendAsync(command!).WaitAsync(TimeSpan.FromSeconds(30), cancellationToken);
+      return await WaitAsync(commandCompletion.Task, cancellationToken);
     } finally {
       commandCompletion = null;
       expectedCommandResponse = null;
+      expectedResponsePrefix = false;
       operationLock.Release();
     }
   }
@@ -275,12 +283,12 @@ public sealed class TerminalSession : IAsyncDisposable, IDisposable {
   }
 
   void HandleLine(string line) {
-    if (commandCompletion != null && line == expectedCommandResponse) {
+    if (commandCompletion != null && (expectedResponsePrefix ? line.StartsWith(expectedCommandResponse!, StringComparison.Ordinal) : line == expectedCommandResponse)) {
       commandCompletion.TrySetResult(line);
       return;
     }
     if (commandCompletion != null && (line.StartsWith("ERROR,", StringComparison.Ordinal) ||
-        line.StartsWith("SETTINGS_ERROR,", StringComparison.Ordinal))) {
+        line.StartsWith("FW_ERROR,", StringComparison.Ordinal) || line.StartsWith("SETTINGS_ERROR,", StringComparison.Ordinal))) {
       commandCompletion.TrySetException(new InvalidOperationException($"Terminal rejected the request: {line}"));
     }
 

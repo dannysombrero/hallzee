@@ -1,7 +1,20 @@
 # Plan: Bluetooth firmware packages and updates
 
-**Status:** Planned; version reporting, package import, BLE firmware transfer,
-and online update checks are not implemented by this document.
+**Status:** Implemented in source; physical OTA/rollback and USB migration
+verification remain release gates. No production firmware release has been
+published. See [Firmware operations and releases](Firmware-Updates.md) for the
+actual wire/package formats, signing setup, commands, and supported platforms.
+
+**Implementation decisions:** `manifest.txt` uses bounded ASCII pipe-separated
+fields, signed with ECDSA P-256/SHA-256. One bundle covers five display/orientation
+variants and signs USB bootstrap hashes as well as application hashes. `ota-v1`
+has two 1.5 MiB slots and 896 KiB LittleFS; USB scripts verify backup/repacking
+before flashing. The installed Arduino 3.3.11 core enables rollback; application
+confirmation follows storage/BLE initialization under a 15-second watchdog.
+Binary frames share the encrypted RX stream with explicit framing and do not
+enter the newline parser. WinRT/CoreBluetooth negotiate payload size with a
+20-byte fallback. Signing-key rotation remains a coordinated bridge/USB
+procedure; automatic multi-key rotation is not implemented.
 
 **Decision:** Deliver manual package installation first, then GitHub update
 checks using the same installer. A one-time USB installation to enable OTA is
@@ -67,17 +80,16 @@ matching image to the device. Illustrative contents:
 
 ```text
 Hallzee-Firmware-<version>.hallzee-fw
-  manifest.json
+  manifest.txt
   manifest.sig
   release-notes.md
   images/esp32-st7735-<variant>.bin
   images/esp32-ili9341-<variant>.bin
 ```
 
-The exact manifest bytes are signed, not JSON reserialized by the client. The
-signature binds each image's digest and compatibility fields. Select a compact
-signature implementation during the firmware-size spike and freeze its format
-before issuing the initial USB installer. Both desktop and terminal must verify
+The signature covers exact manifest bytes; clients do not normalize them. The
+signature binds each image's digest and compatibility fields. The selected signature is ECDSA P-256/SHA-256 with DER encoding; the
+wire manifest format is frozen as schema 1. Both desktop and terminal must verify
 against trusted public keys installed independently of the downloaded package;
 never trust a signing key supplied only by that package. Keep private signing
 keys in protected release infrastructure, outside binaries and the source tree.
@@ -164,10 +176,9 @@ slots plus OTA metadata. The latest ILI9341 build measured 1,306,473 bytes again
 1,310,720 bytes per slot: only 4,247 bytes remain. Adding an updater and signature
 verification needs a size/layout decision before deploying the bootstrap.
 
-First attempt size reductions that retain the existing data offsets. If that
-cannot leave a useful budget for future signed images, adopt a versioned custom
-layout with larger **two** app slots and measure the resulting trip-storage
-capacity on 4 MB boards. Set a CI headroom target (initial proposal: at least
+The implemented updater/signature code exceeded the original slot size, so
+`ota-v1` uses two 1.5 MiB app slots and the USB migration described below.
+Physical retention-capacity measurement on 4 MB boards remains required. Set a CI headroom target (initial proposal: at least
 128 KiB per slot after signing overhead); confirm feasibility in the spike.
 Do not solve the problem by removing the recovery slot or assuming 8 MB hardware.
 
@@ -229,8 +240,8 @@ interruption recovery, retained data, and rollback checks on both ST7735 and
 ILI9341 configurations. A Mac can test the CoreBluetooth path. **A Windows PC is
 required** for the Windows-specific WinRT binary GATT writes, negotiated payloads,
 flow control, file picker, reboot reconnect, and retained Bluetooth/credential
-state. Neither physical BLE OTA path has been implemented or verified yet;
-Windows OTA behavior has not been verified. Mac-only testing cannot release it.
+state. Both platform paths are implemented, but neither physical BLE OTA path has
+been verified; Windows OTA behavior has not been verified. Mac-only testing cannot release it.
 
 Required scenarios:
 

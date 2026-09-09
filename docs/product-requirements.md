@@ -118,12 +118,12 @@ sequenceDiagram
 - **FR-TERM-3:** Teachers must be able to configure the accepted Student-ID length (range: 4 to 16 digits; default: 10) on the terminal.
 - **FR-TERM-4:** The desktop client must automatically synchronize date and time with the terminal upon connection.
 
-Planned firmware management ([implementation plan](design/bluetooth-firmware-updates.md)):
+Firmware management (implemented; physical release verification pending) ([implementation plan](design/bluetooth-firmware-updates.md)):
 
-- **FR-TERM-5 (planned):** Device settings reports the running firmware version/build and update capability from the authenticated terminal; cached offline values are labeled and legacy firmware explains the initial USB requirement.
-- **FR-TERM-6 (planned):** Teachers can select a signed `.hallzee-fw` package downloaded from GitHub Releases or provided during private development. The desktop selects a compatible image and installs it over BLE without internet access, preserving identity, pairing, trips, and settings.
-- **FR-TERM-7 (planned):** Installation requires an idle terminal and owner authorization, verifies authenticity and compatibility, tolerates interrupted transfer, and supports failed-boot rollback. Success requires confirmation of the running build after reconnect. One initial USB bootstrap is accepted.
-- **FR-TERM-8 (future):** **Check for software updates** reports desktop and firmware updates separately. Firmware **Download & Install** reuses the package installer without a browser download or file picker; manual offline import remains available.
+- **FR-TERM-5 (implemented):** Device settings reports the running firmware version/build and update capability from the authenticated terminal; cached offline values are labeled and legacy firmware explains the initial USB requirement.
+- **FR-TERM-6 (implemented):** Teachers can select a signed `.hallzee-fw` package downloaded from GitHub Releases or provided during private development. The desktop selects a compatible image and installs it over BLE without internet access, preserving identity, pairing, trips, and settings.
+- **FR-TERM-7 (implemented):** Installation requires an idle terminal and owner authorization, verifies authenticity and compatibility, tolerates interrupted transfer, and supports failed-boot rollback. Success requires confirmation of the running build after reconnect. One initial USB bootstrap is accepted.
+- **FR-TERM-8 (implemented):** **Check for software updates** reports desktop and firmware updates separately. Firmware **Download & Install** reuses the package installer without a browser download or file picker; manual offline import remains available.
 
 
 ---

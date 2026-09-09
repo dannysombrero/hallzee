@@ -6,6 +6,7 @@
 class TerminalIdentity {
 public:
   bool begin();
+  bool storageReady() const { return preferencesReady; }
 
   const String &terminalId() const { return id; }
   String terminalSuffix() const;

@@ -184,3 +184,60 @@ assuming the old cursor belongs to the new device.
 An unclaimed terminal removes stale ESP32 bond records at startup and whenever
 physical pairing mode begins. This ensures the operating system negotiates the
 currently displayed passkey instead of reusing a bond from an earlier claim.
+
+
+## Firmware update protocol (schema 1)
+
+Firmware operations use the existing owner-authenticated encrypted GATT service.
+`GET_FIRMWARE_INFO` returns:
+
+```text
+FIRMWARE_INFO,1,<version>,<build>,<variant>,<layout>,<slotBytes>,<otaSupported>,<CONFIRMED|PENDING|FAILED>,<bootstrap>
+```
+
+An unsupported older terminal returns its normal command error. The client
+labels cached values until a fresh authenticated query succeeds.
+
+`FW_BEGIN,<sessionHex>,<manifestBytes>,<signatureHex>` requires no active passes
+and `ota-v1`. The nonzero session ID is eight hex digits; manifest size is at most
+2048 and signature is a DER ECDSA P-256 signature in hex. Success is
+`FW_READY,<sessionHex>`. During a session, other application commands are rejected
+with `FW_ERROR,BUSY` and keypad/serial checkout/reset operations are paused.
+
+Binary frames share RX but bypass newline parsing. Their 15-byte header is:
+
+| Offset | Field |
+| --- | --- |
+| 0–3 | `00 48 5A 01` (NUL, H, Z, protocol 1) |
+| 4 | Kind: 1 = signed manifest; 2 = application image |
+| 5–8 | Session ID, unsigned little-endian 32-bit |
+| 9–12 | Offset within that kind, unsigned little-endian 32-bit |
+| 13–14 | Payload bytes, little-endian 16-bit, 1–512 |
+| 15 onward | Exactly that many binary bytes |
+
+Frames may span negotiated GATT writes (20-byte fallback, up to 244-byte
+payload). A bounded 4096-byte FreeRTOS queue separates BLE callbacks from main-loop
+flash writes; overflow disconnects instead of allocating unbounded memory. Stop-and-wait uses `FW_ACK,<sessionHex>,<kind>,<nextOffset>`. An already
+acknowledged prefix is not written twice; missing/out-of-order offsets are
+rejected. Transfer requests retry a missing ACK twice. Metadata signature,
+variant, layout, bootstrap, version, and image size are checked before opening
+the inactive slot. Image bytes stream to that slot and a SHA-256 accumulator.
+
+`FW_ABORT,<sessionHex>` returns `FW_ABORTED` before commit and restores normal
+operation. Link/auth loss or 30 seconds without accepted data aborts an incomplete
+session; retry begins from zero with a new session after authentication.
+`FW_COMMIT,<sessionHex>` requires the exact signed length/digest, validates the
+ESP image, and selects the inactive slot. `FW_COMMITTED` precedes reboot by about
+500 ms; cancellation is no longer allowed. The desktop must reconnect to the
+same ID and verify the running build/confirmed boot to report completion.
+
+Errors use `FW_ERROR,<reason>`: `BUSY`, `ACTIVE_PASS`, `USB_SETUP_REQUIRED`,
+`INVALID_BEGIN`, `INVALID_SESSION`, `NOT_READY`, `SESSION`, `FRAME`, `OFFSET`, `STATE`,
+`METADATA`, `SIGNATURE_OR_COMPATIBILITY`, `WRITE`, `INCOMPLETE`, `HASH`, `IMAGE`,
+or `COMMITTED`. Failures before commit cannot select the partially written image.
+The rollback-enabled bootloader retains the previous slot; initial application
+health checks run under a watchdog before confirming the new boot. No BLE
+command rewrites the partition table, bootloader, NVS, or filesystem.
+
+See [Firmware packages and releases](Firmware-Updates.md) for the signed manifest
+format, key management, bootstrap migration, and outstanding physical tests.

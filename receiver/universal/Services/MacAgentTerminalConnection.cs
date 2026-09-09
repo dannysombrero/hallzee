@@ -12,7 +12,7 @@ using Avalonia.Threading;
 
 namespace BathroomSync.Universal.Services;
 
-public class MacAgentTerminalConnection : ITerminalConnection
+public class MacAgentTerminalConnection : ITerminalConnection, ITerminalBinaryConnection
 {
     public event EventHandler<string>? TextReceived;
     public event EventHandler<string>? ConnectionLost;
@@ -90,17 +90,19 @@ public class MacAgentTerminalConnection : ITerminalConnection
         }
     }
 
-    public async Task SendAsync(string text)
+    public Task SendAsync(string text) => SendAgentDataAsync("Send", text);
+    public Task SendBinaryAsync(byte[] frame) => SendAgentDataAsync("SendBinary", Convert.ToBase64String(frame));
+    private async Task SendAgentDataAsync(string action, string text)
     {
         if (!isConnected) throw new InvalidOperationException("Hallzee is not connected.");
         await EnsureAgentRunning();
         if (agentInput == null) throw new InvalidOperationException("The macOS Bluetooth helper is unavailable.");
 
-        Console.WriteLine($"[PC -> MAC -> ESP32] {text}");
+        if (action == "Send") Console.WriteLine($"[PC -> MAC -> ESP32] {text}");
         var requestId = Guid.NewGuid().ToString("N");
         var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         pendingWrites[requestId] = completion;
-        SendCommand("Send", new Dictionary<string, string> {
+        SendCommand(action, new Dictionary<string, string> {
             { "Data", text },
             { "RequestId", requestId }
         });

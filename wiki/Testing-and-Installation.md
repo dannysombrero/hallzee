@@ -3,14 +3,20 @@
 This guide explains which checks can be done on a Mac and which require a
 Windows PC.
 
-## Planned Bluetooth firmware updates
+## Bluetooth firmware updates
 
-Wireless firmware installation is not available yet. The
-[firmware update plan](Design-Bluetooth-Firmware-Updates.md) covers one-time USB setup, version reporting from
-the connected terminal, manual `.hallzee-fw` package import, GitHub Releases,
-and later **Check for software updates**. It includes phase gates and Mac,
-Windows, and physical ESP32 verification requirements. Continue using the USB
-flash workflows below until the feature ships.
+Use the [firmware update guide](Firmware-Updates.md) for Device version reporting,
+local `.hallzee-fw` import, GitHub update checks, and release signing. The source
+flash scripts below now perform the one-time OTA USB setup, backing up and
+migrating existing LittleFS files to the larger app-slot layout. Keep the private
+backup and do not bypass this migration with a normal Arduino upload.
+
+Mac tests cover shared package/transfer logic and simulated USB migration with
+the real LittleFS tool. A physical ESP32 is required for interrupted updates,
+retained files/pairing, and failed-boot rollback on both displays. A Windows PC
+is required for WinRT binary writes/MTU handling, file picking, and reboot
+reconnect. Physical Windows/Mac OTA and USB migration have not yet been verified;
+complete those checks before publishing a production release.
 
 ## Roster, workspace sharing, and terminal UI checks
 

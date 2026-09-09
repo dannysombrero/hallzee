@@ -61,7 +61,10 @@ private:
 };
 
 bool ArduinoBluetoothSerialPort::begin(const char *deviceName) {
+  receiveQueue = xQueueCreate(4096, sizeof(uint8_t));
+  if (!receiveQueue) return false;
   BLEDevice::init(deviceName);
+  BLEDevice::setMTU(247);
   BLESecurity::setAuthenticationMode(ESP_LE_AUTH_REQ_SC_MITM_BOND);
   BLESecurity::setCapability(ESP_IO_CAP_OUT);
   BLESecurity::setKeySize(16);
@@ -165,17 +168,22 @@ bool ArduinoBluetoothSerialPort::setDeviceName(const char *deviceName) {
 }
 
 bool ArduinoBluetoothSerialPort::hasClient() { return connected; }
-int ArduinoBluetoothSerialPort::available() { return static_cast<int>(receiveBuffer.size()); }
+int ArduinoBluetoothSerialPort::available() { return receiveQueue ? uxQueueMessagesWaiting(receiveQueue) : 0; }
 
 int ArduinoBluetoothSerialPort::read() {
-  if (receiveBuffer.empty()) return -1;
-  const int value = receiveBuffer.front();
-  receiveBuffer.pop_front();
-  return value;
+  uint8_t value;
+  return receiveQueue && xQueueReceive(receiveQueue, &value, 0) == pdTRUE ? value : -1;
 }
 
 void ArduinoBluetoothSerialPort::enqueue(const uint8_t *data, size_t length) {
-  for (size_t i = 0; i < length; ++i) receiveBuffer.push_back(data[i]);
+  if (!receiveQueue) return;
+  for (size_t i = 0; i < length; ++i) {
+    if (xQueueSend(receiveQueue, data + i, 0) != pdTRUE) {
+      xQueueReset(receiveQueue);
+      disconnectClient();
+      return;
+    }
+  }
 }
 
 void ArduinoBluetoothSerialPort::handleConnect(uint16_t connectionId) {
@@ -191,6 +199,7 @@ void ArduinoBluetoothSerialPort::handleDisconnect(uint16_t connectionId) {
   if (!connected || activeConnectionId == 0xFFFF ||
       connectionId == activeConnectionId || connectionId == 0xFFFF) {
     connected = false;
+    if (receiveQueue) xQueueReset(receiveQueue);
     activeConnectionId = 0xFFFF;
     restartAdvertising();
   }

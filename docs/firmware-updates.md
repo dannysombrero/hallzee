@@ -47,11 +47,11 @@ this check/download; the terminal does not need Wi-Fi. Local package import
 works offline. **Open desktop release** opens the client release page; installing
 the desktop app is still a separate platform operation.
 
-The default release repository is `dannysombrero/hallzee-mono`. If binaries move
-to another public distribution repository, update the pinned repository in
-`FirmwareReleases.cs` and release the client. Public downloads require no GitHub
-token; private development uses downloaded files. A private repository, API
-failure, or rate limit reports a failed check, not “up to date.”
+The default release repository is `dannysombrero/hallzee-mono`, the open source
+repository itself. If distribution ever moves elsewhere, update the pinned
+repository in `FirmwareReleases.cs` and release the client. Public downloads
+require no GitHub token; a private repository, API failure, or rate limit reports
+a failed check, not “up to date.”
 
 ## Local testing, update checks, and repeat USB flashes
 
@@ -183,14 +183,12 @@ workflow; Intel Mac users can use the source workflow.
 Run **Build Firmware Release Packages** in GitHub Actions with a new version.
 It tests both desktop platforms, compiles all five firmware variants, checks
 128 KiB of remaining app-slot space, signs one package, and creates USB bundles.
-Download its private Actions artifacts for hardware testing. Once those tests
+Download its Actions artifacts for hardware testing. Once those tests
 pass, run **Publish Tested Release**, select `firmware`, and enter that exact
-build run ID. It publishes to the configured public downloads repository using
-an immutable `firmware-v<version>` tag; no rebuild or asset replacement occurs.
-See [release setup and publication](releasing.md) for the public destination,
-token, and teacher README. Desktop releases use independent `client-v<version>`
-tags; the same configured public feed is embedded in the desktop app. Terminals
-receive packages over Bluetooth and do not need a public URL themselves.
+build run ID. It publishes an immutable `firmware-v<version>` GitHub Release in
+this repository; no rebuild or asset replacement occurs. Desktop releases use
+independent `client-v<version>` tags. Terminals receive packages over Bluetooth
+and do not need a public URL themselves.
 
 The firmware workflow accepts `1.0.0`, `v1.0.0`, `1.0`, or `v1.0` and normalizes
 these to `1.0.0` before tests or builds. Use a version newer than the installed

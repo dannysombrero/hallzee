@@ -13,11 +13,11 @@ spec.loader.exec_module(module)
 
 
 class PublishTests(unittest.TestCase):
-    def run_publish(self, *, conclusion='success', private=False, missing=False, existing=False, bad_sha=False):
+    def run_publish(self, *, conclusion='success', private=False, missing=False, existing=False, bad_sha=False, flat_windows=False, missing_windows=False):
         calls = []
-        source, destination = 'school/source', 'school/downloads'
+        source = destination = 'school/source'
 
-        def fake_gh(*args, payload=None):
+        def fake_gh(*args, payload=None, output_file=None):
             calls.append((args, payload))
             if args[:2] == ('api', f'repos/{source}/actions/runs/123'):
                 return json.dumps(dict(conclusion=conclusion, event='workflow_dispatch',
@@ -30,11 +30,21 @@ class PublishTests(unittest.TestCase):
                 (metadata / 'teacher-guide.md').write_text('Guide: https://github.com/dannysombrero/hallzee-mono#readme')
                 (metadata / 'notes.md').write_text('Notes')
                 for rid, name in [('win-x64', 'Hallzee-Windows-win-x64.zip'), ('osx-arm64', 'Hallzee-Mac-osx-arm64.zip'), ('osx-x64', 'Hallzee-Mac-osx-x64.zip')]:
+                    if rid == 'win-x64' and (flat_windows or missing_windows):
+                        continue
                     folder = root / f'Desktop-{rid}'
                     folder.mkdir()
                     if not missing or rid != 'osx-x64':
                         (folder / name).write_bytes(b'tested bytes')
                 return ''
+            if args[:2] == ('api', f'repos/{source}/actions/runs/123/artifacts'):
+                return '' if missing_windows else '456\n'
+            if args[:2] == ('api', f'repos/{source}/actions/artifacts/456/zip'):
+                output_file.write_bytes(b'original artifact archive bytes')
+                return ''
+            if args[:2] == ('release', 'create') and flat_windows:
+                windows = next(Path(arg) for arg in args if arg.endswith('Hallzee-Windows-win-x64.zip'))
+                self.assertEqual(windows.read_bytes(), b'original artifact archive bytes')
             if args[:2] == ('api', f'repos/{destination}'):
                 return json.dumps(dict(private=private))
             if args[:2] == ('api', f'repos/{destination}/git/matching-refs/tags/client-v1.2.3'):
@@ -44,7 +54,7 @@ class PublishTests(unittest.TestCase):
             return ''
 
         with patch.object(module, 'gh', fake_gh), patch.dict(os.environ, GITHUB_REPOSITORY=source), patch.object(sys, 'argv', ['publish-release.py', '--run', '123', '--product', 'client']):
-            if conclusion != 'success' or private or missing or existing or bad_sha:
+            if conclusion != 'success' or private or missing or existing or bad_sha or missing_windows:
                 with self.assertRaises(SystemExit):
                     module.main()
                 self.assertFalse(any(args[:2] == ('release', 'create') for args, _ in calls))
@@ -60,6 +70,8 @@ class PublishTests(unittest.TestCase):
                 self.assertFalse(any('clobber' in arg for args, _ in calls for arg in args))
 
     def test_promotes_complete_draft_after_guide(self): self.run_publish()
+    def test_promotes_original_flat_windows_archive(self): self.run_publish(flat_windows=True)
+    def test_missing_windows_artifact_never_publishes(self): self.run_publish(missing_windows=True)
     def test_failed_build_never_publishes(self): self.run_publish(conclusion='failure')
     def test_private_destination_never_publishes(self): self.run_publish(private=True)
     def test_missing_mac_asset_never_publishes(self): self.run_publish(missing=True)

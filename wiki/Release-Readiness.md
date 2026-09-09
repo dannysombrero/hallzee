@@ -41,9 +41,9 @@ workspace isolation, failed writes, and repeated/concurrent completion.
   artifacts from a successful build run, with guide, notes, and checksums.
   Desktop and firmware use independent immutable version tags. The old moving
   Windows release no longer publishes automatically on every source push.
-- **One release destination:** a build-time repository setting is used by
-  desktop update checks, firmware downloads, and Help. Terminals receive signed
-  firmware over BLE and do not need their own internet link.
+- **One release destination:** the open source repository's GitHub Releases are
+  used by desktop update checks, firmware downloads, and Help. Terminals receive
+  signed firmware over BLE and do not need their own internet link.
 - **UI clarity:** sidebar Help/Updates, actual running version instead of the
   hardcoded `v1.5.2-win64`, a new-version message after a successful manual check,
   and an explanation of desktop replacement versus terminal installation.
@@ -99,8 +99,8 @@ USB migration on both platforms still require verification.
 - Shared client tests: **86 passed**, including 13 teacher-pass lifecycle cases.
 - Core/protocol tests: **107 passed**, including atomic teacher-pass completion, rollback,
   concurrent retry, and preservation of existing history.
-- Publication logic: **6 offline tests passed** (failed build, wrong revision,
-  missing Mac asset, private destination, existing tag, successful draft flow).
+- Publication logic: **8 offline tests passed** (failed build, wrong revision,
+  missing assets, same-repository publication, existing tag, and successful draft flow).
 - All workflow YAML parses; shell syntax and whitespace checks pass.
 - The initial Apple-silicon package opened and its dashboard/settings were
   visually inspected, but whole-app signature verification missed invalid

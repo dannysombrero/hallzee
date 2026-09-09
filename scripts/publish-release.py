@@ -11,7 +11,11 @@ import subprocess
 import tempfile
 
 
-def gh(*args, payload=None):
+def gh(*args, payload=None, output_file=None):
+    if output_file is not None:
+        with output_file.open('wb') as output:
+            subprocess.run(['gh', *args], stdout=output, check=True)
+        return ''
     result = subprocess.run(['gh', *args], input=json.dumps(payload) if payload else None,
                             text=True, check=True, capture_output=True)
     return result.stdout
@@ -43,14 +47,24 @@ def main():
         destination = json.loads(gh('api', f'repos/{repo}'))
         if destination['private']:
             raise SystemExit('The download repository must be public. No release was published.')
-        # Changing the source repository README is not part of release publication.
-        if repo == source:
-            raise SystemExit('Use a separate public releases repository to publish the teacher README safely.')
+        # The open-source repository is also the public download repository.
+        # The workflow grants this job Contents write only for this publication.
         if args.product == 'client':
             assets = [root / f'Desktop-{rid}' / name for rid, name in [
                 ('win-x64', 'Hallzee-Windows-win-x64.zip'),
                 ('osx-arm64', 'Hallzee-Mac-osx-arm64.zip'),
                 ('osx-x64', 'Hallzee-Mac-osx-x64.zip')]]
+            # New Windows builds upload app files directly. Preserve GitHub's
+            # original artifact ZIP, which is the same one reviewers downloaded.
+            # Older builds still contain a prebuilt ZIP under Desktop-win-x64.
+            if not assets[0].is_file():
+                ids = gh('api', f'repos/{source}/actions/runs/{args.run}/artifacts',
+                         '--paginate', '--jq',
+                         '.artifacts[] | select(.name == "Hallzee-Windows-win-x64") | .id').split()
+                if len(ids) != 1 or not ids[0].isdigit():
+                    raise SystemExit('Expected exactly one Windows app artifact.')
+                assets[0] = root / 'Hallzee-Windows-win-x64.zip'
+                gh('api', f'repos/{source}/actions/artifacts/{ids[0]}/zip', output_file=assets[0])
         else:
             packages = list((root / 'Firmware-and-USB-images').glob('*.hallzee-fw'))
             if len(packages) != 1:

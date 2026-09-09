@@ -1,26 +1,25 @@
 # Build, test, and publish Hallzee
 
 Teacher instructions live in [the teacher guide](Getting-Started-Users).
-The source guide links to the source repository; publishing replaces those
-links with the chosen public repository and installs the guide as that repository's README. Desktop
-and firmware release lists are linked separately, so one cannot hide the other.
-The public repository contains downloads and instructions, not student data.
+The open source repository is also the public download repository. GitHub Releases
+hold the desktop and firmware files, while the README links teachers to the guide.
+Do not commit student data, private keys, or local build output.
 
 ## One-time maintainer setup
 
 Use GitHub's web interface; no local Git, .NET, or Arduino installation is needed.
 
-1. Create a **public**, dedicated downloads repository with an initial README.
-   Keep the source repository private if desired. In the source repository's
-   **Settings → Secrets and variables → Actions → Variables**, set
-   `HALLZEE_RELEASE_REPOSITORY` to its `owner/repository`. Set this **before**
-   building a client: the destination is embedded in the app's trusted update
-   feed and saved with the build artifacts. Keep that URL stable after release.
-2. Create a `public-release` environment and its secret
-   `HALLZEE_PUBLIC_RELEASE_TOKEN`. The token needs read access to Actions artifacts
-   in the source repository and Contents write access to the public repository.
-   Limit access to those repositories. Configure reviewed release branches and
-   reviewers in this environment as appropriate for your team.
+1. Change the repository visibility to **Public** only after reviewing its
+   history and local files for credentials, student data, and unpublished
+   material. Rotate anything that was ever committed before making it public.
+2. Choose and commit a software license in `LICENSE`; without one, others can
+   read the code but do not have clear reuse permission. Add a contribution
+   policy and security contact when ready.
+3. The workflows default `HALLZEE_RELEASE_REPOSITORY` to this repository, so no
+   repository variable or `HALLZEE_PUBLIC_RELEASE_TOKEN` is needed. The publish
+   workflow uses GitHub's built-in token with Actions read and Contents write
+   permissions. Keep the existing `firmware-release` environment secret for the
+   private firmware signing key.
 
 For firmware, also configure the existing `firmware-release` environment and
 `HALLZEE_FIRMWARE_SIGNING_KEY`; see [firmware updates](Firmware-Updates).
@@ -57,6 +56,13 @@ It also launches the helper without arguments on a matching Mac architecture to
 check runtime loading without starting Bluetooth. A skipped architecture launch
 check must be completed on a matching Mac before release.
 
+The Windows artifact is **Hallzee-Windows-win-x64**. Download it and extract
+once to reach the executable and supporting files. Windows builds upload the
+app files directly, letting GitHub create the download ZIP. Publication reuses
+that exact artifact ZIP as `Hallzee-Windows-win-x64.zip`; it does not repackage
+the app. Older build runs retain their nested ZIP layout and remain publishable.
+Mac artifacts still wrap the prebuilt Mac ZIP to preserve app permissions.
+
 Edit `docs/client-release-notes.md` or `firmware/release-notes.md` before building.
 Download the artifacts and test them. Record the successful run's numeric ID
 from its URL. Artifacts expire according to repository retention settings;
@@ -71,10 +77,9 @@ private destinations and existing version tags, uploads a draft, updates the
 public teacher README, then publishes that draft. It attaches a guide and SHA-256
 checksums. It does not rebuild tested binaries or overwrite existing releases.
 
-The destination must be a separate public repository with a README. On a partial
-failure, inspect the draft release and workflow log; do not bypass version checks
-or replace public assets. A new build/version is the simplest recovery. Review
-and remove an unpublished failed draft only if you intentionally want to retry.
+The release is created in this same repository. On a partial failure, inspect the
+draft release and workflow log; do not bypass version checks or replace public
+assets. A new build/version is the simplest recovery.
 
 Release tags are `client-v1.0.0` and `firmware-v1.0.0`. The app queries that public
 repository's GitHub releases API, ignores drafts/prereleases, and compares

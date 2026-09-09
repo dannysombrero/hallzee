@@ -1,5 +1,18 @@
 # Installation and testing guide
 
+## Windows release download
+
+New **Build Desktop Release Packages** runs provide a
+`Hallzee-Windows-win-x64.zip` artifact that extracts directly to the app files.
+There is no second ZIP to extract. Public releases reuse the same archive.
+Existing run downloads are unchanged; start a new build after pushing this fix.
+
+A Mac is sufficient to inspect the archive layout and run the offline
+publication tests. A Windows PC is required only to verify that the extracted
+Windows executable launches with its supporting files. Windows launch behavior
+has not been reverified for this packaging change; the new Actions download
+still needs an end-to-end check.
+
 ## Release SDK selection
 
 `global.json` keeps builds on the latest installed stable .NET 8.0 SDK. Existing
@@ -781,9 +794,9 @@ runners satisfy the required runner version automatically.
 | :--- | :--- | :--- | :--- |
 | **Validate Firmware and BLE Protocol** (`validate-firmware.yml`) | `pull_request`, `push` (paths: `*.ino`, `*.cpp`, `*.h`, `test/**`), `workflow_dispatch` | macOS (native unit tests & coverage) + Ubuntu (ESP32 Arduino compilation) | Validates firmware builds and BLE protocol tests automatically on changes. |
 | **Build Universal Sync Client** (`build-universal-client.yml`) | `pull_request` (client/core paths), `workflow_dispatch` | macOS & Windows (runs .NET 8 unit tests, builds universal client, uploads Windows artifact) | Ensures cross-platform client builds and test suites pass on both operating systems. |
-| **Build Desktop Release Packages** (`release-client.yml`) | `workflow_dispatch` | Windows x64, Mac ARM64/x64; tests and self-contained packages | Builds versioned private artifacts for acceptance testing. |
-| **Build Firmware Release Packages** (`release-firmware.yml`) | `workflow_dispatch` | Signed firmware and Windows/Mac USB bundles | Builds private firmware artifacts for hardware testing. |
-| **Publish Tested Release** (`publish-release.yml`) | `workflow_dispatch` | Ubuntu; successful build run ID | Publishes the exact tested files and teacher guide to the configured public repository. |
+| **Build Desktop Release Packages** (`release-client.yml`) | `workflow_dispatch` | Windows x64, Mac ARM64/x64; tests and self-contained packages | Builds versioned Actions artifacts for acceptance testing. |
+| **Build Firmware Release Packages** (`release-firmware.yml`) | `workflow_dispatch` | Signed firmware and Windows/Mac USB bundles | Builds signed Actions artifacts for hardware testing. |
+| **Publish Tested Release** (`publish-release.yml`) | `workflow_dispatch` | Ubuntu; successful build run ID | Publishes the exact tested files and teacher guide as a GitHub Release in this repository. |
 | **Legacy Windows Build** (`publish-latest-windows-client.yml`) | `workflow_dispatch` | Windows tests and ZIP | Legacy artifact only; no automatic public release. |
 | **Build Windows Sync App** (`build-windows-sync.yml`) | `workflow_dispatch` | Windows (.NET 8 core/Universal tests and artifact generation) | Produces an on-demand Universal v2 Windows artifact. |
 | **Regenerate Preview Lockfile & Tests** (`regenerate-lock-and-test.yml`) | `push` on `refactor/react-client-shell`, `workflow_dispatch` | Ubuntu (Node.js 22 install, lint, and test) | Keeps the web preview prototype dependencies locked and tested. |

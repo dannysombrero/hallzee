@@ -192,6 +192,13 @@ token, and teacher README. Desktop releases use independent `client-v<version>`
 tags; the same configured public feed is embedded in the desktop app. Terminals
 receive packages over Bluetooth and do not need a public URL themselves.
 
+The firmware workflow accepts `1.0.0`, `v1.0.0`, `1.0`, or `v1.0` and normalizes
+these to `1.0.0` before tests or builds. Use a version newer than the installed
+terminal. The same normalized version is used in firmware headers, signed
+packages, filenames, and publication metadata. Invalid input fails in the
+prepare job with instructions, rather than after tool installation. The local
+builder command below still takes a full numeric version.
+
 Before running the release workflow, configure its protected `firmware-release`
 environment and `HALLZEE_FIRMWARE_SIGNING_KEY` secret. Restrict signing to reviewed
 release branches; do not expose this environment to untrusted pull-request code. The initial private key was

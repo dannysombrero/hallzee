@@ -237,7 +237,8 @@ class Program
             scanTimer = null;
             if (centralManager != null && targetPeripheral != null)
             {
-                targetPeripheral.Delegate = null;
+                // Clear the native delegate through its nullable binding.
+                targetPeripheral.WeakDelegate = null;
                 centralManager.CancelPeripheralConnection(targetPeripheral);
             }
             targetPeripheral = null;

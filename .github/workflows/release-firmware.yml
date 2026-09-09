@@ -3,14 +3,28 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Firmware version (major.minor.patch, newer than installed terminals)
+        description: Firmware version (1.0.0 or v1.0; must be newer than installed terminals)
         required: true
 permissions:
   contents: read
-env:
-  RELEASE_REPOSITORY: ${{ vars.HALLZEE_RELEASE_REPOSITORY || github.repository }}
 jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.inputs.outputs.version }}
+      repository: ${{ steps.inputs.outputs.repository }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Test release input validation
+        run: python3 -m unittest discover -s test -p test_release_inputs.py
+      - name: Validate version and destination
+        id: inputs
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+          RELEASE_REPOSITORY: ${{ vars.HALLZEE_RELEASE_REPOSITORY || github.repository }}
+        run: python3 scripts/validate-release-inputs.py
   test:
+    needs: prepare
     strategy:
       matrix:
         os: [macos-latest, windows-latest]
@@ -25,7 +39,9 @@ jobs:
       - if: runner.os == 'macOS'
         run: make -C test coverage
   build:
-    needs: test
+    needs: [prepare, test]
+    env:
+      RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
     runs-on: ubuntu-latest
     environment: firmware-release
     steps:
@@ -51,7 +67,6 @@ jobs:
       - name: Build and sign packages
         env:
           RELEASE_KEY: ${{ secrets.HALLZEE_FIRMWARE_SIGNING_KEY }}
-          RELEASE_VERSION: ${{ inputs.version }}
         run: |
           test -n "$RELEASE_KEY" || { echo 'Configure HALLZEE_FIRMWARE_SIGNING_KEY in the firmware-release environment.'; exit 1; }
           umask 077
@@ -110,13 +125,14 @@ jobs:
           name: USB-${{ matrix.rid }}
           path: Hallzee-USB-*.zip
   metadata:
-    needs: [build, usb]
+    needs: [prepare, build, usb]
+    env:
+      RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+      RELEASE_REPOSITORY: ${{ needs.prepare.outputs.repository }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
       - name: Record version, destination, source, and teacher guide
-        env:
-          RELEASE_VERSION: ${{ inputs.version }}
         run: |
           mkdir metadata
           python3 -c 'import json,os; json.dump(dict(product="firmware",version=os.environ["RELEASE_VERSION"],repository=os.environ["RELEASE_REPOSITORY"],sha=os.environ["GITHUB_SHA"]),open("metadata/release.json","w"))'

@@ -8,19 +8,36 @@ alongside it. Run commands from the checkout so this setting is discovered.
 This fixes Mac release builds selecting .NET 10 and failing with `NETSDK1202`
 for the Bluetooth helper. Start a new desktop workflow run after pushing the
 fix; rerunning an older run keeps its older workflow and source.
+Mac release jobs also select Xcode 16.2 explicitly, because the runner default
+Xcode 15.4 lacks the macOS 15 SDK needed by the helper (`MM0179`/`MM2301`).
+The new Xcode selection still needs verification in GitHub Actions.
 
 Mac runners are sufficient to verify both Mac packages; no physical Windows PC
 is required for this SDK-selection fix. The Windows Actions build and tests
 passed in the reported run, but have not yet been rerun with this SDK pin.
 Windows Bluetooth and clean-machine behavior remain unverified.
 
+The Mac helper clears its native peripheral delegate through the nullable
+`WeakDelegate` binding during disconnect. This removes `CS8625` without disabling
+nullable checks or changing the disconnect sequence.
+
+Arduino setup still uses upstream `arduino/setup-arduino-cli@v2`, whose
+[action manifest](https://github.com/arduino/setup-arduino-cli/blob/v2/action.yml)
+declares Node 20. The reported runner executes it under Node 24 and emits a
+deprecation warning. This warning did not stop the reported firmware build;
+its fatal error was input validation. Keep the warning visible until upstream
+ships a replacement; no Node installation is needed on teachers’ computers.
+
 ## Release workflow input and Windows test cleanup
 
-Desktop release inputs are validated once before the platform matrix. Use
+Desktop and firmware release inputs are validated once before the platform matrix. Use
 `1.0.0`; `v1.0.0`, `1.0`, and `v1.0` are also accepted and normalized to `1.0.0`.
 An invalid value reports an actionable message. After pushing workflow fixes,
 start a new **Run workflow** on that branch; rerunning an old run uses its old
-revision. Firmware releases still require the full numeric version.
+revision. Firmware builds and publication metadata use the same normalized
+version, avoiding the former late `Invalid version/build ID` failure for short
+or v-prefixed versions. The local firmware builder still requires the full
+numeric form and now reports version and build-ID errors separately.
 
 Migration and desktop-pass tests disable SQLite pooling for their temporary
 connections, so disposing them releases the database files before cleanup.

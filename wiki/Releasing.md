@@ -31,12 +31,12 @@ Do not put the private signing key in the downloads repository.
 
 Run **Build Desktop Release Packages** or **Build Firmware Release Packages**
 from the reviewed branch with a new `major.minor.patch` version (for example,
-`1.0.0`). The desktop build also accepts `v1.0.0`, `1.0`, and `v1.0`, trimming
+`1.0.0`). Both builds also accept `v1.0.0`, `1.0`, and `v1.0`, trimming
 surrounding whitespace and normalizing these to `1.0.0` before building. One
 preflight job validates the version and destination; all platform builds and
 release metadata use its same normalized outputs. Unsupported input now reports
-what to enter instead of a bare `AssertionError`. Firmware versions still use
-the full numeric form, such as `1.0.0`. Actions installs
+what to enter instead of a bare `AssertionError`. Firmware packages and release
+metadata both use that normalized numeric version. Actions installs
 its build tools and runs tests. The desktop workflow builds Windows x64 plus
 Mac Apple-silicon and Intel ZIPs, including the native Mac Bluetooth helper.
 Both workflows save the source revision, version, public destination, guide,
@@ -46,6 +46,10 @@ The root `global.json` selects the latest installed stable .NET 8.0 SDK, even
 when the runner also has .NET 9 or 10. The Mac workload installer uses the same
 `dotnet` executable as packaging. This keeps the existing `net8.0-macos` helper
 on its intended toolchain; upgrading that target remains separate work.
+The Mac jobs explicitly select `/Applications/Xcode_16.2.app` on `macos-14`,
+which includes the macOS 15 SDK required by the helper. The runner default
+Xcode 15.4 causes `MM0179`/`MM2301` linker failures. Xcode and SDK versions
+are printed before packaging so the selected toolchain is visible in the log.
 
 Mac packaging explicitly signs and verifies native libraries, including the
 helper's `Contents/MonoBundle` libraries that `codesign --deep` does not discover.

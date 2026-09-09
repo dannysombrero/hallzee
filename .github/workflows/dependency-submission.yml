@@ -75,6 +75,7 @@ jobs:
     name: Validate transferred NuGet graphs (${{ matrix.platform }})
     needs: restore
     strategy:
+      fail-fast: false
       matrix:
         platform: [windows, macos]
     runs-on: ubuntu-latest

@@ -26,7 +26,9 @@ class DependencySubmissionTests(unittest.TestCase):
             assets.parent.mkdir(exist_ok=True)
             assets.write_text(json.dumps({'targets': {'net8.0': {'Example/1.0.0': {}}},
                 'libraries': {'Example/1.0.0': {'type': 'package'}},
-                'project': {'frameworks': {'net8.0': {'runtimeIdentifierGraphPath': '/runner/dotnet/RuntimeIdentifierGraph.json'}},
+                'project': {'frameworks': {'net8.0': {
+                    'dependencies': {'Example': {'target': 'Package', 'version': '1.0.0'}},
+                    'runtimeIdentifierGraphPath': '/runner/dotnet/RuntimeIdentifierGraph.json'}},
                     'restore': {'projectPath': project.as_posix(),
                     'projectUniqueName': project.as_posix(), 'packagesPath': '/runner/cache/packages',
                     'configFilePaths': ['/runner/config/NuGet.Config']}}}))
@@ -86,15 +88,43 @@ class DependencySubmissionTests(unittest.TestCase):
             report = {
                 'resultCode': 'Success',
                 'dependencyGraphs': {str(root / path): {} for path in submission.PROJECTS['macos']},
-                'componentsFound': [{'component': {'packageUrl': {'Type': 'nuget'}},
+                'componentsFound': [{'component': {'packageUrl': {'Type': 'nuget', 'Name': 'Example', 'Version': '1.0.0'}},
                     'locationsFoundAt': ['/' + path for path in submission.PROJECTS['macos']]}],
             }
             scan = root / 'scan.json'
             scan.write_text(json.dumps(report))
             self.assertEqual(4, submission.verify_scan(root, 'macos', scan))
+            report['resultCode'] = 'Error'
+            scan.write_text(json.dumps(report))
+            with self.assertRaisesRegex(ValueError, 'did not report a successful scan'):
+                submission.verify_scan(root, 'macos', scan)
+            report['resultCode'] = 'Success'
             report['componentsFound'][0]['locationsFoundAt'][0] = '/tmp/artifact/wrong.csproj'
             scan.write_text(json.dumps(report))
             with self.assertRaisesRegex(ValueError, 'not a repository project'):
+                submission.verify_scan(root, 'macos', scan)
+
+    def test_project_reference_only_root_can_be_omitted_without_losing_packages(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            self.fixture(root, 'macos')
+            reference_only = 'tools/FirmwareTool/FirmwareTool.csproj'
+            assets_path = root / Path(reference_only).parent / 'obj/project.assets.json'
+            assets = json.loads(assets_path.read_text())
+            assets['project']['frameworks']['net8.0']['dependencies'] = {}
+            assets_path.write_text(json.dumps(assets))
+            package_projects = set(submission.PROJECTS['macos']) - {reference_only}
+            report = {'resultCode': 'Success',
+                'dependencyGraphs': {str(root / path): {} for path in package_projects},
+                'componentsFound': [{'component': {'packageUrl': {
+                    'Type': 'nuget', 'Name': 'Example', 'Version': '1.0.0'}},
+                    'locationsFoundAt': sorted(package_projects)}]}
+            scan = root / 'scan.json'
+            scan.write_text(json.dumps(report))
+            self.assertEqual(3, submission.verify_scan(root, 'macos', scan))
+            assets['libraries']['Lost.Transitive/2.0.0'] = {'type': 'package'}
+            assets_path.write_text(json.dumps(assets))
+            with self.assertRaisesRegex(ValueError, 'omitted restored packages: lost.transitive/2.0.0'):
                 submission.verify_scan(root, 'macos', scan)
 
 

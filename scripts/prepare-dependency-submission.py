@@ -124,7 +124,23 @@ def verify_scan(root, platform, path):
     components = report.get('componentsFound')
     if not isinstance(graphs, dict) or not isinstance(components, list) or not components:
         raise ValueError('Detector did not produce dependency graphs and components')
-    expected = set(PROJECTS[platform])
+    expected = set()
+    expected_packages = set()
+    for relative in PROJECTS[platform]:
+        project = project_path(root, relative)
+        assets = json.loads((project.parent / 'obj/project.assets.json').read_text())
+        validate_assets(assets, project.as_posix())
+        frameworks = assets.get('project', {}).get('frameworks', {}).values()
+        # NuGetProjectCentric records direct package roots and PackageDownload
+        # entries. Projects with only ProjectReference entries have no manifest;
+        # their dependencies are recorded under the referenced project instead.
+        if any(framework.get('dependencies') or framework.get('downloadDependencies')
+               for framework in frameworks):
+            expected.add(relative)
+        for identifier, library in assets.get('libraries', {}).items():
+            if library.get('type') == 'package':
+                name, version = identifier.rsplit('/', 1)
+                expected_packages.add((name.lower(), version))
     found_graphs = set()
     for graph in graphs:
         absolute = Path(graph).resolve()
@@ -135,11 +151,14 @@ def verify_scan(root, platform, path):
         project_path(root, relative)
         found_graphs.add(relative)
     if found_graphs != expected:
-        raise ValueError('Detector graph omitted a restored project or included a temporary artifact path')
+        raise ValueError('Detector graph omitted a package-bearing project or included an unexpected manifest path')
     locations = set()
+    found_packages = set()
     for component in components:
-        if not component.get('component', {}).get('packageUrl'):
+        package = component.get('component', {}).get('packageUrl', {})
+        if package.get('Type') != 'nuget' or not package.get('Name') or not package.get('Version'):
             raise ValueError('Detector component has no package URL for submission')
+        found_packages.add((package['Name'].lower(), package['Version']))
         for location in component.get('locationsFoundAt', []):
             # The official action removes one leading slash and URL-decodes
             # these values to create GitHub manifest names/file paths.
@@ -148,7 +167,11 @@ def verify_scan(root, platform, path):
                 raise ValueError('Detector component location is not a repository project path')
             locations.add(relative)
     if locations != expected:
-        raise ValueError('Detector did not associate dependencies with every restored project')
+        raise ValueError('Detector did not associate dependencies with every package-bearing project')
+    missing_packages = expected_packages - found_packages
+    if missing_packages:
+        raise ValueError('Detector omitted restored packages: ' + ', '.join(
+            name + '/' + version for name, version in sorted(missing_packages)))
     return len(locations)
 
 

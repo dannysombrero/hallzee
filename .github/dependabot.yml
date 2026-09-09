@@ -1,0 +1,35 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+  - package-ecosystem: npm
+    directory: /preview-site
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      react:
+        patterns: ["react", "react-dom", "react-server-dom-webpack", "@types/react", "@types/react-dom"]
+      cloudflare:
+        patterns: ["@cloudflare/*", "wrangler", "miniflare"]
+  - package-ecosystem: nuget
+    directories:
+      - /receiver/universal
+      - /receiver/universal.tests
+      - /receiver/MacBLEAgent
+      - /receiver/windows
+      - /receiver/windows/BathroomSync.Core
+      - /receiver/windows/BathroomSync.Tests
+      - /tools/FirmwareTool
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      avalonia:
+        patterns: ["Avalonia*"]

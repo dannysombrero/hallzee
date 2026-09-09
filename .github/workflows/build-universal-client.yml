@@ -1,4 +1,6 @@
 name: Build Universal Sync Client
+permissions:
+  contents: read
 
 on:
   workflow_dispatch:

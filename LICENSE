@@ -655,19 +655,3 @@ specific requirements.
 if any, to sign a "copyright disclaimer" for the program, if necessary.
 For more information on this, and how to apply and follow the GNU AGPL, see
 <https://www.gnu.org/licenses/>.
-
-
-==============================================================================
-Hardware Designs and 3D Models Licensing
-==============================================================================
-
-The hardware designs, 3D enclosure models, CAD files, and fabrication assets
-contained in the `models/` directory (including `.3mf`, `.stl`, and `.step` files)
-are licensed under the Creative Commons Attribution-ShareAlike 4.0 International
-License (CC BY-SA 4.0).
-
-Copyright (C) 2026 Hallzee Labs
-
-To view a copy of this license, visit:
-https://creativecommons.org/licenses/by-sa/4.0/
-or send a letter to Creative Commons, PO Box 1866, Mountain View, CA 94042, USA.

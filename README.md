@@ -160,6 +160,13 @@ operation.
 See [Bluetooth protocol](docs/bluetooth-protocol.md) and
 [architecture](docs/architecture.md).
 
+## License and contributing
+
+Hallzee software and firmware are licensed under [AGPL-3.0](LICENSE). The
+hardware and 3D models use [CC BY-SA 4.0](models/LICENSE). See
+[CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request and
+[SECURITY.md](SECURITY.md) for private vulnerability reports.
+
 ## Validation
 
 For each firmware change, compile using the staged flasher or the CI workflow.
@@ -207,4 +214,3 @@ Hallzee is open source and open hardware:
 - **Hardware & Enclosures:** All 3D models, CAD designs, and fabrication files located in [`models/`](models) are licensed under the [Creative Commons Attribution-ShareAlike 4.0 International License (CC BY-SA 4.0)](LICENSE). Copyright © 2026 Hallzee Labs.
 
 See the complete [LICENSE](LICENSE) file for full legal terms.
-

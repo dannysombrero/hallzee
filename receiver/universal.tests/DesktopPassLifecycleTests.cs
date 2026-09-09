@@ -20,7 +20,7 @@ public sealed class DesktopPassLifecycleTests : IDisposable {
     vm.SubmitManualCheckIn();
     Assert.True(vm.ActivePass.IsManual);
   }
-  public void Dispose() { SqliteConnection.ClearAllPools(); if (Directory.Exists(folder)) Directory.Delete(folder, true); }
+  public void Dispose() { if (Directory.Exists(folder)) Directory.Delete(folder, true); }
 
   [Fact] public async Task RestartRestoresDetailsAndOfflineCheckinCompletesExactlyOnce() {
     DateTime? started;
@@ -147,7 +147,7 @@ public sealed class DesktopPassLifecycleTests : IDisposable {
     Assert.Null(Repository.GetActiveDesktopPass("default"));
   }
   void Execute(string sql) {
-    using var db = new SqliteConnection($"Data Source={Database}"); db.Open();
+    using var db = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = Database, Pooling = false }.ToString()); db.Open();
     using var cmd = db.CreateCommand(); cmd.CommandText = sql; cmd.ExecuteNonQuery();
   }
 

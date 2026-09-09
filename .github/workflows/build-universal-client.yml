@@ -4,6 +4,8 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
+      - scripts/validate-release-inputs.py
+      - test/test_release_inputs.py
       - scripts/publish-release.py
       - scripts/package-client-macos.sh
       - test/test_publish_release.py
@@ -39,6 +41,9 @@ jobs:
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 8.0.x
+
+      - name: Test release input validation
+        run: python3 -m unittest discover -s test -p test_release_inputs.py
 
       - name: Test release publication without network or credentials
         run: python3 -m unittest discover -s test -p test_publish_release.py

@@ -8,7 +8,7 @@ public sealed class DesktopPassStorageTests : IDisposable {
   string Db => Path.Combine(folder, "trips.db");
   DesktopPass Pass(string profile = "default") => new(Guid.NewGuid().ToString("N"), profile, "001234", "Avery, Chen",
     new DateTime(2026, 9, 8, 23, 58, 0, DateTimeKind.Local), "Period 3", "Nurse", "Visit", "Regular");
-  public void Dispose() { SqliteConnection.ClearAllPools(); if (Directory.Exists(folder)) Directory.Delete(folder, true); }
+  public void Dispose() { if (Directory.Exists(folder)) Directory.Delete(folder, true); }
 
   [Fact] public void DuplicateStartCannotReplaceActivePass() {
     var repo = new TripSqliteRepository(Db);
@@ -52,7 +52,7 @@ public sealed class DesktopPassStorageTests : IDisposable {
   [Fact] public void FailureAfterTripInsertionRollsBackEntireCompletion() {
     var repo = new TripSqliteRepository(Db);
     var pass = Pass(); repo.StartDesktopPass(pass);
-    using var db = new SqliteConnection($"Data Source={Db}"); db.Open();
+    using var db = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = Db, Pooling = false }.ToString()); db.Open();
     using var cmd = db.CreateCommand();
     cmd.CommandText = "CREATE TRIGGER block_close BEFORE UPDATE ON desktop_passes BEGIN SELECT RAISE(ABORT, 'test failure'); END;";
     cmd.ExecuteNonQuery();

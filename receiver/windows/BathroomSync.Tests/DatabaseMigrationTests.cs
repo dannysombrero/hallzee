@@ -5,6 +5,9 @@ using Xunit;
 namespace BathroomSync.Tests;
 
 public sealed class DatabaseMigrationTests {
+  // These databases are deleted at the end of each test. Pooled connections
+  // retain native handles after Dispose, which prevents deletion on Windows.
+  // Disable pooling per connection rather than clearing other tests' pools.
   [Fact]
   public void FreshDatabaseInitializesToCurrentVersionDirectly() {
     var dbPath = Path.Combine(Path.GetTempPath(), "BathroomSyncTests", Guid.NewGuid().ToString("N"), "fresh.db");
@@ -12,7 +15,7 @@ public sealed class DatabaseMigrationTests {
 
     try {
       Directory.CreateDirectory(dir);
-      using var connection = new SqliteConnection($"Data Source={dbPath}");
+      using var connection = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = dbPath, Pooling = false }.ToString());
       connection.Open();
 
       DatabaseMigrator.Migrate(connection);
@@ -42,7 +45,7 @@ public sealed class DatabaseMigrationTests {
 
     try {
       Directory.CreateDirectory(dir);
-      using (var connection = new SqliteConnection($"Data Source={dbPath}")) {
+      using (var connection = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = dbPath, Pooling = false }.ToString())) {
         connection.Open();
 
         // Create legacy schema manually
@@ -67,7 +70,7 @@ public sealed class DatabaseMigrationTests {
       var repo = new TripSqliteRepository(dbPath);
       Assert.Equal(2, repo.GetLatestTripId());
 
-      using (var connection = new SqliteConnection($"Data Source={dbPath}")) {
+      using (var connection = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = dbPath, Pooling = false }.ToString())) {
         connection.Open();
         Assert.Equal(DatabaseMigrator.CurrentSchemaVersion, DatabaseMigrator.GetCurrentVersion(connection));
 
@@ -91,7 +94,7 @@ public sealed class DatabaseMigrationTests {
 
     try {
       Directory.CreateDirectory(dir);
-      using var connection = new SqliteConnection($"Data Source={dbPath}");
+      using var connection = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = dbPath, Pooling = false }.ToString());
       connection.Open();
 
       DatabaseMigrator.Migrate(connection);

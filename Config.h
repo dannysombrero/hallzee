@@ -41,6 +41,12 @@ constexpr int TFT_DC = 21;
 constexpr int TFT_MOSI = 23;
 constexpr int TFT_SCLK = 18;
 
+// Optional XPT2046 touch wiring on a separate HSPI bus (ESP-WROOM-32).
+constexpr int TOUCH_CS = 4;
+constexpr int TOUCH_SCLK = 16;
+constexpr int TOUCH_MOSI = 17;
+constexpr int TOUCH_MISO = 19;
+
 // Keypad wiring
 constexpr byte KEYPAD_ROWS = 4;
 constexpr byte KEYPAD_COLS = 3;

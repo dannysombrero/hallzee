@@ -487,6 +487,32 @@ FreeSans bitmap fonts rather than the built-in block font.
 For keypad and display-flow checks, open `display-emulator.html` in a browser
 or use the Wokwi setup described in [WOKWI.md](../WOKWI.md).
 
+### Optional 2.8-inch touchscreen test
+
+For the ILI9341 module with `T_CLK`, `T_CS`, `T_DIN`, `T_DO`, and `T_IRQ` pins,
+see [touch wiring, calibration, and typing tests](Touch-Test.md). Use direct touch jumpers to GPIO
+16 (`T_CLK`), 17 (`T_DIN`), 19 (`T_DO`), and 4 (`T_CS`) on the ESP-WROOM-32;
+no breadboard or splitter is needed. Keep display wiring on 18/23. After wiring
+with USB disconnected, run from the project root:
+
+```sh
+bash scripts/flash-terminal-macos.sh --display ili9341 --touch-test
+```
+
+Windows equivalent:
+`powershell -ExecutionPolicy Bypass -File scripts/flash-terminal-windows.ps1 -Display ili9341 -TouchTest`.
+Both scripts install the extra XPT2046 library automatically; append
+`--compile-only` / `-CompileOnly` to build without flashing. Only landscape
+rotations 1 and 3 support this experiment. Set the clock with the physical
+keypad or desktop first; calibration then opens when there is no active pass.
+Physical `*` exits calibration or the typing sandbox.
+
+A Mac plus the physical ESP32/display is sufficient to test touch. No Windows
+PC is required for touch, and no Windows-specific touch capability is involved.
+Windows execution of the new `-TouchTest` bootstrap option has not been verified;
+a Windows PC is required to verify that PowerShell installation/flash path.
+Physical touch sensitivity and alignment remain unverified.
+
 ## Windows / Mac Bluetooth verification
 
 Use a Mac or Windows PC to test actual Bluetooth behavior. Install the .NET 8 SDK (along with Xcode if on Mac as documented above), make
@@ -537,15 +563,27 @@ If a serial monitor is unavailable, the same recovery can be performed from the
 keypad while the terminal is physically available. Confirm that no student is
 checked out, then hold `*` and `#` together for 10 seconds, releasing both keys
 when the reset screen appears. The terminal clears
-only its owner state and briefly shows **OWNER RESET**. After it returns to the
-idle screen, hold `*` and `#` together for five seconds, then release both keys
+only its owner state and briefly shows **OWNER RESET**. It then returns to the
+current date/time setup step if setup is incomplete, or to the idle screen if
+the clock is already set. Hold `*` and `#` together for five seconds, then release both keys
 to enter pairing mode and display a new six-digit passkey. An active checkout deliberately blocks the
 owner reset gesture. Remove the old operating-system Bluetooth pairing if the
 client still cannot reconnect.
 
 The owner-reset chord is also accepted while the terminal is on its automatic
 clock-setup screen. The setup screen may not change while the keys are held;
-continue holding until **OWNER RESET** appears.
+continue holding until **OWNER RESET** appears. The current setup step and
+partially entered value must return afterward. Pairing completion or expiry also
+returns to that step unless the desktop has successfully set the clock over
+Bluetooth. Releasing ownership alone must never show **AVAILABLE** with an unset
+clock.
+
+For this setup-return regression, a Mac plus a physical ESP32 is sufficient;
+a Windows PC is not required because the keypad reset and screen transition run
+entirely on the terminal. No Windows-specific capability changes here; Windows
+behavior has not been reverified for this fix. Check owner reset from each of
+the six setup steps, pairing expiry, and successful Bluetooth time sync. After
+manual clock setup is complete, owner reset should still return to idle.
 
 ### Verify policy rules and bell schedule editing
 

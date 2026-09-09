@@ -5,10 +5,14 @@ param(
   [ValidateRange(0, 3)]
   [int]$Rotation = 1,
   [switch]$CompileOnly,
+  [switch]$TouchTest,
   [string]$ProjectRoot = (Split-Path -Parent $PSScriptRoot)
 )
 
 $ErrorActionPreference = "Stop"
+if ($TouchTest -and ($Display -ne "ili9341" -or $Rotation -notin @(1, 3))) {
+  throw "-TouchTest requires -Display ili9341 and landscape rotation 1 or 3."
+}
 $toolsDir = Join-Path $ProjectRoot ".tools"
 $cliDir = Join-Path $toolsDir "arduino-cli"
 $cli = Join-Path $cliDir "arduino-cli.exe"
@@ -56,6 +60,11 @@ if ($LASTEXITCODE -ne 0) { throw "Could not install the pinned ESP32 core." }
 & $cli lib install "Adafruit GFX Library" "Adafruit ST7735 and ST7789 Library" "Adafruit ILI9341" Keypad
 if ($LASTEXITCODE -ne 0) { throw "Could not install firmware libraries." }
 
+if ($TouchTest) {
+  & $cli lib install "XPT2046_Touchscreen@1.4"
+  if ($LASTEXITCODE -ne 0) { throw "Could not install the touch experiment library." }
+}
+
 # Arduino requires the sketch directory and its main .ino file to share a
 # basename. The repository name is intentionally independent of that file.
 $sketchFiles = @(Get-ChildItem -Path $ProjectRoot -Filter "*.ino" -File)
@@ -79,7 +88,9 @@ try {
   Write-Host "Building and flashing Hallzee to $Port…"
   $buildProperties = @("--build-property", "upload.maximum_size=1572864")
   if ($Display -eq "ili9341") {
-    $buildProperties += @("--build-property", "compiler.cpp.extra_flags=-DHALLZEE_ILI9341 -DHALLZEE_DISPLAY_ROTATION=$Rotation")
+    $extraFlags = "-DHALLZEE_ILI9341 -DHALLZEE_DISPLAY_ROTATION=$Rotation"
+    if ($TouchTest) { $extraFlags += " -DHALLZEE_TOUCH_TEST" }
+    $buildProperties += @("--build-property", "compiler.cpp.extra_flags=$extraFlags")
   }
   & $cli compile --fqbn esp32:esp32:esp32 $stagingSketch --build-path $buildDir @buildProperties
   if ($LASTEXITCODE -ne 0) { throw "Firmware compilation failed." }

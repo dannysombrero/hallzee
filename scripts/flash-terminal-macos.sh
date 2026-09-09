@@ -11,9 +11,11 @@ compile_only=false
 port=""
 display="st7735"
 rotation="1"
+touch_test=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --touch-test) touch_test=true ;;
     --compile-only) compile_only=true ;;
     --display) display="${2:?--display requires st7735 or ili9341}"; shift ;;
     --display=*) display="${1#*=}" ;;
@@ -32,6 +34,11 @@ if [[ "$display" != "st7735" && "$display" != "ili9341" ]]; then
 fi
 if [[ "$rotation" != "0" && "$rotation" != "1" && "$rotation" != "2" && "$rotation" != "3" ]]; then
   echo "Rotation must be 0, 1, 2, or 3."
+  exit 1
+fi
+
+if $touch_test && { [[ "$display" != "ili9341" ]] || [[ "$rotation" != "1" && "$rotation" != "3" ]]; }; then
+  echo "--touch-test requires --display ili9341 and landscape rotation 1 or 3."
   exit 1
 fi
 
@@ -96,10 +103,14 @@ echo "Installing the ESP32 board support and required libraries if needed…"
 "$cli" core install "esp32:esp32@$esp32_version" --additional-urls "$esp32_index"
 "$cli" lib install "Adafruit GFX Library" "Adafruit ST7735 and ST7789 Library" "Adafruit ILI9341" Keypad
 
+if $touch_test; then "$cli" lib install "XPT2046_Touchscreen@1.4"; fi
+
 echo "Building and flashing Hallzee to ${port}…"
 compile_args=(--fqbn esp32:esp32:esp32 "$staging_sketch" --build-path "$build_dir" --build-property upload.maximum_size=1572864)
 if [[ "$display" == "ili9341" ]]; then
-  compile_args+=(--build-property "compiler.cpp.extra_flags=-DHALLZEE_ILI9341 -DHALLZEE_DISPLAY_ROTATION=$rotation")
+  extra_flags="-DHALLZEE_ILI9341 -DHALLZEE_DISPLAY_ROTATION=$rotation"
+  if $touch_test; then extra_flags+=" -DHALLZEE_TOUCH_TEST"; fi
+  compile_args+=(--build-property "compiler.cpp.extra_flags=$extra_flags")
 fi
 "$cli" compile "${compile_args[@]}"
 if $compile_only; then

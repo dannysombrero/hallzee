@@ -14,7 +14,7 @@ public sealed partial class MainViewModel {
   CancellationTokenSource? firmwareCancellation;
   static readonly HttpClient firmwareHttp = new() { Timeout=TimeSpan.FromMinutes(3) };
   bool firmwareInstalling, firmwareChecking, firmwareCanCancel;
-  string firmwareStatus = "", softwareStatus = "";
+  string firmwareStatus = "", softwareStatus = "Online checks use public GitHub releases. Local firmware files can be installed without GitHub.";
   int firmwareProgress;
   string FirmwareCachePath => Path.Combine(Path.GetDirectoryName(exportFolder)!,"firmware-versions.json");
   FirmwareInfo? KnownFirmware => firmwareCache.GetValueOrDefault(DeviceUniqueId);
@@ -32,7 +32,9 @@ public sealed partial class MainViewModel {
   public bool CanLoadFirmware => CanEditDevice && !firmwareChecking && firmwareInfoVerifiedId==DeviceUniqueId;
   public bool HasFirmwarePackage => firmwarePackage!=null;
   public bool CanInstallFirmware => HasFirmwarePackage && CanUnpairDevice && firmwareTargetId==DeviceUniqueId && firmwareInfoVerifiedId==DeviceUniqueId && !firmwareChecking;
-  public bool CanCheckUpdates => !IsDeviceBusy && !firmwareChecking;
+  // GitHub checks do not use BLE; reading an older terminal's version must not
+  // disable them while that request waits for a response or timeout.
+  public bool CanCheckUpdates => !firmwareInstalling && !firmwareChecking;
   public bool CanDownloadFirmware => CanUnpairDevice && firmwareRelease!=null && firmwareInfoVerifiedId==DeviceUniqueId && !firmwareChecking;
   public bool HasDesktopRelease => desktopRelease!=null;
   public string FirmwarePackageSummary => firmwarePackage==null ? "" : $"{ConnectedTerminalName} ({firmwareTargetId})\nInstall {firmwarePackage.Version} ({firmwarePackage.Build})\n{firmwarePackage.ReleaseNotes}";
@@ -128,7 +130,7 @@ public sealed partial class MainViewModel {
         }
       } else if(IsConnected) firmwareResult="Refresh terminal firmware information to check compatibility.";
       SoftwareUpdateStatus=check.DesktopStatus+" "+firmwareResult;
-    } catch(Exception ex) { SoftwareUpdateStatus="Could not check for updates. Local firmware files still work. "+ex.Message; }
+    } catch(Exception ex) { SoftwareUpdateStatus="Could not check for updates. "+ex.Message; }
     finally { firmwareChecking=false; NotifyFirmwareState(); }
   }
   public async Task DownloadAndInstallFirmwareAsync() {

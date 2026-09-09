@@ -33,6 +33,19 @@ Windows executable launches with its supporting files. Windows launch behavior
 has not been reverified for this packaging change; the new Actions download
 still needs an end-to-end check.
 
+## Open source repository hygiene
+
+Software and firmware are under AGPL-3.0 in the root `LICENSE`. Hardware and
+3D models have their own CC BY-SA 4.0 license in `models/LICENSE`; do not treat
+the model files as software. `SECURITY.md` explains how to report a vulnerability
+privately, and `CONTRIBUTING.md` covers pull requests and data handling.
+
+The repository hygiene check rejects tracked environment files, exports, local
+databases, private-key material, and host metadata. Before changing repository
+visibility, review both the current tree and its Git history for credentials or
+student data, then rotate anything that was ever committed. GitHub's Dependabot
+configuration monitors Actions and preview-site dependencies.
+
 ## Release SDK selection
 
 `global.json` keeps builds on the latest installed stable .NET 8.0 SDK. Existing

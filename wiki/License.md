@@ -9,7 +9,7 @@ The repository is dual-licensed by media type to provide strong copyleft protect
 | Component | Scope | License | Copyright |
 | --- | --- | --- | --- |
 | **Software & Firmware** | ESP32 C++ firmware, Avalonia desktop receiver (.NET/C#), tools, and test suites | [GNU Affero General Public License v3.0 (AGPL-3.0)](https://github.com/dannysombrero/hallzee-mono/blob/main/LICENSE) | Copyright © 2026 Hallzee Labs |
-| **Hardware & 3D Models** | Enclosure models, mounting plates, CAD files, and `.3mf`/`.stl`/`.step` assets in `models/` | [Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)](https://github.com/dannysombrero/hallzee-mono/blob/main/LICENSE) | Copyright © 2026 Hallzee Labs |
+| **Hardware & 3D Models** | Enclosure models, mounting plates, CAD files, and `.3mf`/`.stl`/`.step` assets in `models/` | [Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)](https://github.com/dannysombrero/hallzee-mono/blob/main/models/LICENSE) | Copyright © 2026 Hallzee Labs |
 
 ---
 
@@ -36,7 +36,7 @@ In accordance with AGPL-3.0 Section 6 (Installation Information):
 
 ## Hardware & 3D Models: CC BY-SA 4.0
 
-All physical designs and CAD/print files located in `models/` are licensed under the **Creative Commons Attribution-ShareAlike 4.0 International License (CC BY-SA 4.0)**.
+All physical designs and CAD/print files located in `models/` are licensed under the **Creative Commons Attribution-ShareAlike 4.0 International License (CC BY-SA 4.0)**; see [`models/LICENSE`](https://github.com/dannysombrero/hallzee-mono/blob/main/models/LICENSE).
 
 - **You are free to:**
   - **Share:** Copy, redistribute, and 3D print the models in any medium or format.

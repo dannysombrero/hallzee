@@ -1,4 +1,6 @@
 name: Validate Firmware and BLE Protocol
+permissions:
+  contents: read
 on:
   workflow_dispatch:
   pull_request:

@@ -1,52 +1,58 @@
-# Hallzee Licensing and Terms
+# Hallzee licensing
 
-Hallzee is an open-source, open-hardware project developed for schools and educators.
+Hallzee is the project name. Original Hallzee software and hardware designs
+are copyright © 2026 Hallzee Labs. See [COPYRIGHT](https://github.com/dannysombrero/hallzee-mono/blob/main/COPYRIGHT).
 
-## Overview
+| Material | License |
+| --- | --- |
+| Original software, firmware, tools, and tests | AGPL-3.0-or-later; full text in [LICENSE](https://github.com/dannysombrero/hallzee-mono/blob/main/LICENSE) |
+| Hardware designs and model files in `models/` | CC BY-SA 4.0; see [models/LICENSE](https://github.com/dannysombrero/hallzee-mono/blob/main/models/LICENSE) |
+| Third-party code and fonts | Their upstream licenses; see [THIRD-PARTY-NOTICES.md](https://github.com/dannysombrero/hallzee-mono/blob/main/THIRD-PARTY-NOTICES.md) |
 
-The repository is dual-licensed by media type to provide strong copyleft protection for code while using an established open hardware standard for physical designs:
+This is a split by material, not a choice of either license for every file.
+The “or later” option preserves the grant already present in the original
+Hallzee license notice. The FSF license text is kept verbatim; Hallzee's own
+copyright and grant are stated separately in COPYRIGHT.
 
-| Component | Scope | License | Copyright |
-| --- | --- | --- | --- |
-| **Software & Firmware** | ESP32 C++ firmware, Avalonia desktop receiver (.NET/C#), tools, and test suites | [GNU Affero General Public License v3.0 (AGPL-3.0)](https://github.com/dannysombrero/hallzee-mono/blob/main/LICENSE) | Copyright © 2026 Hallzee Labs |
-| **Hardware & 3D Models** | Enclosure models, mounting plates, CAD files, and `.3mf`/`.stl`/`.step` assets in `models/` | [Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)](https://github.com/dannysombrero/hallzee-mono/blob/main/models/LICENSE) | Copyright © 2026 Hallzee Labs |
+## Using and modifying Hallzee
 
----
+Teachers and schools can use Hallzee without a Hallzee software license fee.
+Commercial use and sale are also permitted by these licenses when their terms
+are followed. AGPL is not a prohibition on competitors or commercial products.
 
-## Software & Firmware: AGPL-3.0
+AGPL obligations depend on how software is conveyed and used. Distributing
+covered modified software generally requires the corresponding source and
+license notices. Section 13 also requires offering corresponding source to
+remote users interacting with a modified version over a network. Private
+modifications do not automatically require public publication. Aggregating
+independent programs does not automatically relicense every program in the
+aggregate; the full license governs the applicable case.
 
-The software and firmware components are licensed under the **GNU Affero General Public License Version 3 (AGPL-3.0)**.
+For model adaptations that are shared, retain attribution to Hallzee Labs,
+link CC BY-SA 4.0, indicate changes, and follow its ShareAlike requirements.
+CC BY-SA allows commercial printing and sale subject to its terms.
 
-### For Teachers and Schools
-- **Free to Use:** Individual teachers, schools, and districts may freely download, install, self-host, and use Hallzee across their classrooms without license fees.
-- **Customization:** You are free to modify the firmware or desktop application to meet your classroom's needs.
+## Source, firmware installation, and third-party notices
 
-### For Commercial Entities and Competitors
-- **Copyleft / Reciprocal Sharing:** Any modifications, derivatives, or distributions of Hallzee software must also be licensed under AGPL-3.0.
-- **No SaaS Loophole (Section 13):** If you run modified Hallzee software on a network server or cloud service that users interact with remotely, you must make the complete corresponding source code available to those users at no charge under AGPL-3.0.
-- **No Closed-Source Forks:** Third parties cannot bundle Hallzee into a proprietary closed-source commercial product or kiosk without releasing the full source code under AGPL-3.0.
+Official firmware updates use a private signing key. Users can build modified
+firmware and install it over USB; do not distribute the official signing key.
+Where AGPL section 6 installation-information obligations apply, preserve a
+working documented installation route.
 
-### Hardware Freedom & Anti-Tivoization (Section 6)
-In accordance with AGPL-3.0 Section 6 (Installation Information):
-- Hallzee firmware is designed to run on open hardware (standard ESP32 microcontrollers).
-- Hardware devices are not locked to proprietary vendor signing keys via hardware eFuses.
-- End users retain the ability to flash custom and modified firmware to physical terminals over a standard USB connection using open-source tools such as `esptool.py`.
+Release tags and source links must identify the commit actually used to build
+the published binaries. Keep build scripts, dependency information, license
+notices, and any required corresponding third-party source available with the
+release. A source link alone does not certify that every native dependency's
+redistribution obligations have been met.
 
----
+The license inventory covers the resolved npm lockfile and locally restored
+NuGet packages. Arduino, ESP-IDF, and bundled USB binaries need separate
+component-level review. DM Sans and its bitmap conversions remain under OFL,
+not Hallzee's AGPL.
 
-## Hardware & 3D Models: CC BY-SA 4.0
+## Contributions
 
-All physical designs and CAD/print files located in `models/` are licensed under the **Creative Commons Attribution-ShareAlike 4.0 International License (CC BY-SA 4.0)**; see [`models/LICENSE`](https://github.com/dannysombrero/hallzee-mono/blob/main/models/LICENSE).
-
-- **You are free to:**
-  - **Share:** Copy, redistribute, and 3D print the models in any medium or format.
-  - **Adapt:** Remix, transform, and build upon the designs for your own hardware enclosures.
-- **Under the following terms:**
-  - **Attribution:** You must give appropriate credit to **Hallzee Labs**, provide a link to the license, and indicate if changes were made.
-  - **ShareAlike:** If you remix, transform, or build upon the hardware models, you must distribute your contributions under the same license as the original (CC BY-SA 4.0).
-
----
-
-## Inquiries and Commercial Licensing
-
-For questions regarding compliance, custom licensing, enterprise district agreements, or commercial hardware partnerships, contact **Hallzee Labs**.
+Only contribute material you have permission to license under the applicable
+project license. Existing third-party and contributor copyrights remain theirs.
+Hallzee Labs is the declared owner of original Hallzee work; this notice does
+not transfer anyone else's rights or establish corporate status.

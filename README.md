@@ -4,6 +4,9 @@
 [Release review](docs/release-readiness.md) ·
 [Build and publish Windows/Mac downloads](docs/releasing.md)
 
+[Open source security and license review](docs/open-source-readiness.md) covers
+the history cleanup, dependency findings, and recommended repository settings.
+
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
 [![Hardware License: CC BY-SA 4.0](https://img.shields.io/badge/Hardware-CC_BY--SA_4.0-orange.svg)](LICENSE)
 
@@ -162,7 +165,8 @@ See [Bluetooth protocol](docs/bluetooth-protocol.md) and
 
 ## License and contributing
 
-Hallzee software and firmware are licensed under [AGPL-3.0](LICENSE). The
+Hallzee software and firmware are copyright © 2026 Hallzee Labs and licensed
+under [AGPL-3.0-or-later](LICENSE). The
 hardware and 3D models use [CC BY-SA 4.0](models/LICENSE). See
 [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request and
 [SECURITY.md](SECURITY.md) for private vulnerability reports.
@@ -211,6 +215,6 @@ not verified by the firmware rendering tests.
 Hallzee is open source and open hardware:
 
 - **Software & Firmware:** The ESP32 firmware, C++ components, and .NET Avalonia desktop receiver are licensed under the [GNU Affero General Public License v3.0 (AGPL-3.0)](LICENSE). Copyright © 2026 Hallzee Labs.
-- **Hardware & Enclosures:** All 3D models, CAD designs, and fabrication files located in [`models/`](models) are licensed under the [Creative Commons Attribution-ShareAlike 4.0 International License (CC BY-SA 4.0)](LICENSE). Copyright © 2026 Hallzee Labs.
+- **Hardware & Enclosures:** All 3D models, CAD designs, and fabrication files located in [`models/`](models) are licensed under the [Creative Commons Attribution-ShareAlike 4.0 International License (CC BY-SA 4.0)](models/LICENSE). Copyright © 2026 Hallzee Labs.
 
 See the complete [LICENSE](LICENSE) file for full legal terms.

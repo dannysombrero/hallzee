@@ -1,5 +1,16 @@
 # Installation and testing guide
 
+## September open source review
+
+See [open source readiness](Open-Source-Readiness) for the history audit,
+dependency alerts, supported-version policy, and recommended branch rules.
+The generated inventory in `docs/dependency-inventory.json` covers npm and
+locally restored NuGet packages; refresh it after dependency updates with
+`python3 scripts/generate-dependency-inventory.py --output docs/dependency-inventory.json --notices licenses/nuget`.
+It does not replace Arduino/ESP-IDF component-level license review.
+The always-running **Repository hygiene** workflow is suitable as a required
+PR check; path-filtered platform workflows need an aggregate check first.
+
 ## Repository hygiene and leak prevention
 
 Root `.gitignore` excludes sensitive file categories: private keys (`*.pem`,

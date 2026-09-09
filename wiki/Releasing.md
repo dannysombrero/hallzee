@@ -12,9 +12,9 @@ Use GitHub's web interface; no local Git, .NET, or Arduino installation is neede
 1. Change the repository visibility to **Public** only after reviewing its
    history and local files for credentials, student data, and unpublished
    material. Rotate anything that was ever committed before making it public.
-2. The repository is licensed under AGPL-3.0 (for software and firmware)
-   and CC BY-SA 4.0 (for 3D models and hardware) in `LICENSE`; see [License](License).
-   Add a contribution policy and security contact when ready.
+2. Original software uses AGPL-3.0-or-later in `LICENSE`; models use CC BY-SA 4.0
+   in `models/LICENSE`. See [License](License), `COPYRIGHT`, `CONTRIBUTING.md`,
+   and `SECURITY.md`. Complete the outstanding native third-party notice review.
 3. The workflows default `HALLZEE_RELEASE_REPOSITORY` to this repository, so no
    repository variable or `HALLZEE_PUBLIC_RELEASE_TOKEN` is needed. The publish
    workflow uses GitHub's built-in token with Actions read and Contents write
@@ -26,7 +26,10 @@ For firmware, also configure the existing `firmware-release` environment and
 The public key must match the terminals and clients already distributed.
 Do not put the private signing key in the downloads repository.
 
-## Build privately
+## Build and test before publication
+
+Actions logs and build artifacts in a public repository are not private staging.
+Use only synthetic classroom data in builds and artifacts.
 
 Run **Build Desktop Release Packages** or **Build Firmware Release Packages**
 from the reviewed branch with a new `major.minor.patch` version (for example,
@@ -73,9 +76,10 @@ The old moving Windows workflow is now a manual legacy build only.
 
 Run **Publish Tested Release**, select `client` or `firmware`, and enter the
 successful build run ID. It validates the run and expected asset set, refuses
-private destinations and existing version tags, uploads a draft, updates the
-public teacher README, then publishes that draft. It attaches a guide and SHA-256
-checksums. It does not rebuild tested binaries or overwrite existing releases.
+private destinations and existing version tags, uploads a draft, then publishes
+that draft. It attaches the tested guide and SHA-256 checksums. It targets the
+tested source commit and links its source archive. README changes go through
+normal source review; publication does not overwrite the repository README.
 
 The release is created in this same repository. On a partial failure, inspect the
 draft release and workflow log; do not bypass version checks or replace public

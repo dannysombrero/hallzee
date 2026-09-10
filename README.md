@@ -67,11 +67,15 @@ what to download and how to open it safely.
 
 ### Recent activity, roster, and policy summary
 
+See completed trips at a glance while keeping each class's pass capacity, warning threshold, and daily guideline in view.
+
 <p align="center">
   <img src="docs/images/recent-activity-and-policy.png" alt="Recent student activity beside the roster and pass policy summary" width="760" />
 </p>
 
 ### Trip history log
+
+Search, filter, export, and review every recorded trip when you need a complete audit trail.
 
 <p align="center">
   <img src="docs/images/trip-history.png" alt="Searchable Hallzee trip history log" width="900" />
@@ -79,11 +83,15 @@ what to download and how to open it safely.
 
 ### Student roster
 
+Maintain the students assigned to each classroom, including IDs, grades, and class periods, from one place.
+
 <p align="center">
   <img src="docs/images/student-roster.png" alt="Hallzee student roster with student IDs, names, grades, and class periods" width="900" />
 </p>
 
 ### Policies and bell times
+
+Set classroom pass limits and warnings alongside the bell schedule that determines when passes are available.
 
 <p align="center">
   <img src="docs/images/policies-and-bell-times.png" alt="Hallzee pass policy rules and bell schedule settings" width="900" />
@@ -91,11 +99,15 @@ what to download and how to open it safely.
 
 ### Exceeded-time insights
 
+Quickly spot students with repeated or unusually long trips so you can follow up with the right context.
+
 <p align="center">
   <img src="docs/images/exceeded-time-panel.png" alt="Hallzee exceeded-time panel highlighting students with longer trips" width="540" />
 </p>
 
-### Mini Window
+### Mini Pop-up Window
+
+Displays on your smartboard so you and your class can see pass status and whether time windows are open or closed.
 
 <p align="center">
   <img src="docs/images/mini-window.png" alt="Hallzee compact always-on-top mini window" width="540" />

@@ -1,21 +1,29 @@
 # CI and repository security
 
 Every pull request runs **Pull request readiness** with a read-only token and
-no firmware signing secrets. It calls the Mac/Windows desktop validation and
-firmware validation workflows, builds/tests/lints/type-checks the website on
-Linux and Windows, audits npm, and
-scans reachable Git history using a checksum-verified Gitleaks binary. Running
-all checks also covers changes to shared scripts and dependency configuration.
-The firmware workflow also builds the standalone USB executable on Windows
-and Mac and audits every pinned Python package against OSV. Its fast validation
-job runs the release-licensing regression suite, covering target-specific
-dependency inventories, firmware source coverage, archive path safety, stale
-source rejection, native-input provenance, and fail-closed OSV responses.
+no firmware signing secrets. Its Linux core always runs the portable .NET and
+Python regression suites plus a reachable-history scan using a
+checksum-verified Gitleaks binary. It classifies the changed paths before
+starting the more expensive jobs: website changes run the Node checks on
+Linux, desktop changes package both Mac architectures in one macOS job,
+Windows-relevant changes get one Windows build/test job, and firmware changes
+get one Linux USB/audit/Arduino job. Changes to workflows, shared scripts, or
+test infrastructure deliberately select every platform check.
 
-The final **PR readiness** job fails if any dependency fails, is cancelled, or
-is unexpectedly skipped. It has no path filter, so documentation-only PRs do
-not get stuck waiting for a missing required check. The existing **Repository
-hygiene** check keeps its name and still runs independently.
+The full manual desktop and firmware validation workflows remain available
+for release candidates. They build the standalone USB executable on Windows
+and Mac, run native firmware coverage, build optional firmware variants, and
+exercise platform-specific release packaging. The PR core runs the
+release-licensing regression suite, covering target-specific dependency
+inventories, firmware source coverage, archive path safety, stale source
+rejection, native-input provenance, and fail-closed OSV responses.
+
+The final **PR readiness** job fails if a selected dependency fails or is
+cancelled; jobs unrelated to the changed paths may be skipped. The workflow
+itself has no path filter, so documentation-only PRs do not get stuck waiting
+for a missing required check. The existing **Repository hygiene** check keeps
+its name and still runs independently. In-progress runs are cancelled when a
+new commit reaches the same PR.
 
 After the first successful run, add **PR readiness** to the required checks on
 `main`, alongside **Repository hygiene**. Keep PRs, an up-to-date branch, and
@@ -26,8 +34,10 @@ a separately coordinated maintenance window before those protections resume.
 ## Dependency updates
 
 Dependabot checks GitHub Actions, npm, the USB Python build, and all NuGet
-project directories weekly.
-Related React, Cloudflare, Avalonia, and SQLite packages are grouped for review.
+project directories monthly. Each ecosystem is limited to two open version
+update PRs, and routine updates are grouped to avoid a burst of near-identical
+workflow runs. Related React, Cloudflare, Avalonia, and SQLite packages retain
+their focused groups.
 The website audit covers development and production dependencies; CI's .NET
 audit covers transitives and treats known vulnerability warnings as errors.
 Registry availability failures remain visible in build output.
@@ -56,13 +66,14 @@ checks every emitted path and requires every restored NuGet package name/version
 to appear in the combined platform graph, so that distinction cannot hide a
 missing transitive dependency.
 
-Relevant PRs exercise both restores and run a checksum-pinned official detector
-against the transferred graphs. They verify every resulting manifest path with
-read-only permissions and no snapshot upload. Snapshot submission runs only on default-branch pushes or an
-explicit maintainer dispatch selecting the default branch, using a separate job
-with Contents write. Dispatching another branch cannot submit a snapshot. The
-first actual upload should be verified after merge by running this workflow
-on `main` and checking the dependency graph's refreshed manifests.
+PR readiness tests the graph-transfer, path-validation, and fail-closed logic
+on Linux. The platform restores and checksum-pinned official detector run only
+after a relevant change reaches `main`, or on explicit maintainer dispatch.
+The separate submission job then uses Contents write; dispatching another
+branch cannot submit a snapshot. This avoids repeating macOS and Windows
+restores for every intermediate PR commit while preserving validation of the
+exact merged dependency graph. Verify the resulting manifests in GitHub's
+dependency graph after a submission run.
 These snapshots describe restored NuGet package graphs. SDK/workload framework
 packs are tracked separately by the release's dependency/license inventory;
 the graph detector does not promise to inventory every bundled runtime binary.
@@ -80,9 +91,9 @@ updates, and the repository-owned workflow remain enabled.
 See [GitHub dependency submission](https://docs.github.com/en/code-security/how-tos/secure-your-supply-chain/secure-your-dependencies/use-dependency-submission-api)
 and the [official action inputs](https://github.com/actions/component-detection-dependency-submission-action).
 
-Review [website dependency updates](Dependency-Updates-Web),
-[desktop dependency updates](Dependency-Updates-Desktop), and
-[release licensing](Release-Licensing) before upgrading a dependency. Arduino
+Review [website dependency updates](dependency-updates-web.md),
+[desktop dependency updates](dependency-updates-desktop.md), and
+[release licensing](release-licensing.md) before upgrading a dependency. Arduino
 libraries use `firmware/arduino-libraries.txt`; Dependabot does not manage them.
 
 The manual **Prepare preview dependency update** action updates within declared
@@ -102,7 +113,7 @@ rejects tracked private keys, classroom exports, and local host metadata.
 GitHub's **Private vulnerability reporting**, **Secret scanning**, and **Push
 protection** are separate repository settings; committing YAML does not enable
 them. Enable the available controls after making this repository public, then
-verify the private reporting link in [SECURITY.md](https://github.com/dannysombrero/hallzee/blob/main/SECURITY.md). Keep
+verify the private reporting link in [SECURITY.md](../SECURITY.md). Keep
 Dependabot alerts, security updates, and repository-owned dependency submission
 enabled as described above. No self-hosted runners are needed for this project.
 
@@ -123,7 +134,7 @@ reuse a pre-cleanup artifact whose source links would become stale.
 
 Keep numbered `client-v*` and `firmware-v*` tags immutable after any history
 maintenance. Publication attaches the tested guide and checksums without
-writing over the README. See [releasing](Releasing) for the acceptance and
+writing over the README. See [releasing](releasing.md) for the acceptance and
 publication sequence.
 
 A Mac is sufficient for local scripts, source scans, and shared tests. CI also

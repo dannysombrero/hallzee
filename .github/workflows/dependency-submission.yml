@@ -10,16 +10,6 @@ on:
       - '**/nuget.config'
       - '.github/workflows/dependency-submission.yml'
       - 'scripts/prepare-dependency-submission.py'
-  pull_request:
-    paths:
-      - '**/*.csproj'
-      - 'Directory.*'
-      - 'global.json'
-      - '**/NuGet.Config'
-      - '**/nuget.config'
-      - '.github/workflows/dependency-submission.yml'
-      - 'scripts/prepare-dependency-submission.py'
-      - 'test/test_dependency_submission.py'
   workflow_dispatch:
 permissions:
   contents: read

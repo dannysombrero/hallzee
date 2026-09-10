@@ -15,6 +15,7 @@ if ($TouchTest -and ($Display -ne "ili9341" -or $Rotation -notin @(1, 3))) {
   throw "-TouchTest requires -Display ili9341 and landscape rotation 1 or 3."
 }
 $toolsDir = Join-Path $ProjectRoot ".tools"
+$firmwareSource = Join-Path $ProjectRoot "firmware/terminal"
 $cliDir = Join-Path $toolsDir "arduino-cli"
 $cli = Join-Path $cliDir "arduino-cli.exe"
 $esp32Index = "https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json"
@@ -59,7 +60,7 @@ if (-not $Fast) {
   if ($LASTEXITCODE -ne 0) { throw "Could not update the Arduino package index." }
   & $cli core install "esp32:esp32@$esp32Version" --additional-urls $esp32Index
   if ($LASTEXITCODE -ne 0) { throw "Could not install the pinned ESP32 core." }
-  $libraries = @(Get-Content (Join-Path $ProjectRoot "firmware/arduino-libraries.txt") | Where-Object { $_ -and -not $_.StartsWith('#') })
+  $libraries = @(Get-Content (Join-Path $firmwareSource "arduino-libraries.txt") | Where-Object { $_ -and -not $_.StartsWith('#') })
   & $cli lib install --no-deps @libraries
   if ($LASTEXITCODE -ne 0) { throw "Could not install firmware libraries." }
 
@@ -73,21 +74,21 @@ if (-not $Fast) {
 
 # Arduino requires the sketch directory and its main .ino file to share a
 # basename. The repository name is intentionally independent of that file.
-$sketchFiles = @(Get-ChildItem -Path $ProjectRoot -Filter "*.ino" -File)
+$sketchFiles = @(Get-ChildItem -Path $firmwareSource -Filter "*.ino" -File)
 if ($sketchFiles.Count -ne 1) {
-  throw "Expected exactly one .ino sketch in $ProjectRoot."
+  throw "Expected exactly one .ino sketch in $firmwareSource."
 }
 $sketchName = $sketchFiles[0].BaseName
 $stagingRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("hallzee-" + [guid]::NewGuid().ToString())
 $stagingSketch = Join-Path $stagingRoot $sketchName
 $buildDir = Join-Path $stagingRoot "build"
 New-Item -ItemType Directory -Force -Path $stagingSketch | Out-Null
-Copy-Item -Path (Join-Path $ProjectRoot "*.ino") -Destination $stagingSketch
-Copy-Item -Path (Join-Path $ProjectRoot "*.h") -Destination $stagingSketch
-Copy-Item -Path (Join-Path $ProjectRoot "*.cpp") -Destination $stagingSketch
-Copy-Item -Path (Join-Path $ProjectRoot "firmware/partitions.csv") -Destination $stagingSketch
-if (Test-Path (Join-Path $ProjectRoot "fonts")) {
-  Copy-Item -Path (Join-Path $ProjectRoot "fonts") -Destination $stagingSketch -Recurse
+Copy-Item -Path (Join-Path $firmwareSource "*.ino") -Destination $stagingSketch
+Copy-Item -Path (Join-Path $firmwareSource "*.h") -Destination $stagingSketch
+Copy-Item -Path (Join-Path $firmwareSource "*.cpp") -Destination $stagingSketch
+Copy-Item -Path (Join-Path $firmwareSource "partitions.csv") -Destination $stagingSketch
+if (Test-Path (Join-Path $firmwareSource "fonts")) {
+  Copy-Item -Path (Join-Path $firmwareSource "fonts") -Destination $stagingSketch -Recurse
 }
 
 try {

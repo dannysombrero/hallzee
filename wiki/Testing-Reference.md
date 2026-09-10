@@ -354,7 +354,7 @@ before enabling **Erase All Flash Before Sketch Upload** in Arduino IDE.
 You do not need Git, Arduino, .NET, or any project libraries installed in
 advance. First open the project on GitHub, choose **Code → Download ZIP**, and
 unzip it anywhere on your computer. All commands below run from the **project
-root**: the extracted folder containing `README.md`, `bathroom-signin.ino`,
+root**: the extracted folder containing `README.md`, `firmware/`,
 and `scripts/`. Its name and location do not matter.
 
 Open a terminal in that folder before pasting a command. On macOS, select the
@@ -518,7 +518,7 @@ ILI9341 is mounted upside down. Windows may install a USB-UART driver after
 the board is first connected; unplug/reconnect the board and rerun the same
 command after that driver installation finishes. The flasher uses the
 original ESP32 target and installs Arduino CLI, ESP32 core `3.3.11`, and all
-four libraries from `libraries.txt` automatically.
+four libraries from `firmware/terminal/arduino-libraries.txt` automatically.
 
 ### Flash without changing the board
 
@@ -692,8 +692,10 @@ Its display bus is intentionally limited to 20 MHz to reduce corruption on
 long or loosely connected SPI wiring. The native UI also uses embedded
 FreeSans bitmap fonts rather than the built-in block font.
 
-For keypad and display-flow checks, open `display-emulator.html` in a browser
-or use the Wokwi setup described in [WOKWI.md](../WOKWI.md).
+For keypad and display-flow checks, open the
+[display emulator](https://github.com/dannysombrero/hallzee/blob/main/tools/display-emulator.html)
+or use the
+[Wokwi guide](https://github.com/dannysombrero/hallzee/blob/main/firmware/terminal/WOKWI.md).
 
 ### Restore the standard UI after touch testing
 

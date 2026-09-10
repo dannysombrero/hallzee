@@ -66,7 +66,7 @@ jobs:
           libraries=()
           while IFS= read -r library; do
             [[ -z "$library" || "$library" == \#* ]] || libraries+=("$library")
-          done < firmware/arduino-libraries.txt
+          done < firmware/terminal/arduino-libraries.txt
           arduino-cli lib install --no-deps "${libraries[@]}"
       - name: Build and sign packages
         env:

@@ -125,7 +125,7 @@ def verify_sdk(sdk, lock):
 
 
 def installed_libraries(cli):
-    pins = [line.rsplit('@', 1) for line in (ROOT / 'firmware/arduino-libraries.txt').read_text().splitlines()
+    pins = [line.rsplit('@', 1) for line in (ROOT / 'firmware/terminal/arduino-libraries.txt').read_text().splitlines()
             if line and not line.startswith('#')]
     installed = json.loads(run(cli, 'lib', 'list', '--format', 'json'))
     libraries = {entry['library']['name']: entry['library']

@@ -9,7 +9,7 @@ relicense software, fonts, or third-party artwork.
 DM Sans is copyright 2014 The DM Sans Project Authors
 (https://github.com/googlefonts/dm-fonts), under the SIL Open Font License 1.1.
 This covers the TTF files in `receiver/universal/Assets/Fonts/` and the converted
-bitmap fonts in `fonts/`. The full copyright and license notice is in
+bitmap fonts in `firmware/terminal/fonts/`. The full copyright and license notice is in
 `licenses/DM-Sans-OFL.txt`. Font conversion does not make the fonts AGPL.
 Avalonia.Fonts.Inter also supplies Inter 3.019 (font metadata git-0a5106e0b),
 copyright 2020 The Inter Project Authors (https://github.com/rsms/inter), under
@@ -44,7 +44,7 @@ Review the exact toolchain versions used by each release:
 | esptool | https://github.com/espressif/esptool — GPL-2.0-or-later; distributed USB tool |
 | mklittlefs and littlefs | https://github.com/earlephilhower/mklittlefs and https://github.com/littlefs-project/littlefs — retain their separate licenses |
 
-All declared Arduino libraries are pinned in `firmware/arduino-libraries.txt`.
+All declared Arduino libraries are pinned in `firmware/terminal/arduino-libraries.txt`.
 The release builder verifies them and supplies their source, exact Arduino/IDF
 source with recursive submodules, linked managed-component sources, toolchain
 notices, SDK configuration, and the esptool/mklittlefs sources. Download these

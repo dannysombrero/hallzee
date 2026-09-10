@@ -97,7 +97,7 @@ and the [official action inputs](https://github.com/actions/component-detection-
 Review [website dependency updates](dependency-updates-web.md),
 [desktop dependency updates](dependency-updates-desktop.md), and
 [release licensing](release-licensing.md) before upgrading a dependency. Arduino
-libraries use `firmware/arduino-libraries.txt`; Dependabot does not manage them.
+libraries use `firmware/terminal/arduino-libraries.txt`; Dependabot does not manage them.
 
 The manual **Prepare preview dependency update** action updates within declared
 version ranges, validates the result, and uploads a patch and lockfile. Download

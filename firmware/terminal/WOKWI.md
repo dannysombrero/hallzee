@@ -12,8 +12,9 @@ uses the same GPIO assignments as the physical terminal:
 ## Run it in Wokwi
 
 1. Create a new **ESP32 Arduino** project at [Wokwi](https://wokwi.com/).
-2. Copy the firmware source files into that project without changing their
-   names: `bathroom-signin.ino`, `AppTypes.h`, `Config.h`, `TripStorage.*`,
+2. From `firmware/terminal/`, copy the firmware source files into that project
+   without changing their names: `bathroom-signin.ino`, `AppTypes.h`,
+   `Config.h`, `TripStorage.*`,
    `ClockService.*`, `TerminalController.*`, `TerminalDisplay.*`,
    `KeypadController.*`, `BluetoothSync.*`, `diagram.json`, and
    `libraries.txt`.

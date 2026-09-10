@@ -72,15 +72,15 @@ jobs:
           libraries=()
           while IFS= read -r library; do
             [[ -z "$library" || "$library" == \#* ]] || libraries+=("$library")
-          done < firmware/arduino-libraries.txt
+          done < firmware/terminal/arduino-libraries.txt
           arduino-cli lib install --no-deps "${libraries[@]}"
       - name: Compile ST7735 firmware
         run: |
           mkdir -p "$RUNNER_TEMP/hallzee"
-          cp ./*.cpp ./*.h "$RUNNER_TEMP/hallzee/"
-          cp bathroom-signin.ino "$RUNNER_TEMP/hallzee/hallzee.ino"
-          cp -R fonts "$RUNNER_TEMP/hallzee/"
-          cp firmware/partitions.csv "$RUNNER_TEMP/hallzee/"
+          cp firmware/terminal/*.cpp firmware/terminal/*.h "$RUNNER_TEMP/hallzee/"
+          cp firmware/terminal/bathroom-signin.ino "$RUNNER_TEMP/hallzee/hallzee.ino"
+          cp -R firmware/terminal/fonts "$RUNNER_TEMP/hallzee/"
+          cp firmware/terminal/partitions.csv "$RUNNER_TEMP/hallzee/"
           arduino-cli compile --build-property upload.maximum_size=1572864 --fqbn esp32:esp32:esp32 "$RUNNER_TEMP/hallzee"
       - name: Compile ILI9341 firmware
         run: arduino-cli compile --build-property upload.maximum_size=1572864 --fqbn esp32:esp32:esp32 "$RUNNER_TEMP/hallzee" --build-property "compiler.cpp.extra_flags=-DHALLZEE_ILI9341 -DHALLZEE_DISPLAY_ROTATION=1"

@@ -8,7 +8,7 @@ should use [Build, test, and publish](releasing.md).
 
 On [GitHub](https://github.com/dannysombrero/hallzee), choose **Code → Download
 ZIP** and extract it. Git is not needed. Open Terminal on Mac or PowerShell on
-Windows in the extracted folder containing `README.md`, `bathroom-signin.ino`
+Windows in the extracted folder containing `README.md`, `firmware/`,
 and `scripts/`. The folder name and location do not matter.
 
 For desktop packages or automated checks without installing a local toolchain,

@@ -90,9 +90,10 @@ for Windows and Mac USB tools. It checks archive hashes and matches each
 standalone esptool binary to its source manifest. These source downloads sit
 beside the USB ZIPs; teachers still extract only their platform's USB ZIP.
 
-After history cleanup, merge the prepared fixes and build again. Publication
-rejects a tested commit that is no longer an ancestor of the default branch;
-this keeps the source download links valid. Do not reuse pre-cleanup packages.
+The advertised branch/tag history was sanitized on September 10, 2026. Do not
+reuse packages built before that rewrite. Publication rejects a tested commit
+that is no longer an ancestor of the default branch; this keeps source download
+links valid.
 
 The release is created in this same repository. On a partial failure, inspect the
 draft release and workflow log; do not bypass version checks or replace public

@@ -71,13 +71,12 @@ input. Before uploading, the workflow requires that release to match the version
 and checksum used in PR validation; a new upstream release requires updating
 that pin and validating again.
 
-GitHub's built-in **Automatic Dependency Submission (NuGet)** currently tries
-to restore every project on Ubuntu. It fails with `NETSDK1100` on the Windows
-project and cannot provide the Mac workload. After the replacement successfully
-uploads both snapshots, disable **Automatic dependency submission** in GitHub
-settings while keeping **Dependency graph**, Dependabot alerts/security updates,
-and the repository-owned workflow enabled. This setting change is still pending;
-the replacement's PR checks validate graphs without submitting them.
+GitHub's built-in **Automatic Dependency Submission (NuGet)** tried to restore
+every project on Ubuntu. It failed with `NETSDK1100` on the Windows project and
+could not provide the Mac workload. The repository-owned replacement has now
+uploaded both platform snapshots successfully, and **Automatic dependency
+submission** is disabled. **Dependency graph**, Dependabot alerts/security
+updates, and the repository-owned workflow remain enabled.
 See [GitHub dependency submission](https://docs.github.com/en/code-security/how-tos/secure-your-supply-chain/secure-your-dependencies/use-dependency-submission-api)
 and the [official action inputs](https://github.com/actions/component-detection-dependency-submission-action).
 

@@ -265,7 +265,7 @@ physical Windows PC.
 6. From date/time setup, hold `*` + `#` for five seconds on an unclaimed terminal.
    Pairing shows the full ID, friendly name, and six-digit passkey. Release the
    keys; the clock entry must remain intact if pairing expires.
-7. Rename the terminal and confirm its **Terminal: [name]** header, discovery
+7. Rename the terminal to `Room #204` and confirm its **Terminal: [name]** header, discovery
    name, and OS title **Hallzee Desktop Client · terminal name** update.
 
 ## Terminal rename storage fix

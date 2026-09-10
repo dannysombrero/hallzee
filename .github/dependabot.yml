@@ -3,26 +3,34 @@ updates:
   - package-ecosystem: pip
     directory: /firmware
     schedule:
-      interval: weekly
-      day: monday
-    open-pull-requests-limit: 5
+      interval: monthly
+    open-pull-requests-limit: 2
+    groups:
+      python-maintenance:
+        patterns: ["*"]
+
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
-      day: monday
-    open-pull-requests-limit: 5
+      interval: monthly
+    open-pull-requests-limit: 2
+    groups:
+      actions-maintenance:
+        patterns: ["*"]
+
   - package-ecosystem: npm
     directory: /preview-site
     schedule:
-      interval: weekly
-      day: monday
-    open-pull-requests-limit: 5
+      interval: monthly
+    open-pull-requests-limit: 2
     groups:
       react:
         patterns: ["react", "react-dom", "react-server-dom-webpack", "@types/react", "@types/react-dom"]
       cloudflare:
         patterns: ["@cloudflare/*", "wrangler", "miniflare"]
+      npm-maintenance:
+        patterns: ["*"]
+
   - package-ecosystem: nuget
     directories:
       - /receiver/universal
@@ -33,11 +41,12 @@ updates:
       - /receiver/windows/BathroomSync.Tests
       - /tools/FirmwareTool
     schedule:
-      interval: weekly
-      day: monday
-    open-pull-requests-limit: 5
+      interval: monthly
+    open-pull-requests-limit: 2
     groups:
       avalonia:
         patterns: ["Avalonia*"]
       sqlite:
         patterns: ["Microsoft.Data.Sqlite*", "SQLitePCLRaw.*", "SourceGear.sqlite3"]
+      dotnet-maintenance:
+        patterns: ["*"]

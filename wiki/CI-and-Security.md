@@ -7,7 +7,10 @@ Linux and Windows, audits npm, and
 scans reachable Git history using a checksum-verified Gitleaks binary. Running
 all checks also covers changes to shared scripts and dependency configuration.
 The firmware workflow also builds the standalone USB executable on Windows
-and Mac and audits every pinned Python package against OSV.
+and Mac and audits every pinned Python package against OSV. Its fast validation
+job runs the release-licensing regression suite, covering target-specific
+dependency inventories, firmware source coverage, archive path safety, stale
+source rejection, native-input provenance, and fail-closed OSV responses.
 
 The final **PR readiness** job fails if any dependency fails, is cancelled, or
 is unexpectedly skipped. It has no path filter, so documentation-only PRs do

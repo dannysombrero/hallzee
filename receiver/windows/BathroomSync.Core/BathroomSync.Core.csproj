@@ -8,7 +8,7 @@
   <ItemGroup>
     <!-- Select the native engine explicitly: the Microsoft.Data.Sqlite bundle
          otherwise pulls the retired SQLitePCLRaw.lib.e_sqlite3 2.x package. -->
-    <PackageReference Include="Microsoft.Data.Sqlite.Core" Version="8.0.30" />
+    <PackageReference Include="Microsoft.Data.Sqlite.Core" Version="10.0.12" />
     <PackageReference Include="SQLitePCLRaw.config.e_sqlite3" Version="3.0.5" />
     <PackageReference Include="SourceGear.sqlite3" Version="3.53.4" />
   </ItemGroup>

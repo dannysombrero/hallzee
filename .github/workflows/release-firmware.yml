@@ -31,7 +31,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 8.0.x
       - run: dotnet test receiver/windows/BathroomSync.Tests/BathroomSync.Tests.csproj
@@ -54,7 +54,7 @@ jobs:
             exit 1
           fi
       - uses: actions/checkout@v6
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 8.0.x
       - uses: arduino/setup-arduino-cli@v2
@@ -98,7 +98,7 @@ jobs:
         with:
           name: Firmware-and-USB-images
           path: firmware-build
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 8.0.x
       - uses: arduino/setup-arduino-cli@v2

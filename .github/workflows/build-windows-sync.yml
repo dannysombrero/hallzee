@@ -8,7 +8,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/setup-dotnet@v6
         with: { dotnet-version: 8.0.x }
       - run: dotnet test receiver/windows/BathroomSync.Tests/BathroomSync.Tests.csproj --configuration Release -p:CollectCoverage=true -p:Threshold=80 -p:ThresholdType=line -p:ThresholdStat=total
       - run: dotnet test receiver/universal.tests/BathroomSync.Universal.Tests.csproj --configuration Release

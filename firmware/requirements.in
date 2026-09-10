@@ -5,4 +5,4 @@ esptool==5.3.1
 pyinstaller==6.20.0
 # 50.0.0 fixes the PKCS#7 oracle (GHSA-g6cj-pr64-35w5); 49.0.0 fixes the
 # certificate verification advisories. USB packages support Mac ARM64/Windows x64.
-cryptography==50.0.0
+cryptography==50.0.1

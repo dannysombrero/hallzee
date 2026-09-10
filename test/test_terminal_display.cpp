@@ -790,12 +790,12 @@ void testTerminalRenamePersistenceAndFailures() {
     nullptr, nullptr, nullptr, nullptr, &identity);
   sync.begin();
   serial.connected = true;
-  serial.input = "SET,TERMINAL_NAME,Room 204\n";
+  serial.input = "SET,TERMINAL_NAME,  Room #204  \n";
   sync.poll();
-  expectTrue(contains(serial.output, "SETTINGS_ACK,TERMINAL_NAME,Room 204"), "valid rename is acknowledged");
+  expectTrue(contains(serial.output, "SETTINGS_ACK,TERMINAL_NAME,Room #204"), "valid rename is trimmed and acknowledged");
   TerminalIdentity restarted;
   restarted.begin();
-  expectTrue(restarted.customName() == "Room 204", "rename survives reboot with NVS namespace limit");
+  expectTrue(restarted.customName() == "Room #204", "rename survives reboot with NVS namespace limit");
   expectTrue(restarted.terminalId() == originalId, "rename retains stable device identity");
 
   Preferences::failWrite = true;
@@ -803,7 +803,7 @@ void testTerminalRenamePersistenceAndFailures() {
   serial.input = "SET,TERMINAL_NAME,Room 205\n";
   sync.poll();
   expectTrue(contains(serial.output, "SETTINGS_ERROR,TERMINAL_NAME,STORAGE_FAILED"), "storage failures are not invalid names");
-  expectTrue(identity.customName() == "Room 204" && serial.deviceName == "Room 204", "failed save restores discovery name");
+  expectTrue(identity.customName() == "Room #204" && serial.deviceName == "Room #204", "failed save restores discovery name");
   expectTrue(!contains(serial.output, "SETTINGS_ACK,TERMINAL_NAME,Room 205"), "failed save is never acknowledged");
   Preferences::failWrite = false;
 
@@ -811,13 +811,13 @@ void testTerminalRenamePersistenceAndFailures() {
   serial.input = "SET,TERMINAL_NAME,Room 206\n";
   sync.poll();
   expectTrue(contains(serial.output, "SETTINGS_ERROR,TERMINAL_NAME,BLE_UPDATE_FAILED"), "BLE failure has its own error");
-  expectTrue(identity.customName() == "Room 204", "BLE failure does not persist a new name");
+  expectTrue(identity.customName() == "Room #204", "BLE failure does not persist a new name");
   serial.renameSucceeds = true;
 
   serial.input = "SET,TERMINAL_NAME,Room,207\n";
   sync.poll();
   expectTrue(contains(serial.output, "SETTINGS_ERROR,TERMINAL_NAME,INVALID_VALUE"), "invalid name remains rejected");
-  expectTrue(identity.customName() == "Room 204" && serial.deviceName == "Room 204", "invalid name does not change device");
+  expectTrue(identity.customName() == "Room #204" && serial.deviceName == "Room #204", "invalid name does not change device");
 
   Preferences::failOpen = true;
   TerminalIdentity unavailable;

@@ -144,10 +144,15 @@ def main():
         # The open-source repository is also the public download repository.
         # The workflow grants this job Contents write only for this publication.
         if args.product == 'client':
-            assets = [root / f'Desktop-{rid}' / name for rid, name in [
+            desktop_artifacts = [
                 ('win-x64', 'Hallzee-Windows-win-x64.zip'),
                 ('osx-arm64', 'Hallzee-Mac-osx-arm64.zip'),
-                ('osx-x64', 'Hallzee-Mac-osx-x64.zip')]]
+                ('osx-x64', 'Hallzee-Mac-osx-x64.zip')]
+            assets = []
+            for rid, name in desktop_artifacts:
+                current = root / name.removesuffix('.zip') / name
+                legacy = root / f'Desktop-{rid}' / name
+                assets.append(current if current.is_file() else legacy)
             # New Windows builds upload app files directly. Preserve GitHub's
             # original artifact ZIP, which is the same one reviewers downloaded.
             # Older builds still contain a prebuilt ZIP under Desktop-win-x64.

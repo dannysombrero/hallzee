@@ -61,12 +61,14 @@ It also launches the helper without arguments on a matching Mac architecture to
 check runtime loading without starting Bluetooth. A skipped architecture launch
 check must be completed on a matching Mac before release.
 
-The Windows artifact is **Hallzee-Windows-win-x64**. Download it and extract
-once to reach the executable and supporting files. Windows builds upload the
-app files directly, letting GitHub create the download ZIP. Publication reuses
-that exact artifact ZIP as `Hallzee-Windows-win-x64.zip`; it does not repackage
-the app. Older build runs retain their nested ZIP layout and remain publishable.
-Mac artifacts still wrap the prebuilt Mac ZIP to preserve app permissions.
+The Actions artifacts are **Hallzee-Windows-win-x64**,
+**Hallzee-Mac-osx-arm64**, and **Hallzee-Mac-osx-x64**. Download the Windows
+artifact and extract once to reach the executable and supporting files. Windows
+builds upload the app files directly, letting GitHub create the download ZIP.
+Publication reuses that exact artifact ZIP as `Hallzee-Windows-win-x64.zip`; it
+does not repackage the app. Older build runs and their `Desktop-*` artifact names
+remain publishable. Mac Actions artifacts wrap the prebuilt Mac ZIP because the
+inner archive preserves application permissions for installation and release.
 
 Edit `docs/client-release-notes.md` or `firmware/release-notes.md` before building.
 Download the artifacts and test them. Record the successful run's numeric ID

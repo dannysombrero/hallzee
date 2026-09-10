@@ -116,8 +116,8 @@ public sealed class TerminalIdentityProtocolTests {
 
   [Fact]
   public void BuildsValidatedTerminalRenameCommand() {
-    Assert.Equal("SET,TERMINAL_NAME,Room 204 Door",
-      TerminalIdentityProtocol.BuildSetTerminalName("  Room 204 Door  "));
+    Assert.Equal("SET,TERMINAL_NAME,Room #204",
+      TerminalIdentityProtocol.BuildSetTerminalName("  Room #204  "));
     Assert.Throws<ArgumentException>(() => TerminalIdentityProtocol.BuildSetTerminalName("Room,204"));
   }
 

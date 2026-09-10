@@ -52,7 +52,8 @@ paired to another computer, not necessarily that a student is out.
   sections and periods inside it. Set pass capacity and your time warning,
   enter bell times, and choose **Save Workspace Settings** while connected.
 - **Settings → Device:** use the pencil to name your terminal (for example,
-  `Room 204`). Set the maximum ID length if your school needs a different limit.
+  `Room #204`). Names may contain 1–24 characters except commas. Set the maximum
+  ID length if your school needs a different limit.
 
 Bell-time rules guide the desktop display. To also block new checkouts at the
 terminal, select **Enforce bell-time lockouts on the terminal**. It is off by
@@ -100,7 +101,19 @@ Reports contain student information. Save and share them using your school's
 approved practices. Your roster and trip history stay on this computer.
 **Export Workspace** shares rules and schedules only; it is not a backup of
 students, trip history, or pairing. Updating the app keeps its existing local
-data. Moving to another computer is a separate IT task.
+data, even when the new Windows ZIP is extracted into a different folder or a
+Mac app is replaced. Hallzee imports roster rows into its private local database;
+it does not depend on the original CSV after import.
+
+The local database contains rosters, trip history, workspaces, policies, bell
+times, and terminal details. Its location is:
+
+- Windows: `%LOCALAPPDATA%\Hallzee\universal\hallzee-trips.db`
+- Mac: `~/Library/Application Support/Hallzee/universal/hallzee-trips.db`
+
+Do not put this database in a public or shared folder because it contains student
+information. Moving Hallzee to another computer or making a complete backup is
+a separate school IT task; workspace export deliberately leaves roster data out.
 
 ## Update the desktop app
 

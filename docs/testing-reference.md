@@ -59,7 +59,8 @@ still needs an end-to-end check.
 
 ## Open source repository hygiene
 
-Software and firmware are under AGPL-3.0 in the root `LICENSE`. Hardware and
+Software and firmware are under AGPL-3.0 in the repository's root `LICENSE`.
+Packaged downloads name the plain-text copy `LICENSE.txt`. Hardware and
 3D models have their own CC BY-SA 4.0 license in `models/LICENSE`; do not treat
 the model files as software. `SECURITY.md` explains how to report a vulnerability
 privately, and `CONTRIBUTING.md` covers pull requests and data handling.

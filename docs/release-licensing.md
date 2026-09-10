@@ -6,7 +6,7 @@ these grants do not assign third-party copyrights to Hallzee Labs.
 
 ## What a download contains
 
-Desktop and USB downloads include `LICENSE`, `COPYRIGHT`,
+Desktop and USB downloads include `LICENSE.txt`, `COPYRIGHT.txt`,
 `THIRD-PARTY-NOTICES.md`, font notices, and licenses collected from their exact
 restored NuGet graph. `licenses/dependency-inventory.json` records the target
 runtime, package versions and repository commits where upstream supplies them.

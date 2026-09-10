@@ -67,14 +67,8 @@ bool TerminalIdentity::isValidCustomName(const String &requestedName) {
   }
 
   for (unsigned int index = 0; index < normalized.length(); index++) {
-    const char character = normalized.charAt(index);
-    const bool allowed =
-      (character >= 'a' && character <= 'z') ||
-      (character >= 'A' && character <= 'Z') ||
-      (character >= '0' && character <= '9') ||
-      character == ' ' || character == '-' || character == '_' ||
-      character == '(' || character == ')';
-    if (!allowed) return false;
+    const unsigned char character = static_cast<unsigned char>(normalized.charAt(index));
+    if (character < 0x20 || character > 0x7E || character == ',') return false;
   }
   return true;
 }

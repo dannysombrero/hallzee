@@ -11,7 +11,7 @@
         <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,16">
           <StackPanel Spacing="2">
             <TextBlock Text="Classroom Roster &amp; Students" FontSize="22" FontWeight="Bold" Foreground="#111B33" />
-            <TextBlock Text="Manage student names, student IDs, and import SIS rosters." FontSize="14" Foreground="#617694" />
+            <TextBlock Text="Saved privately on this computer and kept when Hallzee is updated. Workspace exports do not include students." FontSize="14" Foreground="#617694" TextWrapping="Wrap" />
           </StackPanel>
           <Button Grid.Column="1" Classes="secondary" Content="✕" Click="OnCloseClick" Width="36" Height="36" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
         </Grid>

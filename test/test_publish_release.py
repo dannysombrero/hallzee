@@ -17,7 +17,7 @@ spec.loader.exec_module(module)
 
 
 class PublishTests(unittest.TestCase):
-    def run_publish(self, *, conclusion='success', private=False, missing=False, existing=False, bad_sha=False, flat_windows=False, missing_windows=False, branch='main', head_repo='school/source', comparison='ahead'):
+    def run_publish(self, *, conclusion='success', private=False, missing=False, existing=False, bad_sha=False, flat_windows=False, missing_windows=False, legacy_names=False, branch='main', head_repo='school/source', comparison='ahead'):
         calls = []
         source = destination = 'school/source'
 
@@ -36,12 +36,13 @@ class PublishTests(unittest.TestCase):
                 (metadata / 'release.json').write_text(json.dumps(dict(product='client', version='1.2.3', repository=destination, sha='bad' if bad_sha else 'a' * 40)))
                 (metadata / 'teacher-guide.md').write_text('Guide: https://github.com/dannysombrero/hallzee#readme')
                 (metadata / 'notes.md').write_text('Notes')
-                for rid, name in [('win-x64', 'Hallzee-Windows-win-x64.zip'), ('osx-arm64', 'Hallzee-Mac-osx-arm64.zip'), ('osx-x64', 'Hallzee-Mac-osx-x64.zip')]:
-                    if rid == 'win-x64' and (flat_windows or missing_windows):
+                for artifact, name in [('Hallzee-Windows-win-x64', 'Hallzee-Windows-win-x64.zip'), ('Hallzee-Mac-osx-arm64', 'Hallzee-Mac-osx-arm64.zip'), ('Hallzee-Mac-osx-x64', 'Hallzee-Mac-osx-x64.zip')]:
+                    if artifact == 'Hallzee-Windows-win-x64' and (flat_windows or missing_windows):
                         continue
-                    folder = root / f'Desktop-{rid}'
+                    rid = name.removeprefix('Hallzee-Mac-').removesuffix('.zip') if artifact.startswith('Hallzee-Mac-') else 'win-x64'
+                    folder = root / (f'Desktop-{rid}' if legacy_names else artifact)
                     folder.mkdir()
-                    if not missing or rid != 'osx-x64':
+                    if not missing or artifact != 'Hallzee-Mac-osx-x64':
                         (folder / name).write_bytes(b'tested bytes')
                 return ''
             if args[:2] == ('api', f'repos/{source}/actions/runs/123/artifacts'):
@@ -79,6 +80,7 @@ class PublishTests(unittest.TestCase):
                 self.assertFalse(any('clobber' in arg for args, _ in calls for arg in args))
 
     def test_promotes_tested_commit_without_overwriting_readme(self): self.run_publish()
+    def test_legacy_desktop_artifact_names_remain_publishable(self): self.run_publish(legacy_names=True)
     def test_promotes_original_flat_windows_archive(self): self.run_publish(flat_windows=True)
     def test_missing_windows_artifact_never_publishes(self): self.run_publish(missing_windows=True)
     def test_failed_build_never_publishes(self): self.run_publish(conclusion='failure')

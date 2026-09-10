@@ -6,6 +6,10 @@ They explain the AGPL software and CC BY-SA model split, exact release
 inventories, pinned Arduino dependencies, source archives, Keypad's differing
 source/header notices, and rebuilding modified firmware over USB.
 
+Packaged copies of Hallzee's root notices use `LICENSE.txt` and `COPYRIGHT.txt`
+so Windows opens them as plain-text files. Upstream dependency filenames remain
+unchanged inside the accompanying `licenses` directory.
+
 Every firmware release retains the actual SDK configuration, linked-component
 inventory, third-party sources, and original notices alongside its downloads.
 Desktop/USB NuGet inventories are regenerated for the project and runtime being

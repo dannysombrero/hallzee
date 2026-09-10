@@ -192,8 +192,10 @@ def bundle(args):
         if item.get('recursive'):
             record['submodules'] = run('git', 'submodule', 'status', '--recursive', cwd=folder).splitlines()
         manifest['sources'].append(record)
-    for name in ('LICENSE', 'COPYRIGHT', 'THIRD-PARTY-NOTICES.md'):
-        shutil.copy2(ROOT / name, args.output / name)
+    for source, packaged_name in (('LICENSE', 'LICENSE.txt'),
+                                    ('COPYRIGHT', 'COPYRIGHT.txt'),
+                                    ('THIRD-PARTY-NOTICES.md', 'THIRD-PARTY-NOTICES.md')):
+        shutil.copy2(ROOT / source, args.output / packaged_name)
     shutil.copy2(ROOT / 'docs/release-licensing.md', args.output / 'SOURCE-AND-LICENSES.md')
     shutil.copy2(ROOT / 'licenses/DM-Sans-OFL.txt', notices / 'DM-Sans-OFL.txt')
     if args.scope == 'usb':

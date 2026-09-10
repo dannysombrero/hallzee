@@ -30,7 +30,7 @@ The GitHub source archive at the release tag provides Hallzee's matching source,
 firmware partition table, build scripts, and installation instructions.
 
 The release builder validates the exact Arduino library versions in
-`firmware/arduino-libraries.txt`, preserves their complete installed source and
+`firmware/terminal/arduino-libraries.txt`, preserves their complete installed source and
 copyright headers, and collects upstream license files. Installation disables
 automatic dependency resolution because every declared dependency is pinned in
 that file. It retains the installed ESP32 SDK's `versions.txt` and `sdkconfig`.

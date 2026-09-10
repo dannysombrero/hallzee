@@ -116,7 +116,7 @@ receiver/
 
 ## 4. Firmware Architecture (ESP32)
 
-The firmware composition root is `bathroom-signin.ino`. It instantiates modular hardware controllers and runs a cooperative, non-blocking main loop.
+The firmware composition root is `firmware/terminal/bathroom-signin.ino`. It instantiates modular hardware controllers and runs a cooperative, non-blocking main loop.
 
 ### Core Firmware Modules
 1. **`TerminalController`:**

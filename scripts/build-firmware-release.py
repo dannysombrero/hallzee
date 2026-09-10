@@ -5,7 +5,7 @@ p=argparse.ArgumentParser()
 for arg in ('version','build','output','key','notes','arduino-data'): p.add_argument('--'+arg,required=True)
 p.add_argument('--cli',default='arduino-cli'); p.add_argument('--dotnet',default='dotnet')
 p.add_argument('--source-cache', help='Optional reusable checkout cache for pinned third-party source')
-a=p.parse_args(); root=pathlib.Path(__file__).resolve().parent.parent
+a=p.parse_args(); root=pathlib.Path(__file__).resolve().parent.parent; source=root/'firmware/terminal'
 a.dotnet=shutil.which(a.dotnet) or str(root/'.tools/dotnet'/('dotnet.exe' if __import__('os').name=='nt' else 'dotnet'))
 if not re.fullmatch(r'(0|[1-9][0-9]{0,2})\.(0|[1-9][0-9]{0,2})\.(0|[1-9][0-9]{0,2})',a.version):
  p.error(f'Invalid firmware version {a.version!r}. Use major.minor.patch, such as 1.0.0, with each number 0-999 and no leading zeros. The release workflow normalizes v1.0 and 1.0 automatically.')
@@ -19,8 +19,8 @@ with tempfile.TemporaryDirectory(prefix='hallzee-release-') as temporary:
  maps=[]
  stage=pathlib.Path(temporary)/'bathroom-signin'; stage.mkdir()
  for pattern in ('*.h','*.cpp','*.ino'):
-  for source in root.glob(pattern): shutil.copy2(source,stage/source.name)
- shutil.copytree(root/'fonts',stage/'fonts'); shutil.copy2(root/'firmware/partitions.csv',stage/'partitions.csv')
+  for source_file in source.glob(pattern): shutil.copy2(source_file,stage/source_file.name)
+ shutil.copytree(source/'fonts',stage/'fonts'); shutil.copy2(source/'partitions.csv',stage/'partitions.csv')
  header=(stage/'FirmwareRelease.h').read_text()
  header=re.sub(r'#define HALLZEE_FW_VERSION .*',f'#define HALLZEE_FW_VERSION "{a.version}"',header)
  header=re.sub(r'#define HALLZEE_FW_BUILD .*',f'#define HALLZEE_FW_BUILD "{a.build}"',header)

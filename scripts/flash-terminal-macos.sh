@@ -2,6 +2,7 @@
 set -euo pipefail
 
 project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+firmware_source="$project_root/firmware/terminal"
 tools_dir="$project_root/.tools"
 cli_dir="$tools_dir/arduino-cli"
 cli="$cli_dir/bin/arduino-cli"
@@ -48,10 +49,10 @@ fi
 # file. The repository directory is named independently, so stage the sketch
 # sources in a short-lived Arduino-compatible directory before compiling.
 shopt -s nullglob
-sketch_files=("$project_root"/*.ino)
-source_files=("$project_root"/*.ino "$project_root"/*.h "$project_root"/*.cpp)
+sketch_files=("$firmware_source"/*.ino)
+source_files=("$firmware_source"/*.ino "$firmware_source"/*.h "$firmware_source"/*.cpp)
 if [[ ${#sketch_files[@]} -ne 1 ]]; then
-  echo "Expected exactly one .ino sketch in $project_root."
+  echo "Expected exactly one .ino sketch in $firmware_source."
   exit 1
 fi
 sketch_name="$(basename "${sketch_files[0]}" .ino)"
@@ -60,9 +61,9 @@ staging_sketch="$staging_root/$sketch_name"
 build_dir="$staging_root/build"
 mkdir -p "$staging_sketch"
 cp "${source_files[@]}" "$staging_sketch/"
-cp "$project_root/firmware/partitions.csv" "$staging_sketch/partitions.csv"
-if [[ -d "$project_root/fonts" ]]; then
-  cp -R "$project_root/fonts" "$staging_sketch/"
+cp "$firmware_source/partitions.csv" "$staging_sketch/partitions.csv"
+if [[ -d "$firmware_source/fonts" ]]; then
+  cp -R "$firmware_source/fonts" "$staging_sketch/"
 fi
 trap 'rm -rf "$staging_root"' EXIT
 
@@ -107,7 +108,7 @@ if ! $fast; then
   libraries=()
   while IFS= read -r library; do
     [[ -z "$library" || "$library" == \#* ]] || libraries+=("$library")
-  done < "$project_root/firmware/arduino-libraries.txt"
+  done < "$firmware_source/arduino-libraries.txt"
   "$cli" lib install --no-deps "${libraries[@]}"
 
   if $touch_test; then "$cli" lib install "XPT2046_Touchscreen@1.4"; fi

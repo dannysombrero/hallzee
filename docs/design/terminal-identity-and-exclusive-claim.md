@@ -580,7 +580,7 @@ Change these existing files:
 - TerminalDisplay.h/.cpp
   - add pairing code, pairing timeout, claimed-success, and pairing-error views;
   - always include the same four-character suffix shown by desktop discovery.
-- bathroom-signin.ino
+- firmware/terminal/bathroom-signin.ino
   - instantiate identity/security services;
   - wire pairing callback and display lifecycle;
   - ensure offline checkout remains available when claim mode is closed.
@@ -661,7 +661,8 @@ be submitted as its own reviewable commit or pull request.
 
 ### Package 0 — Baseline and API spike
 
-Files: libraries.txt, setup scripts, ArduinoBluetoothSerialPort.*, and temporary
+Files: firmware/terminal/libraries.txt, setup scripts,
+firmware/terminal/ArduinoBluetoothSerialPort.*, and temporary
 compile-only test code if required.
 
 - Record the exact ESP32 board package version installed by bootstrap scripts.
@@ -1106,7 +1107,7 @@ Files:
 - `ArduinoBluetoothSerialPort.*`
 - `BluetoothSync.*`
 - `TerminalSecurity.*`
-- `bathroom-signin.ino`
+- `firmware/terminal/bathroom-signin.ino`
 - native firmware tests
 
 Tasks:

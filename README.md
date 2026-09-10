@@ -29,7 +29,7 @@ Classroom records stay on the teacher's computer, and the terminal continues
 working if Bluetooth or the internet is unavailable.
 
 <p align="center">
-  <img src="preview-site/public/hallzee-terminal-doorway.png" alt="A Hallzee terminal mounted beside a classroom door" width="680" />
+  <img src="preview-site/public/hallzee-terminal.png" alt="A blue Hallzee keypad terminal mounted on a wall" width="680" />
 </p>
 
 ## Start here

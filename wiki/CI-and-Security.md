@@ -37,7 +37,10 @@ Dependabot checks GitHub Actions, npm, the USB Python build, and all NuGet
 project directories monthly. Each ecosystem is limited to two open version
 update PRs, and routine updates are grouped to avoid a burst of near-identical
 workflow runs. Related React, Cloudflare, Avalonia, and SQLite packages retain
-their focused groups.
+their focused groups. Avalonia 12, Microsoft.Data.Sqlite 9+, Microsoft.NET.Test
+SDK 18+, and xUnit Visual Studio runner 3+ stay deferred until the app moves
+beyond its current .NET 8/Avalonia 11 baseline. Dependabot continues to offer
+compatible updates, including security fixes within those supported lines.
 The website audit covers development and production dependencies; CI's .NET
 audit covers transitives and treats known vulnerability warnings as errors.
 Registry availability failures remain visible in build output.

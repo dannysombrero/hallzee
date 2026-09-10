@@ -3,12 +3,7 @@ import Link from 'next/link';
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import {
-  ThemeHeaderToggle,
-  ThemeFloatingDock,
-  type ThemeMode,
-  type BackgroundPreset,
-} from './components/ThemeControlBar';
+
 import {
   ArrowDown,
   ArrowRight,
@@ -244,40 +239,14 @@ function Signup() {
   );
 }
 export default function Home() {
-  const [theme, setTheme] = useState<ThemeMode>('logo-vibrant');
-  const [bgPreset, setBgPreset] = useState<BackgroundPreset>('waves');
-
   useEffect(() => {
     try {
-      const params = new URLSearchParams(window.location.search);
-      const urlTheme = params.get('theme') as ThemeMode | null;
-      const urlBg = params.get('bg') as BackgroundPreset | null;
-
-      const savedTheme = (urlTheme || localStorage.getItem('hallzee_site_theme') || 'logo-vibrant') as ThemeMode;
-      const savedBg = (urlBg || localStorage.getItem('hallzee_site_bg') || 'waves') as BackgroundPreset;
-
-      setTheme(savedTheme);
-      setBgPreset(savedBg);
-      document.documentElement.setAttribute('data-theme', savedTheme);
-      document.documentElement.setAttribute('data-bg', savedBg);
+      localStorage.removeItem('hallzee_site_theme');
+      localStorage.removeItem('hallzee_site_bg');
+      document.documentElement.removeAttribute('data-theme');
+      document.documentElement.removeAttribute('data-bg');
     } catch {}
   }, []);
-
-  const handleThemeChange = (newTheme: ThemeMode) => {
-    setTheme(newTheme);
-    document.documentElement.setAttribute('data-theme', newTheme);
-    try {
-      localStorage.setItem('hallzee_site_theme', newTheme);
-    } catch {}
-  };
-
-  const handleBgChange = (newBg: BackgroundPreset) => {
-    setBgPreset(newBg);
-    document.documentElement.setAttribute('data-bg', newBg);
-    try {
-      localStorage.setItem('hallzee_site_bg', newBg);
-    } catch {}
-  };
 
   return (
     <>
@@ -290,7 +259,6 @@ export default function Home() {
           <nav aria-label="Main navigation" style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
             <Link href="#how-it-works">How it works</Link>
             <Link href="#software">The software</Link>
-            <ThemeHeaderToggle currentTheme={theme} onThemeChange={handleThemeChange} />
             <Link className="nav-cta" href="#waitlist">
               Join the waiting list <ArrowUpRight size={16} />
             </Link>
@@ -634,12 +602,6 @@ export default function Home() {
           Back to top <ArrowUpRight size={15} />
         </Link>
       </footer>
-      <ThemeFloatingDock
-        currentTheme={theme}
-        onThemeChange={handleThemeChange}
-        currentBg={bgPreset}
-        onBgChange={handleBgChange}
-      />
     </>
   );
 }

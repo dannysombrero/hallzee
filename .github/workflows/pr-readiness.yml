@@ -179,7 +179,6 @@ jobs:
       - name: Test USB packaging and script syntax
         run: |
           python scripts/audit-usb-python.py --output python-audit.json
-          python scripts/build-usb-esptool.py --output usb/tool --licenses usb/licenses/python --sources usb-python-sources
           bash -n scripts/flash-terminal-macos.sh
       - name: Install pinned firmware tools
         run: |

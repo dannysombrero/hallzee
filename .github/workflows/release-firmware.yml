@@ -118,7 +118,7 @@ jobs:
         env:
           USB_RID: ${{ matrix.rid }}
         run: dotnet publish tools/FirmwareTool/FirmwareTool.csproj -c Release -r "$USB_RID" --self-contained true -o usb/tool
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.13'
       - name: Build standalone USB esptool with locked dependencies and sources

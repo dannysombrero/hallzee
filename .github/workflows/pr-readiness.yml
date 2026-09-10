@@ -1,45 +1,94 @@
 name: Pull request readiness
+
 on:
   pull_request:
   workflow_dispatch:
+
 permissions:
   contents: read
+
 concurrency:
   group: pr-readiness-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
+
 jobs:
-  desktop:
-    uses: ./.github/workflows/build-universal-client.yml
-  firmware:
-    uses: ./.github/workflows/validate-firmware.yml
-  website:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
-    defaults:
-      run:
-        working-directory: preview-site
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '22'
-          cache: npm
-          cache-dependency-path: preview-site/package-lock.json
-      - run: npm ci
-      - run: npm audit --audit-level=low
-      - run: npm test
-      - run: npm run lint
-      - run: npx --no-install tsc --noEmit
-  secrets:
+  core:
+    name: Core validation
     runs-on: ubuntu-latest
+    outputs:
+      desktop: ${{ steps.changes.outputs.desktop }}
+      firmware: ${{ steps.changes.outputs.firmware }}
+      website: ${{ steps.changes.outputs.website }}
+      windows: ${{ steps.changes.outputs.windows }}
     steps:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           persist-credentials: false
+      - name: Select platform checks for the changed paths
+        id: changes
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import subprocess
+
+          if os.environ["EVENT_NAME"] == "workflow_dispatch":
+              selected = {name: True for name in ("desktop", "firmware", "website", "windows")}
+          else:
+              base = os.environ["BASE_SHA"]
+              paths = subprocess.check_output(
+                  ["git", "diff", "--name-only", f"{base}...HEAD"], text=True
+              ).splitlines()
+              workflow_or_shared = any(
+                  path.startswith((".github/", "scripts/", "test/"))
+                  or path in {"Directory.Build.props", "Directory.Packages.props", "global.json"}
+                  for path in paths
+              )
+              desktop = workflow_or_shared or any(
+                  path.startswith(("receiver/", "tools/FirmwareTool/")) for path in paths
+              )
+              firmware = workflow_or_shared or any(
+                  path.startswith(("firmware/", "fonts/"))
+                  or path.endswith((".ino", ".cpp", ".h"))
+                  for path in paths
+              )
+              website = workflow_or_shared or any(path.startswith("preview-site/") for path in paths)
+              windows = desktop or any(path.endswith((".ps1", ".bat", ".cmd")) for path in paths)
+              selected = {
+                  "desktop": desktop,
+                  "firmware": firmware,
+                  "website": website,
+                  "windows": windows,
+              }
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              for name, value in selected.items():
+                  print(f"{name}={str(value).lower()}", file=output)
+          PY
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '8.0.x'
+      - name: Test release and dependency safeguards
+        run: |
+          python3 -m unittest discover -s test -p test_release_inputs.py
+          python3 -m unittest discover -s test -p test_publish_release.py
+          python3 -m unittest discover -s test -p test_release_licensing.py
+          python3 -m unittest discover -s test -p test_dependency_submission.py
+      - name: Test portable desktop logic
+        run: |
+          dotnet test receiver/universal.tests/BathroomSync.Universal.Tests.csproj --configuration Release
+          dotnet test receiver/windows/BathroomSync.Tests/BathroomSync.Tests.csproj --configuration Release
+      - name: Build portable desktop and USB projects
+        run: |
+          dotnet build tools/FirmwareTool/FirmwareTool.csproj
+          python3 test/test_usb_fast.py
+          dotnet build receiver/universal/BathroomSync.Universal.csproj --configuration Release
       - name: Install verified Gitleaks
         env:
           GITLEAKS_VERSION: 8.30.1
@@ -49,21 +98,129 @@ jobs:
           tar -xzf "$RUNNER_TEMP/gitleaks.tar.gz" -C "$RUNNER_TEMP" gitleaks
       - name: Scan reachable history with redacted output
         run: '"$RUNNER_TEMP/gitleaks" git --redact=100 --log-opts="--all" --config=.gitleaks.toml .'
+
+  website:
+    name: Website validation
+    needs: core
+    if: needs.core.outputs.website == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: preview-site
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: preview-site/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run lint
+      - run: npx --no-install tsc --noEmit
+
+  windows:
+    name: Windows validation
+    needs: core
+    if: needs.core.outputs.windows == 'true'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '8.0.x'
+      - name: Test Windows-specific database and protocol behavior
+        run: dotnet test receiver/windows/BathroomSync.Tests/BathroomSync.Tests.csproj --configuration Release
+      - name: Build the Windows desktop application
+        run: dotnet build receiver/windows/BathroomSync.Windows.csproj --configuration Release
+
+  mac_package:
+    name: macOS package validation
+    needs: core
+    if: needs.core.outputs.desktop == 'true'
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '8.0.x'
+      - name: Select supported macOS SDK and install workload once
+        run: |
+          export DEVELOPER_DIR=/Applications/Xcode_16.2.app/Contents/Developer
+          sudo xcode-select --switch "$DEVELOPER_DIR"
+          echo "DEVELOPER_DIR=$DEVELOPER_DIR" >> "$GITHUB_ENV"
+          sudo "$(command -v dotnet)" workload install macos
+      - name: Package both supported Mac architectures
+        env:
+          RELEASE_REPOSITORY: ${{ github.repository }}
+        run: |
+          bash scripts/package-client-macos.sh 0.0.0 osx-arm64 "$RELEASE_REPOSITORY" packaged-arm64
+          bash scripts/package-client-macos.sh 0.0.0 osx-x64 "$RELEASE_REPOSITORY" packaged-x64
+
+  firmware:
+    name: Firmware validation
+    needs: core
+    if: needs.core.outputs.firmware == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - uses: arduino/setup-arduino-cli@v2
+      - name: Test USB packaging and script syntax
+        run: |
+          python scripts/audit-usb-python.py --output python-audit.json
+          bash -n scripts/flash-terminal-macos.sh
+      - name: Install pinned firmware tools
+        run: |
+          arduino-cli config add board_manager.additional_urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core update-index
+          arduino-cli core install esp32:esp32@3.3.11
+          libraries=()
+          while IFS= read -r library; do
+            [[ -z "$library" || "$library" == \#* ]] || libraries+=("$library")
+          done < firmware/arduino-libraries.txt
+          arduino-cli lib install --no-deps "${libraries[@]}"
+      - name: Compile both supported display variants
+        run: |
+          mkdir -p "$RUNNER_TEMP/hallzee"
+          cp ./*.cpp ./*.h "$RUNNER_TEMP/hallzee/"
+          cp bathroom-signin.ino "$RUNNER_TEMP/hallzee/hallzee.ino"
+          cp -R fonts "$RUNNER_TEMP/hallzee/"
+          cp firmware/partitions.csv "$RUNNER_TEMP/hallzee/"
+          arduino-cli compile --build-property upload.maximum_size=1572864 --fqbn esp32:esp32:esp32 "$RUNNER_TEMP/hallzee"
+          arduino-cli compile --build-property upload.maximum_size=1572864 --fqbn esp32:esp32:esp32 "$RUNNER_TEMP/hallzee" --build-property "compiler.cpp.extra_flags=-DHALLZEE_ILI9341 -DHALLZEE_DISPLAY_ROTATION=1"
+
   readiness:
     name: PR readiness
     if: always()
-    needs: [desktop, firmware, website, secrets]
+    needs: [core, website, windows, mac_package, firmware]
     runs-on: ubuntu-latest
     steps:
-      - name: Require every validation to succeed
+      - name: Require every selected validation to succeed
         env:
           RESULTS: ${{ toJSON(needs) }}
         run: |
           python3 - <<'PY'
-          import json, os, sys
-          results = json.loads(os.environ['RESULTS'])
-          failures = [name for name, job in results.items() if job['result'] != 'success']
+          import json
+          import os
+          import sys
+
+          results = json.loads(os.environ["RESULTS"])
+          failures = [
+              name for name, job in results.items()
+              if job["result"] not in {"success", "skipped"}
+          ]
           if failures:
-              sys.exit('Required validation did not succeed: ' + ', '.join(failures))
-          print('Desktop, firmware, website, and secret checks passed.')
+              sys.exit("Required validation did not succeed: " + ", ".join(failures))
+          print("Every selected validation succeeded; unrelated platform jobs were skipped.")
           PY

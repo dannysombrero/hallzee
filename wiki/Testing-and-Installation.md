@@ -1,8 +1,8 @@
 # Installation and testing
 
 This is the contributor setup guide. Teachers should use
-[Getting started](Getting-Started-Users); maintainers publishing downloads
-should use [Build, test, and publish](Releasing).
+[Getting started](getting-started-users.md); maintainers publishing downloads
+should use [Build, test, and publish](releasing.md).
 
 ## First day: start from nothing
 
@@ -25,11 +25,11 @@ Use a USB **data** cable and 3.3 V signal wiring.
 
 ### ESP32 board requirements
 
-See the [complete board requirements](Testing-Reference#esp32-board-requirements).
+See the [complete board requirements](testing-reference.md#esp32-board-requirements).
 
 ### Physical wiring
 
-Follow the [pin table and bring-up checklist](Testing-Reference#physical-wiring)
+Follow the [pin table and bring-up checklist](testing-reference.md#physical-wiring)
 before applying power. Connect one terminal, then run your platform's command:
 
 ```sh
@@ -53,13 +53,13 @@ To install the Arduino tools and compile without changing hardware, add
 `--compile-only` / `-CompileOnly`; no terminal is needed. After a successful
 normal installation, `--fast` / `-Fast` reuses tools and writes only the
 application and boot selection. It makes no new backup. Read
-[firmware updates and recovery](Firmware-Updates) before using fast mode.
+[firmware updates and recovery](firmware-updates.md) before using fast mode.
 
 ### Restore the standard UI after touch testing
 
 Run the regular flasher with the display and rotation options above and omit
 `--touch-test` / `-TouchTest`. Normal operation uses the physical keypad. See
-the [paused touch experiment](Touch-Test) for its separate wiring and limits.
+the [paused touch experiment](touch-test.md) for its separate wiring and limits.
 
 ## Desktop development
 
@@ -99,7 +99,7 @@ dotnet build receiver/MacBLEAgent/BathroomSync.MacBLEAgent.csproj -r osx-arm64 -
 ```
 
 The development client selects the helper matching its process architecture.
-Use the [release packaging workflow](Releasing) for distribution; it builds,
+Use the [release packaging workflow](releasing.md) for distribution; it builds,
 signs and checks the complete Mac bundle.
 
 ## Website and browser prototype
@@ -143,24 +143,27 @@ Windows builds and test runners can verify compilation and database/file-lock
 tests. They do not replace a Windows PC with a physical terminal. Windows
 launch/BLE/USB behavior has not been verified by Mac-only checks. Physical Mac
 updates and clean-machine installation also need release acceptance testing;
-use [release readiness](Release-Readiness) and the detailed
-[Bluetooth checklist](Testing-Reference#windows--mac-bluetooth-verification).
+use [release readiness](release-readiness.md) and the detailed
+[Bluetooth checklist](testing-reference.md#windows--mac-bluetooth-verification).
 
 ## Pull requests, security and maintenance
 
-**PR readiness** runs on every PR and combines desktop, firmware, website and
-secret-history checks. Require **PR readiness** and **Repository hygiene** on
-`main` after both have run successfully. The manual **Prepare preview dependency
-update** workflow produces a reviewable patch artifact; it does not push changes.
-See [CI and security](CI-and-Security) for exact workflow and branch settings.
+**PR readiness** runs on every PR. Its portable Linux checks always run, while
+website, Windows, macOS packaging, and firmware jobs run only when their paths
+are affected. Changes to workflows or shared build/test scripts select the full
+PR set. The manual desktop and firmware workflows retain the complete release
+matrices. Require **PR readiness** and **Repository hygiene** on `main`. The
+manual **Prepare preview dependency update** workflow produces a reviewable
+patch artifact; it does not push changes. See [CI and security](ci-and-security.md)
+for exact workflow and branch settings.
 
 NuGet audits include transitive dependencies; known advisories fail CI.
 Dependabot monitors NuGet, npm and Actions. Use the focused
-[desktop](Dependency-Updates-Desktop), [website](Dependency-Updates-Web)
-and [release licensing](Release-Licensing) maintenance notes when updating.
+[desktop](dependency-updates-desktop.md), [website](dependency-updates-web.md)
+and [release licensing](release-licensing.md) maintenance notes when updating.
 
 Keep private keys, terminal backups, real classroom data and local build output
-out of Git. Follow [CONTRIBUTING](https://github.com/dannysombrero/hallzee/blob/main/CONTRIBUTING.md) and report vulnerabilities
-through [SECURITY](https://github.com/dannysombrero/hallzee/blob/main/SECURITY.md). Update the relevant `docs/` and matching
+out of Git. Follow [CONTRIBUTING](../CONTRIBUTING.md) and report vulnerabilities
+through [SECURITY](../SECURITY.md). Update the relevant `docs/` and matching
 `wiki/` page with setup or behavior changes. Older detailed regression notes
-are preserved in [Testing reference](Testing-Reference).
+are preserved in [Testing reference](testing-reference.md).

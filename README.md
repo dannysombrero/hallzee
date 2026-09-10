@@ -5,7 +5,7 @@
 <h1 align="center">Hallzee</h1>
 
 <p align="center">
-  A simple, private hall-pass system for classrooms.
+  A simple, reliable, and automated hall-pass system for classrooms.
 </p>
 
 <p align="center">
@@ -21,15 +21,23 @@
   <a href="models/LICENSE"><img src="https://img.shields.io/badge/hardware-CC_BY--SA_4.0-f97316" alt="Hardware license: CC BY-SA 4.0" /></a>
 </p>
 
-Hallzee pairs a small keypad terminal by the classroom door with a Windows or
-Mac app. Students enter their ID when they leave and return. Teachers can see
-who is out, review trip history, manage a roster, and set classroom policies.
+Hallzee pairs a keypad terminal with a Windows or Mac app, automating and
+streamlining hall passes in your classroom. Students enter their ID when they
+leave and return. Teachers can see who is out, review trip history, manage a
+roster, and set classroom policies.
 
-Classroom records stay on the teacher's computer, and the terminal continues
-working if Bluetooth or the internet is unavailable.
+**Privacy-centered:** Student names stay on the teacher's computer, and the
+terminal continues working if Bluetooth or the internet is unavailable. Only
+paired terminals can access a device's trip history.
+
+**Open-source:** Hallzee is free to use, inspect, adapt, and share—there is no
+software cost for your classroom.
+
+**DIY-Friendly:** Free 3D-printable models and straightforward setup make it
+possible to build a terminal and use Hallzee with minimal technical experience.
 
 <p align="center">
-  <img src="preview-site/public/hallzee-terminal.png" alt="A blue Hallzee keypad terminal mounted on a wall" width="680" />
+  <img src="preview-site/public/hallzee-terminal.png" alt="A blue Hallzee keypad terminal mounted on a wall" width="560" />
 </p>
 
 ## Start here

@@ -148,11 +148,14 @@ use [release readiness](release-readiness.md) and the detailed
 
 ## Pull requests, security and maintenance
 
-**PR readiness** runs on every PR and combines desktop, firmware, website and
-secret-history checks. Require **PR readiness** and **Repository hygiene** on
-`main` after both have run successfully. The manual **Prepare preview dependency
-update** workflow produces a reviewable patch artifact; it does not push changes.
-See [CI and security](ci-and-security.md) for exact workflow and branch settings.
+**PR readiness** runs on every PR. Its portable Linux checks always run, while
+website, Windows, macOS packaging, and firmware jobs run only when their paths
+are affected. Changes to workflows or shared build/test scripts select the full
+PR set. The manual desktop and firmware workflows retain the complete release
+matrices. Require **PR readiness** and **Repository hygiene** on `main`. The
+manual **Prepare preview dependency update** workflow produces a reviewable
+patch artifact; it does not push changes. See [CI and security](ci-and-security.md)
+for exact workflow and branch settings.
 
 NuGet audits include transitive dependencies; known advisories fail CI.
 Dependabot monitors NuGet, npm and Actions. Use the focused

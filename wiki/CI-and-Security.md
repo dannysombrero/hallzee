@@ -102,7 +102,7 @@ rejects tracked private keys, classroom exports, and local host metadata.
 GitHub's **Private vulnerability reporting**, **Secret scanning**, and **Push
 protection** are separate repository settings; committing YAML does not enable
 them. Enable the available controls after making this repository public, then
-verify the private reporting link in [SECURITY.md](https://github.com/dannysombrero/hallzee-mono/blob/main/SECURITY.md). Keep
+verify the private reporting link in [SECURITY.md](https://github.com/dannysombrero/hallzee/blob/main/SECURITY.md). Keep
 Dependabot alerts, security updates, and repository-owned dependency submission
 enabled as described above. No self-hosted runners are needed for this project.
 

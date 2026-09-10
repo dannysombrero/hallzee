@@ -47,7 +47,7 @@ this check/download; the terminal does not need Wi-Fi. Local package import
 works offline. **Open desktop release** opens the client release page; installing
 the desktop app is still a separate platform operation.
 
-The default release repository is `dannysombrero/hallzee-mono`, the open source
+The default release repository is `dannysombrero/hallzee`, the open source
 repository itself. If distribution ever moves elsewhere, update the pinned
 repository in `FirmwareReleases.cs` and release the client. Public downloads
 require no GitHub token; a private repository, API failure, or rate limit reports

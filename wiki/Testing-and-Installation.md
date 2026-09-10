@@ -6,7 +6,7 @@ should use [Build, test, and publish](Releasing).
 
 ## First day: start from nothing
 
-On [GitHub](https://github.com/dannysombrero/hallzee-mono), choose **Code → Download
+On [GitHub](https://github.com/dannysombrero/hallzee), choose **Code → Download
 ZIP** and extract it. Git is not needed. Open Terminal on Mac or PowerShell on
 Windows in the extracted folder containing `README.md`, `bathroom-signin.ino`
 and `scripts/`. The folder name and location do not matter.
@@ -160,7 +160,7 @@ Dependabot monitors NuGet, npm and Actions. Use the focused
 and [release licensing](Release-Licensing) maintenance notes when updating.
 
 Keep private keys, terminal backups, real classroom data and local build output
-out of Git. Follow [CONTRIBUTING](https://github.com/dannysombrero/hallzee-mono/blob/main/CONTRIBUTING.md) and report vulnerabilities
-through [SECURITY](https://github.com/dannysombrero/hallzee-mono/blob/main/SECURITY.md). Update the relevant `docs/` and matching
+out of Git. Follow [CONTRIBUTING](https://github.com/dannysombrero/hallzee/blob/main/CONTRIBUTING.md) and report vulnerabilities
+through [SECURITY](https://github.com/dannysombrero/hallzee/blob/main/SECURITY.md). Update the relevant `docs/` and matching
 `wiki/` page with setup or behavior changes. Older detailed regression notes
 are preserved in [Testing reference](Testing-Reference).

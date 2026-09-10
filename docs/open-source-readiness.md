@@ -1,9 +1,10 @@
 # Open source readiness — September 9, 2026
 
 Hallzee is the project name; Hallzee Labs holds the copyright in original
-Hallzee work. `dannysombrero/hallzee-mono` is still private. The launch-readiness
-implementation is merged, and the advertised branch/tag history was sanitized
-on September 10, 2026. This pass does not rename the repository.
+Hallzee work. The sanitized project repository is
+`dannysombrero/hallzee`; the former repository is retained privately as
+`dannysombrero/hallzee-dev`. The launch-readiness implementation is merged,
+and the advertised branch/tag history was sanitized on September 10, 2026.
 
 ## Dependency fixes
 
@@ -88,12 +89,12 @@ old Actions logs/artifacts, and downloaded copies require separate review;
 rewriting Git does not erase them. Keep the recovery bundle private and rebuild
 release artifacts after sanitation so their source links use the final history.
 
-GitHub still advertises read-only pull-request heads for PRs 1, 2, 3, 16, 24,
-25, 26, 28, 29, 30, 31, 32, 33, 34, and 35. They retain the earlier history and
-cannot be replaced with a normal push. A private Support request is prepared
-with the final commit map. Keep the repository private until GitHub removes
-those refs/cached views or the repository is recreated after preserving needed
-settings and issue data. See [GitHub's sensitive-data removal guidance](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository).
+The former repository's read-only pull-request heads retain earlier history and
+cannot be replaced with a normal push. It was renamed to the private
+`dannysombrero/hallzee-dev` backup, preserving its issues, pull requests,
+Actions records, and settings. The new `dannysombrero/hallzee` repository was
+created from only the sanitized branches and tag, giving the public project a
+clean pull-request namespace. See [GitHub's sensitive-data removal guidance](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository).
 
 A read-only retention inventory found 148 Actions runs, 74 unexpired artifacts
 (about 3.95 GB), and one 75 MB release download. Artifact names and upload paths
@@ -136,7 +137,7 @@ trust configuration. The actual rebuilt Mac USB binary/source ZIP pair passes
 the publication hash checks. All 51 release-input, publication, licensing and
 repository-hygiene tests pass; native firmware and touch tests pass too.
 
-[Pull request readiness run 34409156145](https://github.com/dannysombrero/hallzee-mono/actions/runs/34409156145)
+[Pull request readiness run 34409156145](https://github.com/dannysombrero/hallzee-dev/actions/runs/34409156145)
 and the separate repository hygiene workflow passed on `54024ac`. This includes
 Windows/Mac desktop tests, both complete Mac packages, Windows/Mac USB executable
 builds and startup checks, Arduino display/touch builds, Linux/Windows website
@@ -145,11 +146,9 @@ checks do not exercise physical Bluetooth, USB devices, or classroom workflows.
 
 ## Remaining launch steps
 
-1. Submit the prepared GitHub Support request for retained PR refs and wait for
-   cleanup; alternatively preserve needed repository metadata and recreate the
-   private repository from the sanitized history.
-2. Review old artifacts/logs and retire the legacy Windows release.
-3. Switch this repository to Public, enable reporting and secret protection,
+1. Verify the new repository's refs and recreated security/release settings.
+2. Retire the legacy Windows release retained in the private backup.
+3. Switch `dannysombrero/hallzee` to Public, enable reporting and secret protection,
    and verify signed-out access.
 4. Build fresh releases, complete physical acceptance, and publish those exact
    artifacts in this same repository.

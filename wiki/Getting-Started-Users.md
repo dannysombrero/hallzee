@@ -6,7 +6,7 @@ Day-to-day use does not need internet access. Downloads and update checks do.
 
 ## Download Hallzee
 
-Open [desktop downloads](https://github.com/dannysombrero/hallzee-mono/releases?q=client-v&expanded=true)
+Open [desktop downloads](https://github.com/dannysombrero/hallzee/releases?q=client-v&expanded=true)
 and choose the newest numbered **Client** release. The release notes explain
 what changed. Download the file for your computer under **Assets**:
 
@@ -118,7 +118,7 @@ installed app and check later.
 ## Update the terminal firmware
 
 Firmware is the software running on the terminal by the door.
-[Latest firmware releases and USB setup downloads](https://github.com/dannysombrero/hallzee-mono/releases?q=firmware-v&expanded=true)
+[Latest firmware releases and USB setup downloads](https://github.com/dannysombrero/hallzee/releases?q=firmware-v&expanded=true)
 are separate from desktop releases. Choose the newest numbered **Firmware**
 release and read its notes.
 

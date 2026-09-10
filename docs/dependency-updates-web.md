@@ -81,7 +81,7 @@ zero findings.
 GitHub Actions also passed a clean install, zero-finding npm audit, production
 build, all six tests, lint, and full TypeScript checking on both Ubuntu and
 Windows with Node.js 22 in
-[run 34409156145](https://github.com/dannysombrero/hallzee-mono/actions/runs/34409156145).
+[run 34409156145](https://github.com/dannysombrero/hallzee-dev/actions/runs/34409156145).
 This verifies the portable launcher's Windows build path.
 
 A Mac is sufficient for these website dependency checks; no physical Windows

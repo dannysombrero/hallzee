@@ -1,13 +1,13 @@
 # Hallzee licensing
 
 Hallzee is the project name. Original Hallzee software and hardware designs
-are copyright © 2026 Hallzee Labs. See [COPYRIGHT](https://github.com/dannysombrero/hallzee-mono/blob/main/COPYRIGHT).
+are copyright © 2026 Hallzee Labs. See [COPYRIGHT](https://github.com/dannysombrero/hallzee/blob/main/COPYRIGHT).
 
 | Material | License |
 | --- | --- |
-| Original software, firmware, tools, and tests | AGPL-3.0-or-later; full text in [LICENSE](https://github.com/dannysombrero/hallzee-mono/blob/main/LICENSE) |
-| Hardware designs and model files in `models/` | CC BY-SA 4.0; see [models/LICENSE](https://github.com/dannysombrero/hallzee-mono/blob/main/models/LICENSE) |
-| Third-party code and fonts | Their upstream licenses; see [THIRD-PARTY-NOTICES.md](https://github.com/dannysombrero/hallzee-mono/blob/main/THIRD-PARTY-NOTICES.md) |
+| Original software, firmware, tools, and tests | AGPL-3.0-or-later; full text in [LICENSE](https://github.com/dannysombrero/hallzee/blob/main/LICENSE) |
+| Hardware designs and model files in `models/` | CC BY-SA 4.0; see [models/LICENSE](https://github.com/dannysombrero/hallzee/blob/main/models/LICENSE) |
+| Third-party code and fonts | Their upstream licenses; see [THIRD-PARTY-NOTICES.md](https://github.com/dannysombrero/hallzee/blob/main/THIRD-PARTY-NOTICES.md) |
 
 This is a split by material, not a choice of either license for every file.
 The “or later” option preserves the grant already present in the original

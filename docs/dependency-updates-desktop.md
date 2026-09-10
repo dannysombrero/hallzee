@@ -62,7 +62,7 @@ The September 9, 2026 verification completed:
   with the Intel .NET runtime under Rosetta. The same suites also passed on
   Windows and Mac GitHub runners, including loading the actual native SQLite
   engine. Windows app/tool builds and both complete Mac packages passed in
-  [run 34409156145](https://github.com/dannysombrero/hallzee-mono/actions/runs/34409156145).
+  [run 34409156145](https://github.com/dannysombrero/hallzee-dev/actions/runs/34409156145).
 - Fresh transitive advisory scans found no vulnerable NuGet packages in the
   core, desktop, test, USB-tool, legacy Windows-client or Mac-helper graphs.
   Windows-targeted desktop restore also passed with CI audit errors enabled.

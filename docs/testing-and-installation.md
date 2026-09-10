@@ -6,7 +6,7 @@ should use [Build, test, and publish](releasing.md).
 
 ## First day: start from nothing
 
-On [GitHub](https://github.com/dannysombrero/hallzee-mono), choose **Code → Download
+On [GitHub](https://github.com/dannysombrero/hallzee), choose **Code → Download
 ZIP** and extract it. Git is not needed. Open Terminal on Mac or PowerShell on
 Windows in the extracted folder containing `README.md`, `bathroom-signin.ino`
 and `scripts/`. The folder name and location do not matter.

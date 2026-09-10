@@ -18,7 +18,7 @@ date or a fixed support lifetime.
 
 ## Reporting a vulnerability
 
-Use [Report a vulnerability](https://github.com/dannysombrero/hallzee-mono/security/advisories/new)
+Use [Report a vulnerability](https://github.com/dannysombrero/hallzee/security/advisories/new)
 to send a private report through GitHub. The maintainer must enable **Private
 vulnerability reporting** in repository security settings for this link to work.
 If the form is unavailable, open an issue asking only for a private reporting

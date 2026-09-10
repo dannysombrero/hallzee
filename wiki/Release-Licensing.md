@@ -1,7 +1,7 @@
 # Release licenses and source
 
 The maintained release licensing instructions are in
-[docs/release-licensing.md](https://github.com/dannysombrero/hallzee-mono/blob/main/docs/release-licensing.md).
+[docs/release-licensing.md](https://github.com/dannysombrero/hallzee/blob/main/docs/release-licensing.md).
 They explain the AGPL software and CC BY-SA model split, exact release
 inventories, pinned Arduino dependencies, source archives, Keypad's differing
 source/header notices, and rebuilding modified firmware over USB.

@@ -3,7 +3,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <ReleaseRepository Condition="'$(ReleaseRepository)' == ''">dannysombrero/hallzee-mono</ReleaseRepository>
+    <ReleaseRepository Condition="'$(ReleaseRepository)' == ''">dannysombrero/hallzee</ReleaseRepository>
   </PropertyGroup>
   <ItemGroup>
     <!-- Select the native engine explicitly: the Microsoft.Data.Sqlite bundle

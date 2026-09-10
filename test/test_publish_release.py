@@ -34,7 +34,7 @@ class PublishTests(unittest.TestCase):
                 metadata = root / 'Release-metadata'
                 metadata.mkdir()
                 (metadata / 'release.json').write_text(json.dumps(dict(product='client', version='1.2.3', repository=destination, sha='bad' if bad_sha else 'a' * 40)))
-                (metadata / 'teacher-guide.md').write_text('Guide: https://github.com/dannysombrero/hallzee-mono#readme')
+                (metadata / 'teacher-guide.md').write_text('Guide: https://github.com/dannysombrero/hallzee#readme')
                 (metadata / 'notes.md').write_text('Notes')
                 for rid, name in [('win-x64', 'Hallzee-Windows-win-x64.zip'), ('osx-arm64', 'Hallzee-Mac-osx-arm64.zip'), ('osx-x64', 'Hallzee-Mac-osx-x64.zip')]:
                     if rid == 'win-x64' and (flat_windows or missing_windows):

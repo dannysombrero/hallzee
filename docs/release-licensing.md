@@ -109,7 +109,7 @@ packaging script after installing the contributor prerequisites; it collects
 the app/helper's resolved dependencies and exact Mac runtime-pack notices:
 
 ```sh
-bash scripts/package-client-macos.sh 1.0.0 osx-arm64 dannysombrero/hallzee-mono packaged
+bash scripts/package-client-macos.sh 1.0.0 osx-arm64 dannysombrero/hallzee packaged
 ```
 
 `scripts/bundle-firmware-licenses.py` downloads pinned upstream repositories to

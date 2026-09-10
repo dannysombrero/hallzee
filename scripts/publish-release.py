@@ -169,7 +169,7 @@ def main():
             assets += [usb_python_sources(root / f'USB-{rid}', rid) for rid in ['win-x64', 'osx-arm64']]
         if any(not p.is_file() or not p.stat().st_size for p in assets):
             raise SystemExit('Build is missing required release assets.')
-        guide = (root / 'Release-metadata' / 'teacher-guide.md').read_text().replace('https://github.com/dannysombrero/hallzee-mono', f'https://github.com/{repo}')
+        guide = (root / 'Release-metadata' / 'teacher-guide.md').read_text().replace('https://github.com/dannysombrero/hallzee', f'https://github.com/{repo}')
         guide_path = root / 'Hallzee-Teacher-Guide.md'
         guide_path.write_text(guide)
         assets.append(guide_path)

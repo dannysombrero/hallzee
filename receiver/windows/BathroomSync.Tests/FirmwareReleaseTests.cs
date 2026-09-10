@@ -8,8 +8,8 @@ public sealed class FirmwareReleaseTests {
   [Fact] public async Task FiltersProductsAndPrereleasesAndSortsSemantically() {
     using var http=new HttpClient(new FakeHttp(_=>new(HttpStatusCode.OK) { Content=new StringContent("""
       [
-        {"draft":false,"prerelease":false,"tag_name":"client-v1.1.0","html_url":"https://github.com/dannysombrero/hallzee-mono/releases/tag/client-v1.1.0","assets":[]},
-        {"draft":false,"prerelease":false,"tag_name":"firmware-v1.10.0","html_url":"https://github.com/dannysombrero/hallzee-mono/releases/tag/firmware-v1.10.0","assets":[{"name":"Hallzee.hallzee-fw","browser_download_url":"https://github.com/dannysombrero/hallzee-mono/releases/download/firmware-v1.10.0/Hallzee.hallzee-fw"}]},
+        {"draft":false,"prerelease":false,"tag_name":"client-v1.1.0","html_url":"https://github.com/dannysombrero/hallzee/releases/tag/client-v1.1.0","assets":[]},
+        {"draft":false,"prerelease":false,"tag_name":"firmware-v1.10.0","html_url":"https://github.com/dannysombrero/hallzee/releases/tag/firmware-v1.10.0","assets":[{"name":"Hallzee.hallzee-fw","browser_download_url":"https://github.com/dannysombrero/hallzee/releases/download/firmware-v1.10.0/Hallzee.hallzee-fw"}]},
         {"draft":false,"prerelease":true,"tag_name":"firmware-v9.0.0","assets":[]},
         {"draft":true,"prerelease":false,"tag_name":"firmware-v8.0.0","assets":[]}
       ]

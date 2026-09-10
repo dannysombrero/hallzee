@@ -120,7 +120,7 @@ USB migration on both platforms still require verification.
   This launch exits before Bluetooth use; physical BLE remains unverified here.
 - The original manual-pass failure probes are now covered by passing permanent
   regression tests for restart and terminal status messages.
-- [GitHub Actions run 34409156145](https://github.com/dannysombrero/hallzee-mono/actions/runs/34409156145)
+- [GitHub Actions run 34409156145](https://github.com/dannysombrero/hallzee-dev/actions/runs/34409156145)
   passed Windows/Mac desktop tests and builds, complete ARM64/Intel Mac packages,
   Windows/Mac USB executable builds and startup checks, firmware checks, and
   Linux/Windows website checks. Fresh npm, transitive NuGet, and locked Python

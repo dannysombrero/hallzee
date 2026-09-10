@@ -21,7 +21,7 @@ jobs:
       website: ${{ steps.changes.outputs.website }}
       windows: ${{ steps.changes.outputs.windows }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -68,10 +68,10 @@ jobs:
               for name, value in selected.items():
                   print(f"{name}={str(value).lower()}", file=output)
           PY
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.12'
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '8.0.x'
       - name: Test release and dependency safeguards
@@ -108,10 +108,10 @@ jobs:
       run:
         working-directory: preview-site
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: npm
@@ -127,10 +127,10 @@ jobs:
     if: needs.core.outputs.windows == 'true'
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '8.0.x'
       - name: Test Windows-specific database and protocol behavior
@@ -144,10 +144,10 @@ jobs:
     if: needs.core.outputs.desktop == 'true'
     runs-on: macos-14
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '8.0.x'
       - name: Select supported macOS SDK and install workload once
@@ -169,10 +169,10 @@ jobs:
     if: needs.core.outputs.firmware == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.13'
       - uses: arduino/setup-arduino-cli@v2

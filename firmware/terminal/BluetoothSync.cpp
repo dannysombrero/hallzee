@@ -296,7 +296,8 @@ bool BluetoothSync::processAuthorizedIdentityCommand(const String &command) {
 
   const String prefix = "SET,TERMINAL_NAME,";
   if (!command.startsWith(prefix.c_str())) return false;
-  const String requestedName = command.substring(prefix.length());
+  String requestedName = command.substring(prefix.length());
+  requestedName.trim();
   if (!TerminalIdentity::isValidCustomName(requestedName)) {
     serial.println("SETTINGS_ERROR,TERMINAL_NAME,INVALID_VALUE");
     return true;

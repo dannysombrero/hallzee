@@ -142,7 +142,7 @@
                     </Button>
                   </Grid>
                   <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="6" IsVisible="{Binding TerminalSettingsModal.IsEditingName}">
-                    <TextBox Text="{Binding TerminalSettingsModal.EditedTerminalName}" MaxLength="24" Watermark="e.g. Room 204 Door" FontSize="12" IsEnabled="{Binding CanEditDevice}" />
+                    <TextBox Text="{Binding TerminalSettingsModal.EditedTerminalName, UpdateSourceTrigger=PropertyChanged}" MaxLength="24" Watermark="e.g. Room #204" ToolTip.Tip="Use 1–24 characters; commas are not supported" FontSize="12" IsEnabled="{Binding CanEditDevice}" />
                     <Button Grid.Column="1" Classes="hallzee-pill-btn" Content="Save" Click="OnSaveNameClick" IsEnabled="{Binding CanEditDevice}" Padding="10,6" />
                     <Button Grid.Column="2" Classes="secondary" Content="Cancel" Click="OnCancelNameClick" IsEnabled="{Binding !IsDeviceBusy}" Padding="10,6" />
                   </Grid>

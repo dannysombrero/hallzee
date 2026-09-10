@@ -157,6 +157,27 @@ public sealed class TerminalV2MainViewModelTests {
   }
 
   [Fact]
+  public async Task RejectedDeviceNameShowsActionableGuidance() {
+    var folder = Path.Combine(Path.GetTempPath(), "HallzeeRenameErrorTests", Guid.NewGuid().ToString("N"));
+    Directory.CreateDirectory(folder);
+    var connection = new FakeV2Connection { RejectName = true };
+    try {
+      using var vm = new MainViewModel(connection, folder, false);
+      await vm.FindTerminalsModal.ScanAsync();
+      vm.FindTerminalsModal.PairingPasskey = "807481";
+      await vm.ConnectAndSyncAsync();
+      vm.TerminalSettingsModal.BeginNameEdit();
+      vm.TerminalSettingsModal.EditedTerminalName = "Room #204";
+
+      await vm.SaveTerminalNameAsync();
+
+      Assert.True(vm.TerminalSettingsModal.IsEditingName);
+      Assert.Contains("1–24 characters", vm.TerminalSettingsModal.StatusMessage);
+      Assert.DoesNotContain("SETTINGS_ERROR", vm.TerminalSettingsModal.StatusMessage);
+    } finally { Directory.Delete(folder, true); }
+  }
+
+  [Fact]
   public async Task FirmwareVersionIsFreshOnlyAfterQueryAndCachedAcrossRestart() {
     var folder=Path.Combine(Path.GetTempPath(),"HallzeeFirmwareUi",Guid.NewGuid().ToString("N"));
     var credentials=new InMemoryTerminalCredentialStore(); var connection=new FakeV2Connection();
@@ -202,6 +223,7 @@ public sealed class TerminalV2MainViewModelTests {
     bool connected;
     bool claimed;
     public bool RejectRelease { get; init; }
+    public bool RejectName { get; init; }
     public bool HoldFirmwareInfo { get; init; }
 
     public event EventHandler<string>? TextReceived;
@@ -238,6 +260,8 @@ public sealed class TerminalV2MainViewModelTests {
       } else if (command == "RELEASE_OWNER") {
         if (RejectRelease) Emit("ERROR,OWNER_RELEASE_FAILED\n");
         else { claimed = false; Emit("OWNER_RELEASED\n"); }
+      } else if (command.StartsWith("SET,TERMINAL_NAME,") && RejectName) {
+        Emit("SETTINGS_ERROR,TERMINAL_NAME,INVALID_VALUE\n");
       } else if (command.StartsWith("SET,TERMINAL_NAME,") || command.StartsWith("SET,MAX_ID_LENGTH,")) {
         Emit("SETTINGS_ACK," + command[4..] + "\n");
       } else if (command == "GET_FIRMWARE_INFO") {

@@ -78,7 +78,7 @@ the retry a safe duplicate and ACKs it again.
 | `SET,MAX_ID_LENGTH,<4-16>` | Persist the maximum accepted student-ID length |
 | `SET,MAX_ACTIVE_PASSES,<1-8>` | Persist the maximum number of simultaneous active passes; the oldest active pass remains the client-visible pass |
 | `RELEASE_OWNER` | Authenticated owner-only unpair; rejects active passes, preserves trips/settings/identity, and clears owner state and terminal BLE bonds |
-| `SET,TERMINAL_NAME,<name>` | Persist and advertise a validated 1–24 character kiosk name |
+| `SET,TERMINAL_NAME,<name>` | Persist and advertise a trimmed 1–24 printable ASCII character kiosk name; commas are not allowed |
 | `POLICY_BEGIN,<0\|1>` | Begin an atomic offline bell-policy update; `0` disables terminal enforcement |
 | `POLICY_WINDOW,<YYYYMMDD>,<start>,<end>,<first_end>,<last_start>,<first_action>,<last_action>` | Stage one resolved dated window; minutes are after midnight and action values are Allow=0, Warn=1, Lock=2 |
 | `POLICY_COMMIT,<count>` | Commit the staged policy only when `count` matches the received window count |
@@ -163,6 +163,9 @@ its accepted range is 4–16. The lower bound preserves access to the four-digit
 local administrator codes. The firmware rejects a shorter value while an
 active checkout has a longer ID, returning `ACTIVE_ID_TOO_LONG`. Other error
 reasons are `INVALID_VALUE` and `STORAGE_UNAVAILABLE`.
+
+Terminal names are trimmed before validation. They accept 1–24 printable ASCII
+characters except comma, which remains reserved as the protocol field separator.
 
 Reading settings is safe during every sync. Writing is always an explicit
 client action. Both settings commands and responses may exceed the default

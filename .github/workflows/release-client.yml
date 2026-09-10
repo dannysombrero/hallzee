@@ -82,7 +82,7 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: runner.os == 'macOS'
         with:
-          name: Desktop-${{ matrix.rid }}
+          name: Hallzee-Mac-${{ matrix.rid }}
           path: packaged/*.zip
           if-no-files-found: error
   metadata:

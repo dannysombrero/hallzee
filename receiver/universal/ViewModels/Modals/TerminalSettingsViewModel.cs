@@ -196,7 +196,10 @@ public sealed class TerminalSettingsViewModel : INotifyPropertyChanged {
       StatusColor = "#10B981";
       return true;
     } catch (Exception ex) {
-      SetFailure($"Could not save terminal name: {ex.Message}");
+      var detail = ex.Message.Contains("SETTINGS_ERROR,TERMINAL_NAME,INVALID_VALUE", StringComparison.Ordinal)
+        ? "Use 1–24 characters and leave out commas."
+        : ex.Message;
+      SetFailure($"Could not save terminal name: {detail}");
       return false;
     }
   }

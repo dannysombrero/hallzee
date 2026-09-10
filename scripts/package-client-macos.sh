@@ -24,7 +24,7 @@ test -x "$helper/Contents/MacOS/BathroomSync.MacBLEAgent"
 ditto "$helper" "$app/Contents/MacOS/BathroomSync.MacBLEAgent.app"
 # Notices are resources, not executable code. In Contents/MacOS, codesign
 # treats dotted package directories as nested bundles and rejects the app.
-for notice in LICENSE COPYRIGHT THIRD-PARTY-NOTICES.md licenses; do
+for notice in LICENSE.txt COPYRIGHT.txt THIRD-PARTY-NOTICES.md licenses; do
   mv "$app/Contents/MacOS/$notice" "$app/Contents/Resources/$notice"
 done
 # Workload framework packs are not ordinary NuGet package entries. Ask MSBuild

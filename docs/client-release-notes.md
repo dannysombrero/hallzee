@@ -6,6 +6,8 @@
 - Signed terminal firmware installation and separate desktop update checks.
 - Windows x64 and Mac Apple-silicon/Intel application packages.
 - Help and Updates shortcuts, with the running app version in the top bar.
+- Terminal names accept common punctuation and show clear guidance when invalid.
+- Desktop artifacts use consistent Hallzee platform names and plain-text notice filenames.
 
 Desktop updates are installed by downloading and replacing the app; local
 classroom data is retained. These packages are not publisher-signed/notarized
@@ -15,3 +17,5 @@ completed before these notes accompany a public production release.
 Teacher-started passes now survive terminal sync, disconnects, workspace changes,
 and app restart. Check-in saves history and closes the pass atomically, with
 retry protection and workspace-specific history. Existing data upgrades automatically.
+Roster data, policies, bell times, and history remain in the computer's local Hallzee
+database when the application is replaced; workspace exports continue to exclude rosters.

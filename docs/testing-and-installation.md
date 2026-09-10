@@ -17,6 +17,11 @@ Mac Apple Silicon/Intel downloads with their supporting files. Actions installs
 its own prerequisites. Build artifacts are for testing; **Publish Tested
 Release** publishes the tested files in this same repository.
 
+The artifact names are `Hallzee-Windows-win-x64`,
+`Hallzee-Mac-osx-arm64`, and `Hallzee-Mac-osx-x64`. Packaged copies of the
+project license and copyright notice use the Windows-friendly filenames
+`LICENSE.txt` and `COPYRIGHT.txt`.
+
 ## Assemble or flash a terminal
 
 Use an original ESP32 DevKit V1/WROOM-32 with at least 4 MB flash, a 3×4 keypad,
@@ -72,6 +77,12 @@ powershell -ExecutionPolicy Bypass -File scripts/build-windows-client.ps1
 Run `HallzeeSync.Universal.exe` from `artifacts\BathroomSync-Windows`.
 Downloaded Windows release ZIPs likewise extract directly to the executable
 and supporting files; extract the whole archive before launching.
+
+Installed classroom data is outside the application folder, under the current
+user's local application-data directory in `Hallzee/universal/hallzee-trips.db`.
+An upgrade must continue opening that path so rosters, trips, policies, bell
+times, profiles, and terminal metadata survive replacing the application. The
+workspace JSON format deliberately excludes rosters and trip history.
 
 For local tests or Mac UI development, first install the
 [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) for your computer's

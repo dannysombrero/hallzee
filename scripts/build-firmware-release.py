@@ -43,7 +43,7 @@ with tempfile.TemporaryDirectory(prefix='hallzee-release-') as temporary:
  subprocess.run(bundle+['--scope','firmware']+[part for path in maps for part in ['--build-map',str(path)]],check=True)
  subprocess.run(bundle+['--scope','usb'],check=True)
  with zipfile.ZipFile(out/'Hallzee-Firmware-Licenses.zip','w',zipfile.ZIP_DEFLATED) as licenses:
-  for name in ['LICENSE','COPYRIGHT','THIRD-PARTY-NOTICES.md','SOURCE-AND-LICENSES.md']:
+  for name in ['LICENSE.txt','COPYRIGHT.txt','THIRD-PARTY-NOTICES.md','SOURCE-AND-LICENSES.md']:
    licenses.write(out/name,name)
   for path in sorted((out/'licenses').rglob('*')):
    if path.is_file(): licenses.write(path,path.relative_to(out).as_posix())

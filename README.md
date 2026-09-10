@@ -57,8 +57,48 @@ what to download and how to open it safely.
   class sections.
 - Checks for desktop and terminal firmware updates from Hallzee releases.
 
+## Visual tour
+
+### Dashboard
+
 <p align="center">
-  <img src="preview-site/public/client/whos-out.png" alt="Hallzee dashboard showing who is out" width="780" />
+  <img src="docs/images/dashboard-overview.png" alt="Hallzee dashboard with current pass status, recent activity, policies, and exceeded-time insights" width="900" />
+</p>
+
+### Recent activity, roster, and policy summary
+
+<p align="center">
+  <img src="docs/images/recent-activity-and-policy.png" alt="Recent student activity beside the roster and pass policy summary" width="760" />
+</p>
+
+### Trip history log
+
+<p align="center">
+  <img src="docs/images/trip-history.png" alt="Searchable Hallzee trip history log" width="900" />
+</p>
+
+### Student roster
+
+<p align="center">
+  <img src="docs/images/student-roster.png" alt="Hallzee student roster with student IDs, names, grades, and class periods" width="900" />
+</p>
+
+### Policies and bell times
+
+<p align="center">
+  <img src="docs/images/policies-and-bell-times.png" alt="Hallzee pass policy rules and bell schedule settings" width="900" />
+</p>
+
+### Exceeded-time insights
+
+<p align="center">
+  <img src="docs/images/exceeded-time-panel.png" alt="Hallzee exceeded-time panel highlighting students with longer trips" width="540" />
+</p>
+
+### Mini Window
+
+<p align="center">
+  <img src="docs/images/mini-window.png" alt="Hallzee compact always-on-top mini window" width="540" />
 </p>
 
 ## Learn more

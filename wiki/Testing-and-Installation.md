@@ -111,7 +111,9 @@ dotnet build receiver/MacBLEAgent/BathroomSync.MacBLEAgent.csproj -r osx-arm64 -
 
 The development client selects the helper matching its process architecture.
 Use the [release packaging workflow](releasing.md) for distribution; it builds,
-signs and checks the complete Mac bundle.
+signs and checks the complete Mac bundle. The package rewrites its Avalonia
+native-library link to the copy inside the app bundle, so a clean Mac does not
+need any library installed under `/usr/local/lib`.
 
 ## Website and browser prototype
 
@@ -157,6 +159,12 @@ updates and clean-machine installation also need release acceptance testing;
 use [release readiness](release-readiness.md) and the detailed
 [Bluetooth checklist](testing-reference.md#windows--mac-bluetooth-verification).
 
+Terminal notification and disconnect callbacks are marshalled to the desktop
+UI thread before they update the dashboard. A Mac is sufficient for the shared
+view-model tests; a Windows PC is required to verify WinRT Bluetooth callback
+delivery during a real connected session. Windows behavior has not yet been
+verified by this Mac-only check.
+
 ## Pull requests, security and maintenance
 
 **PR readiness** runs on every PR. Its portable Linux checks always run, while
@@ -178,3 +186,12 @@ out of Git. Follow [CONTRIBUTING](../CONTRIBUTING.md) and report vulnerabilities
 through [SECURITY](../SECURITY.md). Update the relevant `docs/` and matching
 `wiki/` page with setup or behavior changes. Older detailed regression notes
 are preserved in [Testing reference](testing-reference.md).
+# Demo screenshots
+
+For visual documentation, use only the fictional roster in `docs/demo-roster.csv`. On a safe macOS demo machine, close Hallzee and run:
+
+```bash
+bash scripts/seed-demo-data-macos.sh
+```
+
+This replaces the Hallzee workspace at `~/Library/Application Support/Hallzee/universal/hallzee-trips.db` with mock student records, completed restroom trips, one active pass, and a sample bell schedule. It is destructive to that one local Hallzee workspace; never use it on a production classroom computer.

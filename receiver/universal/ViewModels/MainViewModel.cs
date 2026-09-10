@@ -313,8 +313,18 @@ public sealed partial class MainViewModel : INotifyPropertyChanged, IDisposable 
       ? "CONNECTING" : terminalSession?.State == TerminalSessionState.ClaimRequired ? "PAIRING REQUIRED" : ConnectionStatusText;
 
   void HandleTerminalSessionStateChanged(object? sender, TerminalSessionState state) {
-    if(state!=TerminalSessionState.Authenticated) firmwareInfoVerifiedId=null;
-    NotifyDeviceState();
+    RunOnUiThread(() => {
+      if(state!=TerminalSessionState.Authenticated) firmwareInfoVerifiedId=null;
+      NotifyDeviceState();
+    });
+  }
+
+  void RunOnUiThread(Action action) {
+    if (Dispatcher.UIThread.CheckAccess()) {
+      action();
+      return;
+    }
+    Dispatcher.UIThread.Post(action);
   }
   void NotifyDeviceState() {
     NotifyFirmwareState();
@@ -1149,6 +1159,13 @@ public sealed partial class MainViewModel : INotifyPropertyChanged, IDisposable 
   }
 
   void HandleTextReceived(object? sender, string text) {
+    // Windows invokes this from a WinRT Bluetooth callback. Every branch below
+    // updates bound view-model and observable-collection state, so it must run
+    // on Avalonia's dispatcher instead of the transport callback thread.
+    RunOnUiThread(() => ProcessTextReceived(text));
+  }
+
+  void ProcessTextReceived(string text) {
     var update = syncSession.ProcessReceivedData(text);
 
     if (update.ActivePass != null) {
@@ -1238,6 +1255,11 @@ public sealed partial class MainViewModel : INotifyPropertyChanged, IDisposable 
   }
 
   void HandleConnectionLost(object? sender, string detail) {
+    // ConnectionLost is also raised by the transport callback on Windows.
+    RunOnUiThread(() => ProcessConnectionLost(detail));
+  }
+
+  void ProcessConnectionLost(string detail) {
     IsConnected = false;
     IsSyncing = false;
     terminalActivePass.SetUnknown();

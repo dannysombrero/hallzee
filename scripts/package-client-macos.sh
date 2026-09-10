@@ -11,12 +11,26 @@ output="${4:?Expected a new output directory}"
 [[ "$rid" == osx-arm64 || "$rid" == osx-x64 ]]
 [[ "$repository" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]
 [[ ! -e "$output" ]]
+sqlite_arch="${rid#osx-}"
 mkdir -p "$output"
 output="$(cd "$output" && pwd)"
 app="$output/Hallzee.app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
 cp receiver/universal/Assets/hallzee.icns "$app/Contents/Resources/hallzee.icns"
 dotnet publish receiver/universal/BathroomSync.Universal.csproj -c Release -r "$rid" --self-contained true -p:PublishTrimmed=false -p:Version="$version" -p:ReleaseRepository="$repository" -o "$app/Contents/MacOS"
+# The macOS workload emits an app bundle whose executable still names the
+# development-time Avalonia native library path. The library is included in the
+# bundle's MonoBundle directory as libAvaloniaNative.dylib, and the executable
+# already has that directory in its rpath. Point the load command at the
+# bundled library so a clean Mac never needs /usr/local/lib populated.
+install_name_tool -change \
+  /usr/local/lib/libAvalonia.Native.OSX.dylib \
+  @rpath/libAvaloniaNative.dylib \
+  "$app/Contents/MacOS/HallzeeSync.Universal"
+install_name_tool -change \
+  "./bin/e_sqlite3/mac/$sqlite_arch/libe_sqlite3.dylib" \
+  @rpath/libe_sqlite3.dylib \
+  "$app/Contents/MacOS/HallzeeSync.Universal"
 # The helper is a native .NET macOS app, not part of the Avalonia publish output.
 dotnet build receiver/MacBLEAgent/BathroomSync.MacBLEAgent.csproj -c Release -r "$rid" -p:Version="$version" -p:EnableCodeSigning=false
 helper="receiver/MacBLEAgent/bin/Release/net8.0-macos/$rid/BathroomSync.MacBLEAgent.app"

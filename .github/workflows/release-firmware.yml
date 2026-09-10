@@ -77,7 +77,7 @@ jobs:
           printf '%s\n' "$RELEASE_KEY" > "$RUNNER_TEMP/release-key.pem"
           trap 'rm -f "$RUNNER_TEMP/release-key.pem"' EXIT
           python3 scripts/build-firmware-release.py --version "$RELEASE_VERSION" --build "$GITHUB_SHA" --output artifacts/firmware --key "$RUNNER_TEMP/release-key.pem" --notes firmware/release-notes.md --arduino-data "$HOME/.arduino15"
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: Firmware-and-USB-images
           path: artifacts/firmware/
@@ -141,7 +141,7 @@ jobs:
           Copy-Item firmware/USB-README.md usb/README.md
           Compress-Archive usb/* "Hallzee-USB-${{ matrix.rid }}.zip"
           Move-Item usb-python-sources/Hallzee-USB-Python-Sources.zip "Hallzee-USB-Python-Sources-${{ matrix.rid }}.zip"
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: USB-${{ matrix.rid }}
           path: Hallzee-USB-*.zip
@@ -159,7 +159,7 @@ jobs:
           python3 -c 'import json,os; json.dump(dict(product="firmware",version=os.environ["RELEASE_VERSION"],repository=os.environ["RELEASE_REPOSITORY"],sha=os.environ["GITHUB_SHA"]),open("metadata/release.json","w"))'
           cp docs/getting-started-users.md metadata/teacher-guide.md
           cp firmware/release-notes.md metadata/notes.md
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: Release-metadata
           path: metadata/

@@ -42,7 +42,7 @@ jobs:
         run: |
           git diff --binary -- preview-site/package-lock.json > dependency-update.patch
       - name: Download and apply on a contributor branch
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: preview-dependency-update
           path: |

@@ -74,12 +74,12 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Upload Windows app files (GitHub creates the ZIP)
         if: runner.os == 'Windows'
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: Hallzee-Windows-win-x64
           path: publish/
           if-no-files-found: error
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         if: runner.os == 'macOS'
         with:
           name: Desktop-${{ matrix.rid }}
@@ -99,7 +99,7 @@ jobs:
           python3 -c 'import json,os; json.dump(dict(product="client",version=os.environ["RELEASE_VERSION"],repository=os.environ["RELEASE_REPOSITORY"],sha=os.environ["GITHUB_SHA"]),open("metadata/release.json","w"))'
           cp docs/getting-started-users.md metadata/teacher-guide.md
           cp docs/client-release-notes.md metadata/notes.md
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: Release-metadata
           path: metadata/

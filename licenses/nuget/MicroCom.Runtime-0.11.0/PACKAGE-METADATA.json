@@ -1,0 +1,12 @@
+{
+  "ecosystem": "nuget",
+  "name": "MicroCom.Runtime",
+  "version": "0.11.0",
+  "license": "MIT",
+  "source": "https://www.nuget.org/packages/MicroCom.Runtime/0.11.0",
+  "authors": "MicroCom.Runtime",
+  "license_type": "expression",
+  "license_url": "https://licenses.nuget.org/MIT",
+  "copyright": "Copyright 2021 \u00a9 Nikita Tsukanov",
+  "repository": "https://github.com/kekekeks/MicroCom"
+}

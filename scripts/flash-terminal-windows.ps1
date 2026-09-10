@@ -59,7 +59,8 @@ if (-not $Fast) {
   if ($LASTEXITCODE -ne 0) { throw "Could not update the Arduino package index." }
   & $cli core install "esp32:esp32@$esp32Version" --additional-urls $esp32Index
   if ($LASTEXITCODE -ne 0) { throw "Could not install the pinned ESP32 core." }
-  & $cli lib install "Adafruit GFX Library" "Adafruit ST7735 and ST7789 Library" "Adafruit ILI9341" Keypad
+  $libraries = @(Get-Content (Join-Path $ProjectRoot "firmware/arduino-libraries.txt") | Where-Object { $_ -and -not $_.StartsWith('#') })
+  & $cli lib install --no-deps @libraries
   if ($LASTEXITCODE -ne 0) { throw "Could not install firmware libraries." }
 
   if ($TouchTest) {

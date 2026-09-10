@@ -31,7 +31,7 @@
   <ItemGroup>
     <Content Include="../../LICENSE;../../COPYRIGHT;../../THIRD-PARTY-NOTICES.md"
              Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    <Content Include="../../licenses/**/*" Link="licenses/%(RecursiveDir)%(Filename)%(Extension)"
+    <Content Include="../../licenses/**/*" Exclude="../../licenses/nuget/**/*" Link="licenses/%(RecursiveDir)%(Filename)%(Extension)"
              CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../docs/dependency-inventory.json" Link="licenses/dependency-inventory.json"
              CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />

@@ -1,5 +1,6 @@
 {
-  "scope": "npm lockfile and locally restored NuGet assets; native Arduino/SDK components are described in THIRD-PARTY-NOTICES.md",
+  "scope": "Resolved build dependencies; not every build dependency is redistributed. Firmware/native tool sources are described in THIRD-PARTY-NOTICES.md.",
+  "runtime_identifier": null,
   "packages": [
     {
       "ecosystem": "npm",
@@ -18,16 +19,16 @@
     {
       "ecosystem": "npm",
       "name": "@babel/compat-data",
-      "version": "7.29.3",
+      "version": "7.29.7",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@babel/compat-data/v/7.29.3"
+      "source": "https://www.npmjs.com/package/@babel/compat-data/v/7.29.7"
     },
     {
       "ecosystem": "npm",
       "name": "@babel/core",
-      "version": "7.29.0",
+      "version": "7.29.7",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@babel/core/v/7.29.0"
+      "source": "https://www.npmjs.com/package/@babel/core/v/7.29.7"
     },
     {
       "ecosystem": "npm",
@@ -46,9 +47,9 @@
     {
       "ecosystem": "npm",
       "name": "@babel/helper-compilation-targets",
-      "version": "7.28.6",
+      "version": "7.29.7",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@babel/helper-compilation-targets/v/7.28.6"
+      "source": "https://www.npmjs.com/package/@babel/helper-compilation-targets/v/7.29.7"
     },
     {
       "ecosystem": "npm",
@@ -137,9 +138,9 @@
     {
       "ecosystem": "npm",
       "name": "@babel/helpers",
-      "version": "7.29.2",
+      "version": "7.29.7",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@babel/helpers/v/7.29.2"
+      "source": "https://www.npmjs.com/package/@babel/helpers/v/7.29.7"
     },
     {
       "ecosystem": "npm",
@@ -242,51 +243,51 @@
     {
       "ecosystem": "npm",
       "name": "@cloudflare/vite-plugin",
-      "version": "1.37.1",
+      "version": "1.54.6",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@cloudflare/vite-plugin/v/1.37.1"
+      "source": "https://www.npmjs.com/package/@cloudflare/vite-plugin/v/1.54.6"
     },
     {
       "ecosystem": "npm",
       "name": "@cloudflare/workerd-darwin-64",
-      "version": "1.20260515.1",
+      "version": "1.20260908.1",
       "license": "Apache-2.0",
-      "source": "https://www.npmjs.com/package/@cloudflare/workerd-darwin-64/v/1.20260515.1"
+      "source": "https://www.npmjs.com/package/@cloudflare/workerd-darwin-64/v/1.20260908.1"
     },
     {
       "ecosystem": "npm",
       "name": "@cloudflare/workerd-darwin-arm64",
-      "version": "1.20260515.1",
+      "version": "1.20260908.1",
       "license": "Apache-2.0",
-      "source": "https://www.npmjs.com/package/@cloudflare/workerd-darwin-arm64/v/1.20260515.1"
+      "source": "https://www.npmjs.com/package/@cloudflare/workerd-darwin-arm64/v/1.20260908.1"
     },
     {
       "ecosystem": "npm",
       "name": "@cloudflare/workerd-linux-64",
-      "version": "1.20260515.1",
+      "version": "1.20260908.1",
       "license": "Apache-2.0",
-      "source": "https://www.npmjs.com/package/@cloudflare/workerd-linux-64/v/1.20260515.1"
+      "source": "https://www.npmjs.com/package/@cloudflare/workerd-linux-64/v/1.20260908.1"
     },
     {
       "ecosystem": "npm",
       "name": "@cloudflare/workerd-linux-arm64",
-      "version": "1.20260515.1",
+      "version": "1.20260908.1",
       "license": "Apache-2.0",
-      "source": "https://www.npmjs.com/package/@cloudflare/workerd-linux-arm64/v/1.20260515.1"
+      "source": "https://www.npmjs.com/package/@cloudflare/workerd-linux-arm64/v/1.20260908.1"
     },
     {
       "ecosystem": "npm",
       "name": "@cloudflare/workerd-windows-64",
-      "version": "1.20260515.1",
+      "version": "1.20260908.1",
       "license": "Apache-2.0",
-      "source": "https://www.npmjs.com/package/@cloudflare/workerd-windows-64/v/1.20260515.1"
+      "source": "https://www.npmjs.com/package/@cloudflare/workerd-windows-64/v/1.20260908.1"
     },
     {
       "ecosystem": "npm",
       "name": "@cloudflare/workers-types",
-      "version": "4.20260515.1",
+      "version": "5.20260908.1",
       "license": "MIT OR Apache-2.0",
-      "source": "https://www.npmjs.com/package/@cloudflare/workers-types/v/4.20260515.1"
+      "source": "https://www.npmjs.com/package/@cloudflare/workers-types/v/5.20260908.1"
     },
     {
       "ecosystem": "npm",
@@ -326,13 +327,6 @@
     {
       "ecosystem": "npm",
       "name": "@emnapi/core",
-      "version": "1.10.0",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@emnapi/core/v/1.10.0"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@emnapi/core",
       "version": "1.8.1",
       "license": "MIT",
       "source": "https://www.npmjs.com/package/@emnapi/core/v/1.8.1"
@@ -340,9 +334,9 @@
     {
       "ecosystem": "npm",
       "name": "@emnapi/runtime",
-      "version": "1.10.0",
+      "version": "1.11.3",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@emnapi/runtime/v/1.10.0"
+      "source": "https://www.npmjs.com/package/@emnapi/runtime/v/1.11.3"
     },
     {
       "ecosystem": "npm",
@@ -357,13 +351,6 @@
       "version": "1.1.0",
       "license": "MIT",
       "source": "https://www.npmjs.com/package/@emnapi/wasi-threads/v/1.1.0"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@emnapi/wasi-threads",
-      "version": "1.2.1",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@emnapi/wasi-threads/v/1.2.1"
     },
     {
       "ecosystem": "npm",
@@ -389,23 +376,9 @@
     {
       "ecosystem": "npm",
       "name": "@esbuild/aix-ppc64",
-      "version": "0.27.3",
+      "version": "0.28.1",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/aix-ppc64/v/0.27.3"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/aix-ppc64",
-      "version": "0.28.0",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/aix-ppc64/v/0.28.0"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/android-arm",
-      "version": "0.18.20",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/android-arm/v/0.18.20"
+      "source": "https://www.npmjs.com/package/@esbuild/aix-ppc64/v/0.28.1"
     },
     {
       "ecosystem": "npm",
@@ -417,23 +390,9 @@
     {
       "ecosystem": "npm",
       "name": "@esbuild/android-arm",
-      "version": "0.27.3",
+      "version": "0.28.1",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/android-arm/v/0.27.3"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/android-arm",
-      "version": "0.28.0",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/android-arm/v/0.28.0"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/android-arm64",
-      "version": "0.18.20",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/android-arm64/v/0.18.20"
+      "source": "https://www.npmjs.com/package/@esbuild/android-arm/v/0.28.1"
     },
     {
       "ecosystem": "npm",
@@ -445,23 +404,9 @@
     {
       "ecosystem": "npm",
       "name": "@esbuild/android-arm64",
-      "version": "0.27.3",
+      "version": "0.28.1",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/android-arm64/v/0.27.3"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/android-arm64",
-      "version": "0.28.0",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/android-arm64/v/0.28.0"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/android-x64",
-      "version": "0.18.20",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/android-x64/v/0.18.20"
+      "source": "https://www.npmjs.com/package/@esbuild/android-arm64/v/0.28.1"
     },
     {
       "ecosystem": "npm",
@@ -473,23 +418,9 @@
     {
       "ecosystem": "npm",
       "name": "@esbuild/android-x64",
-      "version": "0.27.3",
+      "version": "0.28.1",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/android-x64/v/0.27.3"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/android-x64",
-      "version": "0.28.0",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/android-x64/v/0.28.0"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/darwin-arm64",
-      "version": "0.18.20",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/darwin-arm64/v/0.18.20"
+      "source": "https://www.npmjs.com/package/@esbuild/android-x64/v/0.28.1"
     },
     {
       "ecosystem": "npm",
@@ -501,23 +432,9 @@
     {
       "ecosystem": "npm",
       "name": "@esbuild/darwin-arm64",
-      "version": "0.27.3",
+      "version": "0.28.1",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/darwin-arm64/v/0.27.3"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/darwin-arm64",
-      "version": "0.28.0",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/darwin-arm64/v/0.28.0"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/darwin-x64",
-      "version": "0.18.20",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/darwin-x64/v/0.18.20"
+      "source": "https://www.npmjs.com/package/@esbuild/darwin-arm64/v/0.28.1"
     },
     {
       "ecosystem": "npm",
@@ -529,23 +446,9 @@
     {
       "ecosystem": "npm",
       "name": "@esbuild/darwin-x64",
-      "version": "0.27.3",
+      "version": "0.28.1",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/darwin-x64/v/0.27.3"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/darwin-x64",
-      "version": "0.28.0",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/darwin-x64/v/0.28.0"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/freebsd-arm64",
-      "version": "0.18.20",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/freebsd-arm64/v/0.18.20"
+      "source": "https://www.npmjs.com/package/@esbuild/darwin-x64/v/0.28.1"
     },
     {
       "ecosystem": "npm",
@@ -557,23 +460,9 @@
     {
       "ecosystem": "npm",
       "name": "@esbuild/freebsd-arm64",
-      "version": "0.27.3",
+      "version": "0.28.1",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/freebsd-arm64/v/0.27.3"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/freebsd-arm64",
-      "version": "0.28.0",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/freebsd-arm64/v/0.28.0"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/freebsd-x64",
-      "version": "0.18.20",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/freebsd-x64/v/0.18.20"
+      "source": "https://www.npmjs.com/package/@esbuild/freebsd-arm64/v/0.28.1"
     },
     {
       "ecosystem": "npm",
@@ -585,23 +474,9 @@
     {
       "ecosystem": "npm",
       "name": "@esbuild/freebsd-x64",
-      "version": "0.27.3",
+      "version": "0.28.1",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/freebsd-x64/v/0.27.3"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/freebsd-x64",
-      "version": "0.28.0",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/freebsd-x64/v/0.28.0"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/linux-arm",
-      "version": "0.18.20",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/linux-arm/v/0.18.20"
+      "source": "https://www.npmjs.com/package/@esbuild/freebsd-x64/v/0.28.1"
     },
     {
       "ecosystem": "npm",
@@ -613,23 +488,9 @@
     {
       "ecosystem": "npm",
       "name": "@esbuild/linux-arm",
-      "version": "0.27.3",
+      "version": "0.28.1",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/linux-arm/v/0.27.3"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/linux-arm",
-      "version": "0.28.0",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/linux-arm/v/0.28.0"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/linux-arm64",
-      "version": "0.18.20",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/linux-arm64/v/0.18.20"
+      "source": "https://www.npmjs.com/package/@esbuild/linux-arm/v/0.28.1"
     },
     {
       "ecosystem": "npm",
@@ -641,23 +502,9 @@
     {
       "ecosystem": "npm",
       "name": "@esbuild/linux-arm64",
-      "version": "0.27.3",
+      "version": "0.28.1",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/linux-arm64/v/0.27.3"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/linux-arm64",
-      "version": "0.28.0",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/linux-arm64/v/0.28.0"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/linux-ia32",
-      "version": "0.18.20",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/linux-ia32/v/0.18.20"
+      "source": "https://www.npmjs.com/package/@esbuild/linux-arm64/v/0.28.1"
     },
     {
       "ecosystem": "npm",
@@ -669,23 +516,9 @@
     {
       "ecosystem": "npm",
       "name": "@esbuild/linux-ia32",
-      "version": "0.27.3",
+      "version": "0.28.1",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/linux-ia32/v/0.27.3"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/linux-ia32",
-      "version": "0.28.0",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/linux-ia32/v/0.28.0"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/linux-loong64",
-      "version": "0.18.20",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/linux-loong64/v/0.18.20"
+      "source": "https://www.npmjs.com/package/@esbuild/linux-ia32/v/0.28.1"
     },
     {
       "ecosystem": "npm",
@@ -697,23 +530,9 @@
     {
       "ecosystem": "npm",
       "name": "@esbuild/linux-loong64",
-      "version": "0.27.3",
+      "version": "0.28.1",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/linux-loong64/v/0.27.3"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/linux-loong64",
-      "version": "0.28.0",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/linux-loong64/v/0.28.0"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/linux-mips64el",
-      "version": "0.18.20",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/linux-mips64el/v/0.18.20"
+      "source": "https://www.npmjs.com/package/@esbuild/linux-loong64/v/0.28.1"
     },
     {
       "ecosystem": "npm",
@@ -725,23 +544,9 @@
     {
       "ecosystem": "npm",
       "name": "@esbuild/linux-mips64el",
-      "version": "0.27.3",
+      "version": "0.28.1",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/linux-mips64el/v/0.27.3"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/linux-mips64el",
-      "version": "0.28.0",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/linux-mips64el/v/0.28.0"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/linux-ppc64",
-      "version": "0.18.20",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/linux-ppc64/v/0.18.20"
+      "source": "https://www.npmjs.com/package/@esbuild/linux-mips64el/v/0.28.1"
     },
     {
       "ecosystem": "npm",
@@ -753,23 +558,9 @@
     {
       "ecosystem": "npm",
       "name": "@esbuild/linux-ppc64",
-      "version": "0.27.3",
+      "version": "0.28.1",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/linux-ppc64/v/0.27.3"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/linux-ppc64",
-      "version": "0.28.0",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/linux-ppc64/v/0.28.0"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/linux-riscv64",
-      "version": "0.18.20",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/linux-riscv64/v/0.18.20"
+      "source": "https://www.npmjs.com/package/@esbuild/linux-ppc64/v/0.28.1"
     },
     {
       "ecosystem": "npm",
@@ -781,23 +572,9 @@
     {
       "ecosystem": "npm",
       "name": "@esbuild/linux-riscv64",
-      "version": "0.27.3",
+      "version": "0.28.1",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/linux-riscv64/v/0.27.3"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/linux-riscv64",
-      "version": "0.28.0",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/linux-riscv64/v/0.28.0"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/linux-s390x",
-      "version": "0.18.20",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/linux-s390x/v/0.18.20"
+      "source": "https://www.npmjs.com/package/@esbuild/linux-riscv64/v/0.28.1"
     },
     {
       "ecosystem": "npm",
@@ -809,23 +586,9 @@
     {
       "ecosystem": "npm",
       "name": "@esbuild/linux-s390x",
-      "version": "0.27.3",
+      "version": "0.28.1",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/linux-s390x/v/0.27.3"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/linux-s390x",
-      "version": "0.28.0",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/linux-s390x/v/0.28.0"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/linux-x64",
-      "version": "0.18.20",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/linux-x64/v/0.18.20"
+      "source": "https://www.npmjs.com/package/@esbuild/linux-s390x/v/0.28.1"
     },
     {
       "ecosystem": "npm",
@@ -837,16 +600,9 @@
     {
       "ecosystem": "npm",
       "name": "@esbuild/linux-x64",
-      "version": "0.27.3",
+      "version": "0.28.1",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/linux-x64/v/0.27.3"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/linux-x64",
-      "version": "0.28.0",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/linux-x64/v/0.28.0"
+      "source": "https://www.npmjs.com/package/@esbuild/linux-x64/v/0.28.1"
     },
     {
       "ecosystem": "npm",
@@ -858,23 +614,9 @@
     {
       "ecosystem": "npm",
       "name": "@esbuild/netbsd-arm64",
-      "version": "0.27.3",
+      "version": "0.28.1",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/netbsd-arm64/v/0.27.3"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/netbsd-arm64",
-      "version": "0.28.0",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/netbsd-arm64/v/0.28.0"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/netbsd-x64",
-      "version": "0.18.20",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/netbsd-x64/v/0.18.20"
+      "source": "https://www.npmjs.com/package/@esbuild/netbsd-arm64/v/0.28.1"
     },
     {
       "ecosystem": "npm",
@@ -886,16 +628,9 @@
     {
       "ecosystem": "npm",
       "name": "@esbuild/netbsd-x64",
-      "version": "0.27.3",
+      "version": "0.28.1",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/netbsd-x64/v/0.27.3"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/netbsd-x64",
-      "version": "0.28.0",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/netbsd-x64/v/0.28.0"
+      "source": "https://www.npmjs.com/package/@esbuild/netbsd-x64/v/0.28.1"
     },
     {
       "ecosystem": "npm",
@@ -907,23 +642,9 @@
     {
       "ecosystem": "npm",
       "name": "@esbuild/openbsd-arm64",
-      "version": "0.27.3",
+      "version": "0.28.1",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/openbsd-arm64/v/0.27.3"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/openbsd-arm64",
-      "version": "0.28.0",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/openbsd-arm64/v/0.28.0"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/openbsd-x64",
-      "version": "0.18.20",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/openbsd-x64/v/0.18.20"
+      "source": "https://www.npmjs.com/package/@esbuild/openbsd-arm64/v/0.28.1"
     },
     {
       "ecosystem": "npm",
@@ -935,16 +656,9 @@
     {
       "ecosystem": "npm",
       "name": "@esbuild/openbsd-x64",
-      "version": "0.27.3",
+      "version": "0.28.1",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/openbsd-x64/v/0.27.3"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/openbsd-x64",
-      "version": "0.28.0",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/openbsd-x64/v/0.28.0"
+      "source": "https://www.npmjs.com/package/@esbuild/openbsd-x64/v/0.28.1"
     },
     {
       "ecosystem": "npm",
@@ -956,23 +670,9 @@
     {
       "ecosystem": "npm",
       "name": "@esbuild/openharmony-arm64",
-      "version": "0.27.3",
+      "version": "0.28.1",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/openharmony-arm64/v/0.27.3"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/openharmony-arm64",
-      "version": "0.28.0",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/openharmony-arm64/v/0.28.0"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/sunos-x64",
-      "version": "0.18.20",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/sunos-x64/v/0.18.20"
+      "source": "https://www.npmjs.com/package/@esbuild/openharmony-arm64/v/0.28.1"
     },
     {
       "ecosystem": "npm",
@@ -984,23 +684,9 @@
     {
       "ecosystem": "npm",
       "name": "@esbuild/sunos-x64",
-      "version": "0.27.3",
+      "version": "0.28.1",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/sunos-x64/v/0.27.3"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/sunos-x64",
-      "version": "0.28.0",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/sunos-x64/v/0.28.0"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/win32-arm64",
-      "version": "0.18.20",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/win32-arm64/v/0.18.20"
+      "source": "https://www.npmjs.com/package/@esbuild/sunos-x64/v/0.28.1"
     },
     {
       "ecosystem": "npm",
@@ -1012,23 +698,9 @@
     {
       "ecosystem": "npm",
       "name": "@esbuild/win32-arm64",
-      "version": "0.27.3",
+      "version": "0.28.1",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/win32-arm64/v/0.27.3"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/win32-arm64",
-      "version": "0.28.0",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/win32-arm64/v/0.28.0"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/win32-ia32",
-      "version": "0.18.20",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/win32-ia32/v/0.18.20"
+      "source": "https://www.npmjs.com/package/@esbuild/win32-arm64/v/0.28.1"
     },
     {
       "ecosystem": "npm",
@@ -1040,23 +712,9 @@
     {
       "ecosystem": "npm",
       "name": "@esbuild/win32-ia32",
-      "version": "0.27.3",
+      "version": "0.28.1",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/win32-ia32/v/0.27.3"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/win32-ia32",
-      "version": "0.28.0",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/win32-ia32/v/0.28.0"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/win32-x64",
-      "version": "0.18.20",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/win32-x64/v/0.18.20"
+      "source": "https://www.npmjs.com/package/@esbuild/win32-ia32/v/0.28.1"
     },
     {
       "ecosystem": "npm",
@@ -1068,16 +726,9 @@
     {
       "ecosystem": "npm",
       "name": "@esbuild/win32-x64",
-      "version": "0.27.3",
+      "version": "0.28.1",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/win32-x64/v/0.27.3"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@esbuild/win32-x64",
-      "version": "0.28.0",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@esbuild/win32-x64/v/0.28.0"
+      "source": "https://www.npmjs.com/package/@esbuild/win32-x64/v/0.28.1"
     },
     {
       "ecosystem": "npm",
@@ -1124,170 +775,184 @@
     {
       "ecosystem": "npm",
       "name": "@img/sharp-darwin-arm64",
-      "version": "0.34.5",
+      "version": "0.35.4",
       "license": "Apache-2.0",
-      "source": "https://www.npmjs.com/package/@img/sharp-darwin-arm64/v/0.34.5"
+      "source": "https://www.npmjs.com/package/@img/sharp-darwin-arm64/v/0.35.4"
     },
     {
       "ecosystem": "npm",
       "name": "@img/sharp-darwin-x64",
-      "version": "0.34.5",
+      "version": "0.35.4",
       "license": "Apache-2.0",
-      "source": "https://www.npmjs.com/package/@img/sharp-darwin-x64/v/0.34.5"
+      "source": "https://www.npmjs.com/package/@img/sharp-darwin-x64/v/0.35.4"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@img/sharp-freebsd-wasm32",
+      "version": "0.35.4",
+      "license": "Apache-2.0",
+      "source": "https://www.npmjs.com/package/@img/sharp-freebsd-wasm32/v/0.35.4"
     },
     {
       "ecosystem": "npm",
       "name": "@img/sharp-libvips-darwin-arm64",
-      "version": "1.2.4",
+      "version": "1.3.3",
       "license": "LGPL-3.0-or-later",
-      "source": "https://www.npmjs.com/package/@img/sharp-libvips-darwin-arm64/v/1.2.4"
+      "source": "https://www.npmjs.com/package/@img/sharp-libvips-darwin-arm64/v/1.3.3"
     },
     {
       "ecosystem": "npm",
       "name": "@img/sharp-libvips-darwin-x64",
-      "version": "1.2.4",
+      "version": "1.3.3",
       "license": "LGPL-3.0-or-later",
-      "source": "https://www.npmjs.com/package/@img/sharp-libvips-darwin-x64/v/1.2.4"
+      "source": "https://www.npmjs.com/package/@img/sharp-libvips-darwin-x64/v/1.3.3"
     },
     {
       "ecosystem": "npm",
       "name": "@img/sharp-libvips-linux-arm",
-      "version": "1.2.4",
+      "version": "1.3.3",
       "license": "LGPL-3.0-or-later",
-      "source": "https://www.npmjs.com/package/@img/sharp-libvips-linux-arm/v/1.2.4"
+      "source": "https://www.npmjs.com/package/@img/sharp-libvips-linux-arm/v/1.3.3"
     },
     {
       "ecosystem": "npm",
       "name": "@img/sharp-libvips-linux-arm64",
-      "version": "1.2.4",
+      "version": "1.3.3",
       "license": "LGPL-3.0-or-later",
-      "source": "https://www.npmjs.com/package/@img/sharp-libvips-linux-arm64/v/1.2.4"
+      "source": "https://www.npmjs.com/package/@img/sharp-libvips-linux-arm64/v/1.3.3"
     },
     {
       "ecosystem": "npm",
       "name": "@img/sharp-libvips-linux-ppc64",
-      "version": "1.2.4",
+      "version": "1.3.3",
       "license": "LGPL-3.0-or-later",
-      "source": "https://www.npmjs.com/package/@img/sharp-libvips-linux-ppc64/v/1.2.4"
+      "source": "https://www.npmjs.com/package/@img/sharp-libvips-linux-ppc64/v/1.3.3"
     },
     {
       "ecosystem": "npm",
       "name": "@img/sharp-libvips-linux-riscv64",
-      "version": "1.2.4",
+      "version": "1.3.3",
       "license": "LGPL-3.0-or-later",
-      "source": "https://www.npmjs.com/package/@img/sharp-libvips-linux-riscv64/v/1.2.4"
+      "source": "https://www.npmjs.com/package/@img/sharp-libvips-linux-riscv64/v/1.3.3"
     },
     {
       "ecosystem": "npm",
       "name": "@img/sharp-libvips-linux-s390x",
-      "version": "1.2.4",
+      "version": "1.3.3",
       "license": "LGPL-3.0-or-later",
-      "source": "https://www.npmjs.com/package/@img/sharp-libvips-linux-s390x/v/1.2.4"
+      "source": "https://www.npmjs.com/package/@img/sharp-libvips-linux-s390x/v/1.3.3"
     },
     {
       "ecosystem": "npm",
       "name": "@img/sharp-libvips-linux-x64",
-      "version": "1.2.4",
+      "version": "1.3.3",
       "license": "LGPL-3.0-or-later",
-      "source": "https://www.npmjs.com/package/@img/sharp-libvips-linux-x64/v/1.2.4"
+      "source": "https://www.npmjs.com/package/@img/sharp-libvips-linux-x64/v/1.3.3"
     },
     {
       "ecosystem": "npm",
       "name": "@img/sharp-libvips-linuxmusl-arm64",
-      "version": "1.2.4",
+      "version": "1.3.3",
       "license": "LGPL-3.0-or-later",
-      "source": "https://www.npmjs.com/package/@img/sharp-libvips-linuxmusl-arm64/v/1.2.4"
+      "source": "https://www.npmjs.com/package/@img/sharp-libvips-linuxmusl-arm64/v/1.3.3"
     },
     {
       "ecosystem": "npm",
       "name": "@img/sharp-libvips-linuxmusl-x64",
-      "version": "1.2.4",
+      "version": "1.3.3",
       "license": "LGPL-3.0-or-later",
-      "source": "https://www.npmjs.com/package/@img/sharp-libvips-linuxmusl-x64/v/1.2.4"
+      "source": "https://www.npmjs.com/package/@img/sharp-libvips-linuxmusl-x64/v/1.3.3"
     },
     {
       "ecosystem": "npm",
       "name": "@img/sharp-linux-arm",
-      "version": "0.34.5",
+      "version": "0.35.4",
       "license": "Apache-2.0",
-      "source": "https://www.npmjs.com/package/@img/sharp-linux-arm/v/0.34.5"
+      "source": "https://www.npmjs.com/package/@img/sharp-linux-arm/v/0.35.4"
     },
     {
       "ecosystem": "npm",
       "name": "@img/sharp-linux-arm64",
-      "version": "0.34.5",
+      "version": "0.35.4",
       "license": "Apache-2.0",
-      "source": "https://www.npmjs.com/package/@img/sharp-linux-arm64/v/0.34.5"
+      "source": "https://www.npmjs.com/package/@img/sharp-linux-arm64/v/0.35.4"
     },
     {
       "ecosystem": "npm",
       "name": "@img/sharp-linux-ppc64",
-      "version": "0.34.5",
+      "version": "0.35.4",
       "license": "Apache-2.0",
-      "source": "https://www.npmjs.com/package/@img/sharp-linux-ppc64/v/0.34.5"
+      "source": "https://www.npmjs.com/package/@img/sharp-linux-ppc64/v/0.35.4"
     },
     {
       "ecosystem": "npm",
       "name": "@img/sharp-linux-riscv64",
-      "version": "0.34.5",
+      "version": "0.35.4",
       "license": "Apache-2.0",
-      "source": "https://www.npmjs.com/package/@img/sharp-linux-riscv64/v/0.34.5"
+      "source": "https://www.npmjs.com/package/@img/sharp-linux-riscv64/v/0.35.4"
     },
     {
       "ecosystem": "npm",
       "name": "@img/sharp-linux-s390x",
-      "version": "0.34.5",
+      "version": "0.35.4",
       "license": "Apache-2.0",
-      "source": "https://www.npmjs.com/package/@img/sharp-linux-s390x/v/0.34.5"
+      "source": "https://www.npmjs.com/package/@img/sharp-linux-s390x/v/0.35.4"
     },
     {
       "ecosystem": "npm",
       "name": "@img/sharp-linux-x64",
-      "version": "0.34.5",
+      "version": "0.35.4",
       "license": "Apache-2.0",
-      "source": "https://www.npmjs.com/package/@img/sharp-linux-x64/v/0.34.5"
+      "source": "https://www.npmjs.com/package/@img/sharp-linux-x64/v/0.35.4"
     },
     {
       "ecosystem": "npm",
       "name": "@img/sharp-linuxmusl-arm64",
-      "version": "0.34.5",
+      "version": "0.35.4",
       "license": "Apache-2.0",
-      "source": "https://www.npmjs.com/package/@img/sharp-linuxmusl-arm64/v/0.34.5"
+      "source": "https://www.npmjs.com/package/@img/sharp-linuxmusl-arm64/v/0.35.4"
     },
     {
       "ecosystem": "npm",
       "name": "@img/sharp-linuxmusl-x64",
-      "version": "0.34.5",
+      "version": "0.35.4",
       "license": "Apache-2.0",
-      "source": "https://www.npmjs.com/package/@img/sharp-linuxmusl-x64/v/0.34.5"
+      "source": "https://www.npmjs.com/package/@img/sharp-linuxmusl-x64/v/0.35.4"
     },
     {
       "ecosystem": "npm",
       "name": "@img/sharp-wasm32",
-      "version": "0.34.5",
+      "version": "0.35.4",
       "license": "Apache-2.0 AND LGPL-3.0-or-later AND MIT",
-      "source": "https://www.npmjs.com/package/@img/sharp-wasm32/v/0.34.5"
+      "source": "https://www.npmjs.com/package/@img/sharp-wasm32/v/0.35.4"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@img/sharp-webcontainers-wasm32",
+      "version": "0.35.4",
+      "license": "Apache-2.0",
+      "source": "https://www.npmjs.com/package/@img/sharp-webcontainers-wasm32/v/0.35.4"
     },
     {
       "ecosystem": "npm",
       "name": "@img/sharp-win32-arm64",
-      "version": "0.34.5",
+      "version": "0.35.4",
       "license": "Apache-2.0 AND LGPL-3.0-or-later",
-      "source": "https://www.npmjs.com/package/@img/sharp-win32-arm64/v/0.34.5"
+      "source": "https://www.npmjs.com/package/@img/sharp-win32-arm64/v/0.35.4"
     },
     {
       "ecosystem": "npm",
       "name": "@img/sharp-win32-ia32",
-      "version": "0.34.5",
+      "version": "0.35.4",
       "license": "Apache-2.0 AND LGPL-3.0-or-later",
-      "source": "https://www.npmjs.com/package/@img/sharp-win32-ia32/v/0.34.5"
+      "source": "https://www.npmjs.com/package/@img/sharp-win32-ia32/v/0.35.4"
     },
     {
       "ecosystem": "npm",
       "name": "@img/sharp-win32-x64",
-      "version": "0.34.5",
+      "version": "0.35.4",
       "license": "Apache-2.0 AND LGPL-3.0-or-later",
-      "source": "https://www.npmjs.com/package/@img/sharp-win32-x64/v/0.34.5"
+      "source": "https://www.npmjs.com/package/@img/sharp-win32-x64/v/0.35.4"
     },
     {
       "ecosystem": "npm",
@@ -1354,13 +1019,6 @@
     },
     {
       "ecosystem": "npm",
-      "name": "@napi-rs/wasm-runtime",
-      "version": "1.2.3",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@napi-rs/wasm-runtime/v/1.2.3"
-    },
-    {
-      "ecosystem": "npm",
       "name": "@nodelib/fs.scandir",
       "version": "2.1.5",
       "license": "MIT",
@@ -1390,9 +1048,9 @@
     {
       "ecosystem": "npm",
       "name": "@oxc-project/types",
-      "version": "0.130.0",
+      "version": "0.149.0",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@oxc-project/types/v/0.130.0"
+      "source": "https://www.npmjs.com/package/@oxc-project/types/v/0.149.0"
     },
     {
       "ecosystem": "npm",
@@ -1851,115 +1509,108 @@
     },
     {
       "ecosystem": "npm",
-      "name": "@rolldown/binding-android-arm64",
-      "version": "1.0.1",
+      "name": "@rolldown/binding-android-arm-eabi",
+      "version": "1.2.8",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@rolldown/binding-android-arm64/v/1.0.1"
+      "source": "https://www.npmjs.com/package/@rolldown/binding-android-arm-eabi/v/1.2.8"
+    },
+    {
+      "ecosystem": "npm",
+      "name": "@rolldown/binding-android-arm64",
+      "version": "1.2.8",
+      "license": "MIT",
+      "source": "https://www.npmjs.com/package/@rolldown/binding-android-arm64/v/1.2.8"
     },
     {
       "ecosystem": "npm",
       "name": "@rolldown/binding-darwin-arm64",
-      "version": "1.0.1",
+      "version": "1.2.8",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@rolldown/binding-darwin-arm64/v/1.0.1"
+      "source": "https://www.npmjs.com/package/@rolldown/binding-darwin-arm64/v/1.2.8"
     },
     {
       "ecosystem": "npm",
       "name": "@rolldown/binding-darwin-x64",
-      "version": "1.0.1",
+      "version": "1.2.8",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@rolldown/binding-darwin-x64/v/1.0.1"
+      "source": "https://www.npmjs.com/package/@rolldown/binding-darwin-x64/v/1.2.8"
     },
     {
       "ecosystem": "npm",
       "name": "@rolldown/binding-freebsd-x64",
-      "version": "1.0.1",
+      "version": "1.2.8",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@rolldown/binding-freebsd-x64/v/1.0.1"
+      "source": "https://www.npmjs.com/package/@rolldown/binding-freebsd-x64/v/1.2.8"
     },
     {
       "ecosystem": "npm",
       "name": "@rolldown/binding-linux-arm-gnueabihf",
-      "version": "1.0.1",
+      "version": "1.2.8",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@rolldown/binding-linux-arm-gnueabihf/v/1.0.1"
+      "source": "https://www.npmjs.com/package/@rolldown/binding-linux-arm-gnueabihf/v/1.2.8"
     },
     {
       "ecosystem": "npm",
       "name": "@rolldown/binding-linux-arm64-gnu",
-      "version": "1.0.1",
+      "version": "1.2.8",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@rolldown/binding-linux-arm64-gnu/v/1.0.1"
+      "source": "https://www.npmjs.com/package/@rolldown/binding-linux-arm64-gnu/v/1.2.8"
     },
     {
       "ecosystem": "npm",
       "name": "@rolldown/binding-linux-arm64-musl",
-      "version": "1.0.1",
+      "version": "1.2.8",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@rolldown/binding-linux-arm64-musl/v/1.0.1"
+      "source": "https://www.npmjs.com/package/@rolldown/binding-linux-arm64-musl/v/1.2.8"
     },
     {
       "ecosystem": "npm",
       "name": "@rolldown/binding-linux-ppc64-gnu",
-      "version": "1.0.1",
+      "version": "1.2.8",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@rolldown/binding-linux-ppc64-gnu/v/1.0.1"
+      "source": "https://www.npmjs.com/package/@rolldown/binding-linux-ppc64-gnu/v/1.2.8"
     },
     {
       "ecosystem": "npm",
       "name": "@rolldown/binding-linux-s390x-gnu",
-      "version": "1.0.1",
+      "version": "1.2.8",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@rolldown/binding-linux-s390x-gnu/v/1.0.1"
+      "source": "https://www.npmjs.com/package/@rolldown/binding-linux-s390x-gnu/v/1.2.8"
     },
     {
       "ecosystem": "npm",
       "name": "@rolldown/binding-linux-x64-gnu",
-      "version": "1.0.1",
+      "version": "1.2.8",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@rolldown/binding-linux-x64-gnu/v/1.0.1"
+      "source": "https://www.npmjs.com/package/@rolldown/binding-linux-x64-gnu/v/1.2.8"
     },
     {
       "ecosystem": "npm",
       "name": "@rolldown/binding-linux-x64-musl",
-      "version": "1.0.1",
+      "version": "1.2.8",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@rolldown/binding-linux-x64-musl/v/1.0.1"
+      "source": "https://www.npmjs.com/package/@rolldown/binding-linux-x64-musl/v/1.2.8"
     },
     {
       "ecosystem": "npm",
       "name": "@rolldown/binding-openharmony-arm64",
-      "version": "1.0.1",
+      "version": "1.2.8",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@rolldown/binding-openharmony-arm64/v/1.0.1"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@rolldown/binding-wasm32-wasi",
-      "version": "1.0.1",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@rolldown/binding-wasm32-wasi/v/1.0.1"
+      "source": "https://www.npmjs.com/package/@rolldown/binding-openharmony-arm64/v/1.2.8"
     },
     {
       "ecosystem": "npm",
       "name": "@rolldown/binding-win32-arm64-msvc",
-      "version": "1.0.1",
+      "version": "1.2.8",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@rolldown/binding-win32-arm64-msvc/v/1.0.1"
+      "source": "https://www.npmjs.com/package/@rolldown/binding-win32-arm64-msvc/v/1.2.8"
     },
     {
       "ecosystem": "npm",
       "name": "@rolldown/binding-win32-x64-msvc",
-      "version": "1.0.1",
+      "version": "1.2.8",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@rolldown/binding-win32-x64-msvc/v/1.0.1"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@rolldown/pluginutils",
-      "version": "1.0.0-rc.18",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@rolldown/pluginutils/v/1.0.0-rc.18"
+      "source": "https://www.npmjs.com/package/@rolldown/binding-win32-x64-msvc/v/1.2.8"
     },
     {
       "ecosystem": "npm",
@@ -2006,9 +1657,9 @@
     {
       "ecosystem": "npm",
       "name": "@speed-highlight/core",
-      "version": "1.2.15",
+      "version": "1.2.24",
       "license": "CC0-1.0",
-      "source": "https://www.npmjs.com/package/@speed-highlight/core/v/1.2.15"
+      "source": "https://www.npmjs.com/package/@speed-highlight/core/v/1.2.24"
     },
     {
       "ecosystem": "npm",
@@ -2142,13 +1793,6 @@
       "version": "0.10.1",
       "license": "MIT",
       "source": "https://www.npmjs.com/package/@tybys/wasm-util/v/0.10.1"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "@tybys/wasm-util",
-      "version": "0.10.3",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/@tybys/wasm-util/v/0.10.3"
     },
     {
       "ecosystem": "npm",
@@ -2314,9 +1958,9 @@
     {
       "ecosystem": "npm",
       "name": "@vitejs/plugin-rsc",
-      "version": "0.5.26",
+      "version": "0.5.34",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/@vitejs/plugin-rsc/v/0.5.26"
+      "source": "https://www.npmjs.com/package/@vitejs/plugin-rsc/v/0.5.34"
     },
     {
       "ecosystem": "npm",
@@ -2559,9 +2203,9 @@
     {
       "ecosystem": "npm",
       "name": "baseline-browser-mapping",
-      "version": "2.10.30",
+      "version": "2.11.21",
       "license": "Apache-2.0",
-      "source": "https://www.npmjs.com/package/baseline-browser-mapping/v/2.10.30"
+      "source": "https://www.npmjs.com/package/baseline-browser-mapping/v/2.11.21"
     },
     {
       "ecosystem": "npm",
@@ -2594,9 +2238,9 @@
     {
       "ecosystem": "npm",
       "name": "browserslist",
-      "version": "4.28.2",
+      "version": "4.28.9",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/browserslist/v/4.28.2"
+      "source": "https://www.npmjs.com/package/browserslist/v/4.28.9"
     },
     {
       "ecosystem": "npm",
@@ -2650,9 +2294,9 @@
     {
       "ecosystem": "npm",
       "name": "caniuse-lite",
-      "version": "1.0.30001793",
+      "version": "1.0.30001810",
       "license": "CC-BY-4.0",
-      "source": "https://www.npmjs.com/package/caniuse-lite/v/1.0.30001793"
+      "source": "https://www.npmjs.com/package/caniuse-lite/v/1.0.30001810"
     },
     {
       "ecosystem": "npm",
@@ -3091,9 +2735,9 @@
     {
       "ecosystem": "npm",
       "name": "electron-to-chromium",
-      "version": "1.5.358",
+      "version": "1.5.425",
       "license": "ISC",
-      "source": "https://www.npmjs.com/package/electron-to-chromium/v/1.5.358"
+      "source": "https://www.npmjs.com/package/electron-to-chromium/v/1.5.425"
     },
     {
       "ecosystem": "npm",
@@ -3196,9 +2840,9 @@
     {
       "ecosystem": "npm",
       "name": "es-module-lexer",
-      "version": "2.1.0",
+      "version": "2.3.2",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/es-module-lexer/v/2.1.0"
+      "source": "https://www.npmjs.com/package/es-module-lexer/v/2.3.2"
     },
     {
       "ecosystem": "npm",
@@ -3217,13 +2861,6 @@
     {
       "ecosystem": "npm",
       "name": "esbuild",
-      "version": "0.18.20",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/esbuild/v/0.18.20"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "esbuild",
       "version": "0.25.12",
       "license": "MIT",
       "source": "https://www.npmjs.com/package/esbuild/v/0.25.12"
@@ -3231,16 +2868,9 @@
     {
       "ecosystem": "npm",
       "name": "esbuild",
-      "version": "0.27.3",
+      "version": "0.28.1",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/esbuild/v/0.27.3"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "esbuild",
-      "version": "0.28.0",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/esbuild/v/0.28.0"
+      "source": "https://www.npmjs.com/package/esbuild/v/0.28.1"
     },
     {
       "ecosystem": "npm",
@@ -3378,9 +3008,9 @@
     {
       "ecosystem": "npm",
       "name": "fast-uri",
-      "version": "3.1.2",
+      "version": "3.1.7",
       "license": "BSD-3-Clause",
-      "source": "https://www.npmjs.com/package/fast-uri/v/3.1.2"
+      "source": "https://www.npmjs.com/package/fast-uri/v/3.1.7"
     },
     {
       "ecosystem": "npm",
@@ -3399,9 +3029,9 @@
     {
       "ecosystem": "npm",
       "name": "fflate",
-      "version": "0.7.4",
+      "version": "0.7.5",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/fflate/v/0.7.4"
+      "source": "https://www.npmjs.com/package/fflate/v/0.7.5"
     },
     {
       "ecosystem": "npm",
@@ -3633,13 +3263,6 @@
       "version": "5.3.2",
       "license": "MIT",
       "source": "https://www.npmjs.com/package/ignore/v/5.3.2"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "image-size",
-      "version": "2.0.2",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/image-size/v/2.0.2"
     },
     {
       "ecosystem": "npm",
@@ -3896,9 +3519,9 @@
     {
       "ecosystem": "npm",
       "name": "js-yaml",
-      "version": "4.1.1",
+      "version": "4.3.2",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/js-yaml/v/4.1.1"
+      "source": "https://www.npmjs.com/package/js-yaml/v/4.3.2"
     },
     {
       "ecosystem": "npm",
@@ -3973,9 +3596,9 @@
     {
       "ecosystem": "npm",
       "name": "lightningcss",
-      "version": "1.32.0",
+      "version": "1.33.0",
       "license": "MPL-2.0",
-      "source": "https://www.npmjs.com/package/lightningcss/v/1.32.0"
+      "source": "https://www.npmjs.com/package/lightningcss/v/1.33.0"
     },
     {
       "ecosystem": "npm",
@@ -3987,9 +3610,9 @@
     {
       "ecosystem": "npm",
       "name": "lightningcss-android-arm64",
-      "version": "1.32.0",
+      "version": "1.33.0",
       "license": "MPL-2.0",
-      "source": "https://www.npmjs.com/package/lightningcss-android-arm64/v/1.32.0"
+      "source": "https://www.npmjs.com/package/lightningcss-android-arm64/v/1.33.0"
     },
     {
       "ecosystem": "npm",
@@ -4001,9 +3624,9 @@
     {
       "ecosystem": "npm",
       "name": "lightningcss-darwin-arm64",
-      "version": "1.32.0",
+      "version": "1.33.0",
       "license": "MPL-2.0",
-      "source": "https://www.npmjs.com/package/lightningcss-darwin-arm64/v/1.32.0"
+      "source": "https://www.npmjs.com/package/lightningcss-darwin-arm64/v/1.33.0"
     },
     {
       "ecosystem": "npm",
@@ -4015,9 +3638,9 @@
     {
       "ecosystem": "npm",
       "name": "lightningcss-darwin-x64",
-      "version": "1.32.0",
+      "version": "1.33.0",
       "license": "MPL-2.0",
-      "source": "https://www.npmjs.com/package/lightningcss-darwin-x64/v/1.32.0"
+      "source": "https://www.npmjs.com/package/lightningcss-darwin-x64/v/1.33.0"
     },
     {
       "ecosystem": "npm",
@@ -4029,9 +3652,9 @@
     {
       "ecosystem": "npm",
       "name": "lightningcss-freebsd-x64",
-      "version": "1.32.0",
+      "version": "1.33.0",
       "license": "MPL-2.0",
-      "source": "https://www.npmjs.com/package/lightningcss-freebsd-x64/v/1.32.0"
+      "source": "https://www.npmjs.com/package/lightningcss-freebsd-x64/v/1.33.0"
     },
     {
       "ecosystem": "npm",
@@ -4043,9 +3666,9 @@
     {
       "ecosystem": "npm",
       "name": "lightningcss-linux-arm-gnueabihf",
-      "version": "1.32.0",
+      "version": "1.33.0",
       "license": "MPL-2.0",
-      "source": "https://www.npmjs.com/package/lightningcss-linux-arm-gnueabihf/v/1.32.0"
+      "source": "https://www.npmjs.com/package/lightningcss-linux-arm-gnueabihf/v/1.33.0"
     },
     {
       "ecosystem": "npm",
@@ -4057,9 +3680,9 @@
     {
       "ecosystem": "npm",
       "name": "lightningcss-linux-arm64-gnu",
-      "version": "1.32.0",
+      "version": "1.33.0",
       "license": "MPL-2.0",
-      "source": "https://www.npmjs.com/package/lightningcss-linux-arm64-gnu/v/1.32.0"
+      "source": "https://www.npmjs.com/package/lightningcss-linux-arm64-gnu/v/1.33.0"
     },
     {
       "ecosystem": "npm",
@@ -4071,9 +3694,9 @@
     {
       "ecosystem": "npm",
       "name": "lightningcss-linux-arm64-musl",
-      "version": "1.32.0",
+      "version": "1.33.0",
       "license": "MPL-2.0",
-      "source": "https://www.npmjs.com/package/lightningcss-linux-arm64-musl/v/1.32.0"
+      "source": "https://www.npmjs.com/package/lightningcss-linux-arm64-musl/v/1.33.0"
     },
     {
       "ecosystem": "npm",
@@ -4085,9 +3708,9 @@
     {
       "ecosystem": "npm",
       "name": "lightningcss-linux-x64-gnu",
-      "version": "1.32.0",
+      "version": "1.33.0",
       "license": "MPL-2.0",
-      "source": "https://www.npmjs.com/package/lightningcss-linux-x64-gnu/v/1.32.0"
+      "source": "https://www.npmjs.com/package/lightningcss-linux-x64-gnu/v/1.33.0"
     },
     {
       "ecosystem": "npm",
@@ -4099,9 +3722,9 @@
     {
       "ecosystem": "npm",
       "name": "lightningcss-linux-x64-musl",
-      "version": "1.32.0",
+      "version": "1.33.0",
       "license": "MPL-2.0",
-      "source": "https://www.npmjs.com/package/lightningcss-linux-x64-musl/v/1.32.0"
+      "source": "https://www.npmjs.com/package/lightningcss-linux-x64-musl/v/1.33.0"
     },
     {
       "ecosystem": "npm",
@@ -4113,9 +3736,9 @@
     {
       "ecosystem": "npm",
       "name": "lightningcss-win32-arm64-msvc",
-      "version": "1.32.0",
+      "version": "1.33.0",
       "license": "MPL-2.0",
-      "source": "https://www.npmjs.com/package/lightningcss-win32-arm64-msvc/v/1.32.0"
+      "source": "https://www.npmjs.com/package/lightningcss-win32-arm64-msvc/v/1.33.0"
     },
     {
       "ecosystem": "npm",
@@ -4127,9 +3750,9 @@
     {
       "ecosystem": "npm",
       "name": "lightningcss-win32-x64-msvc",
-      "version": "1.32.0",
+      "version": "1.33.0",
       "license": "MPL-2.0",
-      "source": "https://www.npmjs.com/package/lightningcss-win32-x64-msvc/v/1.32.0"
+      "source": "https://www.npmjs.com/package/lightningcss-win32-x64-msvc/v/1.33.0"
     },
     {
       "ecosystem": "npm",
@@ -4267,9 +3890,9 @@
     {
       "ecosystem": "npm",
       "name": "miniflare",
-      "version": "4.20260515.0",
+      "version": "5.20260908.0-alpha",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/miniflare/v/4.20260515.0"
+      "source": "https://www.npmjs.com/package/miniflare/v/5.20260908.0-alpha"
     },
     {
       "ecosystem": "npm",
@@ -4295,9 +3918,9 @@
     {
       "ecosystem": "npm",
       "name": "nanoid",
-      "version": "3.3.12",
+      "version": "3.3.18",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/nanoid/v/3.3.12"
+      "source": "https://www.npmjs.com/package/nanoid/v/3.3.18"
     },
     {
       "ecosystem": "npm",
@@ -4316,9 +3939,9 @@
     {
       "ecosystem": "npm",
       "name": "node-releases",
-      "version": "2.0.44",
+      "version": "2.0.55",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/node-releases/v/2.0.44"
+      "source": "https://www.npmjs.com/package/node-releases/v/2.0.55"
     },
     {
       "ecosystem": "npm",
@@ -4554,13 +4177,6 @@
     {
       "ecosystem": "npm",
       "name": "picomatch",
-      "version": "4.0.4",
-      "license": "MIT",
-      "source": "https://www.npmjs.com/package/picomatch/v/4.0.4"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "picomatch",
       "version": "4.0.7",
       "license": "MIT",
       "source": "https://www.npmjs.com/package/picomatch/v/4.0.7"
@@ -4582,9 +4198,9 @@
     {
       "ecosystem": "npm",
       "name": "postcss",
-      "version": "8.5.14",
+      "version": "8.5.28",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/postcss/v/8.5.14"
+      "source": "https://www.npmjs.com/package/postcss/v/8.5.28"
     },
     {
       "ecosystem": "npm",
@@ -4666,9 +4282,9 @@
     {
       "ecosystem": "npm",
       "name": "react",
-      "version": "19.2.6",
+      "version": "19.2.8",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/react/v/19.2.6"
+      "source": "https://www.npmjs.com/package/react/v/19.2.8"
     },
     {
       "ecosystem": "npm",
@@ -4680,9 +4296,9 @@
     {
       "ecosystem": "npm",
       "name": "react-dom",
-      "version": "19.2.6",
+      "version": "19.2.8",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/react-dom/v/19.2.6"
+      "source": "https://www.npmjs.com/package/react-dom/v/19.2.8"
     },
     {
       "ecosystem": "npm",
@@ -4729,9 +4345,9 @@
     {
       "ecosystem": "npm",
       "name": "react-server-dom-webpack",
-      "version": "19.2.6",
+      "version": "19.2.8",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/react-server-dom-webpack/v/19.2.6"
+      "source": "https://www.npmjs.com/package/react-server-dom-webpack/v/19.2.8"
     },
     {
       "ecosystem": "npm",
@@ -4820,9 +4436,9 @@
     {
       "ecosystem": "npm",
       "name": "rolldown",
-      "version": "1.0.1",
+      "version": "1.2.8",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/rolldown/v/1.0.1"
+      "source": "https://www.npmjs.com/package/rolldown/v/1.2.8"
     },
     {
       "ecosystem": "npm",
@@ -4883,13 +4499,6 @@
     {
       "ecosystem": "npm",
       "name": "semver",
-      "version": "7.8.0",
-      "license": "ISC",
-      "source": "https://www.npmjs.com/package/semver/v/7.8.0"
-    },
-    {
-      "ecosystem": "npm",
-      "name": "semver",
       "version": "7.8.5",
       "license": "ISC",
       "source": "https://www.npmjs.com/package/semver/v/7.8.5"
@@ -4925,9 +4534,9 @@
     {
       "ecosystem": "npm",
       "name": "sharp",
-      "version": "0.34.5",
+      "version": "0.35.4",
       "license": "Apache-2.0",
-      "source": "https://www.npmjs.com/package/sharp/v/0.34.5"
+      "source": "https://www.npmjs.com/package/sharp/v/0.35.4"
     },
     {
       "ecosystem": "npm",
@@ -5030,9 +4639,9 @@
     {
       "ecosystem": "npm",
       "name": "srvx",
-      "version": "0.11.15",
+      "version": "0.12.8",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/srvx/v/0.11.15"
+      "source": "https://www.npmjs.com/package/srvx/v/0.12.8"
     },
     {
       "ecosystem": "npm",
@@ -5184,9 +4793,9 @@
     {
       "ecosystem": "npm",
       "name": "tinyglobby",
-      "version": "0.2.16",
+      "version": "0.2.17",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/tinyglobby/v/0.2.16"
+      "source": "https://www.npmjs.com/package/tinyglobby/v/0.2.17"
     },
     {
       "ecosystem": "npm",
@@ -5268,9 +4877,9 @@
     {
       "ecosystem": "npm",
       "name": "undici",
-      "version": "7.24.8",
+      "version": "7.29.0",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/undici/v/7.24.8"
+      "source": "https://www.npmjs.com/package/undici/v/7.29.0"
     },
     {
       "ecosystem": "npm",
@@ -5331,9 +4940,9 @@
     {
       "ecosystem": "npm",
       "name": "update-browserslist-db",
-      "version": "1.2.3",
+      "version": "1.3.2",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/update-browserslist-db/v/1.2.3"
+      "source": "https://www.npmjs.com/package/update-browserslist-db/v/1.3.2"
     },
     {
       "ecosystem": "npm",
@@ -5387,16 +4996,16 @@
     {
       "ecosystem": "npm",
       "name": "vinext",
-      "version": "1.0.0-beta.5",
+      "version": "1.0.0-beta.9",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/vinext/v/1.0.0-beta.5"
+      "source": "https://www.npmjs.com/package/vinext/v/1.0.0-beta.9"
     },
     {
       "ecosystem": "npm",
       "name": "vite",
-      "version": "8.0.13",
+      "version": "8.2.2",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/vite/v/8.0.13"
+      "source": "https://www.npmjs.com/package/vite/v/8.2.2"
     },
     {
       "ecosystem": "npm",
@@ -5464,16 +5073,16 @@
     {
       "ecosystem": "npm",
       "name": "workerd",
-      "version": "1.20260515.1",
+      "version": "1.20260908.1",
       "license": "Apache-2.0",
-      "source": "https://www.npmjs.com/package/workerd/v/1.20260515.1"
+      "source": "https://www.npmjs.com/package/workerd/v/1.20260908.1"
     },
     {
       "ecosystem": "npm",
       "name": "wrangler",
-      "version": "4.92.0",
+      "version": "4.130.0",
       "license": "MIT OR Apache-2.0",
-      "source": "https://www.npmjs.com/package/wrangler/v/4.92.0"
+      "source": "https://www.npmjs.com/package/wrangler/v/4.130.0"
     },
     {
       "ecosystem": "npm",
@@ -5485,9 +5094,9 @@
     {
       "ecosystem": "npm",
       "name": "ws",
-      "version": "8.18.0",
+      "version": "8.21.0",
       "license": "MIT",
-      "source": "https://www.npmjs.com/package/ws/v/8.18.0"
+      "source": "https://www.npmjs.com/package/ws/v/8.21.0"
     },
     {
       "ecosystem": "npm",
@@ -5565,9 +5174,12 @@
       "version": "11.3.18",
       "license": "MIT",
       "source": "https://www.nuget.org/packages/Avalonia/11.3.18",
+      "authors": "Avalonia Team",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/MIT",
-      "repository": "https://github.com/AvaloniaUI/Avalonia/"
+      "copyright": "Copyright 2013-2026 \u00a9 The AvaloniaUI Project",
+      "repository": "https://github.com/AvaloniaUI/Avalonia/",
+      "repository_commit": "aa4265a99041adead000bda1cd6a51857e3b1bf1"
     },
     {
       "ecosystem": "nuget",
@@ -5575,9 +5187,12 @@
       "version": "2.1.25547.20250602",
       "license": "LICENSE",
       "source": "https://www.nuget.org/packages/Avalonia.Angle.Windows.Natives/2.1.25547.20250602",
+      "authors": "Avalonia Team",
       "license_type": "file",
       "license_url": "https://aka.ms/deprecateLicenseUrl",
-      "repository": "https://github.com/AvaloniaUI/angle/"
+      "copyright": "Copyright 2013-2025 \u00a9 The AvaloniaUI Project",
+      "repository": "https://github.com/AvaloniaUI/angle/",
+      "repository_commit": "cb8b4e1307a9d8f5ff56b8c5973bea4158ffead8"
     },
     {
       "ecosystem": "nuget",
@@ -5585,9 +5200,12 @@
       "version": "11.3.2",
       "license": "MIT",
       "source": "https://www.nuget.org/packages/Avalonia.BuildServices/11.3.2",
+      "authors": "Avalonia Team",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/MIT",
-      "repository": "https://github.com/AvaloniaUI/Avalonia.BuildServices"
+      "copyright": "Copyright 2023-2025 \u00a9 The AvaloniaUI Project",
+      "repository": "https://github.com/AvaloniaUI/Avalonia.BuildServices",
+      "repository_commit": "777f975b0a0cecf0311273711d56697212c558c0"
     },
     {
       "ecosystem": "nuget",
@@ -5595,9 +5213,12 @@
       "version": "11.3.18",
       "license": "MIT",
       "source": "https://www.nuget.org/packages/Avalonia.Desktop/11.3.18",
+      "authors": "Avalonia Team",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/MIT",
-      "repository": "https://github.com/AvaloniaUI/Avalonia/"
+      "copyright": "Copyright 2013-2026 \u00a9 The AvaloniaUI Project",
+      "repository": "https://github.com/AvaloniaUI/Avalonia/",
+      "repository_commit": "aa4265a99041adead000bda1cd6a51857e3b1bf1"
     },
     {
       "ecosystem": "nuget",
@@ -5605,9 +5226,12 @@
       "version": "11.3.18",
       "license": "MIT",
       "source": "https://www.nuget.org/packages/Avalonia.Fonts.Inter/11.3.18",
+      "authors": "Avalonia Team",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/MIT",
-      "repository": "https://github.com/AvaloniaUI/Avalonia/"
+      "copyright": "Copyright 2013-2026 \u00a9 The AvaloniaUI Project",
+      "repository": "https://github.com/AvaloniaUI/Avalonia/",
+      "repository_commit": "aa4265a99041adead000bda1cd6a51857e3b1bf1"
     },
     {
       "ecosystem": "nuget",
@@ -5615,9 +5239,12 @@
       "version": "11.3.18",
       "license": "MIT",
       "source": "https://www.nuget.org/packages/Avalonia.FreeDesktop/11.3.18",
+      "authors": "Avalonia Team",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/MIT",
-      "repository": "https://github.com/AvaloniaUI/Avalonia/"
+      "copyright": "Copyright 2013-2026 \u00a9 The AvaloniaUI Project",
+      "repository": "https://github.com/AvaloniaUI/Avalonia/",
+      "repository_commit": "aa4265a99041adead000bda1cd6a51857e3b1bf1"
     },
     {
       "ecosystem": "nuget",
@@ -5625,9 +5252,12 @@
       "version": "11.3.18",
       "license": "MIT",
       "source": "https://www.nuget.org/packages/Avalonia.Native/11.3.18",
+      "authors": "Avalonia Team",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/MIT",
-      "repository": "https://github.com/AvaloniaUI/Avalonia/"
+      "copyright": "Copyright 2013-2026 \u00a9 The AvaloniaUI Project",
+      "repository": "https://github.com/AvaloniaUI/Avalonia/",
+      "repository_commit": "aa4265a99041adead000bda1cd6a51857e3b1bf1"
     },
     {
       "ecosystem": "nuget",
@@ -5635,9 +5265,12 @@
       "version": "11.3.18",
       "license": "MIT",
       "source": "https://www.nuget.org/packages/Avalonia.Remote.Protocol/11.3.18",
+      "authors": "Avalonia Team",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/MIT",
-      "repository": "https://github.com/AvaloniaUI/Avalonia/"
+      "copyright": "Copyright 2013-2026 \u00a9 The AvaloniaUI Project",
+      "repository": "https://github.com/AvaloniaUI/Avalonia/",
+      "repository_commit": "aa4265a99041adead000bda1cd6a51857e3b1bf1"
     },
     {
       "ecosystem": "nuget",
@@ -5645,9 +5278,12 @@
       "version": "11.3.18",
       "license": "MIT",
       "source": "https://www.nuget.org/packages/Avalonia.Skia/11.3.18",
+      "authors": "Avalonia Team",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/MIT",
-      "repository": "https://github.com/AvaloniaUI/Avalonia/"
+      "copyright": "Copyright 2013-2026 \u00a9 The AvaloniaUI Project",
+      "repository": "https://github.com/AvaloniaUI/Avalonia/",
+      "repository_commit": "aa4265a99041adead000bda1cd6a51857e3b1bf1"
     },
     {
       "ecosystem": "nuget",
@@ -5655,9 +5291,12 @@
       "version": "11.3.18",
       "license": "MIT",
       "source": "https://www.nuget.org/packages/Avalonia.Themes.Fluent/11.3.18",
+      "authors": "Avalonia Team",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/MIT",
-      "repository": "https://github.com/AvaloniaUI/Avalonia/"
+      "copyright": "Copyright 2013-2026 \u00a9 The AvaloniaUI Project",
+      "repository": "https://github.com/AvaloniaUI/Avalonia/",
+      "repository_commit": "aa4265a99041adead000bda1cd6a51857e3b1bf1"
     },
     {
       "ecosystem": "nuget",
@@ -5665,9 +5304,12 @@
       "version": "11.3.18",
       "license": "MIT",
       "source": "https://www.nuget.org/packages/Avalonia.Win32/11.3.18",
+      "authors": "Avalonia Team",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/MIT",
-      "repository": "https://github.com/AvaloniaUI/Avalonia/"
+      "copyright": "Copyright 2013-2026 \u00a9 The AvaloniaUI Project",
+      "repository": "https://github.com/AvaloniaUI/Avalonia/",
+      "repository_commit": "aa4265a99041adead000bda1cd6a51857e3b1bf1"
     },
     {
       "ecosystem": "nuget",
@@ -5675,9 +5317,12 @@
       "version": "11.3.18",
       "license": "MIT",
       "source": "https://www.nuget.org/packages/Avalonia.X11/11.3.18",
+      "authors": "Avalonia Team",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/MIT",
-      "repository": "https://github.com/AvaloniaUI/Avalonia/"
+      "copyright": "Copyright 2013-2026 \u00a9 The AvaloniaUI Project",
+      "repository": "https://github.com/AvaloniaUI/Avalonia/",
+      "repository_commit": "aa4265a99041adead000bda1cd6a51857e3b1bf1"
     },
     {
       "ecosystem": "nuget",
@@ -5685,9 +5330,12 @@
       "version": "8.3.1.1",
       "license": "MIT",
       "source": "https://www.nuget.org/packages/HarfBuzzSharp/8.3.1.1",
+      "authors": "Microsoft",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/MIT",
-      "repository": "https://go.microsoft.com/fwlink/?linkid=868515"
+      "copyright": "\u00a9 Microsoft Corporation. All rights reserved.",
+      "repository": "https://go.microsoft.com/fwlink/?linkid=868515",
+      "repository_commit": "64f24b1cddb68d30ec0ac6b661964178fc21d5ec"
     },
     {
       "ecosystem": "nuget",
@@ -5695,9 +5343,12 @@
       "version": "8.3.1.1",
       "license": "MIT",
       "source": "https://www.nuget.org/packages/HarfBuzzSharp.NativeAssets.Linux/8.3.1.1",
+      "authors": "Microsoft",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/MIT",
-      "repository": "https://go.microsoft.com/fwlink/?linkid=868515"
+      "copyright": "\u00a9 Microsoft Corporation. All rights reserved.",
+      "repository": "https://go.microsoft.com/fwlink/?linkid=868515",
+      "repository_commit": "64f24b1cddb68d30ec0ac6b661964178fc21d5ec"
     },
     {
       "ecosystem": "nuget",
@@ -5705,9 +5356,12 @@
       "version": "8.3.1.1",
       "license": "MIT",
       "source": "https://www.nuget.org/packages/HarfBuzzSharp.NativeAssets.WebAssembly/8.3.1.1",
+      "authors": "Microsoft",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/MIT",
-      "repository": "https://go.microsoft.com/fwlink/?linkid=868515"
+      "copyright": "\u00a9 Microsoft Corporation. All rights reserved.",
+      "repository": "https://go.microsoft.com/fwlink/?linkid=868515",
+      "repository_commit": "64f24b1cddb68d30ec0ac6b661964178fc21d5ec"
     },
     {
       "ecosystem": "nuget",
@@ -5715,9 +5369,12 @@
       "version": "8.3.1.1",
       "license": "MIT",
       "source": "https://www.nuget.org/packages/HarfBuzzSharp.NativeAssets.Win32/8.3.1.1",
+      "authors": "Microsoft",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/MIT",
-      "repository": "https://go.microsoft.com/fwlink/?linkid=868515"
+      "copyright": "\u00a9 Microsoft Corporation. All rights reserved.",
+      "repository": "https://go.microsoft.com/fwlink/?linkid=868515",
+      "repository_commit": "64f24b1cddb68d30ec0ac6b661964178fc21d5ec"
     },
     {
       "ecosystem": "nuget",
@@ -5725,9 +5382,12 @@
       "version": "8.3.1.1",
       "license": "MIT",
       "source": "https://www.nuget.org/packages/HarfBuzzSharp.NativeAssets.macOS/8.3.1.1",
+      "authors": "Microsoft",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/MIT",
-      "repository": "https://go.microsoft.com/fwlink/?linkid=868515"
+      "copyright": "\u00a9 Microsoft Corporation. All rights reserved.",
+      "repository": "https://go.microsoft.com/fwlink/?linkid=868515",
+      "repository_commit": "64f24b1cddb68d30ec0ac6b661964178fc21d5ec"
     },
     {
       "ecosystem": "nuget",
@@ -5735,9 +5395,37 @@
       "version": "0.11.0",
       "license": "MIT",
       "source": "https://www.nuget.org/packages/MicroCom.Runtime/0.11.0",
+      "authors": "MicroCom.Runtime",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/MIT",
+      "copyright": "Copyright 2021 \u00a9 Nikita Tsukanov",
       "repository": "https://github.com/kekekeks/MicroCom"
+    },
+    {
+      "ecosystem": "nuget",
+      "name": "Microsoft.AspNetCore.App.Runtime.osx-arm64",
+      "version": "8.0.30",
+      "license": "MIT",
+      "source": "https://www.nuget.org/packages/Microsoft.AspNetCore.App.Runtime.osx-arm64/8.0.30",
+      "authors": "Microsoft",
+      "license_type": "expression",
+      "license_url": "https://licenses.nuget.org/MIT",
+      "copyright": "\u00a9 Microsoft Corporation. All rights reserved.",
+      "repository": "https://github.com/dotnet/aspnetcore",
+      "repository_commit": "f336360dc385a9873a19f13e8b6f886311aa5db7"
+    },
+    {
+      "ecosystem": "nuget",
+      "name": "Microsoft.AspNetCore.App.Runtime.osx-x64",
+      "version": "8.0.30",
+      "license": "MIT",
+      "source": "https://www.nuget.org/packages/Microsoft.AspNetCore.App.Runtime.osx-x64/8.0.30",
+      "authors": "Microsoft",
+      "license_type": "expression",
+      "license_url": "https://licenses.nuget.org/MIT",
+      "copyright": "\u00a9 Microsoft Corporation. All rights reserved.",
+      "repository": "https://github.com/dotnet/aspnetcore",
+      "repository_commit": "f336360dc385a9873a19f13e8b6f886311aa5db7"
     },
     {
       "ecosystem": "nuget",
@@ -5745,29 +5433,25 @@
       "version": "17.11.1",
       "license": "MIT",
       "source": "https://www.nuget.org/packages/Microsoft.CodeCoverage/17.11.1",
+      "authors": "Microsoft",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/MIT",
-      "repository": "https://github.com/microsoft/vstest"
-    },
-    {
-      "ecosystem": "nuget",
-      "name": "Microsoft.Data.Sqlite",
-      "version": "8.0.29",
-      "license": "MIT",
-      "source": "https://www.nuget.org/packages/Microsoft.Data.Sqlite/8.0.29",
-      "license_type": "expression",
-      "license_url": "https://licenses.nuget.org/MIT",
-      "repository": "https://github.com/dotnet/efcore"
+      "copyright": "\u00a9 Microsoft Corporation. All rights reserved.",
+      "repository": "https://github.com/microsoft/vstest",
+      "repository_commit": "58dbd027217ac035a4e9114c9213b11dc0e988bd"
     },
     {
       "ecosystem": "nuget",
       "name": "Microsoft.Data.Sqlite.Core",
-      "version": "8.0.29",
+      "version": "8.0.30",
       "license": "MIT",
-      "source": "https://www.nuget.org/packages/Microsoft.Data.Sqlite.Core/8.0.29",
+      "source": "https://www.nuget.org/packages/Microsoft.Data.Sqlite.Core/8.0.30",
+      "authors": "Microsoft",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/MIT",
-      "repository": "https://github.com/dotnet/efcore"
+      "copyright": "\u00a9 Microsoft Corporation. All rights reserved.",
+      "repository": "https://github.com/dotnet/efcore",
+      "repository_commit": "03e24496b0b7317a04a0d999a310e323c370e88d"
     },
     {
       "ecosystem": "nuget",
@@ -5775,9 +5459,12 @@
       "version": "8.0.30",
       "license": "MIT",
       "source": "https://www.nuget.org/packages/Microsoft.NET.ILLink.Tasks/8.0.30",
+      "authors": "Microsoft",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/MIT",
-      "repository": "https://github.com/dotnet/runtime"
+      "copyright": "\u00a9 Microsoft Corporation. All rights reserved.",
+      "repository": "https://github.com/dotnet/runtime",
+      "repository_commit": "a83db3e0eb2defb6220e15dae2f1a0462fdbf99f"
     },
     {
       "ecosystem": "nuget",
@@ -5785,9 +5472,51 @@
       "version": "17.11.1",
       "license": "MIT",
       "source": "https://www.nuget.org/packages/Microsoft.NET.Test.Sdk/17.11.1",
+      "authors": "Microsoft",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/MIT",
-      "repository": "https://github.com/microsoft/vstest"
+      "copyright": "\u00a9 Microsoft Corporation. All rights reserved.",
+      "repository": "https://github.com/microsoft/vstest",
+      "repository_commit": "58dbd027217ac035a4e9114c9213b11dc0e988bd"
+    },
+    {
+      "ecosystem": "nuget",
+      "name": "Microsoft.NETCore.App.Host.osx-x64",
+      "version": "8.0.30",
+      "license": "MIT",
+      "source": "https://www.nuget.org/packages/Microsoft.NETCore.App.Host.osx-x64/8.0.30",
+      "authors": "Microsoft",
+      "license_type": "expression",
+      "license_url": "https://licenses.nuget.org/MIT",
+      "copyright": "\u00a9 Microsoft Corporation. All rights reserved.",
+      "repository": "https://github.com/dotnet/runtime",
+      "repository_commit": "a83db3e0eb2defb6220e15dae2f1a0462fdbf99f"
+    },
+    {
+      "ecosystem": "nuget",
+      "name": "Microsoft.NETCore.App.Runtime.osx-arm64",
+      "version": "8.0.30",
+      "license": "MIT",
+      "source": "https://www.nuget.org/packages/Microsoft.NETCore.App.Runtime.osx-arm64/8.0.30",
+      "authors": "Microsoft",
+      "license_type": "expression",
+      "license_url": "https://licenses.nuget.org/MIT",
+      "copyright": "\u00a9 Microsoft Corporation. All rights reserved.",
+      "repository": "https://github.com/dotnet/runtime",
+      "repository_commit": "a83db3e0eb2defb6220e15dae2f1a0462fdbf99f"
+    },
+    {
+      "ecosystem": "nuget",
+      "name": "Microsoft.NETCore.App.Runtime.osx-x64",
+      "version": "8.0.30",
+      "license": "MIT",
+      "source": "https://www.nuget.org/packages/Microsoft.NETCore.App.Runtime.osx-x64/8.0.30",
+      "authors": "Microsoft",
+      "license_type": "expression",
+      "license_url": "https://licenses.nuget.org/MIT",
+      "copyright": "\u00a9 Microsoft Corporation. All rights reserved.",
+      "repository": "https://github.com/dotnet/runtime",
+      "repository_commit": "a83db3e0eb2defb6220e15dae2f1a0462fdbf99f"
     },
     {
       "ecosystem": "nuget",
@@ -5795,9 +5524,12 @@
       "version": "17.11.1",
       "license": "MIT",
       "source": "https://www.nuget.org/packages/Microsoft.TestPlatform.ObjectModel/17.11.1",
+      "authors": "Microsoft",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/MIT",
-      "repository": "https://github.com/microsoft/vstest"
+      "copyright": "\u00a9 Microsoft Corporation. All rights reserved.",
+      "repository": "https://github.com/microsoft/vstest",
+      "repository_commit": "58dbd027217ac035a4e9114c9213b11dc0e988bd"
     },
     {
       "ecosystem": "nuget",
@@ -5805,9 +5537,35 @@
       "version": "17.11.1",
       "license": "MIT",
       "source": "https://www.nuget.org/packages/Microsoft.TestPlatform.TestHost/17.11.1",
+      "authors": "Microsoft",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/MIT",
-      "repository": "https://github.com/microsoft/vstest"
+      "copyright": "\u00a9 Microsoft Corporation. All rights reserved.",
+      "repository": "https://github.com/microsoft/vstest",
+      "repository_commit": "58dbd027217ac035a4e9114c9213b11dc0e988bd"
+    },
+    {
+      "ecosystem": "nuget",
+      "name": "Microsoft.Windows.SDK.NET.Ref",
+      "version": "10.0.19041.56",
+      "license": "REVIEW REQUIRED",
+      "source": "https://www.nuget.org/packages/Microsoft.Windows.SDK.NET.Ref/10.0.19041.56",
+      "authors": "Microsoft",
+      "license_url": "https://aka.ms/WinSDKLicenseURL",
+      "copyright": "\u00a9 Microsoft Corporation. All rights reserved."
+    },
+    {
+      "ecosystem": "nuget",
+      "name": "Microsoft.WindowsDesktop.App.Ref",
+      "version": "8.0.30",
+      "license": "MIT",
+      "source": "https://www.nuget.org/packages/Microsoft.WindowsDesktop.App.Ref/8.0.30",
+      "authors": "Microsoft",
+      "license_type": "expression",
+      "license_url": "https://licenses.nuget.org/MIT",
+      "copyright": "\u00a9 Microsoft Corporation. All rights reserved.",
+      "repository": "https://github.com/dotnet/windowsdesktop",
+      "repository_commit": "69f0fdb740773a6f766d6ba7e692f5653062c095"
     },
     {
       "ecosystem": "nuget",
@@ -5815,49 +5573,51 @@
       "version": "13.0.1",
       "license": "MIT",
       "source": "https://www.nuget.org/packages/Newtonsoft.Json/13.0.1",
+      "authors": "James Newton-King",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/MIT",
-      "repository": "https://github.com/JamesNK/Newtonsoft.Json"
+      "copyright": "Copyright \u00a9 James Newton-King 2008",
+      "repository": "https://github.com/JamesNK/Newtonsoft.Json",
+      "repository_commit": "ae9fe44e1323e91bcbd185ca1a14099fba7c021f"
     },
     {
       "ecosystem": "nuget",
-      "name": "SQLitePCLRaw.bundle_e_sqlite3",
-      "version": "2.1.6",
+      "name": "SQLitePCLRaw.config.e_sqlite3",
+      "version": "3.0.5",
       "license": "Apache-2.0",
-      "source": "https://www.nuget.org/packages/SQLitePCLRaw.bundle_e_sqlite3/2.1.6",
+      "source": "https://www.nuget.org/packages/SQLitePCLRaw.config.e_sqlite3/3.0.5",
+      "authors": "Eric Sink",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/Apache-2.0",
-      "repository": "https://github.com/ericsink/SQLitePCL.raw"
+      "copyright": "Copyright 2014-2026 SourceGear, LLC",
+      "repository": "https://github.com/ericsink/SQLitePCL.raw",
+      "repository_commit": "96043b8cff323f21919df86a431c136655d81b4a"
     },
     {
       "ecosystem": "nuget",
       "name": "SQLitePCLRaw.core",
-      "version": "2.1.6",
+      "version": "3.0.5",
       "license": "Apache-2.0",
-      "source": "https://www.nuget.org/packages/SQLitePCLRaw.core/2.1.6",
+      "source": "https://www.nuget.org/packages/SQLitePCLRaw.core/3.0.5",
+      "authors": "Eric Sink",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/Apache-2.0",
-      "repository": "https://github.com/ericsink/SQLitePCL.raw"
-    },
-    {
-      "ecosystem": "nuget",
-      "name": "SQLitePCLRaw.lib.e_sqlite3",
-      "version": "2.1.6",
-      "license": "Apache-2.0",
-      "source": "https://www.nuget.org/packages/SQLitePCLRaw.lib.e_sqlite3/2.1.6",
-      "license_type": "expression",
-      "license_url": "https://licenses.nuget.org/Apache-2.0",
-      "repository": "https://github.com/ericsink/SQLitePCL.raw"
+      "copyright": "Copyright 2014-2025 SourceGear, LLC",
+      "repository": "https://github.com/ericsink/SQLitePCL.raw",
+      "repository_commit": "ed046114d5a30534e13294d94d78eb73de896ad4"
     },
     {
       "ecosystem": "nuget",
       "name": "SQLitePCLRaw.provider.e_sqlite3",
-      "version": "2.1.6",
+      "version": "3.0.5",
       "license": "Apache-2.0",
-      "source": "https://www.nuget.org/packages/SQLitePCLRaw.provider.e_sqlite3/2.1.6",
+      "source": "https://www.nuget.org/packages/SQLitePCLRaw.provider.e_sqlite3/3.0.5",
+      "authors": "Eric Sink",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/Apache-2.0",
-      "repository": "https://github.com/ericsink/SQLitePCL.raw"
+      "copyright": "Copyright 2014-2025 SourceGear, LLC",
+      "repository": "https://github.com/ericsink/SQLitePCL.raw",
+      "repository_commit": "ed046114d5a30534e13294d94d78eb73de896ad4"
     },
     {
       "ecosystem": "nuget",
@@ -5865,9 +5625,12 @@
       "version": "2.88.9",
       "license": "MIT",
       "source": "https://www.nuget.org/packages/SkiaSharp/2.88.9",
+      "authors": "Microsoft",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/MIT",
-      "repository": "https://github.com/mono/SkiaSharp"
+      "copyright": "\u00a9 Microsoft Corporation. All rights reserved.",
+      "repository": "https://github.com/mono/SkiaSharp",
+      "repository_commit": "9699cdf046a989423a5e5eca68e7fd813486d81c"
     },
     {
       "ecosystem": "nuget",
@@ -5875,9 +5638,12 @@
       "version": "2.88.9",
       "license": "MIT",
       "source": "https://www.nuget.org/packages/SkiaSharp.NativeAssets.Linux/2.88.9",
+      "authors": "Microsoft",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/MIT",
-      "repository": "https://github.com/mono/SkiaSharp"
+      "copyright": "\u00a9 Microsoft Corporation. All rights reserved.",
+      "repository": "https://github.com/mono/SkiaSharp",
+      "repository_commit": "9699cdf046a989423a5e5eca68e7fd813486d81c"
     },
     {
       "ecosystem": "nuget",
@@ -5885,9 +5651,12 @@
       "version": "2.88.9",
       "license": "MIT",
       "source": "https://www.nuget.org/packages/SkiaSharp.NativeAssets.WebAssembly/2.88.9",
+      "authors": "Microsoft",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/MIT",
-      "repository": "https://github.com/mono/SkiaSharp"
+      "copyright": "\u00a9 Microsoft Corporation. All rights reserved.",
+      "repository": "https://github.com/mono/SkiaSharp",
+      "repository_commit": "9699cdf046a989423a5e5eca68e7fd813486d81c"
     },
     {
       "ecosystem": "nuget",
@@ -5895,9 +5664,12 @@
       "version": "2.88.9",
       "license": "MIT",
       "source": "https://www.nuget.org/packages/SkiaSharp.NativeAssets.Win32/2.88.9",
+      "authors": "Microsoft",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/MIT",
-      "repository": "https://github.com/mono/SkiaSharp"
+      "copyright": "\u00a9 Microsoft Corporation. All rights reserved.",
+      "repository": "https://github.com/mono/SkiaSharp",
+      "repository_commit": "9699cdf046a989423a5e5eca68e7fd813486d81c"
     },
     {
       "ecosystem": "nuget",
@@ -5905,9 +5677,23 @@
       "version": "2.88.9",
       "license": "MIT",
       "source": "https://www.nuget.org/packages/SkiaSharp.NativeAssets.macOS/2.88.9",
+      "authors": "Microsoft",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/MIT",
-      "repository": "https://github.com/mono/SkiaSharp"
+      "copyright": "\u00a9 Microsoft Corporation. All rights reserved.",
+      "repository": "https://github.com/mono/SkiaSharp",
+      "repository_commit": "9699cdf046a989423a5e5eca68e7fd813486d81c"
+    },
+    {
+      "ecosystem": "nuget",
+      "name": "SourceGear.sqlite3",
+      "version": "3.53.4",
+      "license": "LICENSE.txt",
+      "source": "https://www.nuget.org/packages/SourceGear.sqlite3/3.53.4",
+      "authors": "Eric Sink",
+      "license_type": "file",
+      "license_url": "https://aka.ms/deprecateLicenseUrl",
+      "copyright": "Copyright 2014-2026 SourceGear, LLC"
     },
     {
       "ecosystem": "nuget",
@@ -5915,17 +5701,12 @@
       "version": "8.0.0",
       "license": "MIT",
       "source": "https://www.nuget.org/packages/System.IO.Pipelines/8.0.0",
+      "authors": "Microsoft",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/MIT",
-      "repository": "https://github.com/dotnet/runtime"
-    },
-    {
-      "ecosystem": "nuget",
-      "name": "System.Memory",
-      "version": "4.5.3",
-      "license": "REVIEW REQUIRED",
-      "source": "https://www.nuget.org/packages/System.Memory/4.5.3",
-      "license_url": "https://github.com/dotnet/corefx/blob/master/LICENSE.TXT"
+      "copyright": "\u00a9 Microsoft Corporation. All rights reserved.",
+      "repository": "https://github.com/dotnet/runtime",
+      "repository_commit": "5535e31a712343a63f5d7d796cd874e563e5ac14"
     },
     {
       "ecosystem": "nuget",
@@ -5933,7 +5714,9 @@
       "version": "1.6.0",
       "license": "REVIEW REQUIRED",
       "source": "https://www.nuget.org/packages/System.Reflection.Metadata/1.6.0",
-      "license_url": "https://github.com/dotnet/corefx/blob/master/LICENSE.TXT"
+      "authors": "Microsoft",
+      "license_url": "https://github.com/dotnet/corefx/blob/master/LICENSE.TXT",
+      "copyright": "\u00a9 Microsoft Corporation.  All rights reserved."
     },
     {
       "ecosystem": "nuget",
@@ -5941,9 +5724,12 @@
       "version": "0.21.3",
       "license": "MIT",
       "source": "https://www.nuget.org/packages/Tmds.DBus.Protocol/0.21.3",
+      "authors": "Tom Deseyn",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/MIT",
-      "repository": "https://github.com/tmds/Tmds.DBus.git"
+      "copyright": "Tom Deseyn",
+      "repository": "https://github.com/tmds/Tmds.DBus.git",
+      "repository_commit": "8cb04f66c330b64244e996ff68f685f27f7381a0"
     },
     {
       "ecosystem": "nuget",
@@ -5951,9 +5737,11 @@
       "version": "6.0.2",
       "license": "MIT",
       "source": "https://www.nuget.org/packages/coverlet.collector/6.0.2",
+      "authors": "tonerdo",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/MIT",
-      "repository": "https://github.com/coverlet-coverage/coverlet.git"
+      "repository": "https://github.com/coverlet-coverage/coverlet.git",
+      "repository_commit": "04ba205b93e57ebc02bd61ce57a790ec983de3e3"
     },
     {
       "ecosystem": "nuget",
@@ -5961,9 +5749,11 @@
       "version": "6.0.2",
       "license": "MIT",
       "source": "https://www.nuget.org/packages/coverlet.msbuild/6.0.2",
+      "authors": "tonerdo",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/MIT",
-      "repository": "https://github.com/coverlet-coverage/coverlet.git"
+      "repository": "https://github.com/coverlet-coverage/coverlet.git",
+      "repository_commit": "04ba205b93e57ebc02bd61ce57a790ec983de3e3"
     },
     {
       "ecosystem": "nuget",
@@ -5971,9 +5761,12 @@
       "version": "2.9.2",
       "license": "Apache-2.0",
       "source": "https://www.nuget.org/packages/xunit/2.9.2",
+      "authors": "jnewkirk,bradwilson",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/Apache-2.0",
-      "repository": "https://github.com/xunit/xunit"
+      "copyright": "Copyright (C) .NET Foundation",
+      "repository": "https://github.com/xunit/xunit",
+      "repository_commit": "82543a6df6f5f13b5b70f8a9f9ccb41cd676084f"
     },
     {
       "ecosystem": "nuget",
@@ -5981,6 +5774,7 @@
       "version": "2.0.3",
       "license": "REVIEW REQUIRED",
       "source": "https://www.nuget.org/packages/xunit.abstractions/2.0.3",
+      "authors": "James Newkirk,Brad Wilson",
       "license_url": "https://raw.githubusercontent.com/xunit/xunit/master/license.txt"
     },
     {
@@ -5989,9 +5783,12 @@
       "version": "1.16.0",
       "license": "Apache-2.0",
       "source": "https://www.nuget.org/packages/xunit.analyzers/1.16.0",
+      "authors": "jnewkirk,bradwilson,marcind",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/Apache-2.0",
-      "repository": "https://github.com/xunit/xunit.analyzers"
+      "copyright": "Copyright (C) .NET Foundation",
+      "repository": "https://github.com/xunit/xunit.analyzers",
+      "repository_commit": "c399ff14191b5f0ae95f215e2674c8419d9c4505"
     },
     {
       "ecosystem": "nuget",
@@ -5999,9 +5796,12 @@
       "version": "2.9.2",
       "license": "Apache-2.0",
       "source": "https://www.nuget.org/packages/xunit.assert/2.9.2",
+      "authors": "jnewkirk,bradwilson",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/Apache-2.0",
-      "repository": "https://github.com/xunit/xunit"
+      "copyright": "Copyright (C) .NET Foundation",
+      "repository": "https://github.com/xunit/xunit",
+      "repository_commit": "82543a6df6f5f13b5b70f8a9f9ccb41cd676084f"
     },
     {
       "ecosystem": "nuget",
@@ -6009,9 +5809,12 @@
       "version": "2.9.2",
       "license": "Apache-2.0",
       "source": "https://www.nuget.org/packages/xunit.core/2.9.2",
+      "authors": "jnewkirk,bradwilson",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/Apache-2.0",
-      "repository": "https://github.com/xunit/xunit"
+      "copyright": "Copyright (C) .NET Foundation",
+      "repository": "https://github.com/xunit/xunit",
+      "repository_commit": "82543a6df6f5f13b5b70f8a9f9ccb41cd676084f"
     },
     {
       "ecosystem": "nuget",
@@ -6019,9 +5822,12 @@
       "version": "2.9.2",
       "license": "Apache-2.0",
       "source": "https://www.nuget.org/packages/xunit.extensibility.core/2.9.2",
+      "authors": "jnewkirk,bradwilson",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/Apache-2.0",
-      "repository": "https://github.com/xunit/xunit"
+      "copyright": "Copyright (C) .NET Foundation",
+      "repository": "https://github.com/xunit/xunit",
+      "repository_commit": "82543a6df6f5f13b5b70f8a9f9ccb41cd676084f"
     },
     {
       "ecosystem": "nuget",
@@ -6029,9 +5835,12 @@
       "version": "2.9.2",
       "license": "Apache-2.0",
       "source": "https://www.nuget.org/packages/xunit.extensibility.execution/2.9.2",
+      "authors": "jnewkirk,bradwilson",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/Apache-2.0",
-      "repository": "https://github.com/xunit/xunit"
+      "copyright": "Copyright (C) .NET Foundation",
+      "repository": "https://github.com/xunit/xunit",
+      "repository_commit": "82543a6df6f5f13b5b70f8a9f9ccb41cd676084f"
     },
     {
       "ecosystem": "nuget",
@@ -6039,9 +5848,12 @@
       "version": "2.8.2",
       "license": "Apache-2.0",
       "source": "https://www.nuget.org/packages/xunit.runner.visualstudio/2.8.2",
+      "authors": "jnewkirk,bradwilson",
       "license_type": "expression",
       "license_url": "https://licenses.nuget.org/Apache-2.0",
-      "repository": "https://github.com/xunit/visualstudio.xunit"
+      "copyright": "Copyright (C) .NET Foundation",
+      "repository": "https://github.com/xunit/visualstudio.xunit",
+      "repository_commit": "699d445a1aab46a014bce946edc4995b6b46accf"
     }
   ]
 }

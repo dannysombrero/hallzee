@@ -1,0 +1,13 @@
+{
+  "ecosystem": "nuget",
+  "name": "Tmds.DBus.Protocol",
+  "version": "0.21.3",
+  "license": "MIT",
+  "source": "https://www.nuget.org/packages/Tmds.DBus.Protocol/0.21.3",
+  "authors": "Tom Deseyn",
+  "license_type": "expression",
+  "license_url": "https://licenses.nuget.org/MIT",
+  "copyright": "Tom Deseyn",
+  "repository": "https://github.com/tmds/Tmds.DBus.git",
+  "repository_commit": "8cb04f66c330b64244e996ff68f685f27f7381a0"
+}

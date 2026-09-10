@@ -16,6 +16,7 @@ export type BackgroundPreset =
   | "waves-dual"
   | "waves-horizon"
   | "waves-prism"
+  | "waves-sidebar"
   | "waves-halos"
   | "waves-tide"
   | "default";

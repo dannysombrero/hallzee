@@ -1,0 +1,13 @@
+{
+  "ecosystem": "nuget",
+  "name": "Microsoft.Data.Sqlite.Core",
+  "version": "8.0.30",
+  "license": "MIT",
+  "source": "https://www.nuget.org/packages/Microsoft.Data.Sqlite.Core/8.0.30",
+  "authors": "Microsoft",
+  "license_type": "expression",
+  "license_url": "https://licenses.nuget.org/MIT",
+  "copyright": "\u00a9 Microsoft Corporation. All rights reserved.",
+  "repository": "https://github.com/dotnet/efcore",
+  "repository_commit": "03e24496b0b7317a04a0d999a310e323c370e88d"
+}

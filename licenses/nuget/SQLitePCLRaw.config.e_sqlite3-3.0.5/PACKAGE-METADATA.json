@@ -1,0 +1,13 @@
+{
+  "ecosystem": "nuget",
+  "name": "SQLitePCLRaw.config.e_sqlite3",
+  "version": "3.0.5",
+  "license": "Apache-2.0",
+  "source": "https://www.nuget.org/packages/SQLitePCLRaw.config.e_sqlite3/3.0.5",
+  "authors": "Eric Sink",
+  "license_type": "expression",
+  "license_url": "https://licenses.nuget.org/Apache-2.0",
+  "copyright": "Copyright 2014-2026 SourceGear, LLC",
+  "repository": "https://github.com/ericsink/SQLitePCL.raw",
+  "repository_commit": "96043b8cff323f21919df86a431c136655d81b4a"
+}

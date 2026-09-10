@@ -4,24 +4,10 @@ permissions:
 
 on:
   workflow_dispatch:
-  pull_request:
-    paths:
-      - scripts/validate-release-inputs.py
-      - test/test_release_inputs.py
-      - scripts/publish-release.py
-      - scripts/package-client-macos.sh
-      - test/test_publish_release.py
-      - .github/workflows/release-client.yml
-      - .github/workflows/publish-release.yml
-      - receiver/universal/**
-      - receiver/universal.tests/**
-      - receiver/windows/**
-      - tools/FirmwareTool/**
-      - firmware/release-public-key.pem
-      - .github/workflows/build-universal-client.yml
+  workflow_call:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: desktop-validation-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -53,15 +39,42 @@ jobs:
       - name: Run Universal client tests
         run: dotnet test receiver/universal.tests/BathroomSync.Universal.Tests.csproj --configuration Release
 
+      - name: Run database, protocol, and native SQLite tests
+        run: dotnet test receiver/windows/BathroomSync.Tests/BathroomSync.Tests.csproj --configuration Release
+
       - name: Build firmware package and USB tool
         run: dotnet build tools/FirmwareTool/FirmwareTool.csproj --configuration Release
 
       - name: Build Universal client
         run: dotnet build receiver/universal/BathroomSync.Universal.csproj --configuration Release
 
+  mac_package:
+    name: Mac package (${{ matrix.rid }})
+    runs-on: macos-14
+    strategy:
+      fail-fast: false
+      matrix:
+        rid: [osx-arm64, osx-x64]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 8.0.x
+      - name: Select supported macOS SDK and install workload
+        run: |
+          export DEVELOPER_DIR=/Applications/Xcode_16.2.app/Contents/Developer
+          sudo xcode-select --switch "$DEVELOPER_DIR"
+          echo "DEVELOPER_DIR=$DEVELOPER_DIR" >> "$GITHUB_ENV"
+          sudo "$(command -v dotnet)" workload install macos
+      - name: Verify complete app, native helper, notices, and ad-hoc signatures
+        env:
+          CLIENT_RID: ${{ matrix.rid }}
+          RELEASE_REPOSITORY: ${{ github.repository }}
+        run: bash scripts/package-client-macos.sh 0.0.0 "$CLIENT_RID" "$RELEASE_REPOSITORY" packaged
+
   publish_windows_client:
-    if: github.event_name == 'workflow_dispatch'
-    needs: validate
+    if: github.event_name == 'workflow_dispatch' && github.workflow == 'Build Universal Sync Client'
+    needs: [validate, mac_package]
     runs-on: windows-latest
 
     steps:
@@ -82,6 +95,9 @@ jobs:
           -p:PublishSingleFile=true
           -p:PublishTrimmed=false
           --output publish
+
+      - name: Include this runtime's dependency notices
+        run: python3 scripts/generate-dependency-inventory.py --no-npm --rid win-x64 --assets receiver/universal/obj/project.assets.json --publish-dir publish --notices publish/licenses/nuget --output publish/licenses/dependency-inventory.json
 
       - name: Upload Windows client
         uses: actions/upload-artifact@v6

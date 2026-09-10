@@ -1,0 +1,13 @@
+{
+  "ecosystem": "nuget",
+  "name": "Avalonia.Angle.Windows.Natives",
+  "version": "2.1.25547.20250602",
+  "license": "LICENSE",
+  "source": "https://www.nuget.org/packages/Avalonia.Angle.Windows.Natives/2.1.25547.20250602",
+  "authors": "Avalonia Team",
+  "license_type": "file",
+  "license_url": "https://aka.ms/deprecateLicenseUrl",
+  "copyright": "Copyright 2013-2025 \u00a9 The AvaloniaUI Project",
+  "repository": "https://github.com/AvaloniaUI/angle/",
+  "repository_commit": "cb8b4e1307a9d8f5ff56b8c5973bea4158ffead8"
+}

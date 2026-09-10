@@ -1,0 +1,13 @@
+{
+  "ecosystem": "nuget",
+  "name": "Avalonia.BuildServices",
+  "version": "11.3.2",
+  "license": "MIT",
+  "source": "https://www.nuget.org/packages/Avalonia.BuildServices/11.3.2",
+  "authors": "Avalonia Team",
+  "license_type": "expression",
+  "license_url": "https://licenses.nuget.org/MIT",
+  "copyright": "Copyright 2023-2025 \u00a9 The AvaloniaUI Project",
+  "repository": "https://github.com/AvaloniaUI/Avalonia.BuildServices",
+  "repository_commit": "777f975b0a0cecf0311273711d56697212c558c0"
+}

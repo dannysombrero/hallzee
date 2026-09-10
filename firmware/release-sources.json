@@ -1,0 +1,64 @@
+{
+  "core_version": "3.3.11",
+  "sdk_versions": {
+    "esp-idf": "b774170ff46",
+    "lib-builder": "ee57070",
+    "joltwallet__littlefs": "1.22.2",
+    "espressif__esp_diagnostics": "1.3.3"
+  },
+  "sources": [
+    {
+      "name": "arduino-esp32",
+      "scope": "firmware",
+      "repository": "https://github.com/espressif/arduino-esp32.git",
+      "commit": "189089bb76e74978dc95abebefdad42b0d421ba9"
+    },
+    {
+      "name": "esp-idf",
+      "scope": "firmware",
+      "repository": "https://github.com/espressif/esp-idf.git",
+      "commit": "b774170ff46c393eeb5e495ea37936038d3f4f4f",
+      "recursive": true
+    },
+    {
+      "name": "esp32-arduino-lib-builder",
+      "scope": "firmware",
+      "repository": "https://github.com/espressif/esp32-arduino-lib-builder.git",
+      "commit": "ee57070cc8571c488a64b8ef028684acdc6ff5e2",
+      "reference_only": true,
+      "reason": "Build-only upstream repository has no standalone license grant. Record its exact provenance; do not redistribute unlicensed scripts. Hallzee's pinned build commands and SDK configuration are included separately."
+    },
+    {
+      "name": "esp_littlefs",
+      "scope": "firmware",
+      "repository": "https://github.com/joltwallet/esp_littlefs.git",
+      "commit": "76107e7c300665df3d971081f70d3ae2a1a2249b",
+      "managed_component": "joltwallet__littlefs",
+      "recursive": true
+    },
+    {
+      "name": "esp-insights",
+      "scope": "firmware",
+      "repository": "https://github.com/espressif/esp-insights.git",
+      "commit": "fa956fa6a66255535880f9db4e3326cf136675e5",
+      "managed_component": "espressif__esp_diagnostics",
+      "recursive": true
+    },
+    {
+      "name": "esptool",
+      "scope": "usb",
+      "repository": "https://github.com/espressif/esptool.git",
+      "commit": "0d2dfefe029eb48c23ddde61f9118b32d39dc7b9",
+      "version": "5.3.1",
+      "recursive": true
+    },
+    {
+      "name": "mklittlefs",
+      "scope": "usb",
+      "repository": "https://github.com/earlephilhower/mklittlefs.git",
+      "commit": "db0513ade5d4ffb757b0529ce277d0be93e4e46a",
+      "version": "4.0.2-db0513a",
+      "recursive": true
+    }
+  ]
+}

@@ -86,7 +86,8 @@ jobs:
           dotnet test receiver/windows/BathroomSync.Tests/BathroomSync.Tests.csproj --configuration Release
       - name: Build portable desktop and USB projects
         run: |
-          dotnet build tools/FirmwareTool/FirmwareTool.csproj --configuration Release
+          dotnet build tools/FirmwareTool/FirmwareTool.csproj
+          python3 test/test_usb_fast.py
           dotnet build receiver/universal/BathroomSync.Universal.csproj --configuration Release
       - name: Install verified Gitleaks
         env:
@@ -177,7 +178,6 @@ jobs:
       - uses: arduino/setup-arduino-cli@v2
       - name: Test USB packaging and script syntax
         run: |
-          python3 test/test_usb_fast.py
           python scripts/audit-usb-python.py --output python-audit.json
           python scripts/build-usb-esptool.py --output usb/tool --licenses usb/licenses/python --sources usb-python-sources
           bash -n scripts/flash-terminal-macos.sh

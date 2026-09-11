@@ -24,7 +24,9 @@ public:
     IsPairingAllowed isPairingAllowed = nullptr,
     ActionHandler onPairing = nullptr,
     IsPairingAllowed isOwnerResetAllowed = nullptr,
-    ActionHandler onOwnerReset = nullptr
+    ActionHandler onOwnerReset = nullptr,
+    IsPairingAllowed isBondRepairAllowed = nullptr,
+    ActionHandler onBondRepair = nullptr
   );
 
   void begin();
@@ -44,6 +46,11 @@ private:
   ActionHandler onPairing;
   IsPairingAllowed isOwnerResetAllowed;
   ActionHandler onOwnerReset;
+
+  IsPairingAllowed isBondRepairAllowed;
+  ActionHandler onBondRepair;
+  bool repairHoldActive = false;
+  unsigned long repairHoldStarted = 0;
 
   bool starPressed = false;
   bool hashPressed = false;

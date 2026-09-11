@@ -49,7 +49,7 @@ claims made by passing the smaller automated set above.
 | Platform / environment | Versions / tester | Result |
 | --- | --- | --- |
 | Mac Chrome UI/offline indicator | Selected local regular profile; Codex visual inspection | Observed; no real pairing performed |
-| Mac Chrome + ESP32 secure BLE / installed PWA | Not recorded | Not run |
+| Mac Chrome + ESP32 secure BLE / installed PWA | Local regular profile; user report 2026-09-11; exact versions not recorded | Connection succeeded after disconnecting terminal in macOS Bluetooth settings; full secure BLE/PWA matrix pending |
 | District-managed Chromebook + ESP32 | Device unavailable | Not run |
 | Windows 11 BLE PC + Chrome + ESP32 | Not recorded | Not run |
 | Actual smartboard/projector, mirrored/extended/tab sharing | Not recorded | Not run |
@@ -68,3 +68,51 @@ For each pending hardware row, execute the ten-step physical sequence in
 using fictional data. Record OS/Chrome/firmware/build versions, tester/date,
 counts before/after interruption, exported evidence and any failures here and
 in the Wiki mirror. Keep unsupported platforms out of release claims.
+
+## Local connection follow-up (2026-09-11)
+
+A user reported a generic connection failure on localhost; the original native
+error was not retained, so the exact physical cause is not yet confirmed.
+The adapter now establishes encryption by reading the protected TX characteristic
+before HELLO, with a 60-second OS-pairing allowance. GATT failures identify the
+step and an allowlisted browser error category; raw native payloads are excluded.
+A failed first claim no longer has its error overwritten by an automatic reconnect
+attempt with no assigned terminal.
+
+Follow-up verification: 69 unit tests and 8 browser scenarios pass, with type
+checking, lint, production build, and repository hygiene checks passing.
+Added software regressions cover encrypted-read ordering, discarded stale read
+values, a 15-second OS-pairing delay, native error categories and sanitization,
+and opening the cached app after stopping its local HTTP server. Physical Mac
+retry reached `connect / NetworkError`, before encrypted pairing or Hallzee
+authentication. No local Hallzee desktop Bluetooth helper was running. The exact
+native cause was not retained. The user subsequently reported successful connection
+after disconnecting the terminal in macOS Bluetooth settings. This confirms a
+working recovery for this attempt, not completion of the full hardware matrix.
+Allowlisted fixed Chrome reasons now distinguish
+blocked permission, authentication, unavailable adapters, and connection failures
+without emitting arbitrary native messages. The user also reported unexpected
+extra numeric input on the physical keypad, which stopped when supported on a
+hard surface. Physical cause remains unconfirmed. Mac suffices for a Mac connection retest. A Windows PC is not
+required for the Mac fix; Windows OS pairing/GATT/reconnect/PWA remain unverified.
+
+
+### Saved-owner bond repair and keypad follow-up
+
+After OS disconnection/forgetting, the user reported `pairing / NotSupportedError`.
+Code inspection found no physical bond-repair path for an already owned terminal.
+New firmware adds a five-second hold of `*` alone, waits for disconnect before
+bond removal, displays a two-minute OS code, and requires the unchanged owner key
+for application authentication. Native tests cover the repair state transitions
+and the distinct reset gesture. The keypad adapter now requires 40 ms stable
+press/release observations; tests cover glitches, bounce, repeats, overlap, and
+clock rollover. Firmware installation and physical Mac recovery/keypad testing
+remain pending; no claim of a physical fix is made.
+
+
+Verification completed: native firmware and touch suites pass; Arduino compile-only
+builds passed for ST7735, ILI9341, and the ILI9341 touch variant. The final repair
+UI changes were included in the touch-variant compile. Web typecheck/lint/build,
+69 unit tests and 8 browser scenarios pass, including failed encrypted read then
+saved-owner AUTH with no new CLAIM. Repository hygiene tests pass; modified and
+new files were reviewed for secret/PII exposure. No terminal was flashed.

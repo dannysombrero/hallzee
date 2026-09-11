@@ -22,7 +22,10 @@ zeros. Roster deletion does not delete completed trips.
 2. Click **Connect terminal**, enter the terminal's six-digit code, confirm this
    is the same classroom, then **Choose terminal and pair**. Choose the Hallzee
    device in Chrome's picker. Chrome/the operating system may separately ask
-   for the same physical code. Hallzee does not save the code.
+   for the same physical code. Enter it in that OS prompt too; typing it in
+   Hallzee alone does not pair the OS. Hallzee first reads the encrypted terminal
+   channel, allowing up to one minute for OS pairing, then starts the short
+   application-authentication handshake. Hallzee does not save the code.
 3. Wait for authenticated connection, completed sync and current pass status.
    **Unknown** means the app has no fresh occupancy snapshot; it is not proof
    that nobody is out. Keypad operation continues when the browser disconnects.
@@ -74,6 +77,26 @@ application updates download static files; roster, trips and keys remain local.
 Browser/profile clearing can remove both the offline app and classroom data.
 Storage persistence requests are best effort; keep a backup even when granted.
 
+For this local development build, bookmark `http://localhost:4190/` in the same
+Chrome profile. After **Ready offline**, you can stop the local server and reopen
+that exact URL; no hosted site is needed. Do not switch to `127.0.0.1`, another
+port or another profile, because that has different storage and permissions.
+The development server on port 5173 does not install an offline worker. To get
+new code after an edit, run `bash scripts/web-client-macos.sh preview` again
+(Windows: the matching PowerShell bootstrap with `preview`), then use **Check
+updates → Apply update**. Refresh alone intentionally keeps the installed build.
+
+If connection fails, report the displayed step/category, such as
+`pairing / NetworkError` or `service / NotFoundError`; do not send the pairing
+code. Check Bluetooth is on and close other terminal clients. Pairing failures
+may require reopening physical pairing mode and completing the OS prompt. A
+missing service points to device selection or firmware. Browser-native error
+payloads, device identifiers and pairing secrets are not included in diagnostics.
+
+A Mac is sufficient to retest this Mac connection fix; a Windows PC is not
+required for that retest. Windows-specific OS pairing, encrypted GATT,
+reconnect/sleep and PWA behavior remain unverified.
+
 Installing the app from Chrome is optional. **Check updates** downloads an update
 without replacing a running lesson. Save your work, close other Hallzee windows,
 then **Apply update**; this disconnects Bluetooth, activates and reloads once.
@@ -89,3 +112,20 @@ Chromebook policy, storage eviction, BLE pairing or sleep/wake. A Windows BLE PC
 is required to verify Chrome's Windows OS passkey flow, encrypted GATT, bond
 reuse, reconnect/sleep and installed-PWA behavior. **Windows behavior is unverified.**
 See [acceptance evidence](Web-Client-Acceptance.md).
+
+If the connection error says **Bluetooth permission blocked** on a Mac, enable
+Google Chrome under **System Settings → Privacy & Security → Bluetooth**, then
+quit and reopen Chrome. Chrome's chooser showing **Paired** does not establish
+that GATT connection or Hallzee ownership succeeded. If the error instead says
+**Bluetooth connection failed**, close other connected apps, power-cycle the
+terminal (do not factory reset), reopen physical pairing mode, and retry nearby.
+
+On macOS, if the terminal is already connected in **System Settings → Bluetooth**
+and Chrome fails at `connect / NetworkError`, disconnect it there and retry from
+Hallzee's chooser. Disconnecting is sufficient; do not forget the device, clear
+Hallzee data, or reset ownership. This recovered the reported local Mac connection.
+
+If the OS asks for a new code when reconnecting an owned terminal, see
+[Bluetooth repair and keypad troubleshooting](Bluetooth-Repair-and-Keypad.md). Updated firmware
+adds **hold `*` alone for five seconds** to repair the OS bond while retaining
+ownership. The browser claim-code field is for unclaimed terminals only.

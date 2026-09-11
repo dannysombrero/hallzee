@@ -46,5 +46,23 @@ export function errorText(error: unknown): string {
     return "No terminal selected. Choose a terminal when you are ready.";
   if (error instanceof DOMException && ["NotAllowedError", "SecurityError"].includes(error.name))
     return "Bluetooth permission is unavailable. Check Chrome site permissions or ask school IT.";
-  return "The operation could not finish. Your saved records and ownership have been retained.";
+  if (error instanceof DOMException && error.name === "QuotaExceededError")
+    return "Chrome could not save local data because this profile has run out of storage. Free disk space and retry; do not clear Hallzee site data, which contains your records and owner key.";
+  if (error instanceof DOMException && error.name === "DataCloneError")
+    return "Chrome could not save a required value, such as the owner key, in this profile. Use a regular Chrome profile and check its storage settings. No unconfirmed trip was acknowledged.";
+  const category =
+    error instanceof Error &&
+    [
+      "TypeError",
+      "InvalidStateError",
+      "InvalidAccessError",
+      "OperationError",
+      "NetworkError",
+      "NotSupportedError",
+      "AbortError",
+      "UnknownError",
+    ].includes(error.name)
+      ? error.name
+      : "UnknownError";
+  return `The operation could not finish (${category}). Your saved records and ownership have been retained.`;
 }

@@ -161,7 +161,7 @@ export class ApplicationController {
         this.sync?.dispose();
         this.active.unknown();
         this.publish();
-        if (this.autoConnect) this.reconnect?.start();
+        if (this.autoConnect && this.state.terminal) this.reconnect?.start();
       });
       this.reconnect = new AutoReconnectCoordinator(
         async (signal) => {
@@ -250,7 +250,7 @@ export class ApplicationController {
     this.active.unknown();
     this.publish();
     if (this.session?.state === "Authenticated") void this.syncNow();
-    else if (this.autoConnect) this.reconnect?.start();
+    else if (this.autoConnect && this.state.terminal) this.reconnect?.start();
   };
   async refresh() {
     if (!this.db || this.stopped) return;

@@ -60,8 +60,9 @@ with a cursor stream. Each has an explicit rule below.
    IndexedDB meets transactional local storage and structured `CryptoKey`
    persistence requirements without a WASM/worker/VFS compatibility layer.
    Choose versioned JSON for web data backup and CSV for reports/rosters.
-4. Preserve protocol v2 and current terminal security. No firmware changes are
-   assumed. An incompatible secure-pairing result blocks release on that platform;
+4. Preserve protocol v2 and current terminal security. Normal connections use
+   existing firmware; recovery of a forgotten OS bond now requires the firmware
+   repair gesture described below. An incompatible secure-pairing result blocks release on that platform;
    do not remove encryption/MITM protection to make a browser work.
 5. The C# core and firmware define existing wire/business behavior. TypeScript
    is a second implementation with shared conformance fixtures, not a second
@@ -383,7 +384,24 @@ Any state -> Disconnected / Failed (typed reason)
 First-pairing UI tells the teacher to open the physical five-second pairing
 window, enter its six-digit code locally, then click **Choose terminal and pair**.
 The OS may separately request that same code. Do not start `HELLO` while waiting
-for the app passkey. A saved-terminal reconnect does not request a passkey.
+for the app passkey. Before HELLO, read the TX characteristic protected by
+`ESP_GATT_PERM_READ_ENC_MITM`, allowing up to 60 seconds for operating-system
+pairing; discard its value before attaching notification listeners. This keeps
+the eight-second application handshake separate from the human OS prompt.
+Discovery/notification/write steps keep ten-second per-operation limits; automatic
+reconnect still has its overall 45-second budget. A saved-terminal reconnect does
+not request an application passkey, although an OS bond may need to be repaired.
+
+For a lost OS bond on an owned terminal, updated firmware adds **hold `*` alone
+for five seconds** while idle (outside clock setup/touch mode). Wait for actual
+disconnection before clearing terminal-side bonds; fail if it takes five seconds.
+Display a fresh six-digit **BT REPAIR** code for two minutes. Keep CLAIM disabled,
+retain the existing owner key and records, and require AUTH from the saved client.
+The code belongs only in the OS prompt; the browser claim field stays empty.
+On success or expiry, invalidate the temporary code. Expiry disconnects the
+unauthenticated link. No reset of ownership is part of this operation. Physical
+Mac/ChromeOS/Windows bond replacement remains a release acceptance gate.
+
 
 1. Send `HELLO,2,<C>` and strictly validate `IDENTITY` including suffix/version,
    claimed/availability tokens, nonce, and any saved expected terminal ID.

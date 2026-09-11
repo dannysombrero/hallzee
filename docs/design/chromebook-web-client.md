@@ -48,10 +48,9 @@ with a cursor stream. Each has an explicit rule below.
    import its provider, mock data, API routes, server runtime, or database code.
    Reuse its appearance by porting presentational markup/icons into the new
    client. Shared UI package extraction is outside this release.
-2. Serve production from one stable HTTPS origin, proposed
-   **`https://app.hallzee.org`**. This is a proposed hostname, not an existing
-   deployment. Before pilot data is created, the maintainer must record the
-   actual origin in the release configuration. Different schemes, hosts, ports,
+2. Serve production from one stable HTTPS origin, configured as
+   **`https://web.hallzee.com`** hosted via Cloudflare Pages (see deployment
+   guide in `docs/web-client-deployment.md`). Different schemes, hosts, ports,
    and browser profiles have separate data and permissions. A hostname change
    is a migration, not a redirect that transfers browser storage.
 3. Use **native IndexedDB behind a small typed repository**, with one database

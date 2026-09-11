@@ -151,11 +151,11 @@ new build, then **Check updates → Apply update**. Port 5173 has no offline wor
 
 This is a separate local-data client; it does not use the marketing preview's
 simulated classroom. See the [teacher guide](chromebook-guide.md),
-[IT guide](web-client-it-guide.md) and [acceptance record](testing/web-client-acceptance.md).
-Mac is sufficient for shared automated checks. Physical Chromebook acceptance
+[IT guide](web-client-it-guide.md), [deployment guide](web-client-deployment.md) and [acceptance record](testing/web-client-acceptance.md).
+Mac is sufficient for shared automated checks and cloud deployment configuration. Physical Chromebook acceptance
 is pending. Windows BLE/PWA requires a Windows BLE PC to verify its OS passkey
 flow, encrypted GATT, bond reuse and reconnect/sleep; **Windows behavior is
-unverified**. No classroom site has been deployed.
+unverified**. The online testing origin is `https://web.hallzee.com` via Cloudflare Pages.
 
 For firmware/USB packaging failures, use the
 [release recovery steps](releasing.md#recover-a-failed-firmwareusb-build).

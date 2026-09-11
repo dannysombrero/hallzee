@@ -1,0 +1,121 @@
+name: Deploy web client to Cloudflare
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'web-client/**'
+      - '.github/workflows/deploy-web-client.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - preview
+      dry_run:
+        description: 'Dry run (build and test without deploying)'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-web-client-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    name: Build, test, and deploy
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web-client
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22.23.2'
+          cache: npm
+          cache-dependency-path: web-client/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx --no-install playwright install --with-deps chromium
+
+      - name: Run verification checks (typecheck, lint, unit & browser tests)
+        run: npm run check
+
+      - name: Build production distribution bundle
+        env:
+          PRODUCTION_ORIGIN: 'https://web.hallzee.com'
+        run: npm run build
+
+      - name: Package reviewed static artifact
+        id: package
+        run: |
+          VERSION=$(node -p "JSON.parse(require('fs').readFileSync('package.json')).version")
+          ARTIFACT="Hallzee-Web-${VERSION}-${GITHUB_SHA:0:12}"
+          cd dist
+          zip -qr "../${ARTIFACT}.zip" .
+          echo "artifact=${ARTIFACT}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: ${{ steps.package.outputs.artifact }}
+          path: web-client/${{ steps.package.outputs.artifact }}.zip
+          if-no-files-found: error
+
+      - name: Verify Cloudflare deployment secrets
+        if: ${{ !inputs.dry_run }}
+        env:
+          HAS_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
+          HAS_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
+        run: |
+          if [ "$HAS_TOKEN" != "true" ] || [ "$HAS_ACCOUNT" != "true" ]; then
+            echo "::error::Missing CLOUDFLARE_API_TOKEN or CLOUDFLARE_ACCOUNT_ID secrets."
+            echo "Configure these secrets in GitHub Settings -> Secrets and variables -> Actions."
+            echo "Refer to docs/web-client-deployment.md for setup instructions."
+            exit 1
+          fi
+
+      - name: Determine deployment branch tag
+        id: branch_tag
+        run: |
+          if [ "${{ inputs.environment }}" = "preview" ]; then
+            echo "branch=preview" >> "$GITHUB_OUTPUT"
+          else
+            echo "branch=main" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy to Cloudflare Pages
+        if: ${{ !inputs.dry_run }}
+        id: deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=hallzee-web-client --branch=${{ steps.branch_tag.outputs.branch }} --commit-dirty=true
+          workingDirectory: web-client
+
+      - name: Record deployment summary
+        run: |
+          echo "### 🚀 Web Client Deployment Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Target Origin**: [https://web.hallzee.com](https://web.hallzee.com)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Branch Tag**: \`${{ steps.branch_tag.outputs.branch }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Dry Run**: \`${{ inputs.dry_run || 'false' }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Commit**: \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"

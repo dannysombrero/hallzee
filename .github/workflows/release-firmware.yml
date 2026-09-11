@@ -136,7 +136,9 @@ jobs:
           Copy-Item "$data/packages/esp32/tools/mklittlefs/4.0.2-db0513a/*" usb/tool -Recurse -Force
           New-Item -ItemType Directory -Path usb/images -Force | Out-Null
           Copy-Item firmware-build/USB-* usb/images -Recurse
-          Copy-Item firmware-build/licenses usb/ -Recurse
+          # Merge into the directory already populated by the Python tool build.
+          python3 -c "import shutil; shutil.copytree('firmware-build/licenses', 'usb/licenses', dirs_exist_ok=True)"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Copy-Item firmware-build/SOURCE-AND-LICENSES.md usb/
           python3 scripts/generate-dependency-inventory.py --no-npm --rid '${{ matrix.rid }}' --assets tools/FirmwareTool/obj/project.assets.json --publish-dir usb/tool --notices usb/tool/licenses/nuget --output usb/tool/licenses/dependency-inventory.json
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

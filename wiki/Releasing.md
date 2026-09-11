@@ -90,6 +90,12 @@ used a parser that rejected dependency extras. Its sibling Windows job may show
 because the matrix canceled it after the Mac failure. Check the job conclusions
 and timestamps before diagnosing that as an Arduino archive or Windows path error.
 
+If an older run fails in **Bundle USB tools** because `usb/licenses` already
+exists, the Python esptool build has already created `usb/licenses/python`.
+Bundling now merges the firmware license tree into `usb/licenses`, preserving
+the Python notices and source manifest. Do not delete the existing directory to
+work around the collision. A failed copy still stops packaging on both platforms.
+
 After the fix reaches `main`, choose **Build Firmware Release Packages → Run
 workflow** to start a new run using that revision. **Re-run jobs** on an old run
 uses the old source revision. The same version may be reused if it was never

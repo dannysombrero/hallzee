@@ -28,7 +28,7 @@ reason(
     "User denied the browser permission to scan for Bluetooth devices.",
   ],
   "Bluetooth permission blocked",
-  "Allow Google Chrome in macOS System Settings → Privacy & Security → Bluetooth, then quit and reopen Chrome. Also check the site's Bluetooth permission. On Windows, check system Bluetooth and browser permissions.",
+  "Allow your browser (Chrome or Edge) in macOS System Settings → Privacy & Security → Bluetooth, then quit and reopen it. Also check the site's Bluetooth permission. On Windows, check system Bluetooth and browser permissions.",
 );
 reason(
   [
@@ -36,7 +36,7 @@ reason(
     "Web Bluetooth API globally disabled.",
   ],
   "Bluetooth disabled by browser or policy",
-  "Check Chrome's Bluetooth settings. On a managed device, ask the administrator whether Web Bluetooth is allowed.",
+  "Check your browser's Bluetooth settings (Chrome or Edge). On a managed device, ask the administrator whether Web Bluetooth is allowed.",
 );
 reason(
   [
@@ -104,7 +104,7 @@ export function bluetoothError(error: unknown, stage: BluetoothStage): HallzeeEr
       "No terminal was selected. Open physical pairing mode if needed, then choose the terminal again.";
   else if (["NotAllowedError", "SecurityError"].includes(name))
     help =
-      "Check Chrome’s site Bluetooth permission and macOS/Windows permission for Chrome. A district policy may also block access.";
+      "Check browser site Bluetooth permission and macOS/Windows permission for Chrome or Edge. A district policy may also block access.";
   else if (stage === "pairing")
     help =
       "The encrypted Bluetooth read failed; this does not mean Hallzee ownership was lost. For a saved terminal with updated firmware, hold * alone for five seconds while idle to show BT REPAIR, choose the saved terminal, and enter that code in the OS prompt. For an unclaimed terminal, use its physical pairing screen. Do not reset ownership or clear Hallzee site data.";
@@ -113,7 +113,7 @@ export function bluetoothError(error: unknown, stage: BluetoothStage): HallzeeEr
       "The selected device does not expose the expected Hallzee firmware service or channels. Verify the selected terminal and firmware.";
   else if (name === "NotSupportedError")
     help =
-      "Chrome or the Bluetooth adapter could not perform this operation. Try current Chrome with the Hallzee terminal nearby.";
+      "The browser or Bluetooth adapter could not perform this operation. Try current Chrome or Edge with the Hallzee terminal nearby.";
   const knownReason = error instanceof Error ? nativeReasons.get(error.message) : undefined;
   if (knownReason) help = knownReason.help;
   return new HallzeeError(

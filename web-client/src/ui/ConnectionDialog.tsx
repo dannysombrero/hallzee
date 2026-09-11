@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Bluetooth, ShieldCheck } from "lucide-react";
 import { useHallzee } from "../app/HallzeeProvider";
 import { Dialog } from "./Dialog";
+import { capabilities } from "../app/capabilities";
 export function ConnectionDialog({ onClose }: { onClose: () => void }) {
   const { controller, state } = useHallzee();
   const [code, setCode] = useState("");
@@ -13,8 +14,17 @@ export function ConnectionDialog({ onClose }: { onClose: () => void }) {
     >
       <div className="dialog-intro">
         <Bluetooth />
-        <p>Keep your Hallzee terminal nearby. Chrome will open its own device chooser.</p>
+        <p>Keep your Hallzee terminal nearby. Your browser will open its own device chooser.</p>
       </div>
+      {!capabilities().bluetooth && (
+        <div className="banner warning" role="note">
+          <p>
+            <strong>Web Bluetooth is unavailable in this browser.</strong> Direct terminal Bluetooth
+            connection requires Google Chrome or Microsoft Edge. Local classroom records, rosters,
+            bell policies, and trip management remain fully functional.
+          </p>
+        </div>
+      )}
       {state.terminal ? (
         <>
           <p>
@@ -82,8 +92,8 @@ export function ConnectionDialog({ onClose }: { onClose: () => void }) {
         Choose terminal and pair
       </button>
       <p className="muted">
-        A terminal already owned by a desktop app must be released there first. Clearing Chrome’s
-        Bluetooth permission does not release ownership.
+        A terminal already owned by a desktop app or another browser must be released there first.
+        Clearing browser Bluetooth permissions does not release ownership.
       </p>
       {state.error && (
         <p role="alert" className="error">

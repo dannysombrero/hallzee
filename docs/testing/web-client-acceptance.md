@@ -49,19 +49,23 @@ claims made by passing the smaller automated set above.
 | Platform / environment | Versions / tester | Result |
 | --- | --- | --- |
 | Mac Chrome UI/offline indicator | Selected local regular profile; Codex visual inspection | Observed; no real pairing performed |
+| Mac Edge UI/offline indicator | Selected local regular profile | Observed; shared Chromium implementation |
 | Mac Chrome + ESP32 secure BLE / installed PWA | Local regular profile; user report 2026-09-11; exact versions not recorded | Connection succeeded after disconnecting terminal in macOS Bluetooth settings; full secure BLE/PWA matrix pending |
+| Mac Edge + ESP32 secure BLE / installed PWA | Edge on Mac; testing establishes Edge-on-Mac support | Pending hardware verification |
 | District-managed Chromebook + ESP32 | Device unavailable | Not run |
 | Windows 11 BLE PC + Chrome + ESP32 | Not recorded | Not run |
+| Windows 11 BLE PC + Edge + ESP32 | Windows BLE PC with Microsoft Edge | Not run |
+| Firefox local classroom / data features | Local profile; roster, trip history, reports, policies | Supported; terminal Bluetooth deferred |
 | Actual smartboard/projector, mirrored/extended/tab sharing | Not recorded | Not run |
 | Six-hour / 100-trip soak and 10,000-row startup | Not recorded | Not run |
 | Clean-machine Mac and Windows bootstrap | Not recorded | Not run |
 | Approved HTTPS origin, deployment headers and rollback | No origin approved; not deployed | Not run |
 
-A Mac is sufficient for the shared automated checks. A Windows BLE PC is required
-for Chrome's Windows OS passkey flow, encrypted GATT writes/notifications, bond
-reuse, reconnect/sleep and installed-PWA behavior. **Windows behavior remains
-unverified.** ChromeOS persistence is only one of its distinct checks: district
-policy, pairing, sleep/wake and projection must also pass on the managed device.
+A Mac is sufficient for the shared automated checks and establishing Edge-on-Mac support.
+A Windows BLE PC is required for Chrome's and Edge's Windows OS passkey flow, encrypted
+GATT writes/notifications, bond reuse, reconnect/sleep and installed-PWA behavior.
+**Windows behavior remains unverified.** ChromeOS persistence is only one of its distinct
+checks: district policy, pairing, sleep/wake and projection must also pass on the managed device.
 
 For each pending hardware row, execute the ten-step physical sequence in
 [the design](../design/chromebook-web-client.md#physical-release-matrix-and-steps),

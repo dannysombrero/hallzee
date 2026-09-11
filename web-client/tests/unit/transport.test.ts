@@ -215,17 +215,19 @@ it("sanitizes chooser and storage diagnostics while preserving useful browser ca
     "run out of storage",
   );
   expect(errorText(new DOMException("private payload", "DataCloneError"))).toContain("owner key");
+  expect(errorText(new DOMException("private payload", "DataCloneError"))).toContain("Chrome or Edge");
   expect(errorText(new TypeError("private payload"))).toContain("TypeError");
   expect(errorText(new TypeError("private payload"))).not.toContain("private payload");
 });
 
-it("recognizes Chrome's blocked permission NetworkError without exposing arbitrary native messages", () => {
+it("recognizes browser blocked permission NetworkError without exposing arbitrary native messages", () => {
   const blocked = bluetoothError(
     new DOMException("Bluetooth permission has been blocked.", "NetworkError"),
     "connect",
   );
   expect(blocked.message).toContain("Bluetooth permission blocked");
   expect(blocked.message).toContain("Privacy & Security");
+  expect(blocked.message).toContain("Chrome or Edge");
   expect(blocked.retryable).toBe(false);
   const unknown = bluetoothError(
     new DOMException("Bluetooth permission has been blocked. private payload", "NetworkError"),

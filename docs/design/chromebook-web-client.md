@@ -26,7 +26,7 @@ window. Correct the following before implementation:
 | Existing C# tests contain cryptographic vectors | Current identity tests mostly check determinism, lengths, and formatting. Add literal known-answer fixtures consumed by both implementations. |
 | SQLite automatically gives desktop compatibility | Compatibility also requires every migration, context table, and credential store. Desktop credentials live outside SQLite. Do not promise interchangeable `.db` files. |
 | All data stays strictly in the browser | IDs/trips also reside on the terminal; deliberate downloads leave the sandbox. Static hosting still receives ordinary asset requests. Specify which information the application never uploads. |
-| Mac tests cover the Windows web client | Chrome uses each platform's Bluetooth stack. Physical Windows Chrome testing is required before claiming Windows support. Native WinRT tests do not validate Chrome's path. |
+| Mac tests cover the Windows web client | Chrome and Edge use each platform's Bluetooth stack. Physical Windows browser testing is required before claiming Windows support. Native WinRT tests do not validate the Chromium browser path. |
 | Existing preview provider can become production by toggling mode | It contains seeded students and simulated operations, and shares an application with waitlist endpoints. Separate production composition and origin. |
 
 These browser limitations are grounded in Chrome's [page lifecycle guidance](https://developer.chrome.com/docs/web-platform/page-lifecycle-api),
@@ -78,6 +78,8 @@ resolve them. See [SQLite WASM persistence](https://sqlite.org/wasm/doc/tip/pers
 
 - One teacher workspace and one assigned terminal per browser profile/origin;
   multiple class sections and named bell schedules inside that workspace.
+- Google Chrome and Microsoft Edge on macOS and Windows, plus ChromeOS, with Web Bluetooth;
+  Firefox supports local classroom/data workflows with a clear Web Bluetooth limitation.
 - First claim, returning-owner authentication, manual reconnect, disconnect,
   and confirmed owner release for moving the **same classroom** to another client.
 - Live occupancy for up to eight terminal passes, elapsed/overdue indicators,
@@ -87,14 +89,19 @@ resolve them. See [SQLite WASM persistence](https://sqlite.org/wasm/doc/tip/pers
 - Local data backup/restore, storage health, optional PWA installation and
   offline launch, a privacy-safe mini window, and an in-page projection fallback.
 
-### Explicitly deferred
+### Explicitly deferred / future features
 
-Direct desktop `.db` import/export; portable owner-key backup; cloud accounts,
-cloud synchronization, analytics, remote logging; browser firmware flashing or
-OTA; teacher-started browser-only passes; audible/background alerts; simultaneous
-desktop/browser ownership; multiple connected terminals; multi-teacher handoff;
-mobile/iPad/Safari/Firefox support. Do not show working-looking controls for these.
-Direct users to existing supported firmware-update tools in documentation.
+- **Installed local Bluetooth helper for Firefox**: Firefox lacks Web Bluetooth. For full
+  terminal functionality, an installed local Bluetooth companion service and a browser-to-helper
+  bridge must be built. This is substantially more work than a compatibility tweak and is
+  placed on the future features roadmap. Firefox currently offers local classroom and data
+  features with a clear Bluetooth limitation.
+- Direct desktop `.db` import/export; portable owner-key backup; cloud accounts,
+  cloud synchronization, analytics, remote logging; browser firmware flashing or
+  OTA; teacher-started browser-only passes; audible/background alerts; simultaneous
+  desktop/browser ownership; multiple connected terminals; multi-teacher handoff;
+  mobile/iPad/Safari support. Do not show working-looking controls for these.
+  Direct users to existing supported firmware-update tools in documentation.
 
 A terminal supports one owner client ID. A desktop-owned terminal cannot simply
 be opened by a new browser installation. Same-classroom migration requires a
@@ -102,6 +109,13 @@ final sync/export and confirmed release in the old client, then a new claim.
 There is no automatic desktop history/roster migration. Import the roster CSV;
 retain the desktop archive separately. Terminal replay can only recover records
 still on the terminal, not desktop-only records or historical class attribution.
+
+**Browser isolation and switching (Chrome ↔ Edge)**:
+Microsoft Edge maintains completely separate origin storage and nonextractable
+owner credentials from Google Chrome. Switching browsers requires transferring
+classroom data (via data backup export and restore) and deliberately releasing
+and reclaiming terminal ownership; Bluetooth repair alone does not transfer the
+owner key because the cryptographic key remains in the old browser's IndexedDB.
 
 Cross-teacher reassignment is outside this release because current firmware
 retains old trips without assignment-level authorization. Do not describe owner
@@ -918,14 +932,17 @@ platform supported on the strength of another row.
 | Platform | Purpose | Required before claim |
 | --- | --- | --- |
 | Mac + Chrome Stable + ESP32 | Development reference and Mac browser BLE/PWA | Mac web support |
+| Mac + Edge Stable + ESP32 | Edge on Mac browser BLE/PWA and separate profile boundary | Mac Edge support |
 | District-managed Chromebook + target Chrome build + ESP32 | Real policy, persistence, secure BLE, sleep and projection | Chromebook pilot and general availability |
-| Windows 11 BLE PC + Chrome Stable + ESP32 | Chrome chooser/Windows OS passkey flow, GATT writes/notifications, bond reuse/reconnect/sleep and PWA | Windows web support |
+| Windows 11 BLE PC + Chrome Stable + ESP32 | Chrome chooser/Windows OS passkey flow, GATT writes/notifications, bond reuse/reconnect/sleep and PWA | Windows Chrome web support |
+| Windows 11 BLE PC + Edge Stable + ESP32 | Edge chooser/Windows OS passkey flow, GATT writes/notifications, bond reuse/reconnect/sleep and PWA | Windows Edge web support |
 | Actual classroom smartboard/projector | Mirrored/extended display and PiP versus tab/fullscreen sharing | Smartboard workflow claim |
 
-A Mac is sufficient for shared automated logic/UI tests and Mac Chrome hardware
-tests. It is **not** sufficient for Windows or Chromebook release acceptance.
-A Windows PC is required for the Windows-specific browser Bluetooth/PWA
-capabilities above. **Windows behavior has not yet been verified by this plan.**
+A Mac is sufficient for shared automated logic/UI tests, Mac Chrome hardware
+tests, and establishing Edge-on-Mac support. It is **not** sufficient for Windows
+or Chromebook release acceptance. A Windows BLE PC is required for the
+Windows-specific browser Bluetooth/PWA capabilities above (both Chrome and Edge).
+**Windows behavior has not yet been verified by this plan.**
 
 On each hardware platform, execute this sequence with fictional data:
 

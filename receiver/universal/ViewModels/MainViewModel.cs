@@ -923,6 +923,47 @@ public sealed partial class MainViewModel : INotifyPropertyChanged, IDisposable 
     var current = resolved == null ? null : PolicyModal.Periods.FirstOrDefault(item => item.ScheduleId == resolved.Period.ScheduleId);
 
     if (current is null || resolved is null) {
+      if (PolicyModal.BellTransitionEnabled && !PolicyModal.BellTimeRulesDisabled) {
+        var transition = scheduleService.ResolveTransition(
+          now,
+          PolicyModal.Periods.Select(item => item.ToModel()),
+          PolicyModal.Exceptions.Select(item => item.ToModel()));
+
+        if (transition != null) {
+          var transRange = $"{transition.StartsAt:h:mm tt} – {transition.EndsAt:h:mm tt}";
+          var remainingSecs = transition.EndsAt - now;
+          var transTotalSecs = Math.Max(1, (transition.EndsAt - transition.StartsAt).TotalSeconds);
+          var transElapsed = Math.Clamp((now - transition.StartsAt).TotalSeconds, 0, transTotalSecs);
+
+          FormattedPeriodRange = transRange;
+          SetPeriodWindow(
+            "Transition Time",
+            transRange,
+            $"Passing Period · Next: {transition.NextPeriod.Period.PeriodName}",
+            $"Next class starts in {FormatCountdown(remainingSecs)}",
+            "#6366F1",
+            transElapsed / transTotalSecs * 100);
+
+          if (HasStudentsOut) {
+            PopupPillText = "PASS IN USE";
+            PopupPillBackground = "#F59E0B";
+            PopupPillForeground = "#FFFFFF";
+            PopupPillToolTip = "A student is currently out";
+            PopupStatusPrefix = "Pass In Use · Next class in: ";
+            PopupStatusTimer = FormatCountdown(remainingSecs);
+          } else {
+            PopupPillText = "TRANSITION";
+            PopupPillBackground = "#6366F1";
+            PopupPillForeground = "#FFFFFF";
+            PopupPillToolTip = $"Class transition between {transition.PreviousPeriod.Period.PeriodName} and {transition.NextPeriod.Period.PeriodName}. {transition.NextPeriod.Period.PeriodName} begins in {FormatCountdown(remainingSecs)} at {transition.NextPeriod.StartsAt:h:mm tt}.";
+            PopupStatusPrefix = $"Next Class ({transition.NextPeriod.Period.PeriodName}): ";
+            PopupStatusTimer = FormatCountdown(remainingSecs);
+          }
+          NotifyPopupProperties();
+          return;
+        }
+      }
+
       SetPeriodWindow(
         "No current period",
         "Set bell times in Policies & Bell Times",
@@ -963,13 +1004,13 @@ public sealed partial class MainViewModel : INotifyPropertyChanged, IDisposable 
     var range = $"{periodStart:h:mm tt} – {periodEnd:h:mm tt}";
     FormattedPeriodRange = FormatPeriodRange(periodStart, periodEnd);
 
-    if (now < firstWindowEnds) {
+    if (PolicyModal.BellTimeRulesDisabled || string.Equals(PolicyModal.ClassPassPolicyMode, "NoRules", StringComparison.OrdinalIgnoreCase)) {
       SetPeriodWindow(
         current.DisplayTitle,
         range,
-        $"First {firstMinutes} minutes · {PolicyModal.FirstWindowAction}",
-        $"Window active · {FormatCountdown(firstWindowEnds - now)} remaining",
-        "#F59E0B",
+        "Open pass access",
+        $"No bell-time restrictions · Period ends in {FormatCountdown(remaining)}",
+        "#059669",
         elapsedSeconds / totalSeconds * 100);
 
       if (HasStudentsOut) {
@@ -977,24 +1018,26 @@ public sealed partial class MainViewModel : INotifyPropertyChanged, IDisposable 
         PopupPillBackground = "#F59E0B";
         PopupPillForeground = "#FFFFFF";
         PopupPillToolTip = "A student is currently out";
-        PopupStatusPrefix = "Pass In Use · Passes open in: ";
-        PopupStatusTimer = FormatCountdown(firstWindowEnds - now);
+        PopupStatusPrefix = "Pass In Use · Period ends in: ";
+        PopupStatusTimer = FormatCountdown(remaining);
       } else {
-        var locked = string.Equals(PolicyModal.FirstWindowAction, "Lock", StringComparison.OrdinalIgnoreCase);
-        var warned = string.Equals(PolicyModal.FirstWindowAction, "Warn", StringComparison.OrdinalIgnoreCase);
-        PopupPillText = locked ? "WINDOW CLOSED" : "WINDOW OPEN";
-        PopupPillBackground = locked ? "#F43F5E" : "#059669";
+        PopupPillText = "WINDOW OPEN";
+        PopupPillBackground = "#059669";
         PopupPillForeground = "#FFFFFF";
-        PopupPillToolTip = locked ? "Passes are locked during the beginning-of-class window" : warned ? "Passes show a warning during this window" : "Passes are allowed during this window";
-        PopupStatusPrefix = locked ? "Bathroom Window Closed · Passes open in: " : warned ? "Bell Window Warning · Window ends in: " : "Bathroom Window Open · Window ends in: ";
-        PopupStatusTimer = FormatCountdown(firstWindowEnds - now);
+        PopupPillToolTip = "No bell-time restrictions active for this class";
+        PopupStatusPrefix = "Open Pass Window · Period ends in: ";
+        PopupStatusTimer = FormatCountdown(remaining);
       }
-    } else if (now >= lastWindowStarts) {
+      NotifyPopupProperties();
+      return;
+    }
+
+    if (string.Equals(PolicyModal.ClassPassPolicyMode, "NoPasses", StringComparison.OrdinalIgnoreCase)) {
       SetPeriodWindow(
         current.DisplayTitle,
         range,
-        $"Last {lastMinutes} minutes · {PolicyModal.LastWindowAction}",
-        $"Window active · period ends in {FormatCountdown(remaining)}",
+        "No passes during class",
+        $"Passes locked · Period ends in {FormatCountdown(remaining)}",
         "#E11D48",
         elapsedSeconds / totalSeconds * 100);
 
@@ -1006,8 +1049,62 @@ public sealed partial class MainViewModel : INotifyPropertyChanged, IDisposable 
         PopupStatusPrefix = "Pass In Use · Period ends in: ";
         PopupStatusTimer = FormatCountdown(remaining);
       } else {
-        var locked = string.Equals(PolicyModal.LastWindowAction, "Lock", StringComparison.OrdinalIgnoreCase);
-        var warned = string.Equals(PolicyModal.LastWindowAction, "Warn", StringComparison.OrdinalIgnoreCase);
+        PopupPillText = "WINDOW CLOSED";
+        PopupPillBackground = "#F43F5E";
+        PopupPillForeground = "#FFFFFF";
+        PopupPillToolTip = "Teacher policy: No passes are allowed during class";
+        PopupStatusPrefix = "Bathroom Window Closed · Passes open after class: ";
+        PopupStatusTimer = FormatCountdown(remaining);
+      }
+      NotifyPopupProperties();
+      return;
+    }
+
+    if (now < firstWindowEnds) {
+      var locked = string.Equals(PolicyModal.FirstWindowAction, "Lock", StringComparison.OrdinalIgnoreCase);
+      var warned = string.Equals(PolicyModal.FirstWindowAction, "Warn", StringComparison.OrdinalIgnoreCase);
+      SetPeriodWindow(
+        current.DisplayTitle,
+        range,
+        $"First {firstMinutes} minutes · {PolicyModal.FirstWindowAction}",
+        $"Window active · {FormatCountdown(firstWindowEnds - now)} remaining",
+        locked ? "#E11D48" : warned ? "#F59E0B" : "#059669",
+        elapsedSeconds / totalSeconds * 100);
+
+      if (HasStudentsOut) {
+        PopupPillText = "PASS IN USE";
+        PopupPillBackground = "#F59E0B";
+        PopupPillForeground = "#FFFFFF";
+        PopupPillToolTip = "A student is currently out";
+        PopupStatusPrefix = locked ? "Pass In Use · Passes open in: " : "Pass In Use · Window ends in: ";
+        PopupStatusTimer = FormatCountdown(firstWindowEnds - now);
+      } else {
+        PopupPillText = locked ? "WINDOW CLOSED" : "WINDOW OPEN";
+        PopupPillBackground = locked ? "#F43F5E" : "#059669";
+        PopupPillForeground = "#FFFFFF";
+        PopupPillToolTip = locked ? "Passes are locked during the beginning-of-class window" : warned ? "Passes show a warning during this window" : "Passes are allowed during this window";
+        PopupStatusPrefix = locked ? "Bathroom Window Closed · Passes open in: " : warned ? "Bell Window Warning · Window ends in: " : "Bathroom Window Open · Window ends in: ";
+        PopupStatusTimer = FormatCountdown(firstWindowEnds - now);
+      }
+    } else if (now >= lastWindowStarts) {
+      var locked = string.Equals(PolicyModal.LastWindowAction, "Lock", StringComparison.OrdinalIgnoreCase);
+      var warned = string.Equals(PolicyModal.LastWindowAction, "Warn", StringComparison.OrdinalIgnoreCase);
+      SetPeriodWindow(
+        current.DisplayTitle,
+        range,
+        $"Last {lastMinutes} minutes · {PolicyModal.LastWindowAction}",
+        $"Window active · period ends in {FormatCountdown(remaining)}",
+        locked ? "#E11D48" : warned ? "#F59E0B" : "#059669",
+        elapsedSeconds / totalSeconds * 100);
+
+      if (HasStudentsOut) {
+        PopupPillText = "PASS IN USE";
+        PopupPillBackground = "#F59E0B";
+        PopupPillForeground = "#FFFFFF";
+        PopupPillToolTip = "A student is currently out";
+        PopupStatusPrefix = "Pass In Use · Period ends in: ";
+        PopupStatusTimer = FormatCountdown(remaining);
+      } else {
         PopupPillText = locked ? "WINDOW CLOSED" : "WINDOW OPEN";
         PopupPillBackground = locked ? "#F43F5E" : "#059669";
         PopupPillForeground = "#FFFFFF";
@@ -1016,12 +1113,14 @@ public sealed partial class MainViewModel : INotifyPropertyChanged, IDisposable 
         PopupStatusTimer = FormatCountdown(remaining);
       }
     } else {
+      var locked = string.Equals(PolicyModal.MiddleWindowAction, "Lock", StringComparison.OrdinalIgnoreCase);
+      var warned = string.Equals(PolicyModal.MiddleWindowAction, "Warn", StringComparison.OrdinalIgnoreCase);
       SetPeriodWindow(
         current.DisplayTitle,
         range,
-        "Open pass window",
-        $"Last {lastMinutes}-minute window begins in {FormatCountdown(lastWindowStarts - now)}",
-        "#059669",
+        locked ? "Instruction time (passes locked)" : warned ? "Instruction time (passes warned)" : "Open pass window",
+        locked ? $"Passes locked · Next window begins in {FormatCountdown(lastWindowStarts - now)}" : $"Last {lastMinutes}-minute window begins in {FormatCountdown(lastWindowStarts - now)}",
+        locked ? "#E11D48" : warned ? "#F59E0B" : "#059669",
         elapsedSeconds / totalSeconds * 100);
 
       if (HasStudentsOut) {
@@ -1029,28 +1128,38 @@ public sealed partial class MainViewModel : INotifyPropertyChanged, IDisposable 
         PopupPillBackground = "#F59E0B";
         PopupPillForeground = "#FFFFFF";
         PopupPillToolTip = "A student is currently out";
-        PopupStatusPrefix = "Pass In Use · Window closes in: ";
+        PopupStatusPrefix = locked ? "Pass In Use · Next window opens in: " : "Pass In Use · Window closes in: ";
         PopupStatusTimer = FormatCountdown(lastWindowStarts - now);
       } else {
-        PopupPillText = "WINDOW OPEN";
-        PopupPillBackground = "#059669";
+        PopupPillText = locked ? "WINDOW CLOSED" : "WINDOW OPEN";
+        PopupPillBackground = locked ? "#F43F5E" : "#059669";
         PopupPillForeground = "#FFFFFF";
-        PopupPillToolTip = "Pass is currently available";
-        PopupStatusPrefix = "Bathroom Window Open · Window closes in: ";
+        PopupPillToolTip = locked ? "Passes are locked during instruction (middle of class)" : warned ? "Passes show a warning during instruction" : "Pass is currently available";
+        PopupStatusPrefix = locked ? "Bathroom Window Closed · Passes open in: " : warned ? "Bell Window Warning · Window ends in: " : "Bathroom Window Open · Window closes in: ";
         PopupStatusTimer = FormatCountdown(lastWindowStarts - now);
       }
     }
 
-    // Overlapping first/last windows use the same strictest action as the kiosk.
+    // Overlapping first/last/middle windows use the same strictest action as the kiosk.
     var windowRule = new PolicyRule("popup", ActiveProfile.ProfileId,
       LockoutStartMinutes: firstMinutes, LockoutEndMinutes: lastMinutes,
-      FirstWindowAction: PolicyModal.FirstWindowAction, LastWindowAction: PolicyModal.LastWindowAction);
+      FirstWindowAction: PolicyModal.FirstWindowAction, LastWindowAction: PolicyModal.LastWindowAction,
+      MiddleWindowAction: PolicyModal.MiddleWindowAction, ClassPassPolicyMode: PolicyModal.ClassPassPolicyMode,
+      BellTimeRulesDisabled: PolicyModal.BellTimeRulesDisabled);
     if (!HasStudentsOut && scheduleService.Evaluate(now, resolved, windowRule) == BellWindowDecision.Lock) {
       PopupPillText = "WINDOW CLOSED";
       PopupPillBackground = "#F43F5E";
-      PopupPillToolTip = "Passes are locked during this bell window";
+      if (string.IsNullOrEmpty(PopupPillToolTip) || !PopupPillToolTip.StartsWith("Passes are locked")) {
+        PopupPillToolTip = "Passes are locked during this bell window";
+      }
     }
     NotifyPopupProperties();
+  }
+
+  public void PlayWarningSoundIfEnabled() {
+    if (PolicyModal.WarningSoundEnabled) {
+      SoundService.Play(PolicyModal.AlertSound, PolicyModal.WarningSoundVolume / 100.0);
+    }
   }
 
   void AssignTripContext(string terminalId, long tripId, string tripDate, string timeOut) {

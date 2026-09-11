@@ -17,7 +17,7 @@ spec.loader.exec_module(module)
 
 
 class PublishTests(unittest.TestCase):
-    def run_publish(self, *, conclusion='success', private=False, missing=False, existing=False, bad_sha=False, flat_windows=False, missing_windows=False, legacy_names=False, branch='main', head_repo='school/source', comparison='ahead'):
+    def run_publish(self, *, conclusion='success', private=False, missing=False, existing=False, bad_sha=False, flat_windows=False, missing_windows=False, legacy_names=False, unversioned_names=False, branch='main', head_repo='school/source', comparison='ahead'):
         calls = []
         source = destination = 'school/source'
 
@@ -36,13 +36,19 @@ class PublishTests(unittest.TestCase):
                 (metadata / 'release.json').write_text(json.dumps(dict(product='client', version='1.2.3', repository=destination, sha='bad' if bad_sha else 'a' * 40)))
                 (metadata / 'teacher-guide.md').write_text('Guide: https://github.com/dannysombrero/hallzee#readme')
                 (metadata / 'notes.md').write_text('Notes')
-                for artifact, name in [('Hallzee-Windows-win-x64', 'Hallzee-Windows-win-x64.zip'), ('Hallzee-Mac-osx-arm64', 'Hallzee-Mac-osx-arm64.zip'), ('Hallzee-Mac-osx-x64', 'Hallzee-Mac-osx-x64.zip')]:
-                    if artifact == 'Hallzee-Windows-win-x64' and (flat_windows or missing_windows):
+                use_unversioned = legacy_names or unversioned_names
+                artifacts_list = [
+                    ('Hallzee-Windows-win-x64', 'Hallzee-Windows-win-x64.zip') if use_unversioned else ('Hallzee-v1.2.3-Windows-win-x64', 'Hallzee-v1.2.3-Windows-win-x64.zip'),
+                    ('Hallzee-Mac-osx-arm64', 'Hallzee-Mac-osx-arm64.zip') if use_unversioned else ('Hallzee-v1.2.3-Mac-osx-arm64', 'Hallzee-v1.2.3-Mac-osx-arm64.zip'),
+                    ('Hallzee-Mac-osx-x64', 'Hallzee-Mac-osx-x64.zip') if use_unversioned else ('Hallzee-v1.2.3-Mac-osx-x64', 'Hallzee-v1.2.3-Mac-osx-x64.zip')
+                ]
+                for artifact, name in artifacts_list:
+                    if 'Windows-win-x64' in artifact and (flat_windows or missing_windows):
                         continue
-                    rid = name.removeprefix('Hallzee-Mac-').removesuffix('.zip') if artifact.startswith('Hallzee-Mac-') else 'win-x64'
+                    rid = 'win-x64' if 'win-x64' in artifact else ('osx-arm64' if 'osx-arm64' in artifact else 'osx-x64')
                     folder = root / (f'Desktop-{rid}' if legacy_names else artifact)
                     folder.mkdir()
-                    if not missing or artifact != 'Hallzee-Mac-osx-x64':
+                    if not missing or 'osx-x64' not in artifact:
                         (folder / name).write_bytes(b'tested bytes')
                 return ''
             if args[:2] == ('api', f'repos/{source}/actions/runs/123/artifacts'):
@@ -51,8 +57,9 @@ class PublishTests(unittest.TestCase):
                 output_file.write_bytes(b'original artifact archive bytes')
                 return ''
             if args[:2] == ('release', 'create') and flat_windows:
-                windows = next(Path(arg) for arg in args if arg.endswith('Hallzee-Windows-win-x64.zip'))
+                windows = next(Path(arg) for arg in args if arg.endswith('Windows-win-x64.zip'))
                 self.assertEqual(windows.read_bytes(), b'original artifact archive bytes')
+                self.assertEqual(windows.name, 'Hallzee-v1.2.3-Windows-win-x64.zip')
             if args[:2] == ('api', f'repos/{destination}'):
                 return json.dumps(dict(private=private, default_branch='main'))
             if args[:2] == ('api', f'repos/{destination}/git/matching-refs/tags/client-v1.2.3'):
@@ -81,6 +88,7 @@ class PublishTests(unittest.TestCase):
 
     def test_promotes_tested_commit_without_overwriting_readme(self): self.run_publish()
     def test_legacy_desktop_artifact_names_remain_publishable(self): self.run_publish(legacy_names=True)
+    def test_unversioned_desktop_artifact_names_remain_publishable(self): self.run_publish(unversioned_names=True)
     def test_promotes_original_flat_windows_archive(self): self.run_publish(flat_windows=True)
     def test_missing_windows_artifact_never_publishes(self): self.run_publish(missing_windows=True)
     def test_failed_build_never_publishes(self): self.run_publish(conclusion='failure')

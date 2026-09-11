@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import tempfile
 import zipfile
@@ -144,25 +145,43 @@ def main():
         # The open-source repository is also the public download repository.
         # The workflow grants this job Contents write only for this publication.
         if args.product == 'client':
-            desktop_artifacts = [
-                ('win-x64', 'Hallzee-Windows-win-x64.zip'),
-                ('osx-arm64', 'Hallzee-Mac-osx-arm64.zip'),
-                ('osx-x64', 'Hallzee-Mac-osx-x64.zip')]
+            desktop_specs = [
+                ('win-x64', f'Hallzee-v{version}-Windows-win-x64.zip', 'Hallzee-Windows-win-x64.zip'),
+                ('osx-arm64', f'Hallzee-v{version}-Mac-osx-arm64.zip', 'Hallzee-Mac-osx-arm64.zip'),
+                ('osx-x64', f'Hallzee-v{version}-Mac-osx-x64.zip', 'Hallzee-Mac-osx-x64.zip')]
             assets = []
-            for rid, name in desktop_artifacts:
-                current = root / name.removesuffix('.zip') / name
-                legacy = root / f'Desktop-{rid}' / name
-                assets.append(current if current.is_file() else legacy)
+            for rid, versioned_name, unversioned_name in desktop_specs:
+                candidates = [
+                    root / versioned_name.removesuffix('.zip') / versioned_name,
+                    root / unversioned_name.removesuffix('.zip') / versioned_name,
+                    root / versioned_name.removesuffix('.zip') / unversioned_name,
+                    root / unversioned_name.removesuffix('.zip') / unversioned_name,
+                    root / f'Desktop-{rid}' / versioned_name,
+                    root / f'Desktop-{rid}' / unversioned_name,
+                    root / versioned_name,
+                    root / unversioned_name,
+                ]
+                found = next((p for p in candidates if p.is_file()), None)
+                if found is not None:
+                    if found.name != versioned_name:
+                        target = root / versioned_name
+                        if not target.is_file():
+                            shutil.copy2(found, target)
+                        assets.append(target)
+                    else:
+                        assets.append(found)
+                else:
+                    assets.append(root / versioned_name)
             # New Windows builds upload app files directly. Preserve GitHub's
             # original artifact ZIP, which is the same one reviewers downloaded.
             # Older builds still contain a prebuilt ZIP under Desktop-win-x64.
             if not assets[0].is_file():
                 ids = gh('api', f'repos/{source}/actions/runs/{args.run}/artifacts',
                          '--paginate', '--jq',
-                         '.artifacts[] | select(.name == "Hallzee-Windows-win-x64") | .id').split()
+                         f'.artifacts[] | select(.name == "Hallzee-v{version}-Windows-win-x64" or .name == "Hallzee-Windows-win-x64") | .id').split()
                 if len(ids) != 1 or not ids[0].isdigit():
                     raise SystemExit('Expected exactly one Windows app artifact.')
-                assets[0] = root / 'Hallzee-Windows-win-x64.zip'
+                assets[0] = root / f'Hallzee-v{version}-Windows-win-x64.zip'
                 gh('api', f'repos/{source}/actions/artifacts/{ids[0]}/zip', output_file=assets[0])
         else:
             packages = list((root / 'Firmware-and-USB-images').glob('*.hallzee-fw'))

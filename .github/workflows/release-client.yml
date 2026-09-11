@@ -76,13 +76,13 @@ jobs:
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v7
         with:
-          name: Hallzee-Windows-win-x64
+          name: Hallzee-v${{ env.RELEASE_VERSION }}-Windows-win-x64
           path: publish/
           if-no-files-found: error
       - uses: actions/upload-artifact@v7
         if: runner.os == 'macOS'
         with:
-          name: Hallzee-Mac-${{ matrix.rid }}
+          name: Hallzee-v${{ env.RELEASE_VERSION }}-Mac-${{ matrix.rid }}
           path: packaged/*.zip
           if-no-files-found: error
   metadata:

@@ -45,15 +45,19 @@ def nuget_metadata(name, version, package_folders, package_path):
 def collect(assets=None, npm=True, rid=None, root=ROOT, framework_references=None):
     records = {}
     notice_dirs = set()
-    lock = json.loads((root / 'preview-site/package-lock.json').read_text()) if npm else {}
-    for location, item in lock.get('packages', {}).items():
-        if not location or not item.get('version'):
+    for lockfile in ('preview-site/package-lock.json', 'web-client/package-lock.json') if npm else ():
+        path = root / lockfile
+        if not path.is_file():
             continue
-        name = item.get('name') or location.rsplit('node_modules/', 1)[-1]
-        records[('npm', name, item['version'])] = dict(
-            ecosystem='npm', name=name, version=item['version'],
-            license=item.get('license', 'REVIEW REQUIRED'),
-            source='https://www.npmjs.com/package/' + name + '/v/' + item['version'])
+        lock = json.loads(path.read_text())
+        for location, item in lock.get('packages', {}).items():
+            if not location or not item.get('version'):
+                continue
+            name = item.get('name') or location.rsplit('node_modules/', 1)[-1]
+            records[('npm', name, item['version'])] = dict(
+                ecosystem='npm', name=name, version=item['version'],
+                license=item.get('license', 'REVIEW REQUIRED'),
+                source='https://www.npmjs.com/package/' + name + '/v/' + item['version'])
     if assets is None:
         assets = [asset for tree in ['receiver', 'tools']
                   for asset in (root / tree).glob('**/obj/project.assets.json')]

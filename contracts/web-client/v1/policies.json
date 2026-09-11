@@ -1,0 +1,20 @@
+{
+  "cases": [
+    {
+      "hour": 8,
+      "minute": 5,
+      "decision": "Lock"
+    },
+    {
+      "hour": 8,
+      "minute": 30,
+      "decision": "Allow"
+    },
+    {
+      "hour": 8,
+      "minute": 55,
+      "decision": "Warn"
+    }
+  ],
+  "transfer": "POLICY_WINDOW,20260907,480,540,490,535,2,1"
+}

@@ -1,6 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="clr-namespace:BathroomSync.Universal.ViewModels;assembly=HallzeeSync.Universal"
+             xmlns:vm="clr-namespace:BathroomSync.Universal.ViewModels;assembly=Hallzee"
              x:Class="BathroomSync.Universal.Views.PoliciesModalView"
              x:DataType="vm:MainViewModel">
   <Border Background="#99000000" Padding="32,24" PointerPressed="OnBackdropPointerPressed">
@@ -156,46 +156,211 @@
                 </StackPanel>
               </Border>
 
-              <!-- Card 2: Bell-Time Windows -->
+              <!-- Card 2: Bell-Time Windows & Class Pass Rules -->
               <Border Classes="hallzee-section-white">
-                <StackPanel Spacing="10">
-                  <TextBlock Text="BELL-TIME WINDOWS" FontSize="11" FontWeight="Bold" Foreground="#64748B" />
+                <StackPanel Spacing="12">
+                  <TextBlock Text="CLASS PASS RULES &amp; BELL-TIME WINDOWS" FontSize="11" FontWeight="Bold" Foreground="#64748B" />
 
-                  <!-- First Minutes -->
-                  <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" VerticalAlignment="Center">
-                    <TextBlock Text="First minutes of period:" FontSize="13" Foreground="#475569" VerticalAlignment="Center" />
-                    <NumericUpDown Grid.Column="1" Width="95" Minimum="0" Maximum="30" Increment="1" FormatString="0" ParsingNumberStyle="Integer" HorizontalContentAlignment="Center" Value="{Binding PolicyModal.FirstWindowMinutes}" />
-                    <ComboBox Grid.Column="2" Width="100" ItemsSource="{Binding PolicyModal.BellActions}" SelectedItem="{Binding PolicyModal.FirstWindowAction}" />
-                  </Grid>
+                  <!-- 3-OPTION PASS POLICY MODE SELECTOR -->
+                  <Border Background="#F1F5F9" CornerRadius="12" Padding="3">
+                    <Grid ColumnDefinitions="*,*,*">
+                      <Button Grid.Column="0" Tag="Windows" Click="OnSelectPassPolicyModeClick"
+                              Background="{Binding PolicyModal.WindowsModeBackground}"
+                              Foreground="{Binding PolicyModal.WindowsModeForeground}"
+                              FontWeight="{Binding PolicyModal.WindowsModeFontWeight}"
+                              CornerRadius="9" Padding="6,7" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                              ToolTip.Tip="Enforce configurable first, middle, and last window rules">
+                        <TextBlock Text="Windows" FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                      </Button>
+                      <Button Grid.Column="1" Tag="NoPasses" Click="OnSelectPassPolicyModeClick"
+                              Background="{Binding PolicyModal.NoPassesModeBackground}"
+                              Foreground="{Binding PolicyModal.NoPassesModeForeground}"
+                              FontWeight="{Binding PolicyModal.NoPassesModeFontWeight}"
+                              CornerRadius="9" Padding="6,7" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                              ToolTip.Tip="Lock passes during the entire class period">
+                        <TextBlock Text="No Passes" FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                      </Button>
+                      <Button Grid.Column="2" Tag="NoRules" Click="OnSelectPassPolicyModeClick"
+                              Background="{Binding PolicyModal.NoRulesModeBackground}"
+                              Foreground="{Binding PolicyModal.NoRulesModeForeground}"
+                              FontWeight="{Binding PolicyModal.NoRulesModeFontWeight}"
+                              CornerRadius="9" Padding="6,7" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                              ToolTip.Tip="Free passes anytime without bell window restrictions">
+                        <TextBlock Text="No Rules" FontSize="12" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                      </Button>
+                    </Grid>
+                  </Border>
 
-                  <Rectangle Height="1" Fill="#E0F2FE" />
-
-                  <!-- Last Minutes -->
-                  <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" VerticalAlignment="Center">
-                    <TextBlock Text="Last minutes of period:" FontSize="13" Foreground="#475569" VerticalAlignment="Center" />
-                    <NumericUpDown Grid.Column="1" Width="95" Minimum="0" Maximum="30" Increment="1" FormatString="0" ParsingNumberStyle="Integer" HorizontalContentAlignment="Center" Value="{Binding PolicyModal.LastWindowMinutes}" />
-                    <ComboBox Grid.Column="2" Width="100" ItemsSource="{Binding PolicyModal.BellActions}" SelectedItem="{Binding PolicyModal.LastWindowAction}" />
-                  </Grid>
-
-                  <Rectangle Height="1" Fill="#E0F2FE" />
-
-                  <!-- Warning Sound -->
-                  <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" VerticalAlignment="Center">
-                    <TextBlock Text="Warning sound:" FontSize="13" Foreground="#475569" VerticalAlignment="Center" />
-                    <ComboBox Grid.Column="1" Width="120" ItemsSource="{Binding PolicyModal.AlertSounds}" SelectedItem="{Binding PolicyModal.AlertSound}" />
-                    <Button Grid.Column="2" Classes="pill-secondary" Click="OnPlaySoundPreviewClick" ToolTip.Tip="Hear selected warning sound">
-                      <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                        <Path Data="{StaticResource IconVolume2}" Width="13" Height="13" Stretch="Uniform" Stroke="#0369A1" StrokeThickness="1.8" StrokeLineCap="Round" VerticalAlignment="Center" />
-                        <TextBlock Text="Preview" FontSize="12" FontWeight="Bold" Foreground="#0369A1" VerticalAlignment="Center" />
+                  <!-- MODE: WINDOWS CONFIGURATION -->
+                  <StackPanel Spacing="10" IsVisible="{Binding PolicyModal.IsWindowsMode}">
+                    
+                    <!-- Quick Presets -->
+                    <Grid ColumnDefinitions="Auto,*" VerticalAlignment="Center">
+                      <TextBlock Text="Quick presets:" FontSize="12" FontWeight="SemiBold" Foreground="#64748B" VerticalAlignment="Center" />
+                      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right" VerticalAlignment="Center">
+                        <Button Classes="pill-secondary" Tag="10/10" Click="OnApplyPresetClick" ToolTip.Tip="Lock first and last 10 minutes, allow middle">
+                          <TextBlock Text="10/10 Lockout" FontSize="11" FontWeight="Bold" Foreground="#0369A1" />
+                        </Button>
+                        <Button Classes="pill-secondary" Tag="StartEnd" Click="OnApplyPresetClick" ToolTip.Tip="Allow passes ONLY during first and last 10 minutes (middle locked)">
+                          <TextBlock Text="Start &amp; End Only" FontSize="11" FontWeight="Bold" Foreground="#0369A1" />
+                        </Button>
+                        <Button Classes="pill-secondary" Tag="Warning" Click="OnApplyPresetClick" ToolTip.Tip="Warn on first and last 10 minutes, allow middle">
+                          <TextBlock Text="Warnings" FontSize="11" FontWeight="Bold" Foreground="#0369A1" />
+                        </Button>
                       </StackPanel>
-                    </Button>
-                  </Grid>
+                    </Grid>
+
+                    <Rectangle Height="1" Fill="#E0F2FE" />
+
+                    <!-- Row 1: First Minutes -->
+                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" VerticalAlignment="Center">
+                      <TextBlock Text="First minutes of period:" FontSize="13" Foreground="#475569" VerticalAlignment="Center" />
+                      <NumericUpDown Grid.Column="1" Width="95" Minimum="0" Maximum="30" Increment="1" FormatString="0" ParsingNumberStyle="Integer" HorizontalContentAlignment="Center" Value="{Binding PolicyModal.FirstWindowMinutes}" />
+                      <ComboBox Grid.Column="2" Width="100" ItemsSource="{Binding PolicyModal.BellActions}" SelectedItem="{Binding PolicyModal.FirstWindowAction}" />
+                    </Grid>
+
+                    <!-- Row 2: Middle of Class (In Between) -->
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" VerticalAlignment="Center">
+                      <StackPanel Spacing="1" VerticalAlignment="Center">
+                        <TextBlock Text="Middle of class (in between):" FontSize="13" Foreground="#475569" VerticalAlignment="Center" />
+                        <TextBlock Text="Action during instruction between the first and last windows" FontSize="11" Foreground="#94A3B8" />
+                      </StackPanel>
+                      <ComboBox Grid.Column="1" Width="100" ItemsSource="{Binding PolicyModal.BellActions}" SelectedItem="{Binding PolicyModal.MiddleWindowAction}" />
+                    </Grid>
+
+                    <!-- Row 3: Last Minutes -->
+                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" VerticalAlignment="Center">
+                      <TextBlock Text="Last minutes of period:" FontSize="13" Foreground="#475569" VerticalAlignment="Center" />
+                      <NumericUpDown Grid.Column="1" Width="95" Minimum="0" Maximum="30" Increment="1" FormatString="0" ParsingNumberStyle="Integer" HorizontalContentAlignment="Center" Value="{Binding PolicyModal.LastWindowMinutes}" />
+                      <ComboBox Grid.Column="2" Width="100" ItemsSource="{Binding PolicyModal.BellActions}" SelectedItem="{Binding PolicyModal.LastWindowAction}" />
+                    </Grid>
+                  </StackPanel>
+
+                  <!-- MODE: NO PASSES INFO CARD -->
+                  <Border Background="#FFF1F2" BorderBrush="#FECDD3" BorderThickness="1" CornerRadius="12" Padding="12,10" IsVisible="{Binding PolicyModal.IsNoPassesMode}">
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" VerticalAlignment="Center">
+                      <Path Grid.Column="0" Data="{StaticResource IconUserX}" Width="16" Height="16" Stretch="Uniform" Stroke="#E11D48" StrokeThickness="2" StrokeLineCap="Round" VerticalAlignment="Center" />
+                      <StackPanel Grid.Column="1" Spacing="2">
+                        <TextBlock Text="No Passes During Class" FontWeight="Bold" FontSize="13" Foreground="#9F1239" />
+                        <TextBlock Text="Pass checkouts are locked for the entire class period. The Mini Window indicates passes are locked." FontSize="11" Foreground="#BE123C" TextWrapping="Wrap" />
+                      </StackPanel>
+                    </Grid>
+                  </Border>
+
+                  <!-- MODE: NO RULES INFO CARD -->
+                  <Border Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="12" Padding="12,10" IsVisible="{Binding PolicyModal.IsNoRulesMode}">
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" VerticalAlignment="Center">
+                      <Path Grid.Column="0" Data="{StaticResource IconCheck}" Width="16" Height="16" Stretch="Uniform" Stroke="#059669" StrokeThickness="2.2" StrokeLineCap="Round" VerticalAlignment="Center" />
+                      <StackPanel Grid.Column="1" Spacing="2">
+                        <TextBlock Text="Open Pass Access (No Rules)" FontWeight="Bold" FontSize="13" Foreground="#065F46" />
+                        <TextBlock Text="Students may take passes at any time during class without bell-window lockouts or warnings." FontSize="11" Foreground="#047857" TextWrapping="Wrap" />
+                      </StackPanel>
+                    </Grid>
+                  </Border>
+
+                  <!-- PERIOD TIMELINE PREVIEW (Visible for All Modes) -->
+                  <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="12" Padding="10,8">
+                    <StackPanel Spacing="6">
+                      <Grid ColumnDefinitions="Auto,*" VerticalAlignment="Center">
+                        <TextBlock Text="PERIOD TIMELINE PREVIEW" FontSize="10" FontWeight="Bold" Foreground="#64748B" VerticalAlignment="Center" />
+                        <TextBlock Grid.Column="1" Text="{Binding PolicyModal.TimelineSummaryText}" FontSize="10" Foreground="#0284C7" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                      </Grid>
+
+                      <!-- Preview Strip: Windows Mode (3 Segments) -->
+                      <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="4" Height="26" IsVisible="{Binding PolicyModal.IsWindowsMode}">
+                        <Border Grid.Column="0" Background="{Binding PolicyModal.FirstWindowBadgeColor}" CornerRadius="6" Padding="8,3" VerticalAlignment="Stretch">
+                          <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                            <TextBlock Text="First" FontSize="11" FontWeight="Bold" Foreground="White" />
+                            <TextBlock Text="{Binding PolicyModal.FirstWindowMinutes, StringFormat='{}{0}m'}" FontSize="11" FontWeight="SemiBold" Foreground="White" />
+                            <TextBlock Text="{Binding PolicyModal.FirstWindowAction, StringFormat='· {0}'}" FontSize="11" FontWeight="Bold" Foreground="White" />
+                          </StackPanel>
+                        </Border>
+
+                        <Border Grid.Column="1" Background="{Binding PolicyModal.MiddleWindowBadgeColor}" CornerRadius="6" Padding="8,3" VerticalAlignment="Stretch">
+                          <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <TextBlock Text="In Between · " FontSize="11" FontWeight="SemiBold" Foreground="White" />
+                            <TextBlock Text="{Binding PolicyModal.MiddleWindowAction}" FontSize="11" FontWeight="Black" Foreground="White" />
+                          </StackPanel>
+                        </Border>
+
+                        <Border Grid.Column="2" Background="{Binding PolicyModal.LastWindowBadgeColor}" CornerRadius="6" Padding="8,3" VerticalAlignment="Stretch">
+                          <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                            <TextBlock Text="Last" FontSize="11" FontWeight="Bold" Foreground="White" />
+                            <TextBlock Text="{Binding PolicyModal.LastWindowMinutes, StringFormat='{}{0}m'}" FontSize="11" FontWeight="SemiBold" Foreground="White" />
+                            <TextBlock Text="{Binding PolicyModal.LastWindowAction, StringFormat='· {0}'}" FontSize="11" FontWeight="Bold" Foreground="White" />
+                          </StackPanel>
+                        </Border>
+                      </Grid>
+
+                      <!-- Preview Strip: No Passes Mode (Full Period Locked) -->
+                      <Border Background="#F43F5E" CornerRadius="6" Padding="8,3" Height="26" VerticalAlignment="Center" IsVisible="{Binding PolicyModal.IsNoPassesMode}">
+                        <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center">
+                          <Path Data="{StaticResource IconUserX}" Width="12" Height="12" Stretch="Uniform" Stroke="White" StrokeThickness="2" StrokeLineCap="Round" VerticalAlignment="Center" />
+                          <TextBlock Text="Entire Class Period · Passes Locked (No Passes Allowed)" FontSize="11" FontWeight="Bold" Foreground="White" VerticalAlignment="Center" />
+                        </StackPanel>
+                      </Border>
+
+                      <!-- Preview Strip: No Rules Mode (Full Period Open) -->
+                      <Border Background="#059669" CornerRadius="6" Padding="8,3" Height="26" VerticalAlignment="Center" IsVisible="{Binding PolicyModal.IsNoRulesMode}">
+                        <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center">
+                          <Path Data="{StaticResource IconCheck}" Width="12" Height="12" Stretch="Uniform" Stroke="White" StrokeThickness="2.2" StrokeLineCap="Round" VerticalAlignment="Center" />
+                          <TextBlock Text="Entire Class Period · Open Pass Access (No Restrictions)" FontSize="11" FontWeight="Bold" Foreground="White" VerticalAlignment="Center" />
+                        </StackPanel>
+                      </Border>
+                    </StackPanel>
+                  </Border>
 
                   <Rectangle Height="1" Fill="#E0F2FE" />
 
+                  <!-- BELL TRANSITION TIME OPTION -->
                   <StackPanel Spacing="3">
-                    <CheckBox Content="Enforce bell-time lockouts on the terminal" IsChecked="{Binding PolicyModal.TerminalEnforcementEnabled}" FontSize="13" />
-                    <TextBlock Text="Optional and off by default. When enabled, the next 14 days are copied to the kiosk for offline enforcement." FontSize="11" Foreground="#64748B" TextWrapping="Wrap" Margin="24,0,0,0" />
+                    <CheckBox Content="Enable bell transition time between periods" IsChecked="{Binding PolicyModal.BellTransitionEnabled}" FontSize="13" />
+                    <TextBlock Text="Marks passing periods between scheduled classes as 'Transition Time' in the Mini Window with countdown to the next class." FontSize="11" Foreground="#64748B" TextWrapping="Wrap" Margin="24,0,0,0" />
+                  </StackPanel>
+
+                  <Rectangle Height="1" Fill="#E0F2FE" />
+
+                  <!-- WARNING SOUNDS CONFIGURATION -->
+                  <StackPanel Spacing="8">
+                    <Grid ColumnDefinitions="*,Auto" VerticalAlignment="Center">
+                      <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <Path Data="{StaticResource IconVolume2}" Width="14" Height="14" Stretch="Uniform" Stroke="#0284C7" StrokeThickness="1.8" StrokeLineCap="Round" VerticalAlignment="Center" />
+                        <TextBlock Text="Warning Sound" FontSize="13" FontWeight="Bold" Foreground="#334155" VerticalAlignment="Center" />
+                      </StackPanel>
+                      <CheckBox Grid.Column="1" Content="Play warning sound" IsChecked="{Binding PolicyModal.WarningSoundEnabled}" FontSize="12" />
+                    </Grid>
+
+                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" VerticalAlignment="Center" IsEnabled="{Binding PolicyModal.WarningSoundEnabled}">
+                      <ComboBox ItemsSource="{Binding PolicyModal.AlertSounds}" SelectedItem="{Binding PolicyModal.AlertSound}" HorizontalAlignment="Stretch" />
+
+                      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <Path Data="{StaticResource IconVolume2}" Width="12" Height="12" Stretch="Uniform" Stroke="#64748B" StrokeThickness="1.8" StrokeLineCap="Round" VerticalAlignment="Center" />
+                        <Slider Minimum="10" Maximum="100" Value="{Binding PolicyModal.WarningSoundVolume}" Width="85" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding PolicyModal.WarningSoundVolume, StringFormat='{}{0}%'}" FontSize="11" FontWeight="Bold" Foreground="#64748B" Width="36" VerticalAlignment="Center" />
+                      </StackPanel>
+
+                      <Button Grid.Column="2" Classes="pill-secondary" Click="OnPlaySoundPreviewClick" ToolTip.Tip="Hear selected warning sound at configured volume">
+                        <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                          <Path Data="{StaticResource IconVolume2}" Width="12" Height="12" Stretch="Uniform" Stroke="#0369A1" StrokeThickness="1.8" StrokeLineCap="Round" VerticalAlignment="Center" />
+                          <TextBlock Text="Preview" FontSize="12" FontWeight="Bold" Foreground="#0369A1" VerticalAlignment="Center" />
+                        </StackPanel>
+                      </Button>
+                    </Grid>
+                  </StackPanel>
+
+                  <Rectangle Height="1" Fill="#E0F2FE" />
+
+                  <!-- TERMINAL ENFORCEMENT & MASTER DISABLE -->
+                  <StackPanel Spacing="8">
+                    <StackPanel Spacing="3">
+                      <CheckBox Content="Enforce bell-time lockouts on the terminal" IsChecked="{Binding PolicyModal.TerminalEnforcementEnabled}" FontSize="13" />
+                      <TextBlock Text="Optional and off by default. When enabled, the next 14 days are copied to the kiosk for offline enforcement." FontSize="11" Foreground="#64748B" TextWrapping="Wrap" Margin="24,0,0,0" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="3">
+                      <CheckBox Content="Disable bell-time window rules completely" IsChecked="{Binding PolicyModal.BellTimeRulesDisabled}" FontSize="13" />
+                      <TextBlock Text="Bypasses all pass window lockouts and warnings during class (Mini Window shows passes open at all times)." FontSize="11" Foreground="#64748B" TextWrapping="Wrap" Margin="24,0,0,0" />
+                    </StackPanel>
                   </StackPanel>
                 </StackPanel>
               </Border>

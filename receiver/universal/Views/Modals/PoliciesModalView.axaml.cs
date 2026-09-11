@@ -153,6 +153,18 @@ public partial class PoliciesModalView : UserControl {
     }
   }
 
+  void OnSelectPassPolicyModeClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm && sender is Button btn && btn.Tag is string mode) {
+      vm.PolicyModal.ClassPassPolicyMode = mode;
+    }
+  }
+
+  void OnApplyPresetClick(object? sender, RoutedEventArgs e) {
+    if (DataContext is MainViewModel vm && sender is Button btn && btn.Tag is string preset) {
+      vm.PolicyModal.ApplyPreset(preset);
+    }
+  }
+
   void OnEditPeriodClick(object? sender, RoutedEventArgs e) {
     if (sender is Button btn && btn.Tag is BellPeriodItemViewModel period) {
       period.StartEdit();

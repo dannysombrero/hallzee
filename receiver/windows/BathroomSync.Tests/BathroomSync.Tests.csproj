@@ -24,4 +24,7 @@
   <ItemGroup>
     <ProjectReference Include="../BathroomSync.Core/BathroomSync.Core.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="../../../contracts/web-client/v1/*.json" Link="web-contracts/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

@@ -257,4 +257,95 @@ public sealed class MainViewModelTests : IDisposable {
     Assert.NotNull(viewModel.FindTerminalsModal.SelectedDevice);
   }
 
+  [Fact]
+  public void UpdatePeriodWindowDisplaysTransitionTimeBetweenPeriods() {
+    var now = DateTime.Now;
+    var p1End = now.AddMinutes(-2).ToString("HH:mm");
+    var p1Start = now.AddMinutes(-47).ToString("HH:mm");
+    var p2Start = now.AddMinutes(3).ToString("HH:mm");
+    var p2End = now.AddMinutes(48).ToString("HH:mm");
+
+    viewModel.PolicyModal.Periods.Clear();
+    viewModel.PolicyModal.Periods.Add(new BellPeriodItemViewModel(new BellSchedulePeriod(
+      "p1", viewModel.ActiveProfile.ProfileId, "Period 1", p1Start, p1End, "Mon,Tue,Wed,Thu,Fri,Sat,Sun")));
+    viewModel.PolicyModal.Periods.Add(new BellPeriodItemViewModel(new BellSchedulePeriod(
+      "p2", viewModel.ActiveProfile.ProfileId, "Period 2", p2Start, p2End, "Mon,Tue,Wed,Thu,Fri,Sat,Sun")));
+
+    viewModel.PolicyModal.BellTransitionEnabled = true;
+    viewModel.PolicyModal.BellTimeRulesDisabled = false;
+
+    viewModel.UpdatePeriodWindow();
+
+    Assert.Equal("Transition Time", viewModel.CurrentPeriodName);
+    Assert.Equal("TRANSITION", viewModel.PopupPillText);
+    Assert.Equal("#6366F1", viewModel.PopupPillBackground);
+    Assert.Contains("Class transition between Period 1 and Period 2", viewModel.PopupPillToolTip);
+    Assert.StartsWith("Next Class (Period 2):", viewModel.PopupStatusPrefix);
+
+    // If student is out during transition, pill shows PASS IN USE
+    viewModel.ActivePass.SetOccupied("1001", "Jordan", now);
+    viewModel.UpdatePeriodWindow();
+    Assert.Equal("PASS IN USE", viewModel.PopupPillText);
+    Assert.Equal("#F59E0B", viewModel.PopupPillBackground);
+  }
+
+  [Fact]
+  public void UpdatePeriodWindowHandlesNoPassesMode() {
+    var now = DateTime.Now;
+    viewModel.PolicyModal.Periods.Clear();
+    viewModel.PolicyModal.Periods.Add(new BellPeriodItemViewModel(new BellSchedulePeriod(
+      "p-curr", viewModel.ActiveProfile.ProfileId, "Biology", now.AddMinutes(-10).ToString("HH:mm"),
+      now.AddMinutes(35).ToString("HH:mm"), "Mon,Tue,Wed,Thu,Fri,Sat,Sun")));
+
+    viewModel.PolicyModal.ClassPassPolicyMode = "NoPasses";
+    viewModel.PolicyModal.BellTimeRulesDisabled = false;
+
+    viewModel.UpdatePeriodWindow();
+
+    Assert.Equal("WINDOW CLOSED", viewModel.PopupPillText);
+    Assert.Equal("#F43F5E", viewModel.PopupPillBackground);
+    Assert.Equal("Teacher policy: No passes are allowed during class", viewModel.PopupPillToolTip);
+    Assert.Contains("Passes open after class", viewModel.PopupStatusPrefix);
+  }
+
+  [Fact]
+  public void UpdatePeriodWindowHandlesMiddleWindowLock() {
+    var now = DateTime.Now;
+    viewModel.PolicyModal.Periods.Clear();
+    viewModel.PolicyModal.Periods.Add(new BellPeriodItemViewModel(new BellSchedulePeriod(
+      "p-curr", viewModel.ActiveProfile.ProfileId, "Algebra", now.AddMinutes(-20).ToString("HH:mm"),
+      now.AddMinutes(25).ToString("HH:mm"), "Mon,Tue,Wed,Thu,Fri,Sat,Sun")));
+
+    viewModel.PolicyModal.ClassPassPolicyMode = "Windows";
+    viewModel.PolicyModal.FirstWindowMinutes = 10;
+    viewModel.PolicyModal.LastWindowMinutes = 10;
+    viewModel.PolicyModal.FirstWindowAction = "Allow";
+    viewModel.PolicyModal.MiddleWindowAction = "Lock";
+    viewModel.PolicyModal.LastWindowAction = "Allow";
+    viewModel.PolicyModal.BellTimeRulesDisabled = false;
+
+    viewModel.UpdatePeriodWindow();
+
+    Assert.Equal("WINDOW CLOSED", viewModel.PopupPillText);
+    Assert.Equal("#F43F5E", viewModel.PopupPillBackground);
+    Assert.Contains("Passes are locked during instruction", viewModel.PopupPillToolTip);
+  }
+
+  [Fact]
+  public void UpdatePeriodWindowBypassesWhenRulesDisabled() {
+    var now = DateTime.Now;
+    viewModel.PolicyModal.Periods.Clear();
+    viewModel.PolicyModal.Periods.Add(new BellPeriodItemViewModel(new BellSchedulePeriod(
+      "p-curr", viewModel.ActiveProfile.ProfileId, "Algebra", now.AddMinutes(-20).ToString("HH:mm"),
+      now.AddMinutes(25).ToString("HH:mm"), "Mon,Tue,Wed,Thu,Fri,Sat,Sun")));
+
+    viewModel.PolicyModal.ClassPassPolicyMode = "NoPasses";
+    viewModel.PolicyModal.BellTimeRulesDisabled = true;
+
+    viewModel.UpdatePeriodWindow();
+
+    Assert.Equal("WINDOW OPEN", viewModel.PopupPillText);
+    Assert.Equal("#059669", viewModel.PopupPillBackground);
+    Assert.Contains("No bell-time restrictions active", viewModel.PopupPillToolTip);
+  }
 }

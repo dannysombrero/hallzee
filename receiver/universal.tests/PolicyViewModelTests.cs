@@ -130,18 +130,99 @@ public sealed class PolicyViewModelTests : IDisposable {
 
   [Fact]
   public void SoundServiceGeneratesValidWavDataForSupportedSounds() {
-    var chimeWav = SoundService.GenerateWav("Chime");
-    Assert.NotEmpty(chimeWav);
-    Assert.Equal((byte)'R', chimeWav[0]);
-    Assert.Equal((byte)'I', chimeWav[1]);
-    Assert.Equal((byte)'F', chimeWav[2]);
-    Assert.Equal((byte)'F', chimeWav[3]);
+    var sounds = new[] {
+      "Chime", "Bell", "Soft alert", "Marimba", "Subtle Ping", "Digital Watch", "Gentle Knock", "Harp Ascend"
+    };
 
-    var bellWav = SoundService.GenerateWav("Bell");
-    Assert.NotEmpty(bellWav);
+    foreach (var sound in sounds) {
+      var wav = SoundService.GenerateWav(sound, 0.8);
+      Assert.NotEmpty(wav);
+      Assert.Equal((byte)'R', wav[0]);
+      Assert.Equal((byte)'I', wav[1]);
+      Assert.Equal((byte)'F', wav[2]);
+      Assert.Equal((byte)'F', wav[3]);
+    }
 
-    var softAlertWav = SoundService.GenerateWav("Soft alert");
-    Assert.NotEmpty(softAlertWav);
+    // Zero volume returns empty bytes
+    var silentWav = SoundService.GenerateWav("Chime", 0.0);
+    Assert.Empty(silentWav);
+
+    // Scaling volume produces valid wav
+    var quietWav = SoundService.GenerateWav("Chime", 0.2);
+    Assert.NotEmpty(quietWav);
+    Assert.Equal((byte)'R', quietWav[0]);
+  }
+
+  [Fact]
+  public void ApplyPresetConfiguresWindowsAndActionsAccurately() {
+    // 10/10 lockout preset
+    viewModel.ApplyPreset("10/10");
+    Assert.Equal(10, viewModel.FirstWindowMinutes);
+    Assert.Equal("Lock", viewModel.FirstWindowAction);
+    Assert.Equal("Allow", viewModel.MiddleWindowAction);
+    Assert.Equal(10, viewModel.LastWindowMinutes);
+    Assert.Equal("Lock", viewModel.LastWindowAction);
+    Assert.Equal("#F43F5E", viewModel.FirstWindowBadgeColor);
+    Assert.Equal("#059669", viewModel.MiddleWindowBadgeColor);
+    Assert.Equal("#F43F5E", viewModel.LastWindowBadgeColor);
+
+    // Start and end only preset (middle locked)
+    viewModel.ApplyPreset("startend");
+    Assert.Equal(10, viewModel.FirstWindowMinutes);
+    Assert.Equal("Allow", viewModel.FirstWindowAction);
+    Assert.Equal("Lock", viewModel.MiddleWindowAction);
+    Assert.Equal(10, viewModel.LastWindowMinutes);
+    Assert.Equal("Allow", viewModel.LastWindowAction);
+    Assert.Equal("#059669", viewModel.FirstWindowBadgeColor);
+    Assert.Equal("#F43F5E", viewModel.MiddleWindowBadgeColor);
+    Assert.Equal("#059669", viewModel.LastWindowBadgeColor);
+
+    // Warning windows preset
+    viewModel.ApplyPreset("warning");
+    Assert.Equal(10, viewModel.FirstWindowMinutes);
+    Assert.Equal("Warn", viewModel.FirstWindowAction);
+    Assert.Equal("Allow", viewModel.MiddleWindowAction);
+    Assert.Equal(10, viewModel.LastWindowMinutes);
+    Assert.Equal("Warn", viewModel.LastWindowAction);
+    Assert.Equal("#D97706", viewModel.FirstWindowBadgeColor);
+    Assert.Equal("#059669", viewModel.MiddleWindowBadgeColor);
+    Assert.Equal("#D97706", viewModel.LastWindowBadgeColor);
+  }
+
+  [Fact]
+  public void PolicyViewModelModeSelectionAndTimelineSummary() {
+    // Default mode is Windows
+    Assert.Equal("Windows", viewModel.ClassPassPolicyMode);
+    Assert.True(viewModel.IsWindowsMode);
+    Assert.False(viewModel.IsNoPassesMode);
+    Assert.False(viewModel.IsNoRulesMode);
+
+    viewModel.ClassPassPolicyMode = "NoPasses";
+    Assert.False(viewModel.IsWindowsMode);
+    Assert.True(viewModel.IsNoPassesMode);
+    Assert.False(viewModel.IsNoRulesMode);
+    Assert.Equal("Passes Locked (100% of period)", viewModel.TimelineSummaryText);
+
+    viewModel.ClassPassPolicyMode = "NoRules";
+    Assert.False(viewModel.IsWindowsMode);
+    Assert.False(viewModel.IsNoPassesMode);
+    Assert.True(viewModel.IsNoRulesMode);
+    Assert.Equal("Open Pass Access (No rules)", viewModel.TimelineSummaryText);
+
+    viewModel.BellTimeRulesDisabled = true;
+    Assert.Equal("Open Pass Access (No rules)", viewModel.TimelineSummaryText);
+    viewModel.BellTimeRulesDisabled = false;
+
+    viewModel.ClassPassPolicyMode = "Windows";
+    viewModel.FirstWindowMinutes = 7;
+    viewModel.FirstWindowAction = "Warn";
+    viewModel.MiddleWindowAction = "Lock";
+    viewModel.LastWindowMinutes = 8;
+    viewModel.LastWindowAction = "Allow";
+
+    Assert.Contains("First 7m (Warn)", viewModel.TimelineSummaryText);
+    Assert.Contains("Middle (Lock)", viewModel.TimelineSummaryText);
+    Assert.Contains("Last 8m (Allow)", viewModel.TimelineSummaryText);
   }
 
   [Theory]

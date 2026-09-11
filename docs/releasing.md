@@ -61,13 +61,13 @@ It also launches the helper without arguments on a matching Mac architecture to
 check runtime loading without starting Bluetooth. A skipped architecture launch
 check must be completed on a matching Mac before release.
 
-The Actions artifacts are **Hallzee-Windows-win-x64**,
-**Hallzee-Mac-osx-arm64**, and **Hallzee-Mac-osx-x64**. Download the Windows
-artifact and extract once to reach the executable and supporting files. Windows
+The Actions artifacts are **Hallzee-v[version]-Windows-win-x64**,
+**Hallzee-v[version]-Mac-osx-arm64**, and **Hallzee-v[version]-Mac-osx-x64**. Download the Windows
+artifact and extract once to reach the executable (`Hallzee.exe`) and supporting files. Windows
 builds upload the app files directly, letting GitHub create the download ZIP.
-Publication reuses that exact artifact ZIP as `Hallzee-Windows-win-x64.zip`; it
-does not repackage the app. Older build runs and their `Desktop-*` artifact names
-remain publishable. Mac Actions artifacts wrap the prebuilt Mac ZIP because the
+Publication reuses that exact artifact ZIP as `Hallzee-v[version]-Windows-win-x64.zip`; it
+does not repackage the app. Older build runs, unversioned names, and their `Desktop-*` artifact names
+remain publishable. Mac Actions artifacts wrap the prebuilt Mac ZIP (`Hallzee-v[version]-Mac-[rid].zip`) because the
 inner archive preserves application permissions for installation and release.
 
 Edit `docs/client-release-notes.md` or `firmware/release-notes.md` before building.
@@ -165,3 +165,15 @@ one signed update with retained data/pairing, and interruption recovery on both
 displays. Mac alone is insufficient for the complete cross-platform release.
 Mac/Windows physical OTA and USB migration still need verification. See
 [the v1.0 review](release-readiness.md) for the minimum classroom pilot checklist.
+
+## Web client development artifacts
+
+Run `bash scripts/web-client-macos.sh check` (or the Windows bootstrap with
+`check`) before review. The **Web client validation** workflow creates
+`Hallzee-Web-<version>-<commit>.zip` from `web-client/dist/`, with headers,
+manifest, build/source metadata and dependency notices. It does not deploy.
+Reject dirty/source-mismatched artifacts for release. Approve a dedicated stable
+HTTPS origin, verify its headers and complete the [platform gates](testing/web-client-acceptance.md)
+before pilot. Updates wait for a teacher click and closed competing windows;
+rollback must support the stored schema and must never clear data as a migration
+shortcut. See [IT operations](web-client-it-guide.md).

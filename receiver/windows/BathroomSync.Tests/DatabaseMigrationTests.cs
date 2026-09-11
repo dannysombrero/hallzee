@@ -106,4 +106,53 @@ public sealed class DatabaseMigrationTests {
       if (Directory.Exists(dir)) Directory.Delete(dir, true);
     }
   }
+
+  [Fact]
+  public void MigratesToVersion8AddingPolicyColumns() {
+    var dbPath = Path.Combine(Path.GetTempPath(), "BathroomSyncTests", Guid.NewGuid().ToString("N"), "v8_migration.db");
+    var dir = Path.GetDirectoryName(dbPath)!;
+
+    try {
+      Directory.CreateDirectory(dir);
+      using var connection = new SqliteConnection(new SqliteConnectionStringBuilder { DataSource = dbPath, Pooling = false }.ToString());
+      connection.Open();
+
+      // Run migrator to bring DB to latest
+      DatabaseMigrator.Migrate(connection);
+      Assert.Equal(8, DatabaseMigrator.CurrentSchemaVersion);
+      Assert.Equal(8, DatabaseMigrator.GetCurrentVersion(connection));
+
+      // Verify columns exist on policy_rules
+      var columns = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+      using (var cmd = connection.CreateCommand()) {
+        cmd.CommandText = "PRAGMA table_info(policy_rules);";
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) {
+          columns.Add(reader.GetString(1));
+        }
+      }
+
+      Assert.Contains("class_pass_policy_mode", columns);
+      Assert.Contains("middle_window_action", columns);
+      Assert.Contains("bell_transition_enabled", columns);
+      Assert.Contains("warning_sound_enabled", columns);
+      Assert.Contains("warning_sound_volume", columns);
+      Assert.Contains("bell_rules_disabled", columns);
+
+      // Verify default row in policy_rules
+      using (var cmd = connection.CreateCommand()) {
+        cmd.CommandText = "SELECT class_pass_policy_mode, middle_window_action, bell_transition_enabled, warning_sound_enabled, warning_sound_volume, bell_rules_disabled FROM policy_rules WHERE profile_id = 'default';";
+        using var reader = cmd.ExecuteReader();
+        Assert.True(reader.Read());
+        Assert.Equal("Windows", reader.GetString(0));
+        Assert.Equal("Allow", reader.GetString(1));
+        Assert.Equal(1L, reader.GetInt64(2));
+        Assert.Equal(1L, reader.GetInt64(3));
+        Assert.Equal(80L, reader.GetInt64(4));
+        Assert.Equal(0L, reader.GetInt64(5));
+      }
+    } finally {
+      if (Directory.Exists(dir)) Directory.Delete(dir, true);
+    }
+  }
 }

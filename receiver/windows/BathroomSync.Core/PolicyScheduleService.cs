@@ -58,13 +58,48 @@ public sealed class PolicyScheduleService {
       .ToList();
   }
 
+  public ResolvedBellTransition? ResolveTransition(
+    DateTime moment,
+    IEnumerable<BellSchedulePeriod> periods,
+    IEnumerable<ScheduleException>? exceptions = null
+  ) {
+    var dayPeriods = ResolvePeriodsForDate(moment.Date, periods, exceptions);
+    if (dayPeriods.Count < 2) return null;
+
+    for (var i = 0; i < dayPeriods.Count - 1; i++) {
+      var prev = dayPeriods[i];
+      var next = dayPeriods[i + 1];
+      if (moment >= prev.EndsAt && moment < next.StartsAt) {
+        return new ResolvedBellTransition(prev, next, prev.EndsAt, next.StartsAt);
+      }
+    }
+    return null;
+  }
+
   public BellWindowDecision Evaluate(DateTime moment, ResolvedBellPeriod? period, PolicyRule rule) {
     if (period == null) return BellWindowDecision.Allow;
+    if (rule.BellTimeRulesDisabled || string.Equals(rule.ClassPassPolicyMode, "NoRules", StringComparison.OrdinalIgnoreCase)) {
+      return BellWindowDecision.Allow;
+    }
+    if (string.Equals(rule.ClassPassPolicyMode, "NoPasses", StringComparison.OrdinalIgnoreCase)) {
+      return BellWindowDecision.Lock;
+    }
+
     var firstEnds = period.StartsAt.AddMinutes(Math.Max(0, rule.LockoutStartMinutes));
     var lastStarts = period.EndsAt.AddMinutes(-Math.Max(0, rule.LockoutEndMinutes));
-    var first = moment >= period.StartsAt && moment < firstEnds ? ParseDecision(rule.FirstWindowAction) : BellWindowDecision.Allow;
-    var last = moment >= lastStarts && moment < period.EndsAt ? ParseDecision(rule.LastWindowAction) : BellWindowDecision.Allow;
-    return (BellWindowDecision)Math.Max((int)first, (int)last);
+    var inFirst = moment >= period.StartsAt && moment < firstEnds;
+    var inLast = moment >= lastStarts && moment < period.EndsAt;
+
+    if (inFirst && inLast) {
+      return (BellWindowDecision)Math.Max((int)ParseDecision(rule.FirstWindowAction), (int)ParseDecision(rule.LastWindowAction));
+    }
+    if (inFirst) {
+      return ParseDecision(rule.FirstWindowAction);
+    }
+    if (inLast) {
+      return ParseDecision(rule.LastWindowAction);
+    }
+    return ParseDecision(rule.MiddleWindowAction);
   }
 
   public static bool IsActiveOnDay(string? days, DayOfWeek day) {

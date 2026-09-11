@@ -12,7 +12,7 @@ public static class SoundService {
   const uint SND_ASYNC = 0x0001;
   const uint SND_MEMORY = 0x0004;
 
-  public static void Play(string? soundName) {
+  public static void Play(string? soundName, double volume = 0.8) {
     if (string.IsNullOrWhiteSpace(soundName) ||
         soundName.Equals("No sound", StringComparison.OrdinalIgnoreCase)) {
       return;
@@ -20,7 +20,7 @@ public static class SoundService {
 
     Task.Run(() => {
       try {
-        var wavBytes = GenerateWav(soundName);
+        var wavBytes = GenerateWav(soundName, volume);
         if (wavBytes.Length == 0) return;
 
         if (OperatingSystem.IsMacOS()) {
@@ -94,27 +94,50 @@ public static class SoundService {
     }
   }
 
-  public static byte[] GenerateWav(string soundName) {
+  public static byte[] GenerateWav(string soundName, double volume = 0.8) {
     const int sampleRate = 44100;
+    var vol = Math.Clamp(volume, 0.0, 1.0);
+    if (vol <= 0.001) return Array.Empty<byte>();
+
     short[] samples;
 
     switch (soundName.Trim().ToLowerInvariant()) {
       case "bell":
-        samples = GenerateBell(sampleRate);
+        samples = GenerateBell(sampleRate, vol);
         break;
       case "soft alert":
-        samples = GenerateSoftAlert(sampleRate);
+        samples = GenerateSoftAlert(sampleRate, vol);
+        break;
+      case "marimba":
+        samples = GenerateMarimba(sampleRate, vol);
+        break;
+      case "subtle ping":
+      case "ping":
+        samples = GenerateSubtlePing(sampleRate, vol);
+        break;
+      case "digital watch":
+      case "watch":
+      case "beep":
+        samples = GenerateDigitalWatch(sampleRate, vol);
+        break;
+      case "gentle knock":
+      case "knock":
+        samples = GenerateGentleKnock(sampleRate, vol);
+        break;
+      case "harp ascend":
+      case "harp":
+        samples = GenerateHarpAscend(sampleRate, vol);
         break;
       case "chime":
       default:
-        samples = GenerateChime(sampleRate);
+        samples = GenerateChime(sampleRate, vol);
         break;
     }
 
     return BuildWavFile(samples, sampleRate);
   }
 
-  static short[] GenerateChime(int sampleRate) {
+  static short[] GenerateChime(int sampleRate, double vol) {
     // Two bright pleasant chime tones: 784 Hz (G5) for 0.35s and 1046.5 Hz (C6) for 0.45s
     var duration = 0.8;
     var totalSamples = (int)(sampleRate * duration);
@@ -141,12 +164,12 @@ public static class SoundService {
         sample += 0.25 * Math.Sin(2.0 * Math.PI * 2093.00 * t2) * env2;
       }
 
-      samples[i] = (short)Math.Clamp((int)(sample * 24000), short.MinValue, short.MaxValue);
+      samples[i] = (short)Math.Clamp((int)(sample * 24000 * vol), short.MinValue, short.MaxValue);
     }
     return samples;
   }
 
-  static short[] GenerateBell(int sampleRate) {
+  static short[] GenerateBell(int sampleRate, double vol) {
     // Classic desk/classroom bell: 880 Hz (A5) fundamental + 1760 Hz + 2640 Hz harmonics with bell decay
     var duration = 1.1;
     var totalSamples = (int)(sampleRate * duration);
@@ -161,12 +184,12 @@ public static class SoundService {
                   + 0.25 * Math.Sin(2.0 * Math.PI * 1760.0 * t)
                   + 0.10 * Math.Sin(2.0 * Math.PI * 2640.0 * t)) * env * strike;
 
-      samples[i] = (short)Math.Clamp((int)(sample * 26000), short.MinValue, short.MaxValue);
+      samples[i] = (short)Math.Clamp((int)(sample * 26000 * vol), short.MinValue, short.MaxValue);
     }
     return samples;
   }
 
-  static short[] GenerateSoftAlert(int sampleRate) {
+  static short[] GenerateSoftAlert(int sampleRate, double vol) {
     // Gentle warm two-note rising chord (523 Hz -> 659 Hz)
     var duration = 0.7;
     var totalSamples = (int)(sampleRate * duration);
@@ -189,7 +212,148 @@ public static class SoundService {
         sample += 0.6 * Math.Sin(2.0 * Math.PI * 659.25 * t2) * env2;
       }
 
-      samples[i] = (short)Math.Clamp((int)(sample * 22000), short.MinValue, short.MaxValue);
+      samples[i] = (short)Math.Clamp((int)(sample * 22000 * vol), short.MinValue, short.MaxValue);
+    }
+    return samples;
+  }
+
+  static short[] GenerateMarimba(int sampleRate, double vol) {
+    // Warm resonant marimba two-note tap (C5 523.25 Hz -> E5 659.25 Hz)
+    var duration = 0.65;
+    var totalSamples = (int)(sampleRate * duration);
+    var samples = new short[totalSamples];
+    var split = (int)(sampleRate * 0.16);
+
+    for (var i = 0; i < totalSamples; i++) {
+      double t = (double)i / sampleRate;
+      double sample = 0;
+
+      if (i < split + (int)(sampleRate * 0.32)) {
+        var t1 = t;
+        var env1 = Math.Exp(-12.0 * t1);
+        sample += (0.75 * Math.Sin(2.0 * Math.PI * 523.25 * t1)
+                 + 0.25 * Math.Sin(2.0 * Math.PI * 2093.00 * t1) * Math.Exp(-20.0 * t1)) * env1;
+      }
+
+      if (i >= split) {
+        var t2 = (double)(i - split) / sampleRate;
+        var env2 = Math.Exp(-10.0 * t2);
+        sample += (0.80 * Math.Sin(2.0 * Math.PI * 659.25 * t2)
+                 + 0.20 * Math.Sin(2.0 * Math.PI * 2637.00 * t2) * Math.Exp(-20.0 * t2)) * env2;
+      }
+
+      samples[i] = (short)Math.Clamp((int)(sample * 25000 * vol), short.MinValue, short.MaxValue);
+    }
+    return samples;
+  }
+
+  static short[] GenerateSubtlePing(int sampleRate, double vol) {
+    // Crystal clear gentle ping (E6 1318.5 Hz) with smooth exponential taper
+    var duration = 0.75;
+    var totalSamples = (int)(sampleRate * duration);
+    var samples = new short[totalSamples];
+
+    for (var i = 0; i < totalSamples; i++) {
+      double t = (double)i / sampleRate;
+      var attack = Math.Min(1.0, t * 500.0);
+      var env = Math.Exp(-6.0 * t) * attack;
+      var sample = (0.85 * Math.Sin(2.0 * Math.PI * 1318.51 * t)
+                  + 0.15 * Math.Sin(2.0 * Math.PI * 2637.02 * t)) * env;
+
+      samples[i] = (short)Math.Clamp((int)(sample * 22000 * vol), short.MinValue, short.MaxValue);
+    }
+    return samples;
+  }
+
+  static short[] GenerateDigitalWatch(int sampleRate, double vol) {
+    // Crisp double electronic beep (two 70ms pulses at 2093 Hz)
+    var duration = 0.45;
+    var totalSamples = (int)(sampleRate * duration);
+    var samples = new short[totalSamples];
+    var pulse1End = (int)(sampleRate * 0.08);
+    var gapEnd = (int)(sampleRate * 0.16);
+    var pulse2End = (int)(sampleRate * 0.24);
+
+    for (var i = 0; i < totalSamples; i++) {
+      double t = (double)i / sampleRate;
+      double sample = 0;
+
+      if (i < pulse1End) {
+        var tp = t;
+        sample = 0.75 * Math.Sin(2.0 * Math.PI * 2093.0 * tp)
+               + 0.25 * Math.Sin(2.0 * Math.PI * 4186.0 * tp);
+      } else if (i >= gapEnd && i < pulse2End) {
+        var tp = (double)(i - gapEnd) / sampleRate;
+        sample = 0.75 * Math.Sin(2.0 * Math.PI * 2093.0 * tp)
+               + 0.25 * Math.Sin(2.0 * Math.PI * 4186.0 * tp);
+      }
+
+      samples[i] = (short)Math.Clamp((int)(sample * 20000 * vol), short.MinValue, short.MaxValue);
+    }
+    return samples;
+  }
+
+  static short[] GenerateGentleKnock(int sampleRate, double vol) {
+    // Warm wooden acoustic knock (two rapid taps at 600 Hz and 750 Hz)
+    var duration = 0.42;
+    var totalSamples = (int)(sampleRate * duration);
+    var samples = new short[totalSamples];
+    var split = (int)(sampleRate * 0.13);
+
+    for (var i = 0; i < totalSamples; i++) {
+      double t = (double)i / sampleRate;
+      double sample = 0;
+
+      if (i < split + (int)(sampleRate * 0.18)) {
+        var t1 = t;
+        var env1 = Math.Exp(-32.0 * t1);
+        sample += (0.7 * Math.Sin(2.0 * Math.PI * 587.33 * t1)
+                 + 0.3 * Math.Sin(2.0 * Math.PI * 1174.66 * t1)) * env1;
+      }
+
+      if (i >= split) {
+        var t2 = (double)(i - split) / sampleRate;
+        var env2 = Math.Exp(-32.0 * t2);
+        sample += (0.75 * Math.Sin(2.0 * Math.PI * 739.99 * t2)
+                 + 0.25 * Math.Sin(2.0 * Math.PI * 1479.98 * t2)) * env2;
+      }
+
+      samples[i] = (short)Math.Clamp((int)(sample * 26000 * vol), short.MinValue, short.MaxValue);
+    }
+    return samples;
+  }
+
+  static short[] GenerateHarpAscend(int sampleRate, double vol) {
+    // Smooth 3-note ascending triad arpeggio (C5 523 Hz -> E5 659 Hz -> G5 784 Hz)
+    var duration = 0.85;
+    var totalSamples = (int)(sampleRate * duration);
+    var samples = new short[totalSamples];
+    var step1 = (int)(sampleRate * 0.14);
+    var step2 = (int)(sampleRate * 0.28);
+
+    for (var i = 0; i < totalSamples; i++) {
+      double t = (double)i / sampleRate;
+      double sample = 0;
+
+      // Note 1: C5
+      var env1 = Math.Exp(-5.0 * t);
+      sample += 0.5 * Math.Sin(2.0 * Math.PI * 523.25 * t) * env1;
+
+      // Note 2: E5
+      if (i >= step1) {
+        var t2 = (double)(i - step1) / sampleRate;
+        var env2 = Math.Exp(-5.0 * t2);
+        sample += 0.55 * Math.Sin(2.0 * Math.PI * 659.25 * t2) * env2;
+      }
+
+      // Note 3: G5
+      if (i >= step2) {
+        var t3 = (double)(i - step2) / sampleRate;
+        var env3 = Math.Exp(-4.5 * t3);
+        sample += 0.65 * Math.Sin(2.0 * Math.PI * 783.99 * t3) * env3;
+      }
+
+      samples[i] = (short)Math.Clamp((int)(sample * 23000 * vol), short.MinValue, short.MaxValue);
     }
     return samples;
   }

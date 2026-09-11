@@ -1,0 +1,16 @@
+{
+  "cases": [
+    {
+      "payload": "101,00123,2026-09-11,09:00:00,09:05:00,300,COMPLETE,0",
+      "tripId": 101,
+      "studentId": "00123",
+      "status": "COMPLETE"
+    },
+    {
+      "payload": "105,00999,2026-09-11,09:00:00,,,MANUAL_RESET,1",
+      "tripId": 105,
+      "studentId": "00999",
+      "status": "MANUAL_RESET"
+    }
+  ]
+}

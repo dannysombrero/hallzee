@@ -281,3 +281,13 @@ In compliance with the project documentation policy (`AGENTS.md`), the testing r
 | **SQLite Schema & Migrations** | Sufficient | Optional | No | Validated via cross-platform SQLite unit tests. |
 | **WinRT Bluetooth Discovery & GATT** | **Not Usable** | **Required** | **Yes (BLE PC)** | Windows-specific WinRT BLE stack requires a Windows 10/11 host. |
 | **Physical ESP32 Kiosk Firmware** | **Not Usable** | **Required** | **Yes (ESP32 Kiosk)** | End-to-end BLE pairing, chunking, and flash sync requires physical hardware. |
+
+## Browser client boundary
+
+The development `web-client/` communicates directly with the existing ESP32
+GATT service using Chrome Web Bluetooth. It stores classroom data and
+nonextractable owner keys in origin-local IndexedDB; no SQLite/WASM or cloud
+backend is involved. A single Web Lock owns local writes and BLE. Trips commit
+before ACK; only a completed SYNC_END advances the resume cursor. Live events
+never fabricate completed rows. Static service-worker caches contain application
+files and licenses only. [Web architecture](design/chromebook-web-client.md).

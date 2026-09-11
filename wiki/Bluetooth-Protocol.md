@@ -244,3 +244,19 @@ command rewrites the partition table, bootloader, NVS, or filesystem.
 
 See [Firmware packages and releases](Firmware-Updates.md) for the signed manifest
 format, key management, bootstrap migration, and outstanding physical tests.
+
+## Web adapter conformance
+
+The development browser adapter uses the existing v2 UUIDs and protocol.
+It subscribes to TX before HELLO, sends newline-delimited UTF-8 in serialized
+20-byte RX writes **with response**, and limits commands to 192 bytes before LF.
+CLAIM_COMMIT follows durable pending-key storage; AUTH_OK is required before
+application commands. Returning owners may authenticate a claimed IN_USE device.
+`GET_ACTIVE_PASSES` returns `ACTIVE_PASSES` followed by student/epoch pairs
+(no count field); singular `GET_ACTIVE_PASS` is used only after UNKNOWN_COMMAND.
+`MANUAL_CHECKIN,<studentId>` targets one pass. `TIME_CURSOR,<date>,<time>,<cursor>`
+sets the local wall clock and starts history reconciliation. Active-pass epoch
+numbers encode local wall time as UTC fields, not true UTC instants: compare
+against the browser's local components encoded the same way. See
+[shared fixtures](https://github.com/dannysombrero/hallzee/blob/main/contracts/web-client/v1/README.md) and
+[web recovery requirements](Design-Chromebook-Web-Client.md).

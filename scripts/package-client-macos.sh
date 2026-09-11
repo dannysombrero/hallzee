@@ -26,11 +26,11 @@ dotnet publish receiver/universal/BathroomSync.Universal.csproj -c Release -r "$
 install_name_tool -change \
   /usr/local/lib/libAvalonia.Native.OSX.dylib \
   @rpath/libAvaloniaNative.dylib \
-  "$app/Contents/MacOS/HallzeeSync.Universal"
+  "$app/Contents/MacOS/Hallzee"
 install_name_tool -change \
   "./bin/e_sqlite3/mac/$sqlite_arch/libe_sqlite3.dylib" \
   @rpath/libe_sqlite3.dylib \
-  "$app/Contents/MacOS/HallzeeSync.Universal"
+  "$app/Contents/MacOS/Hallzee"
 # The helper is a native .NET macOS app, not part of the Avalonia publish output.
 dotnet build receiver/MacBLEAgent/BathroomSync.MacBLEAgent.csproj -c Release -r "$rid" -p:Version="$version" -p:EnableCodeSigning=false
 helper="receiver/MacBLEAgent/bin/Release/net8.0-macos/$rid/BathroomSync.MacBLEAgent.app"
@@ -61,7 +61,7 @@ cat > "$app/Contents/Info.plist" <<PLIST
 <plist version="1.0"><dict>
 <key>CFBundleIdentifier</key><string>com.hallzee.desktop</string>
 <key>CFBundleName</key><string>Hallzee</string>
-<key>CFBundleExecutable</key><string>HallzeeSync.Universal</string>
+<key>CFBundleExecutable</key><string>Hallzee</string>
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>CFBundleIconFile</key><string>hallzee.icns</string>
 <key>CFBundleShortVersionString</key><string>$version</string>
@@ -93,4 +93,4 @@ elif [[ "$rid" == osx-x64 && "$(uname -m)" == arm64 ]] && /usr/bin/arch -x86_64 
 else
   echo "Helper launch check skipped: validate $rid on a matching Mac before release."
 fi
-ditto -c -k --sequesterRsrc --keepParent "$app" "$output/Hallzee-Mac-$rid.zip"
+ditto -c -k --sequesterRsrc --keepParent "$app" "$output/Hallzee-v$version-Mac-$rid.zip"

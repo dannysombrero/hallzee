@@ -120,3 +120,14 @@ Those Windows-specific behaviors have not yet been verified on physical Windows
 hardware. A physical ESP32 is required for final persisted rename, offline
 policy screen/enforcement, two-nearby-terminal isolation, and long-running BLE
 stability tests.
+
+## Development web client
+
+`web-client/` is a separate production-code browser implementation, currently
+under acceptance. Its React provider owns an application controller, exclusive
+Web Lock, serialized terminal queue, Web Bluetooth adapter and IndexedDB store.
+It does not import simulated preview state. The ESP32 firmware and shared literal
+fixtures in `contracts/web-client/v1/` remain the protocol authority. See
+[web design](design/chromebook-web-client.md) and [acceptance](testing/web-client-acceptance.md).
+Desktop-only policy modes introduced after the baseline contract are not exposed
+by the web UI.

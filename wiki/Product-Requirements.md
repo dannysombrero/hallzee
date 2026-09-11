@@ -108,9 +108,12 @@ sequenceDiagram
   - Maximum simultaneous passes allowed (default: 1).
   - Maximum duration warning threshold (e.g., 7 minutes).
   - Daily/weekly pass limit per student (e.g., max 2 passes per day).
-  - "10/10 Rule" or lockout windows (no passes permitted during first/last 10 minutes of class).
+  - Class pass policy modes: **Windows** (configurable First, Middle, and Last period windows), **No Passes** (lock checkouts throughout class), or **No Rules** (unrestricted access throughout class).
+  - Window actions (Allow, Warn, Lock) with quick presets: *10/10 Lockout*, *Start & End Only*, and *Warning Windows*.
+  - Master switch to disable bell-time window rules completely while preserving period definitions.
+  - Bell transition time option marking passing periods as "Transition Time" in the Mini Window with tooltips and next-class countdowns.
 - **FR-POL-3:** Teachers must be able to define bell schedules (period start and end times) to select the active class-section context and apply relevant policy guidance. Bell times do not switch teacher profiles.
-- **Bell-time policies:** Policies/Bell Times supports named schedule templates, weekday assignments, date-specific exceptions, and distinct schedules for Wednesdays, block days, assemblies, and early-release days. Teachers choose whether the first and last configurable minutes allow passes, show a visual warning, or lock new checkouts. Terminal enforcement is optional and disabled by default; when enabled, the terminal receives a resolved 14-day offline copy. Trips export the matched schedule and class section when available. Alert sounds remain desktop-only because the current terminal hardware has no speaker.
+- **Bell-time policies:** Policies/Bell Times supports named schedule templates, weekday assignments, date-specific exceptions, and distinct schedules for Wednesdays, block days, assemblies, and early-release days. Teachers configure First, Middle, and Last period windows to allow passes, display visual warnings, or lock checkouts. Terminal enforcement is optional and disabled by default; when enabled, the terminal receives a resolved 14-day offline copy compatible with existing terminal firmware. Trips export the matched schedule and class section when available. The desktop alert system offers 8 mathematically synthesized warning sounds (Chime, Bell, Soft alert, Marimba, Subtle Ping, Digital Watch, Gentle Knock, Harp Ascend) with on/off toggles, volume scaling, and live preview. Terminal kiosks remain silent because hardware lacks a speaker.
 
 ### 3.5 Terminal Management & Kiosk Settings
 - **FR-TERM-1:** The desktop client must scan for nearby Hallzee BLE peripherals and display signal strength (RSSI).
@@ -157,3 +160,14 @@ Firmware management (implemented; physical release verification pending) ([imple
 While v1.x is strictly local-first and single-classroom, the architecture accommodates future optional cloud sync:
 - **Optional School-Wide Dashboard:** An opt-in sync daemon could publish anonymized trip statistics or centralized logs to an administrative portal (e.g., Dean of Students dashboard).
 - **Boundary Guarantee:** Cloud capabilities will be additive. The core kiosk-to-desktop workflow must never become dependent on cloud services, subscriptions, or remote servers.
+
+### 5.3 Future Web Kiosk Mode & Ephemeral Online Student Sign-Out (Future Exploration)
+To support classrooms that cannot build or deploy dedicated ESP32 hardware terminals, future releases may explore software-based sign-out alternatives:
+- **Dedicated Browser Kiosk Mode:** A single classroom device (such as a dedicated tablet, computer, or touchscreen display) operates in browser kiosk mode, acting as a fixed-location terminal running the Hallzee keypad UI.
+- **Privacy-Preserving Ephemeral Online Sign-Out:** A teacher initiates a temporary sign-out session (e.g. providing a 6-character room code or web URL). Students navigate to that link on their personal 1:1 computers or devices to check in or out.
+- **Privacy & Anonymity Invariants:**
+  - Student devices transmit only student IDs—never names, grades, or personal details.
+  - The teacher's desktop or web client receives the student ID and matches it against the locally stored roster privately.
+  - In-flight session records are strictly ephemeral; transactions are deleted immediately upon session termination or after a configurable timeout.
+  - This capability must remain strictly additive and must never compromise the offline, local-first guarantees of the core hardware terminal workflow.
+

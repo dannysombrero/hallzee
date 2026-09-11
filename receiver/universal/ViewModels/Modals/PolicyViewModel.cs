@@ -345,6 +345,12 @@ public sealed class PolicyViewModel : INotifyPropertyChanged {
   string firstWindowAction = "Warn";
   string lastWindowAction = "Warn";
   string alertSound = "Chime";
+  string classPassPolicyMode = "Windows";
+  string middleWindowAction = "Allow";
+  bool bellTimeRulesDisabled = false;
+  bool bellTransitionEnabled = true;
+  bool warningSoundEnabled = true;
+  int warningSoundVolume = 80;
   string newProfileName = "";
   string renameProfileName = "";
   string statusMessage = "";
@@ -426,7 +432,9 @@ public sealed class PolicyViewModel : INotifyPropertyChanged {
   public ObservableCollection<BellPeriodItemViewModel> Periods { get; } = new();
   public ObservableCollection<ScheduleExceptionItemViewModel> Exceptions { get; } = new();
   public IReadOnlyList<string> BellActions { get; } = new[] { "Allow", "Warn", "Lock" };
-  public IReadOnlyList<string> AlertSounds { get; } = new[] { "No sound", "Chime", "Bell", "Soft alert" };
+  public IReadOnlyList<string> AlertSounds { get; } = new[] {
+    "Chime", "Bell", "Soft alert", "Marimba", "Subtle Ping", "Digital Watch", "Gentle Knock", "Harp Ascend"
+  };
 
   public int MaxDailyPasses {
     get => maxDailyPasses;
@@ -445,22 +453,197 @@ public sealed class PolicyViewModel : INotifyPropertyChanged {
 
   public int FirstWindowMinutes {
     get => firstWindowMinutes;
-    set { if (firstWindowMinutes != value) { firstWindowMinutes = value; OnPropertyChanged(); } }
+    set {
+      if (firstWindowMinutes != value) {
+        firstWindowMinutes = value;
+        OnPropertyChanged();
+        NotifyModeAndTimelineProperties();
+      }
+    }
   }
 
   public int LastWindowMinutes {
     get => lastWindowMinutes;
-    set { if (lastWindowMinutes != value) { lastWindowMinutes = value; OnPropertyChanged(); } }
+    set {
+      if (lastWindowMinutes != value) {
+        lastWindowMinutes = value;
+        OnPropertyChanged();
+        NotifyModeAndTimelineProperties();
+      }
+    }
   }
 
   public string FirstWindowAction {
     get => firstWindowAction;
-    set { if (firstWindowAction != value) { firstWindowAction = value; OnPropertyChanged(); } }
+    set {
+      if (firstWindowAction != value) {
+        firstWindowAction = value;
+        OnPropertyChanged();
+        NotifyModeAndTimelineProperties();
+      }
+    }
   }
 
   public string LastWindowAction {
     get => lastWindowAction;
-    set { if (lastWindowAction != value) { lastWindowAction = value; OnPropertyChanged(); } }
+    set {
+      if (lastWindowAction != value) {
+        lastWindowAction = value;
+        OnPropertyChanged();
+        NotifyModeAndTimelineProperties();
+      }
+    }
+  }
+
+  public string ClassPassPolicyMode {
+    get => classPassPolicyMode;
+    set {
+      if (classPassPolicyMode != value) {
+        classPassPolicyMode = value;
+        if (string.Equals(value, "NoRules", StringComparison.OrdinalIgnoreCase)) {
+          bellTimeRulesDisabled = true;
+          OnPropertyChanged(nameof(BellTimeRulesDisabled));
+        } else {
+          bellTimeRulesDisabled = false;
+          OnPropertyChanged(nameof(BellTimeRulesDisabled));
+        }
+        NotifyModeAndTimelineProperties();
+      }
+    }
+  }
+
+  public bool IsWindowsMode => string.Equals(ClassPassPolicyMode, "Windows", StringComparison.OrdinalIgnoreCase);
+  public bool IsNoPassesMode => string.Equals(ClassPassPolicyMode, "NoPasses", StringComparison.OrdinalIgnoreCase);
+  public bool IsNoRulesMode => string.Equals(ClassPassPolicyMode, "NoRules", StringComparison.OrdinalIgnoreCase);
+
+  public string MiddleWindowAction {
+    get => middleWindowAction;
+    set {
+      if (middleWindowAction != value) {
+        middleWindowAction = value;
+        OnPropertyChanged();
+        NotifyModeAndTimelineProperties();
+      }
+    }
+  }
+
+  public bool BellTimeRulesDisabled {
+    get => bellTimeRulesDisabled;
+    set {
+      if (bellTimeRulesDisabled != value) {
+        bellTimeRulesDisabled = value;
+        if (value) {
+          classPassPolicyMode = "NoRules";
+        } else if (string.Equals(classPassPolicyMode, "NoRules", StringComparison.OrdinalIgnoreCase)) {
+          classPassPolicyMode = "Windows";
+        }
+        OnPropertyChanged();
+        NotifyModeAndTimelineProperties();
+      }
+    }
+  }
+
+  public bool BellTransitionEnabled {
+    get => bellTransitionEnabled;
+    set { if (bellTransitionEnabled != value) { bellTransitionEnabled = value; OnPropertyChanged(); } }
+  }
+
+  public bool WarningSoundEnabled {
+    get => warningSoundEnabled;
+    set { if (warningSoundEnabled != value) { warningSoundEnabled = value; OnPropertyChanged(); } }
+  }
+
+  public int WarningSoundVolume {
+    get => warningSoundVolume;
+    set {
+      var clamped = Math.Clamp(value, 10, 100);
+      if (warningSoundVolume != clamped) {
+        warningSoundVolume = clamped;
+        OnPropertyChanged();
+      }
+    }
+  }
+
+  public string FirstWindowBadgeColor => GetActionColor(FirstWindowAction);
+  public string MiddleWindowBadgeColor => GetActionColor(MiddleWindowAction);
+  public string LastWindowBadgeColor => GetActionColor(LastWindowAction);
+
+  public string WindowsModeBackground => IsWindowsMode ? "#0284C7" : "#F1F5F9";
+  public string WindowsModeForeground => IsWindowsMode ? "#FFFFFF" : "#475569";
+  public Avalonia.Media.FontWeight WindowsModeFontWeight => IsWindowsMode ? Avalonia.Media.FontWeight.Bold : Avalonia.Media.FontWeight.SemiBold;
+
+  public string NoPassesModeBackground => IsNoPassesMode ? "#0284C7" : "#F1F5F9";
+  public string NoPassesModeForeground => IsNoPassesMode ? "#FFFFFF" : "#475569";
+  public Avalonia.Media.FontWeight NoPassesModeFontWeight => IsNoPassesMode ? Avalonia.Media.FontWeight.Bold : Avalonia.Media.FontWeight.SemiBold;
+
+  public string NoRulesModeBackground => IsNoRulesMode ? "#0284C7" : "#F1F5F9";
+  public string NoRulesModeForeground => IsNoRulesMode ? "#FFFFFF" : "#475569";
+  public Avalonia.Media.FontWeight NoRulesModeFontWeight => IsNoRulesMode ? Avalonia.Media.FontWeight.Bold : Avalonia.Media.FontWeight.SemiBold;
+
+  public string TimelineSummaryText {
+    get {
+      if (IsNoPassesMode) return "Passes Locked (100% of period)";
+      if (IsNoRulesMode || BellTimeRulesDisabled) return "Open Pass Access (No rules)";
+      return $"First {FirstWindowMinutes}m ({FirstWindowAction})  ·  Middle ({MiddleWindowAction})  ·  Last {LastWindowMinutes}m ({LastWindowAction})";
+    }
+  }
+
+  static string GetActionColor(string action) => action?.ToUpperInvariant() switch {
+    "LOCK" => "#F43F5E",
+    "WARN" => "#D97706",
+    _ => "#059669"
+  };
+
+  public void NotifyModeAndTimelineProperties() {
+    OnPropertyChanged(nameof(ClassPassPolicyMode));
+    OnPropertyChanged(nameof(IsWindowsMode));
+    OnPropertyChanged(nameof(IsNoPassesMode));
+    OnPropertyChanged(nameof(IsNoRulesMode));
+    OnPropertyChanged(nameof(WindowsModeBackground));
+    OnPropertyChanged(nameof(WindowsModeForeground));
+    OnPropertyChanged(nameof(WindowsModeFontWeight));
+    OnPropertyChanged(nameof(NoPassesModeBackground));
+    OnPropertyChanged(nameof(NoPassesModeForeground));
+    OnPropertyChanged(nameof(NoPassesModeFontWeight));
+    OnPropertyChanged(nameof(NoRulesModeBackground));
+    OnPropertyChanged(nameof(NoRulesModeForeground));
+    OnPropertyChanged(nameof(NoRulesModeFontWeight));
+    OnPropertyChanged(nameof(FirstWindowBadgeColor));
+    OnPropertyChanged(nameof(MiddleWindowBadgeColor));
+    OnPropertyChanged(nameof(LastWindowBadgeColor));
+    OnPropertyChanged(nameof(TimelineSummaryText));
+  }
+
+  public void ApplyPreset(string preset) {
+    switch (preset?.Trim().ToLowerInvariant()) {
+      case "standard":
+      case "10/10":
+      case "lockout":
+        FirstWindowMinutes = 10;
+        FirstWindowAction = "Lock";
+        MiddleWindowAction = "Allow";
+        LastWindowMinutes = 10;
+        LastWindowAction = "Lock";
+        break;
+      case "startend":
+      case "startendonly":
+      case "allowonly":
+        FirstWindowMinutes = 10;
+        FirstWindowAction = "Allow";
+        MiddleWindowAction = "Lock";
+        LastWindowMinutes = 10;
+        LastWindowAction = "Allow";
+        break;
+      case "warning":
+      case "warn":
+        FirstWindowMinutes = 10;
+        FirstWindowAction = "Warn";
+        MiddleWindowAction = "Allow";
+        LastWindowMinutes = 10;
+        LastWindowAction = "Warn";
+        break;
+    }
+    NotifyModeAndTimelineProperties();
   }
 
   public string AlertSound {
@@ -553,7 +736,8 @@ public sealed class PolicyViewModel : INotifyPropertyChanged {
   }
 
   public void PlayAlertSoundPreview() {
-    SoundService.Play(AlertSound);
+    if (!WarningSoundEnabled) return;
+    SoundService.Play(AlertSound, WarningSoundVolume / 100.0);
   }
 
   public void Refresh(string profileId) {
@@ -567,6 +751,13 @@ public sealed class PolicyViewModel : INotifyPropertyChanged {
     LastWindowAction = rule.LastWindowAction;
     AlertSound = rule.AlertSound;
     TerminalEnforcementEnabled = rule.TerminalEnforcementEnabled;
+    ClassPassPolicyMode = rule.ClassPassPolicyMode ?? "Windows";
+    MiddleWindowAction = rule.MiddleWindowAction ?? "Allow";
+    BellTimeRulesDisabled = rule.BellTimeRulesDisabled;
+    BellTransitionEnabled = rule.BellTransitionEnabled;
+    WarningSoundEnabled = rule.WarningSoundEnabled;
+    WarningSoundVolume = rule.WarningSoundVolume > 0 ? rule.WarningSoundVolume : 80;
+    NotifyModeAndTimelineProperties();
 
     var schedule = policyRepository.GetBellSchedule(profileId);
     Periods.Clear();
@@ -596,7 +787,13 @@ public sealed class PolicyViewModel : INotifyPropertyChanged {
       FirstWindowAction: FirstWindowAction,
       LastWindowAction: LastWindowAction,
       AlertSound: AlertSound,
-      TerminalEnforcementEnabled: TerminalEnforcementEnabled
+      TerminalEnforcementEnabled: TerminalEnforcementEnabled,
+      ClassPassPolicyMode: ClassPassPolicyMode,
+      MiddleWindowAction: MiddleWindowAction,
+      BellTimeRulesDisabled: BellTimeRulesDisabled,
+      BellTransitionEnabled: BellTransitionEnabled,
+      WarningSoundEnabled: WarningSoundEnabled,
+      WarningSoundVolume: WarningSoundVolume
     );
     policyRepository.SavePolicyRule(rule);
     policyRepository.SaveBellSchedule(profileId, Periods.Select(p => p.ToModel()).ToList());

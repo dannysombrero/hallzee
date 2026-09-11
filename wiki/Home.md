@@ -40,3 +40,10 @@ operations.
 - [Security policy](https://github.com/dannysombrero/hallzee/blob/main/SECURITY.md)
 - [License](License)
 - [Hallzee repository](https://github.com/dannysombrero/hallzee)
+
+## Chrome web client (development)
+
+The local browser client is implemented; physical Chromebook, Mac and Windows
+Bluetooth/PWA acceptance remains pending. No classroom site is deployed.
+See [setup](Testing-and-Installation.md), [teacher guide](Chromebook-Guide.md),
+[IT operations](Web-Client-IT-Guide.md) and [acceptance evidence](Web-Client-Acceptance.md).

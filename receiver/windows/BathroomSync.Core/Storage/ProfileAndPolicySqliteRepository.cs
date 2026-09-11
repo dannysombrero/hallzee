@@ -166,7 +166,7 @@ public sealed class ProfileAndPolicySqliteRepository : IProfileRepository, IPoli
     using var connection = OpenConnection();
     using var command = connection.CreateCommand();
     command.CommandText = """
-      SELECT rule_id, profile_id, max_simultaneous_passes, duration_warning_seconds, max_daily_passes_per_student, lockout_start_minutes, lockout_end_minutes, first_window_action, last_window_action, alert_sound, terminal_enforcement_enabled
+      SELECT rule_id, profile_id, max_simultaneous_passes, duration_warning_seconds, max_daily_passes_per_student, lockout_start_minutes, lockout_end_minutes, first_window_action, last_window_action, alert_sound, terminal_enforcement_enabled, class_pass_policy_mode, middle_window_action, bell_transition_enabled, warning_sound_enabled, warning_sound_volume, bell_rules_disabled
       FROM policy_rules
       WHERE profile_id = $profileId
       LIMIT 1;
@@ -186,7 +186,13 @@ public sealed class ProfileAndPolicySqliteRepository : IProfileRepository, IPoli
         FirstWindowAction: reader.GetString(7),
         LastWindowAction: reader.GetString(8),
         AlertSound: reader.GetString(9),
-        TerminalEnforcementEnabled: reader.GetInt32(10) != 0
+        TerminalEnforcementEnabled: reader.GetInt32(10) != 0,
+        ClassPassPolicyMode: reader.FieldCount > 11 && !reader.IsDBNull(11) ? reader.GetString(11) : "Windows",
+        MiddleWindowAction: reader.FieldCount > 12 && !reader.IsDBNull(12) ? reader.GetString(12) : "Allow",
+        BellTransitionEnabled: reader.FieldCount > 13 && !reader.IsDBNull(13) ? reader.GetInt32(13) != 0 : true,
+        WarningSoundEnabled: reader.FieldCount > 14 && !reader.IsDBNull(14) ? reader.GetInt32(14) != 0 : true,
+        WarningSoundVolume: reader.FieldCount > 15 && !reader.IsDBNull(15) ? reader.GetInt32(15) : 80,
+        BellTimeRulesDisabled: reader.FieldCount > 16 && !reader.IsDBNull(16) ? reader.GetInt32(16) != 0 : false
       );
     }
 
@@ -205,9 +211,9 @@ public sealed class ProfileAndPolicySqliteRepository : IProfileRepository, IPoli
     command.Transaction = transaction;
     command.CommandText = """
       INSERT INTO policy_rules 
-        (rule_id, profile_id, max_simultaneous_passes, duration_warning_seconds, max_daily_passes_per_student, lockout_start_minutes, lockout_end_minutes, first_window_action, last_window_action, alert_sound, terminal_enforcement_enabled)
+        (rule_id, profile_id, max_simultaneous_passes, duration_warning_seconds, max_daily_passes_per_student, lockout_start_minutes, lockout_end_minutes, first_window_action, last_window_action, alert_sound, terminal_enforcement_enabled, class_pass_policy_mode, middle_window_action, bell_transition_enabled, warning_sound_enabled, warning_sound_volume, bell_rules_disabled)
       VALUES 
-        ($ruleId, $profileId, $maxSimul, $durWarn, $maxDaily, $lockStart, $lockEnd, $firstAction, $lastAction, $alertSound, $terminalEnforcement)
+        ($ruleId, $profileId, $maxSimul, $durWarn, $maxDaily, $lockStart, $lockEnd, $firstAction, $lastAction, $alertSound, $terminalEnforcement, $classPassMode, $middleAction, $bellTransition, $warningSoundEnabled, $warningSoundVolume, $bellRulesDisabled)
       ON CONFLICT(profile_id) DO UPDATE SET
         rule_id = excluded.rule_id,
         max_simultaneous_passes = excluded.max_simultaneous_passes,
@@ -218,7 +224,13 @@ public sealed class ProfileAndPolicySqliteRepository : IProfileRepository, IPoli
         first_window_action = excluded.first_window_action,
         last_window_action = excluded.last_window_action,
         alert_sound = excluded.alert_sound,
-        terminal_enforcement_enabled = excluded.terminal_enforcement_enabled;
+        terminal_enforcement_enabled = excluded.terminal_enforcement_enabled,
+        class_pass_policy_mode = excluded.class_pass_policy_mode,
+        middle_window_action = excluded.middle_window_action,
+        bell_transition_enabled = excluded.bell_transition_enabled,
+        warning_sound_enabled = excluded.warning_sound_enabled,
+        warning_sound_volume = excluded.warning_sound_volume,
+        bell_rules_disabled = excluded.bell_rules_disabled;
       """;
     command.Parameters.AddWithValue("$ruleId", rule.RuleId);
     command.Parameters.AddWithValue("$profileId", rule.ProfileId);
@@ -231,6 +243,12 @@ public sealed class ProfileAndPolicySqliteRepository : IProfileRepository, IPoli
     command.Parameters.AddWithValue("$lastAction", rule.LastWindowAction);
     command.Parameters.AddWithValue("$alertSound", rule.AlertSound);
     command.Parameters.AddWithValue("$terminalEnforcement", rule.TerminalEnforcementEnabled ? 1 : 0);
+    command.Parameters.AddWithValue("$classPassMode", rule.ClassPassPolicyMode ?? "Windows");
+    command.Parameters.AddWithValue("$middleAction", rule.MiddleWindowAction ?? "Allow");
+    command.Parameters.AddWithValue("$bellTransition", rule.BellTransitionEnabled ? 1 : 0);
+    command.Parameters.AddWithValue("$warningSoundEnabled", rule.WarningSoundEnabled ? 1 : 0);
+    command.Parameters.AddWithValue("$warningSoundVolume", rule.WarningSoundVolume);
+    command.Parameters.AddWithValue("$bellRulesDisabled", rule.BellTimeRulesDisabled ? 1 : 0);
     command.ExecuteNonQuery();
   }
 

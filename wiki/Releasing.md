@@ -1,6 +1,6 @@
 # Build, test, and publish Hallzee
 
-Teacher instructions live in [the teacher guide](Getting-Started-Users).
+Teacher instructions live in [the teacher guide](Getting-Started-Users.md).
 The open source repository is also the public download repository. GitHub Releases
 hold the desktop and firmware files, while the README links teachers to the guide.
 Do not commit student data, private keys, or local build output.
@@ -13,18 +13,18 @@ Use GitHub's web interface; no local Git, .NET, or Arduino installation is neede
    history and local files for credentials, student data, and unpublished
    material. Rotate anything that was ever committed before making it public.
 2. Original software uses AGPL-3.0-or-later in `LICENSE`; models use CC BY-SA 4.0
-   in `models/LICENSE`. See [license](License), `COPYRIGHT`, `CONTRIBUTING.md`,
-   and `SECURITY.md`. Follow [release licensing](Release-Licensing) for the
+   in `models/LICENSE`. See [license](License.md), `COPYRIGHT`, `CONTRIBUTING.md`,
+   and `SECURITY.md`. Follow [release licensing](Release-Licensing.md) for the
    exact dependency inventory and source bundles shipped with each release.
 3. The workflows default `HALLZEE_RELEASE_REPOSITORY` to this repository, so no
    repository variable or `HALLZEE_PUBLIC_RELEASE_TOKEN` is needed. The publish
    workflow uses GitHub's built-in token with Actions read and Contents write
    permissions. Keep the existing `firmware-release` environment secret for the
    private firmware signing key. Its deployment rule permits branch `main`
-   only, with no tags. See [CI and security](CI-and-Security).
+   only, with no tags. See [CI and security](CI-and-Security.md).
 
 For firmware, also configure the existing `firmware-release` environment and
-`HALLZEE_FIRMWARE_SIGNING_KEY`; see [firmware updates](Firmware-Updates).
+`HALLZEE_FIRMWARE_SIGNING_KEY`; see [firmware updates](Firmware-Updates.md).
 The public key must match the terminals and clients already distributed.
 Do not put the private signing key in the downloads repository.
 
@@ -61,13 +61,13 @@ It also launches the helper without arguments on a matching Mac architecture to
 check runtime loading without starting Bluetooth. A skipped architecture launch
 check must be completed on a matching Mac before release.
 
-The Actions artifacts are **Hallzee-Windows-win-x64**,
-**Hallzee-Mac-osx-arm64**, and **Hallzee-Mac-osx-x64**. Download the Windows
-artifact and extract once to reach the executable and supporting files. Windows
+The Actions artifacts are **Hallzee-v[version]-Windows-win-x64**,
+**Hallzee-v[version]-Mac-osx-arm64**, and **Hallzee-v[version]-Mac-osx-x64**. Download the Windows
+artifact and extract once to reach the executable (`Hallzee.exe`) and supporting files. Windows
 builds upload the app files directly, letting GitHub create the download ZIP.
-Publication reuses that exact artifact ZIP as `Hallzee-Windows-win-x64.zip`; it
-does not repackage the app. Older build runs and their `Desktop-*` artifact names
-remain publishable. Mac Actions artifacts wrap the prebuilt Mac ZIP because the
+Publication reuses that exact artifact ZIP as `Hallzee-v[version]-Windows-win-x64.zip`; it
+does not repackage the app. Older build runs, unversioned names, and their `Desktop-*` artifact names
+remain publishable. Mac Actions artifacts wrap the prebuilt Mac ZIP (`Hallzee-v[version]-Mac-[rid].zip`) because the
 inner archive preserves application permissions for installation and release.
 
 Edit `docs/client-release-notes.md` or `firmware/release-notes.md` before building.
@@ -164,4 +164,16 @@ On a physical terminal, verify checkout/check-in, disconnect/reconnect recovery,
 one signed update with retained data/pairing, and interruption recovery on both
 displays. Mac alone is insufficient for the complete cross-platform release.
 Mac/Windows physical OTA and USB migration still need verification. See
-[the v1.0 review](Release-Readiness) for the minimum classroom pilot checklist.
+[the v1.0 review](Release-Readiness.md) for the minimum classroom pilot checklist.
+
+## Web client development artifacts
+
+Run `bash scripts/web-client-macos.sh check` (or the Windows bootstrap with
+`check`) before review. The **Web client validation** workflow creates
+`Hallzee-Web-<version>-<commit>.zip` from `web-client/dist/`, with headers,
+manifest, build/source metadata and dependency notices. It does not deploy.
+Reject dirty/source-mismatched artifacts for release. Approve a dedicated stable
+HTTPS origin, verify its headers and complete the [platform gates](Web-Client-Acceptance.md)
+before pilot. Updates wait for a teacher click and closed competing windows;
+rollback must support the stored schema and must never clear data as a migration
+shortcut. See [IT operations](Web-Client-IT-Guide.md).

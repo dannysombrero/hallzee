@@ -50,6 +50,7 @@ folder structure required by Arduino.
 - [Terminal identity and claim](Design-Terminal-Identity-And-Exclusive-Claim)
 - [Terminal reassignment](Design-Terminal-Reassignment)
 - [Bluetooth firmware updates](Design-Bluetooth-Firmware-Updates)
+- [Development Chromebook and web client implementation](Design-Chromebook-Web-Client)
 
 ## Releases, security, and maintenance
 
@@ -60,3 +61,5 @@ folder structure required by Arduino.
 - [Open-source readiness](Open-Source-Readiness)
 - [Desktop dependency updates](Dependency-Updates-Desktop)
 - [Website dependency updates](Dependency-Updates-Web)
+
+- [Chrome teacher guide](Chromebook-Guide.md), [IT operations](Web-Client-IT-Guide.md), and [acceptance evidence](Web-Client-Acceptance.md).

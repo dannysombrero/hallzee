@@ -17,8 +17,8 @@ Mac Apple Silicon/Intel downloads with their supporting files. Actions installs
 its own prerequisites. Build artifacts are for testing; **Publish Tested
 Release** publishes the tested files in this same repository.
 
-The artifact names are `Hallzee-Windows-win-x64`,
-`Hallzee-Mac-osx-arm64`, and `Hallzee-Mac-osx-x64`. Packaged copies of the
+The artifact names are `Hallzee-v[version]-Windows-win-x64`,
+`Hallzee-v[version]-Mac-osx-arm64`, and `Hallzee-v[version]-Mac-osx-x64`. Packaged copies of the
 project license and copyright notice use the Windows-friendly filenames
 `LICENSE.txt` and `COPYRIGHT.txt`.
 
@@ -77,7 +77,7 @@ Windows has a one-command build that installs its own .NET SDK:
 powershell -ExecutionPolicy Bypass -File scripts/build-windows-client.ps1
 ```
 
-Run `HallzeeSync.Universal.exe` from `artifacts\BathroomSync-Windows`.
+Run `Hallzee.exe` from `artifacts\BathroomSync-Windows`.
 Downloaded Windows release ZIPs likewise extract directly to the executable
 and supporting files; extract the whole archive before launching.
 
@@ -133,6 +133,23 @@ desktop prototype. Leave the command running; press Ctrl+C to stop it. Later,
 built production server; it does not install dependencies. The browser prototype
 does not verify native Bluetooth or packaged desktop behavior.
 
+### Chrome web client (development)
+
+From the extracted repository, run `bash scripts/web-client-macos.sh preview`
+on Mac, or `powershell -ExecutionPolicy Bypass -File scripts/web-client-windows.ps1 preview`
+on Windows x64. This installs checksum-pinned Node and locked dependencies,
+builds the offline app and serves `http://localhost:4190`. No Git, .NET or
+Arduino installation is needed. Replace `preview` with `check` to install the
+test browser and run all web checks, or `dev` for hot reload on port 5173.
+
+This is a separate local-data client; it does not use the marketing preview's
+simulated classroom. See the [teacher guide](chromebook-guide.md),
+[IT guide](web-client-it-guide.md) and [acceptance record](testing/web-client-acceptance.md).
+Mac is sufficient for shared automated checks. Physical Chromebook acceptance
+is pending. Windows BLE/PWA requires a Windows BLE PC to verify its OS passkey
+flow, encrypted GATT, bond reuse and reconnect/sleep; **Windows behavior is
+unverified**. No classroom site has been deployed.
+
 For firmware/USB packaging failures, use the
 [release recovery steps](releasing.md#recover-a-failed-firmwareusb-build).
 Starting the firmware build in Actions runs the lockfile/packaging regressions
@@ -153,8 +170,15 @@ The firmware compile-only command above installs the Arduino dependencies.
 Website checks after `npm ci` are `npm --prefix preview-site test` and
 `npm --prefix preview-site run lint`.
 
+Repository hygiene and secret sanitization checks require only Python 3:
+
+```sh
+python3 -m unittest discover -s test -p test_repo_hygiene.py
+```
+
 | Change | Mac sufficient? | Windows-specific verification |
 | --- | --- | --- |
+| Repository hygiene, secret checks, and documentation | Yes | No Windows PC required for hygiene or doc updates |
 | Website, simulated prototype, shared UI/storage/protocol | Yes | No Windows PC required for shared tests |
 | ESP32 display/keypad, firmware build, Mac BLE/USB | Yes, with a physical terminal for hardware behavior | Does not verify Windows BLE/USB |
 | Windows package and database | No | Launch extracted app; load native SQLite; open/upgrade existing classroom data |
@@ -191,7 +215,9 @@ Dependabot monitors NuGet, npm and Actions. Use the focused
 and [release licensing](release-licensing.md) maintenance notes when updating.
 
 Keep private keys, terminal backups, real classroom data and local build output
-out of Git. Follow [CONTRIBUTING](../CONTRIBUTING.md) and report vulnerabilities
+out of Git. Run `python3 -m unittest discover -s test -p test_repo_hygiene.py`
+before pushing to verify tracked file safety, key pinning, and `.gitignore`
+rules. Follow [CONTRIBUTING](../CONTRIBUTING.md) and report vulnerabilities
 through [SECURITY](../SECURITY.md). Update the relevant `docs/` and matching
 `wiki/` page with setup or behavior changes. Older detailed regression notes
 are preserved in [Testing reference](testing-reference.md).

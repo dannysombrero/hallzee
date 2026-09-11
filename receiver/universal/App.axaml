@@ -215,7 +215,7 @@
     </ControlTheme>
 
     <!-- CANONICAL APPLICATION FONTS (MATCHING WEB CLIENT: DM SANS) -->
-    <FontFamily x:Key="DMSansFont">avares://HallzeeSync.Universal/Assets/Fonts#DM Sans</FontFamily>
+    <FontFamily x:Key="DMSansFont">avares://Hallzee/Assets/Fonts#DM Sans</FontFamily>
   </Application.Resources>
 
   <Application.Styles>

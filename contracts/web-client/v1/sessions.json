@@ -1,0 +1,25 @@
+{
+  "firstClaim": [
+    "HELLO",
+    "IDENTITY",
+    "CLAIM",
+    "CLAIM_OK",
+    "persist pending credential",
+    "CLAIM_COMMIT",
+    "AUTH_OK",
+    "confirm credential and assignment"
+  ],
+  "returningOwner": [
+    "HELLO",
+    "IDENTITY",
+    "AUTH",
+    "AUTH_OK"
+  ],
+  "rules": [
+    "No application command before AUTH_OK",
+    "Retain key after ambiguous CLAIM_COMMIT",
+    "Do not ACK LIVE_TRIP",
+    "Commit TRIP before ACK",
+    "Advance cursor only at SYNC_END"
+  ]
+}

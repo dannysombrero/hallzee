@@ -9,7 +9,7 @@ internal static class MacApplicationIcon {
   public static void Apply() {
     if (!OperatingSystem.IsMacOS()) return;
 
-    using var source = AssetLoader.Open(new Uri("avares://HallzeeSync.Universal/Assets/hallzee.icns"));
+    using var source = AssetLoader.Open(new Uri("avares://Hallzee/Assets/hallzee.icns"));
     using var buffer = new MemoryStream();
     source.CopyTo(buffer);
     var bytes = buffer.ToArray();

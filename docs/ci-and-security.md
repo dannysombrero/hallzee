@@ -148,3 +148,14 @@ those physical Windows capabilities have not been verified by this pass.
 References: [GitHub branch protection](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches),
 [reusable workflows](https://docs.github.com/en/actions/reference/workflows-and-actions/reusing-workflow-configurations),
 and [Gitleaks configuration](https://github.com/gitleaks/gitleaks#configuration).
+
+## Web client checks
+
+`pr-readiness.yml` selects the reusable `web-client.yml` workflow for changes
+to `web-client/`, `contracts/`, core protocol logic and shared CI/scripts. Its
+result participates in **PR readiness** alongside the existing platform checks.
+It installs pinned Node, locked npm packages and Playwright Chromium, runs the
+web `check` command and C# conformance fixtures, and uploads a static review ZIP.
+There is no deployment step. Tests use fictional data, simulate GATT only, and
+exercise real IndexedDB, CryptoKey storage, locks, offline reload and interrupted
+updates. Keep physical support claims tied to [recorded evidence](testing/web-client-acceptance.md).

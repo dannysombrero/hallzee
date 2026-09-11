@@ -1,15 +1,15 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:vm="clr-namespace:BathroomSync.Universal.ViewModels;assembly=HallzeeSync.Universal"
-        xmlns:views="clr-namespace:BathroomSync.Universal.Views;assembly=HallzeeSync.Universal"
+        xmlns:vm="clr-namespace:BathroomSync.Universal.ViewModels;assembly=Hallzee"
+        xmlns:views="clr-namespace:BathroomSync.Universal.Views;assembly=Hallzee"
         x:Class="BathroomSync.Universal.MainWindow"
         x:DataType="vm:MainViewModel"
-        Icon="avares://HallzeeSync.Universal/Assets/hallzee.ico"
+        Icon="avares://Hallzee/Assets/hallzee.ico"
         Width="1120" Height="740" MinWidth="940" MinHeight="640"
         Title="{Binding WindowTitle}">
   
   <Window.Background>
-    <ImageBrush Source="avares://HallzeeSync.Universal/Assets/background.jpg" Stretch="UniformToFill" AlignmentX="Left" AlignmentY="Center" />
+    <ImageBrush Source="avares://Hallzee/Assets/background.jpg" Stretch="UniformToFill" AlignmentX="Left" AlignmentY="Center" />
   </Window.Background>
   
   <Grid RowDefinitions="Auto,*">
@@ -18,7 +18,7 @@
     <Border Grid.Row="0" Background="{StaticResource HallzeeWindowHeaderGradient}" Padding="16,8" BorderBrush="#38BDF8" BorderThickness="0,0,0,1">
       <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
         <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
-          <Image Source="avares://HallzeeSync.Universal/Assets/hallzee-logo.png" Width="18" Height="18" VerticalAlignment="Center" />
+          <Image Source="avares://Hallzee/Assets/hallzee-logo.png" Width="18" Height="18" VerticalAlignment="Center" />
           <TextBlock Text="Hallzee Desktop Client" FontWeight="Bold" FontSize="12" Foreground="White" VerticalAlignment="Center" />
           <TextBlock Text="|" Foreground="#7DD3FC" VerticalAlignment="Center" Margin="4,0" />
           <TextBlock Text="{Binding HeaderLocationText}" FontSize="12" Foreground="#F0F9FF" FontWeight="SemiBold" VerticalAlignment="Center" />
@@ -49,7 +49,7 @@
           <!-- LOGO & BRAND -->
           <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" VerticalAlignment="Center">
             <Border Width="42" Height="42" CornerRadius="14" Background="White" BorderBrush="#BAE6FD" BorderThickness="1" BoxShadow="0 4 12 0 #0D0284C7" VerticalAlignment="Center" Padding="4">
-              <Image Source="avares://HallzeeSync.Universal/Assets/hallzee-logo.png" Width="32" Height="32" VerticalAlignment="Center" HorizontalAlignment="Center" />
+              <Image Source="avares://Hallzee/Assets/hallzee-logo.png" Width="32" Height="32" VerticalAlignment="Center" HorizontalAlignment="Center" />
             </Border>
             <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">
               <TextBlock Text="Hallzee" FontSize="18" FontWeight="Black" Foreground="#0F172A" LetterSpacing="0.5" />

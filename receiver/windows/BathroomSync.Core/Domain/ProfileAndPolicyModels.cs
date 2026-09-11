@@ -19,7 +19,13 @@ public record PolicyRule(
   string FirstWindowAction = "Warn",
   string LastWindowAction = "Warn",
   string AlertSound = "Chime",
-  bool TerminalEnforcementEnabled = false
+  bool TerminalEnforcementEnabled = false,
+  string ClassPassPolicyMode = "Windows",
+  string MiddleWindowAction = "Allow",
+  bool BellTimeRulesDisabled = false,
+  bool BellTransitionEnabled = true,
+  bool WarningSoundEnabled = true,
+  int WarningSoundVolume = 80
 );
 
 public sealed class BellSchedulePeriod {
@@ -67,6 +73,13 @@ public record ResolvedBellPeriod(
   DateTime EndsAt,
   string ScheduleName,
   string ClassSection
+);
+
+public record ResolvedBellTransition(
+  ResolvedBellPeriod PreviousPeriod,
+  ResolvedBellPeriod NextPeriod,
+  DateTime StartsAt,
+  DateTime EndsAt
 );
 
 public record TerminalDeviceConfig(

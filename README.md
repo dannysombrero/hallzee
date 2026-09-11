@@ -135,6 +135,20 @@ Hallzee is preparing for its first stable release. Maintainers can follow the
 [v1.0 release checklist](docs/release-readiness.md); teachers can use the
 numbered downloads once they appear on the releases page.
 
+The [Chrome web client](web-client/README.md) is implemented as a local development
+build with Bluetooth, local storage and offline use. Start it with
+`bash scripts/web-client-macos.sh preview`; see the [contributor guide](docs/testing-and-installation.md)
+for Windows and test commands. Physical Chromebook, Mac and Windows browser
+acceptance is pending; no classroom site is deployed. The
+[implementation contract](docs/design/chromebook-web-client.md) and
+[acceptance evidence](docs/testing/web-client-acceptance.md) track release gates.
+
+## Future releases and roadmap
+
+Beyond the physical hardware terminal and native desktop clients, planned future explorations include:
+- **Dedicated browser kiosk mode:** Enabling a single classroom tablet, computer, or touchscreen display to act as a stand-alone Hallzee terminal without custom hardware.
+- **Privacy-focused ephemeral online sign-out:** A teacher initiates a temporary sign-out session (e.g., via a 6-character room code or URL). Students navigate to the link on their own devices to check in or out using their student ID. The session relays only student IDs—never student names or personal records—to the teacher's desktop or web client where roster names remain stored locally. In-flight session transactions are automatically purged after the session closes or times out.
+
 ## Contributing
 
 Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) and the

@@ -1,8 +1,8 @@
 # Installation and testing
 
 This is the contributor setup guide. Teachers should use
-[Getting started](getting-started-users.md); maintainers publishing downloads
-should use [Build, test, and publish](releasing.md).
+[Getting started](Getting-Started-Users.md); maintainers publishing downloads
+should use [Build, test, and publish](Releasing.md).
 
 ## First day: start from nothing
 
@@ -17,8 +17,8 @@ Mac Apple Silicon/Intel downloads with their supporting files. Actions installs
 its own prerequisites. Build artifacts are for testing; **Publish Tested
 Release** publishes the tested files in this same repository.
 
-The artifact names are `Hallzee-Windows-win-x64`,
-`Hallzee-Mac-osx-arm64`, and `Hallzee-Mac-osx-x64`. Packaged copies of the
+The artifact names are `Hallzee-v[version]-Windows-win-x64`,
+`Hallzee-v[version]-Mac-osx-arm64`, and `Hallzee-v[version]-Mac-osx-x64`. Packaged copies of the
 project license and copyright notice use the Windows-friendly filenames
 `LICENSE.txt` and `COPYRIGHT.txt`.
 
@@ -26,15 +26,18 @@ project license and copyright notice use the Windows-friendly filenames
 
 Use an original ESP32 DevKit V1/WROOM-32 with at least 4 MB flash, a 3×4 keypad,
 and either an ST7735 or ILI9341 SPI display. C3/S2/S3/H2 boards are not supported.
+
+For component recommendations, shopping links, the 2.8″ enclosure, and a
+beginner-friendly wiring walkthrough, see [Build Your Own Terminal](Build-Your-Own-Terminal.md).
 Use a USB **data** cable and 3.3 V signal wiring.
 
 ### ESP32 board requirements
 
-See the [complete board requirements](testing-reference.md#esp32-board-requirements).
+See the [complete board requirements](Testing-Reference.md#esp32-board-requirements).
 
 ### Physical wiring
 
-Follow the [pin table and bring-up checklist](testing-reference.md#physical-wiring)
+Follow the [pin table and bring-up checklist](Testing-Reference.md#physical-wiring)
 before applying power. Connect one terminal, then run your platform's command:
 
 ```sh
@@ -58,13 +61,13 @@ To install the Arduino tools and compile without changing hardware, add
 `--compile-only` / `-CompileOnly`; no terminal is needed. After a successful
 normal installation, `--fast` / `-Fast` reuses tools and writes only the
 application and boot selection. It makes no new backup. Read
-[firmware updates and recovery](firmware-updates.md) before using fast mode.
+[firmware updates and recovery](Firmware-Updates.md) before using fast mode.
 
 ### Restore the standard UI after touch testing
 
 Run the regular flasher with the display and rotation options above and omit
 `--touch-test` / `-TouchTest`. Normal operation uses the physical keypad. See
-the [paused touch experiment](touch-test.md) for its separate wiring and limits.
+the [paused touch experiment](Touch-Test.md) for its separate wiring and limits.
 
 ## Desktop development
 
@@ -74,7 +77,7 @@ Windows has a one-command build that installs its own .NET SDK:
 powershell -ExecutionPolicy Bypass -File scripts/build-windows-client.ps1
 ```
 
-Run `HallzeeSync.Universal.exe` from `artifacts\BathroomSync-Windows`.
+Run `Hallzee.exe` from `artifacts\BathroomSync-Windows`.
 Downloaded Windows release ZIPs likewise extract directly to the executable
 and supporting files; extract the whole archive before launching.
 
@@ -110,7 +113,7 @@ dotnet build receiver/MacBLEAgent/BathroomSync.MacBLEAgent.csproj -r osx-arm64 -
 ```
 
 The development client selects the helper matching its process architecture.
-Use the [release packaging workflow](releasing.md) for distribution; it builds,
+Use the [release packaging workflow](Releasing.md) for distribution; it builds,
 signs and checks the complete Mac bundle. The package rewrites its Avalonia
 native-library link to the copy inside the app bundle, so a clean Mac does not
 need any library installed under `/usr/local/lib`.
@@ -130,8 +133,25 @@ desktop prototype. Leave the command running; press Ctrl+C to stop it. Later,
 built production server; it does not install dependencies. The browser prototype
 does not verify native Bluetooth or packaged desktop behavior.
 
+### Chrome web client (development)
+
+From the extracted repository, run `bash scripts/web-client-macos.sh preview`
+on Mac, or `powershell -ExecutionPolicy Bypass -File scripts/web-client-windows.ps1 preview`
+on Windows x64. This installs checksum-pinned Node and locked dependencies,
+builds the offline app and serves `http://localhost:4190`. No Git, .NET or
+Arduino installation is needed. Replace `preview` with `check` to install the
+test browser and run all web checks, or `dev` for hot reload on port 5173.
+
+This is a separate local-data client; it does not use the marketing preview's
+simulated classroom. See the [teacher guide](Chromebook-Guide.md),
+[IT guide](Web-Client-IT-Guide.md) and [acceptance record](Web-Client-Acceptance.md).
+Mac is sufficient for shared automated checks. Physical Chromebook acceptance
+is pending. Windows BLE/PWA requires a Windows BLE PC to verify its OS passkey
+flow, encrypted GATT, bond reuse and reconnect/sleep; **Windows behavior is
+unverified**. No classroom site has been deployed.
+
 For firmware/USB packaging failures, use the
-[release recovery steps](Releasing#recover-a-failed-firmwareusb-build).
+[release recovery steps](Releasing.md#recover-a-failed-firmwareusb-build).
 Starting the firmware build in Actions runs the lockfile/packaging regressions
 and installs its own tools; no local Python or Arduino setup is needed.
 
@@ -150,8 +170,15 @@ The firmware compile-only command above installs the Arduino dependencies.
 Website checks after `npm ci` are `npm --prefix preview-site test` and
 `npm --prefix preview-site run lint`.
 
+Repository hygiene and secret sanitization checks require only Python 3:
+
+```sh
+python3 -m unittest discover -s test -p test_repo_hygiene.py
+```
+
 | Change | Mac sufficient? | Windows-specific verification |
 | --- | --- | --- |
+| Repository hygiene, secret checks, and documentation | Yes | No Windows PC required for hygiene or doc updates |
 | Website, simulated prototype, shared UI/storage/protocol | Yes | No Windows PC required for shared tests |
 | ESP32 display/keypad, firmware build, Mac BLE/USB | Yes, with a physical terminal for hardware behavior | Does not verify Windows BLE/USB |
 | Windows package and database | No | Launch extracted app; load native SQLite; open/upgrade existing classroom data |
@@ -161,9 +188,9 @@ Windows builds and test runners can verify compilation and database/file-lock
 tests. They do not replace a Windows PC with a physical terminal. Windows
 launch/BLE/USB behavior has not been verified by Mac-only checks. Physical Mac
 updates and clean-machine installation also need release acceptance testing;
-use [release readiness](release-readiness.md) and the detailed
-[Bluetooth checklist](testing-reference.md#windows--mac-bluetooth-verification),
-including the [hardware suffix and discovery badge checklist](testing-reference.md#windows--mac-bluetooth-verification).
+use [release readiness](Release-Readiness.md) and the detailed
+[Bluetooth checklist](Testing-Reference.md#windows--mac-bluetooth-verification),
+including the [hardware suffix and discovery badge checklist](Testing-Reference.md#windows--mac-bluetooth-verification).
 
 Terminal notification and disconnect callbacks are marshalled to the desktop
 UI thread before they update the dashboard. A Mac is sufficient for the shared
@@ -179,19 +206,21 @@ are affected. Changes to workflows or shared build/test scripts select the full
 PR set. The manual desktop and firmware workflows retain the complete release
 matrices. Require **PR readiness** and **Repository hygiene** on `main`. The
 manual **Prepare preview dependency update** workflow produces a reviewable
-patch artifact; it does not push changes. See [CI and security](ci-and-security.md)
+patch artifact; it does not push changes. See [CI and security](CI-and-Security.md)
 for exact workflow and branch settings.
 
 NuGet audits include transitive dependencies; known advisories fail CI.
 Dependabot monitors NuGet, npm and Actions. Use the focused
-[desktop](dependency-updates-desktop.md), [website](dependency-updates-web.md)
-and [release licensing](release-licensing.md) maintenance notes when updating.
+[desktop](Dependency-Updates-Desktop.md), [website](Dependency-Updates-Web.md)
+and [release licensing](Release-Licensing.md) maintenance notes when updating.
 
 Keep private keys, terminal backups, real classroom data and local build output
-out of Git. Follow [CONTRIBUTING](../CONTRIBUTING.md) and report vulnerabilities
-through [SECURITY](../SECURITY.md). Update the relevant `docs/` and matching
+out of Git. Run `python3 -m unittest discover -s test -p test_repo_hygiene.py`
+before pushing to verify tracked file safety, key pinning, and `.gitignore`
+rules. Follow [CONTRIBUTING](https://github.com/dannysombrero/hallzee/blob/main/CONTRIBUTING.md) and report vulnerabilities
+through [SECURITY](https://github.com/dannysombrero/hallzee/blob/main/SECURITY.md). Update the relevant `docs/` and matching
 `wiki/` page with setup or behavior changes. Older detailed regression notes
-are preserved in [Testing reference](testing-reference.md).
+are preserved in [Testing reference](Testing-Reference.md).
 # Demo screenshots
 
 For visual documentation, use only the fictional roster in `docs/demo-roster.csv`. On a safe macOS demo machine, close Hallzee and run:

@@ -12,9 +12,9 @@ what changed. Download the file for your computer under **Assets**:
 
 | Your computer | Download | Install |
 | --- | --- | --- |
-| Windows 10/11, 64-bit Intel/AMD | `Hallzee-Windows-win-x64.zip` | Extract the entire ZIP into a folder, then open `HallzeeSync.Universal.exe`. |
-| Mac with Apple silicon (M1 or later) | `Hallzee-Mac-osx-arm64.zip` | Open the ZIP, drag `Hallzee.app` to Applications, then open it. |
-| Mac with an Intel processor | `Hallzee-Mac-osx-x64.zip` | Open the ZIP, drag `Hallzee.app` to Applications, then open it. |
+| Windows 10/11, 64-bit Intel/AMD | `Hallzee-v[version]-Windows-win-x64.zip` | Extract the entire ZIP into a folder, then open `Hallzee.exe`. |
+| Mac with Apple silicon (M1 or later) | `Hallzee-v[version]-Mac-osx-arm64.zip` | Open the ZIP, drag `Hallzee.app` to Applications, then open it. |
+| Mac with an Intel processor | `Hallzee-v[version]-Mac-osx-x64.zip` | Open the ZIP, drag `Hallzee.app` to Applications, then open it. |
 
 On a Mac, **Apple menu → About This Mac** shows the chip or processor.
 You do not need Git, .NET, Arduino software, or a GitHub account.
@@ -55,13 +55,31 @@ paired to another computer, not necessarily that a student is out.
   `Room #204`). Names may contain 1–24 characters except commas. Set the maximum
   ID length if your school needs a different limit.
 
-Bell-time rules guide the desktop display. To also block new checkouts at the
-terminal, select **Enforce bell-time lockouts on the terminal**. It is off by
-default. **Warn** allows a checkout; **Lock** blocks a new checkout. Students
-already out can always check back in. Sync regularly: the terminal receives
-14 days of bell-time rules. Duration and daily-use warnings help you review
-activity; they do not automatically return students or enforce daily quotas
-at the terminal. Alert sounds play on the computer.
+Bell-time rules guide pass availability during scheduled class periods across the
+desktop dashboard, Mini Window, and optionally on the terminal:
+
+- **Pass Policy Modes:**
+  - **Windows (Default):** Define behavior for the beginning (first X minutes), middle
+    (instruction time), and end (last Y minutes) of class. Each window can be set
+    independently to **Allow**, **Warn**, or **Lock**. Quick presets include
+    *10/10 Lockout* (locks start & end, allows middle), *Start & End Only* (allows start & end,
+    locks middle), and *Warning Windows* (warns during start & end).
+  - **No Passes:** Completely locks pass checkout for the duration of the class period.
+  - **No Rules:** Keeps passes open throughout the entire period without bell restrictions.
+- **Master Toggle:** Select **Disable bell-time window rules completely** to bypass all
+  window restrictions while keeping class period definitions intact.
+- **Bell Transition Time:** Check **Enable bell transition time (between periods)** to
+  display passing periods between classes as "Transition Time" in purple on the Mini
+  Window, complete with hover tooltips showing remaining countdown and upcoming class.
+- **Terminal Enforcement:** To also block checkouts at the physical terminal kiosk during
+  locked windows, check **Enforce bell-time lockouts on the terminal** (off by default).
+  Students already out can always check back in. Sync regularly: the terminal receives
+  14 days of bell-time rules.
+- **Warning Sounds:** Choose from 8 built-in synthesized alert sounds (*Chime*, *Bell*,
+  *Soft alert*, *Marimba*, *Subtle Ping*, *Digital Watch*, *Gentle Knock*, *Harp Ascend*).
+  Enable or mute warning audio, adjust playback volume (10–100%), and use **Preview** to
+  audition the selected alert. Duration and daily-use warnings help you review
+  activity; they do not automatically return students or enforce daily quotas at the terminal.
 
 ## During class
 

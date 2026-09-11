@@ -40,7 +40,9 @@ public static class WorkspaceTransfer {
         rule.MaxDailyPassesPerStudent is < 1 or > 20 || rule.LockoutStartMinutes is < 0 or > 60 ||
         rule.LockoutEndMinutes is < 0 or > 60 ||
         !new[] { "Allow", "Warn", "Lock" }.Contains(rule.FirstWindowAction) ||
-        !new[] { "Allow", "Warn", "Lock" }.Contains(rule.LastWindowAction) || string.IsNullOrWhiteSpace(rule.AlertSound))
+        !new[] { "Allow", "Warn", "Lock" }.Contains(rule.LastWindowAction) || string.IsNullOrWhiteSpace(rule.AlertSound) ||
+        (!string.IsNullOrEmpty(rule.MiddleWindowAction) && !new[] { "Allow", "Warn", "Lock" }.Contains(rule.MiddleWindowAction)) ||
+        (!string.IsNullOrEmpty(rule.ClassPassPolicyMode) && !new[] { "Windows", "NoPasses", "NoRules" }.Contains(rule.ClassPassPolicyMode)))
       throw new ArgumentException("The workspace contains invalid policy rules.");
     var validDays = new[] { "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun" };
     foreach (var p in package.Periods) {

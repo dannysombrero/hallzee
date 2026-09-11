@@ -3,7 +3,7 @@ using Microsoft.Data.Sqlite;
 namespace BathroomSync.Core;
 
 public static class DatabaseMigrator {
-  public const int CurrentSchemaVersion = 7;
+  public const int CurrentSchemaVersion = 8;
 
   public static void Migrate(SqliteConnection connection) {
     EnsureMigrationTable(connection);
@@ -27,7 +27,12 @@ public static class DatabaseMigrator {
     if (currentVersion < 6) {
       ApplyMigration6(connection);
     }
-    if (currentVersion < 7) ApplyMigration7(connection);
+    if (currentVersion < 7) {
+      ApplyMigration7(connection);
+    }
+    if (currentVersion < 8) {
+      ApplyMigration8(connection);
+    }
   }
 
   public static int GetCurrentVersion(SqliteConnection connection) {
@@ -376,6 +381,48 @@ public static class DatabaseMigrator {
       """;
     command.ExecuteNonQuery();
     transaction.Commit();
+  }
+
+  static void ApplyMigration8(SqliteConnection connection) {
+    using var transaction = connection.BeginTransaction();
+    try {
+      var policyColumns = GetColumnNames(connection, transaction, "policy_rules");
+      using var command = connection.CreateCommand();
+      command.Transaction = transaction;
+      if (!policyColumns.Contains("class_pass_policy_mode")) {
+        command.CommandText = "ALTER TABLE policy_rules ADD COLUMN class_pass_policy_mode TEXT NOT NULL DEFAULT 'Windows';";
+        command.ExecuteNonQuery();
+      }
+      if (!policyColumns.Contains("middle_window_action")) {
+        command.CommandText = "ALTER TABLE policy_rules ADD COLUMN middle_window_action TEXT NOT NULL DEFAULT 'Allow';";
+        command.ExecuteNonQuery();
+      }
+      if (!policyColumns.Contains("bell_transition_enabled")) {
+        command.CommandText = "ALTER TABLE policy_rules ADD COLUMN bell_transition_enabled INTEGER NOT NULL DEFAULT 1;";
+        command.ExecuteNonQuery();
+      }
+      if (!policyColumns.Contains("warning_sound_enabled")) {
+        command.CommandText = "ALTER TABLE policy_rules ADD COLUMN warning_sound_enabled INTEGER NOT NULL DEFAULT 1;";
+        command.ExecuteNonQuery();
+      }
+      if (!policyColumns.Contains("warning_sound_volume")) {
+        command.CommandText = "ALTER TABLE policy_rules ADD COLUMN warning_sound_volume INTEGER NOT NULL DEFAULT 80;";
+        command.ExecuteNonQuery();
+      }
+      if (!policyColumns.Contains("bell_rules_disabled")) {
+        command.CommandText = "ALTER TABLE policy_rules ADD COLUMN bell_rules_disabled INTEGER NOT NULL DEFAULT 0;";
+        command.ExecuteNonQuery();
+      }
+      command.CommandText = """
+        INSERT OR REPLACE INTO schema_migrations (version, applied_at, description)
+        VALUES (8, datetime('now'), 'Class pass policy mode, middle window action, bell transition, and warning sound configuration');
+        """;
+      command.ExecuteNonQuery();
+      transaction.Commit();
+    } catch {
+      transaction.Rollback();
+      throw;
+    }
   }
 
   static void ApplyMigration6(SqliteConnection connection) {

@@ -79,3 +79,12 @@ NuGet license/copyright files; `--framework-references` adds the Mac helper's
 native workload runtime pack. Missing package metadata or required license text
 fails release collection. This inventory does not certify legal compatibility
 of every third-party component.
+
+## Web client
+
+The development `web-client/` bundles React/React DOM (MIT), React's scheduler
+(MIT), Lucide icons (ISC) and Tailwind-generated CSS (MIT). The build retains
+original installed package notices under `dist/licenses/` and includes a complete
+resolved npm inventory, including development and platform-optional packages.
+No remote fonts or runtime CDN imports are used. Original Hallzee web code is
+AGPL-3.0-or-later; the static artifact includes its license and source provenance.

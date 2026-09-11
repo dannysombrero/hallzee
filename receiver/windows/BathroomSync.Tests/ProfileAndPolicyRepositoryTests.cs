@@ -65,6 +65,12 @@ public sealed class ProfileAndPolicyRepositoryTests {
       Assert.Equal(2, policy.MaxDailyPassesPerStudent);
       Assert.Equal(10, policy.LockoutStartMinutes);
       Assert.Equal(10, policy.LockoutEndMinutes);
+      Assert.Equal("Windows", policy.ClassPassPolicyMode);
+      Assert.Equal("Allow", policy.MiddleWindowAction);
+      Assert.False(policy.BellTimeRulesDisabled);
+      Assert.True(policy.BellTransitionEnabled);
+      Assert.True(policy.WarningSoundEnabled);
+      Assert.Equal(80, policy.WarningSoundVolume);
 
       // Update policy rule
       var customPolicy = new PolicyRule(
@@ -78,7 +84,13 @@ public sealed class ProfileAndPolicyRepositoryTests {
         FirstWindowAction: "Lock",
         LastWindowAction: "Allow",
         AlertSound: "Bell",
-        TerminalEnforcementEnabled: true
+        TerminalEnforcementEnabled: true,
+        ClassPassPolicyMode: "NoPasses",
+        MiddleWindowAction: "Lock",
+        BellTimeRulesDisabled: true,
+        BellTransitionEnabled: false,
+        WarningSoundEnabled: false,
+        WarningSoundVolume: 45
       );
       repo.SavePolicyRule(customPolicy);
 
@@ -92,6 +104,12 @@ public sealed class ProfileAndPolicyRepositoryTests {
       Assert.Equal("Allow", updatedPolicy.LastWindowAction);
       Assert.Equal("Bell", updatedPolicy.AlertSound);
       Assert.True(updatedPolicy.TerminalEnforcementEnabled);
+      Assert.Equal("NoPasses", updatedPolicy.ClassPassPolicyMode);
+      Assert.Equal("Lock", updatedPolicy.MiddleWindowAction);
+      Assert.True(updatedPolicy.BellTimeRulesDisabled);
+      Assert.False(updatedPolicy.BellTransitionEnabled);
+      Assert.False(updatedPolicy.WarningSoundEnabled);
+      Assert.Equal(45, updatedPolicy.WarningSoundVolume);
 
       // Bell Schedule
       var periods = new[] {

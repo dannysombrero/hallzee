@@ -94,9 +94,9 @@ updates, and the repository-owned workflow remain enabled.
 See [GitHub dependency submission](https://docs.github.com/en/code-security/how-tos/secure-your-supply-chain/secure-your-dependencies/use-dependency-submission-api)
 and the [official action inputs](https://github.com/actions/component-detection-dependency-submission-action).
 
-Review [website dependency updates](dependency-updates-web.md),
-[desktop dependency updates](dependency-updates-desktop.md), and
-[release licensing](release-licensing.md) before upgrading a dependency. Arduino
+Review [website dependency updates](Dependency-Updates-Web.md),
+[desktop dependency updates](Dependency-Updates-Desktop.md), and
+[release licensing](Release-Licensing.md) before upgrading a dependency. Arduino
 libraries use `firmware/terminal/arduino-libraries.txt`; Dependabot does not manage them.
 
 The manual **Prepare preview dependency update** action updates within declared
@@ -116,7 +116,7 @@ rejects tracked private keys, classroom exports, and local host metadata.
 GitHub's **Private vulnerability reporting**, **Secret scanning**, and **Push
 protection** are separate repository settings; committing YAML does not enable
 them. Enable the available controls after making this repository public, then
-verify the private reporting link in [SECURITY.md](../SECURITY.md). Keep
+verify the private reporting link in [SECURITY.md](https://github.com/dannysombrero/hallzee/blob/main/SECURITY.md). Keep
 Dependabot alerts, security updates, and repository-owned dependency submission
 enabled as described above. No self-hosted runners are needed for this project.
 
@@ -137,7 +137,7 @@ reuse a pre-cleanup artifact whose source links would become stale.
 
 Keep numbered `client-v*` and `firmware-v*` tags immutable after any history
 maintenance. Publication attaches the tested guide and checksums without
-writing over the README. See [releasing](releasing.md) for the acceptance and
+writing over the README. See [releasing](Releasing.md) for the acceptance and
 publication sequence.
 
 A Mac is sufficient for local scripts, source scans, and shared tests. CI also
@@ -148,3 +148,14 @@ those physical Windows capabilities have not been verified by this pass.
 References: [GitHub branch protection](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches),
 [reusable workflows](https://docs.github.com/en/actions/reference/workflows-and-actions/reusing-workflow-configurations),
 and [Gitleaks configuration](https://github.com/gitleaks/gitleaks#configuration).
+
+## Web client checks
+
+`pr-readiness.yml` selects the reusable `web-client.yml` workflow for changes
+to `web-client/`, `contracts/`, core protocol logic and shared CI/scripts. Its
+result participates in **PR readiness** alongside the existing platform checks.
+It installs pinned Node, locked npm packages and Playwright Chromium, runs the
+web `check` command and C# conformance fixtures, and uploads a static review ZIP.
+There is no deployment step. Tests use fictional data, simulate GATT only, and
+exercise real IndexedDB, CryptoKey storage, locks, offline reload and interrupted
+updates. Keep physical support claims tied to [recorded evidence](Web-Client-Acceptance.md).

@@ -1,0 +1,48 @@
+name: Web client validation
+on:
+  workflow_call:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web-client
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22.23.2'
+          cache: npm
+          cache-dependency-path: web-client/package-lock.json
+      - run: npm ci
+      - run: npx --no-install playwright install --with-deps chromium
+      - run: npm run check
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '8.0.x'
+      - name: Verify shared C# contracts
+        run: dotnet test ../receiver/windows/BathroomSync.Tests/BathroomSync.Tests.csproj --configuration Release --filter FullyQualifiedName~WebClientContractTests
+      - name: Package reviewed static artifact (no deployment)
+        id: package
+        run: |
+          VERSION=$(node -p "JSON.parse(require('fs').readFileSync('package.json')).version")
+          ARTIFACT="Hallzee-Web-${VERSION}-${GITHUB_SHA:0:12}"
+          cd dist
+          zip -qr "../${ARTIFACT}.zip" .
+          echo "artifact=${ARTIFACT}" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v6
+        with:
+          name: ${{ steps.package.outputs.artifact }}
+          path: web-client/${{ steps.package.outputs.artifact }}.zip
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v6
+        if: failure()
+        with:
+          name: web-client-test-failures
+          path: web-client/test-results
+          if-no-files-found: ignore

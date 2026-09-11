@@ -20,6 +20,7 @@ jobs:
       firmware: ${{ steps.changes.outputs.firmware }}
       website: ${{ steps.changes.outputs.website }}
       windows: ${{ steps.changes.outputs.windows }}
+      web_client: ${{ steps.changes.outputs.web_client }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -36,7 +37,8 @@ jobs:
           import subprocess
 
           if os.environ["EVENT_NAME"] == "workflow_dispatch":
-              selected = {name: True for name in ("desktop", "firmware", "website", "windows")}
+              web_client = workflow_or_shared or any(path.startswith(("web-client/", "contracts/", "receiver/windows/BathroomSync.Core/")) for path in paths)
+              selected = {name: True for name in ("desktop", "firmware", "website", "windows", "web_client")}
           else:
               base = os.environ["BASE_SHA"]
               paths = subprocess.check_output(
@@ -57,11 +59,13 @@ jobs:
               )
               website = workflow_or_shared or any(path.startswith("preview-site/") for path in paths)
               windows = desktop or any(path.endswith((".ps1", ".bat", ".cmd")) for path in paths)
+              web_client = workflow_or_shared or any(path.startswith(("web-client/", "contracts/", "receiver/windows/BathroomSync.Core/")) for path in paths)
               selected = {
                   "desktop": desktop,
                   "firmware": firmware,
                   "website": website,
                   "windows": windows,
+                  "web_client": web_client,
               }
 
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
@@ -120,6 +124,12 @@ jobs:
       - run: npm test
       - run: npm run lint
       - run: npx --no-install tsc --noEmit
+
+  web_client:
+    name: Web client validation
+    needs: core
+    if: needs.core.outputs.web_client == 'true'
+    uses: ./.github/workflows/web-client.yml
 
   windows:
     name: Windows validation
@@ -203,7 +213,7 @@ jobs:
   readiness:
     name: PR readiness
     if: always()
-    needs: [core, website, windows, mac_package, firmware]
+    needs: [core, website, web_client, windows, mac_package, firmware]
     runs-on: ubuntu-latest
     steps:
       - name: Require every selected validation to succeed

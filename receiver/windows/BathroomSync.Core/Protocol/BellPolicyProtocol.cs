@@ -10,8 +10,8 @@ public static class BellPolicyProtocol {
     IEnumerable<BellSchedulePeriod> periods,
     IEnumerable<ScheduleException> exceptions
   ) {
-    var commands = new List<string> { $"POLICY_BEGIN,{(rule.TerminalEnforcementEnabled ? 1 : 0)}" };
-    if (rule.TerminalEnforcementEnabled) {
+    var commands = new List<string> { $"POLICY_BEGIN,{(rule.TerminalEnforcementEnabled && !rule.BellTimeRulesDisabled && !string.Equals(rule.ClassPassPolicyMode, "NoRules", StringComparison.OrdinalIgnoreCase) ? 1 : 0)}" };
+    if (rule.TerminalEnforcementEnabled && !rule.BellTimeRulesDisabled && !string.Equals(rule.ClassPassPolicyMode, "NoRules", StringComparison.OrdinalIgnoreCase)) {
       var resolver = new PolicyScheduleService();
       for (var offset = 0; offset < CacheDays && commands.Count - 1 < MaximumWindows; offset++) {
         var date = firstDate.Date.AddDays(offset);
@@ -19,9 +19,22 @@ public static class BellPolicyProtocol {
           if (commands.Count - 1 >= MaximumWindows) break;
           var start = resolved.StartsAt.Hour * 60 + resolved.StartsAt.Minute;
           var end = resolved.EndsAt.Date > resolved.StartsAt.Date ? 1440 : resolved.EndsAt.Hour * 60 + resolved.EndsAt.Minute;
-          var firstEnd = Math.Min(end, start + Math.Max(0, rule.LockoutStartMinutes));
-          var lastStart = Math.Max(start, end - Math.Max(0, rule.LockoutEndMinutes));
-          commands.Add($"POLICY_WINDOW,{date:yyyyMMdd},{start},{end},{firstEnd},{lastStart},{Encode(rule.FirstWindowAction)},{Encode(rule.LastWindowAction)}");
+
+          if (string.Equals(rule.ClassPassPolicyMode, "NoPasses", StringComparison.OrdinalIgnoreCase)) {
+            commands.Add($"POLICY_WINDOW,{date:yyyyMMdd},{start},{end},{end},{start},2,2");
+          } else if (string.Equals(rule.FirstWindowAction, "Allow", StringComparison.OrdinalIgnoreCase) &&
+                     string.Equals(rule.MiddleWindowAction, "Lock", StringComparison.OrdinalIgnoreCase) &&
+                     string.Equals(rule.LastWindowAction, "Allow", StringComparison.OrdinalIgnoreCase)) {
+            var midStart = Math.Min(end, start + Math.Max(0, rule.LockoutStartMinutes));
+            var midEnd = Math.Max(start, end - Math.Max(0, rule.LockoutEndMinutes));
+            if (midEnd > midStart) {
+              commands.Add($"POLICY_WINDOW,{date:yyyyMMdd},{midStart},{midEnd},{midEnd},{midStart},2,2");
+            }
+          } else {
+            var firstEnd = Math.Min(end, start + Math.Max(0, rule.LockoutStartMinutes));
+            var lastStart = Math.Max(start, end - Math.Max(0, rule.LockoutEndMinutes));
+            commands.Add($"POLICY_WINDOW,{date:yyyyMMdd},{start},{end},{firstEnd},{lastStart},{Encode(rule.FirstWindowAction)},{Encode(rule.LastWindowAction)}");
+          }
         }
       }
     }

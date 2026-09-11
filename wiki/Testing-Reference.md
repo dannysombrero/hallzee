@@ -47,7 +47,7 @@ no physical Windows PC is required for this verification.
 ## Windows release download
 
 New **Build Desktop Release Packages** runs provide a
-`Hallzee-Windows-win-x64.zip` artifact that extracts directly to the app files.
+`Hallzee-v[version]-Windows-win-x64.zip` artifact that extracts directly to the app files.
 There is no second ZIP to extract. Public releases reuse the same archive.
 Existing run downloads are unchanged; start a new build after pushing this fix.
 
@@ -546,7 +546,7 @@ powershell -ExecutionPolicy Bypass -File scripts/build-windows-client.ps1
 
 The script downloads the .NET 8 build tools, then creates the Windows app in
 the project’s `artifacts\BathroomSync-Windows` folder. Open that
-folder and run `HallzeeSync.Universal.exe`.
+folder and run `Hallzee.exe`.
 
 ### Download or publish a desktop app
 
@@ -803,7 +803,13 @@ manual clock setup is complete, owner reset should still return to idle.
 ### Verify policy rules and bell schedule editing
 
 1. In **Hall Pass Policies & Schedule**, confirm number inputs (student limits, pass counts, grace windows) only display integer numbers without decimal fractions when stepping up and down.
-2. Under **Bell-Time Windows**, select an alert sound and click **Play Preview** to hear the tone.
+2. Under **Bell-Time Windows**:
+   - Verify mode selection between **Windows**, **No Passes**, and **No Rules**.
+   - In **Windows** mode, verify that adjusting **Start of Class**, **Instruction (Middle)**, and **End of Class** actions (Allow, Warn, Lock) dynamically updates the Period Timeline Preview badges and summary text.
+   - Click the quick presets (**10/10 Lockout**, **Start & End Only**, **Warning Windows**) and confirm window values update appropriately.
+   - Toggle **Enable bell transition time** and confirm the Mini Window renders "Transition Time" in purple during passing periods with descriptive hover tooltips.
+   - Test the master toggle **Disable bell-time window rules completely** and confirm the preview reflects open access.
+   - Test the warning sound controls: toggle sound on/off, select different alert sounds from the 8 options (*Chime*, *Bell*, *Soft alert*, *Marimba*, *Subtle Ping*, *Digital Watch*, *Gentle Knock*, *Harp Ascend*), adjust the volume slider (10–100%), and click **Preview** to hear the synthesized audio tone.
 3. Under **Bell Schedule Periods**, add a period, select day checkboxes (Mon–Fri), adjust times, and click the checkmark to save; confirm the row switches to a compact summary with edit (pencil) and delete (trashcan) controls.
 4. Confirm that trip durations display in minutes and seconds (e.g., `0m 45s`, `5m 30s`) across dashboard activity and the trips history modal, and include hours if duration exceeds 60 minutes.
 5. In **Classroom Roster & Students**, confirm the class selection, enrollment count badge, import button, new class input, and student list render cleanly with no overlapping controls.

@@ -51,6 +51,10 @@ Feature-level designs live in [`docs/design/`](design/). They describe the
 roster, live pass protocol, policies and schedules, automatic sync, terminal
 identity and reassignment, and Bluetooth firmware updates.
 
+The [development Chromebook and web client plan](design/chromebook-web-client.md)
+specifies the v1.2 architecture, implementation packages, and acceptance tests.
+It describes future work, not an already supported browser client.
+
 ## Releases and maintenance
 
 - [Release readiness](release-readiness.md)
@@ -63,3 +67,5 @@ identity and reassignment, and Bluetooth firmware updates.
 Keep a matching page in `wiki/` whenever documentation covered by the project
 policy changes. GitHub Actions validates the repository copies; publishing the
 Wiki remains a separate repository operation.
+
+- [Chrome web client setup](../web-client/README.md) and [acceptance evidence](testing/web-client-acceptance.md).

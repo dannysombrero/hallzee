@@ -1,0 +1,16 @@
+{
+  "cases": [
+    {
+      "csv": "Student ID,First Name,Last Name,Grade,Class Period\r\n00123,Alex,Rivera,8,Science\r\n",
+      "studentId": "00123",
+      "firstName": "Alex",
+      "lastName": "Rivera"
+    },
+    {
+      "csv": "ID,Full Name\n00009,\"Rivera, Alex\"\n",
+      "studentId": "00009",
+      "firstName": "Alex",
+      "lastName": "Rivera"
+    }
+  ]
+}

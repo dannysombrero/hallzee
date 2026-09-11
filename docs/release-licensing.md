@@ -166,3 +166,14 @@ The manifest makes this source-availability boundary visible. This process does
 not assert a blanket System Libraries exception or add an exception to Hallzee's
 AGPL license; the copyleft treatment of those linked binaries remains a legal
 review question before claiming that every part of a firmware image is open source.
+
+## Web artifact licenses
+
+The web build inventories `web-client/package-lock.json` and retains installed
+package license/copyright notices under `dist/licenses/`. Runtime packages must
+have a retained notice or the build fails. `dist/LICENSE.txt`, third-party notices
+and `source.txt` accompany every artifact. Source metadata identifies the commit
+and uncommitted-state flag; publish exact corresponding source for modified AGPL
+builds. The repository inventory script includes both npm lockfiles; build tools
+are distinguished from redistributed runtime packages. Dependabot monitors
+`/web-client` independently of `/preview-site`.

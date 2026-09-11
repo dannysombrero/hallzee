@@ -1,0 +1,20 @@
+{
+  "cases": [
+    {
+      "line": "ACTIVE_PASSES",
+      "count": 0
+    },
+    {
+      "line": "ACTIVE_PASSES,00123,1789117200,00999,1789117260",
+      "count": 2
+    },
+    {
+      "line": "ACTIVE_PASS,NONE",
+      "count": 0
+    },
+    {
+      "line": "ACTIVE_PASS,00123,1789117200",
+      "count": 1
+    }
+  ]
+}

@@ -7,7 +7,7 @@
     <DefineConstants Condition="'$(OS)' == 'Windows_NT'">$(DefineConstants);WINDOWS_BLUETOOTH</DefineConstants>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <AssemblyName>HallzeeSync.Universal</AssemblyName>
+    <AssemblyName>Hallzee</AssemblyName>
     <ApplicationIcon>Assets/hallzee.ico</ApplicationIcon>
     <AvaloniaTelemetryOptOut>true</AvaloniaTelemetryOptOut>
   </PropertyGroup>

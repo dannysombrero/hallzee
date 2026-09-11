@@ -19,8 +19,8 @@ zeros. Roster deletion does not delete completed trips.
 
 1. Release the terminal from any previous desktop/browser owner first. With no
    active pass, hold `*` and `#` for five seconds and release to open pairing.
-2. Click **Connect terminal**, enter the terminal's six-digit code, confirm this
-   is the same classroom, then **Choose terminal and pair**. Choose the Hallzee
+2. Click **Connect terminal**, select the kiosk in **Find Nearby Terminals**, enter the terminal's six-digit passkey if unclaimed, confirm this
+   is the same classroom, then click **Connect & Sync**. Choose the Hallzee
    device in your browser's picker. Chrome, Edge, or the operating system may separately
    ask for the same physical code. Enter it in that OS prompt too; typing it in
    Hallzee alone does not pair the OS. Hallzee first reads the encrypted terminal

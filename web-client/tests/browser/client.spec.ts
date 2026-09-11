@@ -233,3 +233,37 @@ test("saved owner survives a lost OS bond and authenticates after repair without
   expect(commands.some((c) => c.startsWith("AUTH,2,"))).toBe(true);
   expect(commands.some((c) => c.startsWith("CLAIM"))).toBe(false);
 });
+
+test("connection dialog presents desktop styling, info tooltips and collapsible troubleshooting", async ({
+  page,
+}) => {
+  await installBluetooth(page);
+  await page.goto("/");
+  await expect(page.getByText("Ready offline", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Connect terminal", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByText("Discover nearby Hallzee Bluetooth LE kiosks.")).toBeVisible();
+
+  // Test interactive device picker
+  const deviceItem = dialog.getByRole("option").first();
+  await expect(deviceItem).toBeVisible();
+  await expect(deviceItem).toContainText("Signal Strength:");
+  await deviceItem.click();
+  await expect(deviceItem).toHaveAttribute("aria-selected", "true");
+
+  // Test InfoTooltip toggle
+  const infoBtn = dialog.getByLabel("More information").first();
+  await expect(infoBtn).toBeVisible();
+  await infoBtn.click();
+  const tooltip = dialog.getByRole("tooltip");
+  await expect(tooltip).toBeVisible();
+  await expect(tooltip).toContainText("Only for claiming an unclaimed terminal");
+
+  // Test troubleshooting disclosure toggle
+  const summary = dialog.getByText("Pairing tips & Bluetooth troubleshooting");
+  await expect(summary).toBeVisible();
+  await summary.click();
+  await expect(dialog.getByText("Lost Bluetooth pairing (BT REPAIR):")).toBeVisible();
+  await expect(dialog.getByText("Ownership & Release:")).toBeVisible();
+});

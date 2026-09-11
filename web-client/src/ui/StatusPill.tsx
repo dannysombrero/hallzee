@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-export type StatusVariant = "ready" | "warning" | "busy" | "info" | "neutral";
+export type StatusVariant = "ready" | "warning" | "busy" | "info" | "neutral" | "danger";
 
 export interface StatusPillProps {
   variant?: StatusVariant;

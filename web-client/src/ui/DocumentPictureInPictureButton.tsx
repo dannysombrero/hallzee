@@ -58,7 +58,7 @@ export function DocumentPictureInPictureButton({
     <>
       <button className="secondary" onClick={() => void open()}>
         <PictureInPicture2 size={17} />
-        Mini window
+        Mini Window
       </button>
       {pip && !pip.closed && createPortal(<ProjectionView {...projection} />, pip.document.body)}
     </>

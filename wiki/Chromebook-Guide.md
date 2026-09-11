@@ -133,6 +133,18 @@ An interrupted update leaves the existing offline app intact.
 elapsed times and period status without student names or IDs. Tab-only screen
 sharing may omit PiP; verify the actual projector/sharing mode before class.
 
+### Dashboard interface and layout parity
+
+The web client dashboard matches the Hallzee Universal desktop client layout:
+
+- **Top Window Header Bar**: Canonical blue gradient header with Hallzee brand mark, classroom and room breadcrumb, Mini Window / Picture-in-Picture trigger, offline readiness status, and build version.
+- **Left Sidebar**: Canonical 42×42 brand icon, inset Classroom Profile box, primary navigation menu (Dashboard, Trip History Log, Student Roster with live count badge, Policies & Bell Times, Settings), and bottom Terminal Node status card with transport state and quick sync/pair actions.
+- **Hero Active Pass Card**: Prominent status indicator (`PASS READY`, `PASS OCCUPIED`, or `STATUS UNKNOWN`), 56×56 status avatar, large heading, and floating quick-action card with live monospace elapsed timer and teacher check-in.
+- **2-Column Dashboard Grid**:
+  - **Recent Activity**: Today's completed trips with avatar icons, departure/return timestamps, elapsed duration, status badges, and one-click CSV export.
+  - **Roster & Pass Policy**: Live policy parameters, active roster size, and warning thresholds.
+  - **Exceeded Time**: Trips exceeding the classroom warning threshold with quick duration presets (5m, 7m, 10m, 15m), search filter, and student breakdown.
+
 A Mac is sufficient for shared software testing and establishing Edge-on-Mac
 support. It does not verify managed Chromebook policy, storage eviction, BLE
 pairing or sleep/wake. A Windows BLE PC is required to verify Windows OS passkey

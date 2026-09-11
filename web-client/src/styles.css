@@ -1551,7 +1551,7 @@ dialog.modal-default {
   max-width: 680px;
 }
 dialog.modal-wide {
-  max-width: 930px;
+  max-width: 1040px;
 }
 dialog::backdrop {
   background: rgba(15, 23, 42, 0.55);
@@ -2242,6 +2242,391 @@ legend {
   .metrics {
     padding-top: 20px;
     padding-bottom: 32px;
+  }
+}
+
+/* 5. Desktop Parity: Modal Top Row & Workspaces */
+.modal-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.modal-top-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.modal-workspace-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+}
+.modal-workspace-pill {
+  background: white;
+  border: 1px solid var(--hallzee-sky-border);
+  border-radius: var(--radius-pill);
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--hallzee-slate-heading);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.modal-count-badge {
+  background: #f1f5f9;
+  color: #475569;
+  border-radius: 8px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* 6. Desktop Parity: Modal Filter Toolbar */
+.modal-filter-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.modal-search-field {
+  position: relative;
+  flex: 1;
+  min-width: 220px;
+}
+.modal-search-field svg {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #0284c7;
+  pointer-events: none;
+}
+.modal-search-field input {
+  width: 100%;
+  padding: 8px 16px 8px 40px;
+  border-radius: var(--radius-pill);
+  border: 1.5px solid var(--hallzee-sky-border);
+  font-size: 13px;
+  background: white;
+  color: var(--hallzee-slate-heading);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.modal-search-field input:focus {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+  outline: none;
+}
+.modal-filter-select-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.modal-filter-select {
+  appearance: none;
+  background: white;
+  border: 1.5px solid var(--hallzee-sky-border);
+  border-radius: var(--radius-pill);
+  padding: 8px 30px 8px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #0284c7;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.modal-filter-select:hover {
+  border-color: #7dd3fc;
+  background: var(--hallzee-sky-light);
+}
+.modal-filter-select:focus {
+  outline: none;
+  border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+}
+.modal-filter-select-wrapper svg {
+  position: absolute;
+  right: 10px;
+  pointer-events: none;
+  color: #0284c7;
+}
+
+/* 7. Desktop Parity: Unified Table Container */
+.hallzee-table-container {
+  background: white;
+  border: 1px solid var(--hallzee-sky-border);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(2, 132, 199, 0.04);
+  margin-bottom: 14px;
+}
+.hallzee-table-scroll {
+  max-height: 400px;
+  overflow-y: auto;
+}
+.hallzee-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13px;
+}
+.hallzee-table th {
+  background: #f0f9ff;
+  color: #0369a1;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--hallzee-sky-border);
+  white-space: nowrap;
+  user-select: none;
+}
+.hallzee-table th.sortable {
+  cursor: pointer;
+}
+.hallzee-table th.sortable:hover {
+  color: #0284c7;
+  background: #e0f2fe;
+}
+.hallzee-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #edf6fb;
+  color: #334155;
+  vertical-align: middle;
+}
+.hallzee-table tr:last-child td {
+  border-bottom: none;
+}
+.hallzee-table tr:hover td {
+  background: #f8fafc;
+}
+.hallzee-table-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 48px 24px;
+  text-align: center;
+}
+.hallzee-table-empty svg {
+  color: #94a3b8;
+  margin-bottom: 4px;
+}
+.hallzee-table-empty strong {
+  font-size: 14px;
+  font-weight: 700;
+  color: #334155;
+}
+.hallzee-table-empty span {
+  font-size: 12px;
+  color: #64748b;
+}
+.hallzee-table-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 4px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* 8. Desktop Parity: Quick-Add Student Bar */
+.quick-add-student-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.quick-add-student-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #334155;
+}
+.quick-add-student-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 1.4fr 1.4fr 0.8fr 1.3fr auto;
+  gap: 8px;
+  align-items: center;
+}
+.pill-input {
+  background: #f8fafc;
+  border: 1px solid #bae6fd;
+  border-radius: var(--radius-pill);
+  padding: 8px 14px;
+  font-size: 13px;
+  color: var(--hallzee-slate-heading);
+  transition: all 0.15s ease;
+  width: 100%;
+}
+.pill-input:focus {
+  background: white;
+  border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+  outline: none;
+}
+.pill-input:disabled {
+  background: #e2e8f0;
+  color: #64748b;
+  cursor: not-allowed;
+}
+.btn-action-delete {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #fee2e2;
+  color: #dc2626;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+.btn-action-delete:hover:not(:disabled) {
+  background: #fecaca;
+  color: #b91c1c;
+  transform: translateY(-1px);
+}
+.btn-action-edit {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #e0f2fe;
+  color: #0284c7;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+  margin-right: 6px;
+}
+.btn-action-edit:hover:not(:disabled) {
+  background: #bae6fd;
+  color: #0369a1;
+  transform: translateY(-1px);
+}
+.table-actions-cell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+.table-th-actions {
+  text-align: right;
+}
+.table-sort-icon {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: 4px;
+  font-size: 10px;
+  color: #94a3b8;
+}
+
+.enrolled-badge {
+  background: #f1f5f9;
+  border-radius: 8px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* 2-Phase CSV Import & Mapping */
+.csv-step2-banner {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: var(--radius-card);
+  padding: 12px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #166534;
+  margin-bottom: 12px;
+}
+.csv-mapping-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.csv-mapping-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.csv-mapping-field span {
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+}
+.csv-sample-container {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-card);
+  padding: 12px;
+  max-height: 180px;
+  overflow: auto;
+  margin-bottom: 14px;
+}
+.csv-sample-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+.csv-sample-row {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 6px 12px;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: #334155;
+  display: flex;
+  gap: 12px;
+  white-space: nowrap;
+  overflow-x: auto;
+}
+.csv-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #334155;
+  margin-bottom: 14px;
+  cursor: pointer;
+}
+.csv-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.csv-actions-buttons {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+@media (max-width: 768px) {
+  .csv-mapping-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .quick-add-student-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .quick-add-student-grid button {
+    grid-column: 1 / -1;
   }
 }
 @media (max-width: 1100px) {

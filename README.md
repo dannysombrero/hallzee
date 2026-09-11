@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="docs/getting-started-users.md">Teacher guide</a> ·
-  <a href="https://github.com/dannysombrero/hallzee/releases?q=client-v&expanded=true">Downloads</a> ·
+  <a href="https://github.com/dannysombrero/hallzee/releases">Downloads</a> ·
   <a href="https://github.com/dannysombrero/hallzee/wiki">Documentation</a> ·
   <a href="CONTRIBUTING.md">Contribute</a> ·
   <a href="LICENSE">License</a>

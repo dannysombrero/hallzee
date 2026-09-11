@@ -130,6 +130,11 @@ desktop prototype. Leave the command running; press Ctrl+C to stop it. Later,
 built production server; it does not install dependencies. The browser prototype
 does not verify native Bluetooth or packaged desktop behavior.
 
+For firmware/USB packaging failures, use the
+[release recovery steps](Releasing#recover-a-failed-firmwareusb-build).
+Starting the firmware build in Actions runs the lockfile/packaging regressions
+and installs its own tools; no local Python or Arduino setup is needed.
+
 ## Choose the relevant checks
 
 After installing the .NET SDK, these tests need no terminal or Windows PC:

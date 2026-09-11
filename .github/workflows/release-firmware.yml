@@ -17,6 +17,8 @@ jobs:
       - uses: actions/checkout@v7
       - name: Test release input validation
         run: python3 -m unittest discover -s test -p test_release_inputs.py
+      - name: Test release packaging and the checked-in USB lock
+        run: python3 -m unittest discover -s test -p test_release_licensing.py
       - name: Validate version and destination
         id: inputs
         env:
@@ -85,6 +87,8 @@ jobs:
   usb:
     needs: build
     strategy:
+      # Preserve both platform results if one USB package fails.
+      fail-fast: false
       matrix:
         include:
           - os: macos-latest

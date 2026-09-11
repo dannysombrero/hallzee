@@ -4,8 +4,9 @@ import argparse
 import datetime
 import json
 from pathlib import Path
-import re
 import urllib.request
+
+from usb_python_lock import locked_requirements
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -37,9 +38,7 @@ def parse_results(payload, packages):
 
 
 def audit(lock):
-    packages = re.findall(r'(?m)^([\w.-]+)==([^\s;]+)', lock.read_text())
-    if not packages:
-        raise ValueError('USB lockfile contains no pinned dependencies')
+    packages = [(name, entry['version']) for name, entry in locked_requirements(lock.read_text()).items()]
     queries = [{'package': {'name': name, 'ecosystem': 'PyPI'}, 'version': version}
                for name, version in packages]
     request = urllib.request.Request('https://api.osv.dev/v1/querybatch',

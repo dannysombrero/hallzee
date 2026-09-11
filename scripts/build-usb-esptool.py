@@ -24,6 +24,8 @@ import urllib.request
 import venv
 import zipfile
 
+from usb_python_lock import locked_requirements
+
 ROOT = Path(__file__).resolve().parents[1]
 LOCK = ROOT / 'firmware/requirements.txt'
 
@@ -39,23 +41,6 @@ def download(url, target, expected=None):
         target.unlink()
         raise ValueError(f'Source checksum mismatch: {url}')
     return actual
-
-
-def locked_requirements(text):
-    result = {}
-    current = None
-    for line in text.splitlines():
-        if line and not line.startswith((' ', '#')):
-            match = re.match(r'([A-Za-z0-9_.-]+)==([^\s;]+)', line)
-            if not match:
-                raise ValueError(f'Expected a pinned requirement: {line}')
-            current = re.sub(r'[-_.]+', '-', match.group(1)).lower()
-            result[current] = dict(version=match.group(2), lines=[line], hashes=set())
-        elif current and line.lstrip().startswith('--hash='):
-            result[current]['lines'].append(line)
-        for digest in re.findall(r'--hash=sha256:([a-f0-9]{64})', line):
-            result[current]['hashes'].add(digest)
-    return result
 
 
 def notice_name(path):
@@ -203,6 +188,9 @@ def build(args):
         raise ValueError('Build USB esptool with Python 3.13 (the release workflow installs it automatically)')
     if (platform.system(), platform.machine().lower()) not in {('Darwin', 'arm64'), ('Windows', 'amd64')}:
         raise ValueError('USB esptool releases currently support Mac ARM64 and Windows x64; desktop Intel Mac support is separate')
+    locked = locked_requirements(LOCK.read_text())
+    if 'setuptools' not in locked:
+        raise ValueError('USB lockfile must include setuptools to build esptool without build isolation; regenerate firmware/requirements.txt')
     for directory in (args.licenses, args.sources):
         if directory.exists() and any(directory.iterdir()):
             raise ValueError(f'Use an empty licenses/sources directory to avoid stale dependencies: {directory}')
@@ -212,7 +200,6 @@ def build(args):
         environment = stage / 'venv'
         venv.EnvBuilder(with_pip=True).create(environment)
         python = environment / ('Scripts/python.exe' if os.name == 'nt' else 'bin/python')
-        locked = locked_requirements(LOCK.read_text())
         bootstrap = stage / 'bootstrap.txt'
         bootstrap.write_text('\n'.join(locked['setuptools']['lines']) + '\n')
         pip = [str(python), '-m', 'pip', 'install', '--disable-pip-version-check', '--no-cache-dir', '--require-hashes']

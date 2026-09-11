@@ -25,5 +25,12 @@ The pinned radio repositories supply Apache-2.0 notices and binary archives but
 omit implementation source; no new Hallzee license exception is asserted.
 
 Run `python scripts/audit-usb-python.py` to check all locked Python dependencies
-against OSV. Incomplete/error responses fail the check. USB builds require fresh
+against OSV, including dependencies declared with extras and Windows-only
+dependencies. The builder and auditor share `scripts/usb_python_lock.py`, which
+matches extras such as `esp-pylib[cli,ide,serial]` to the base distribution name
+while preserving pip's original requirement lines and hashes. Regenerate the
+complete lock from the repository root as described in the source guide; retain
+the platform dependencies and explicitly pinned setuptools source-build backend.
+The firmware workflow runs the parser/lock regression tests in `prepare`.
+Incomplete/error responses fail the check. USB builds require fresh
 source/license output directories so stale dependencies cannot enter a release.

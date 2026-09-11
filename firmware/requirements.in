@@ -3,6 +3,8 @@
 # docs/release-licensing.md; test Mac and Windows USB packages before releasing.
 esptool==5.4.0
 pyinstaller==6.22.2
+# Required to build esptool's source distribution with --no-build-isolation.
+setuptools==84.0.0
 # 50.0.0 fixes the PKCS#7 oracle (GHSA-g6cj-pr64-35w5); 49.0.0 fixes the
 # certificate verification advisories. USB packages support Mac ARM64/Windows x64.
 cryptography==50.0.1

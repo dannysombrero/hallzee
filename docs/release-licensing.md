@@ -83,7 +83,7 @@ private release key is not needed and is never included in source archives.
 
 ## USB executables
 
-Hallzee builds esptool 5.3.1 in a fresh Python 3.13 virtual environment using
+Hallzee builds esptool 5.4.0 in a fresh Python 3.13 virtual environment using
 `firmware/requirements.txt`. All package versions and hashes are locked,
 including PyInstaller's build dependencies. `scripts/build-usb-esptool.py` retains
 every installed distribution's original copyright/license files and source
@@ -136,7 +136,14 @@ dependency ceiling would otherwise retain vulnerable versions. This does not
 change Intel Mac desktop support.
 
 Run `python scripts/audit-usb-python.py` to check all locked versions, including
-Windows-only packages, against the public OSV database. Network errors, malformed
+Windows-only packages and dependencies declared with extras, against the public
+OSV database. The builder and auditor share `scripts/usb_python_lock.py`;
+`esp-pylib[cli,ide,serial]` is matched to the base distribution `esp-pylib` while
+the original requirement lines and hashes are retained for pip. Regenerate the
+complete lock from the repository root with the command above; do not omit
+platform dependencies or the explicitly pinned setuptools source-build backend.
+The firmware workflow runs these parser/lock regressions in `prepare`, before
+the expensive package builds. Network errors, malformed
 responses, and incomplete/paginated results fail the check. The script uses the
 [OSV batch API](https://google.github.io/osv.dev/post-v1-querybatch/).
 Source/license output directories must be empty for every build, preventing an

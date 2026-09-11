@@ -76,6 +76,33 @@ from its URL. Artifacts expire according to repository retention settings;
 publish before expiry or build and test again. A build does not publish a release.
 The old moving Windows workflow is now a manual legacy build only.
 
+## Recover a failed firmware/USB build
+
+The firmware workflow's `prepare` job runs the packaging regression tests before
+compilation, including parsing the checked-in Python lock and checking its Mac,
+Windows, and source-build dependencies. The USB matrix uses `fail-fast: false`
+so one platform's failure does not cancel the other. Both must succeed before
+release metadata is produced; a partial USB build cannot be published.
+
+An older run reporting `Expected a pinned requirement: esp-pylib[cli,ide,serial]`
+used a parser that rejected dependency extras. Its sibling Windows job may show
+`extracting archive ... interrupted` followed by `The operation was canceled`
+because the matrix canceled it after the Mac failure. Check the job conclusions
+and timestamps before diagnosing that as an Arduino archive or Windows path error.
+
+After the fix reaches `main`, choose **Build Firmware Release Packages → Run
+workflow** to start a new run using that revision. **Re-run jobs** on an old run
+uses the old source revision. The same version may be reused if it was never
+published or installed; otherwise use a newer version. Publish only the new,
+successful build run ID after testing its packages. Do not edit a downloaded
+`release.json` to work around a failed build.
+
+A Mac is sufficient for the parser tests and Mac standalone esptool build.
+Windows CI must verify Windows dependency installation and executable startup.
+A Windows PC is required for physical USB/COM-port discovery and esptool
+read/write verification. Those Windows behaviors are not verified by Mac tests.
+
+
 ## Publish the tested files
 
 Run **Publish Tested Release** from the default branch, select `client` or

@@ -3,6 +3,7 @@ import importlib.util
 import json
 import io
 from pathlib import Path
+import sys
 import tarfile
 import tempfile
 import unittest
@@ -15,7 +16,8 @@ ROOT = Path(__file__).resolve().parents[1]
 def script(name):
     spec = importlib.util.spec_from_file_location(name, ROOT / 'scripts' / (name + '.py'))
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    with patch.object(sys, 'path', [str(ROOT / 'scripts'), *sys.path]):
+        spec.loader.exec_module(module)
     return module
 
 
@@ -115,6 +117,38 @@ class FirmwareSourceTests(unittest.TestCase):
 
 
 class UsbSourceTests(unittest.TestCase):
+    def test_checked_in_lock_includes_build_and_both_platform_dependencies(self):
+        locked = usb.locked_requirements(usb.LOCK.read_text())
+        for name in ('esptool', 'esp-pylib', 'setuptools', 'macholib', 'pefile', 'pywin32-ctypes'):
+            with self.subTest(name=name):
+                self.assertIn(name, locked)
+                self.assertTrue(locked[name]['hashes'])
+
+    def test_extras_keep_base_name_version_hashes_and_original_pip_lines(self):
+        header = 'Esp_PyLib[cli,ide,serial]==1.1.5 ; sys_platform == "win32" \\'
+        hash_lines = ['    --hash=sha256:' + 'a' * 64 + ' \\', '    --hash=sha256:' + 'b' * 64]
+        locked = usb.locked_requirements('\n'.join([header, *hash_lines, '    # via esptool']))
+        self.assertEqual(['esp-pylib'], list(locked))
+        self.assertEqual('1.1.5', locked['esp-pylib']['version'])
+        self.assertEqual({ 'a' * 64, 'b' * 64 }, locked['esp-pylib']['hashes'])
+        self.assertEqual([header, *hash_lines], locked['esp-pylib']['lines'])
+
+    def test_invalid_or_unhashed_requirements_fail_instead_of_being_skipped(self):
+        for requirement in ('example>=1.0', 'example[cli]>=1.0', 'example==1.*', 'example==1.0', ''):
+            with self.subTest(requirement=requirement), self.assertRaises(ValueError):
+                usb.locked_requirements(requirement)
+
+    def test_missing_build_dependency_fails_before_creating_environment(self):
+        from argparse import Namespace
+        with patch.object(usb.sys, 'version_info', (3, 13)), \
+                patch.object(usb.platform, 'system', return_value='Darwin'), \
+                patch.object(usb.platform, 'machine', return_value='arm64'), \
+                patch.object(usb, 'locked_requirements', return_value={'esptool': {}}), \
+                patch.object(usb.venv, 'EnvBuilder') as builder:
+            with self.assertRaisesRegex(ValueError, 'must include setuptools'):
+                usb.build(Namespace())
+            builder.assert_not_called()
+
     def test_nonempty_source_or_license_directory_fails_before_installing(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -179,6 +213,30 @@ class UsbSourceTests(unittest.TestCase):
 
 class UsbAuditTests(unittest.TestCase):
     packages = [('example', '1.0.0')]
+
+    def test_audit_includes_extras_and_foreign_platform_requirements(self):
+        with tempfile.TemporaryDirectory() as directory:
+            lock = Path(directory) / 'requirements.txt'
+            lock.write_text('esp-pylib[cli,ide,serial]==1.1.5 \\\n'
+                            '    --hash=sha256:' + 'a' * 64 + '\n'
+                            'windows-only==2.0 ; sys_platform == "win32" \\\n'
+                            '    --hash=sha256:' + 'b' * 64 + '\n')
+            response = io.BytesIO(json.dumps({'results': [{}, {}]}).encode())
+            with patch.object(usb_audit.urllib.request, 'urlopen', return_value=response) as request:
+                report = usb_audit.audit(lock)
+            queries = json.loads(request.call_args.args[0].data)['queries']
+            self.assertEqual([('esp-pylib', '1.1.5'), ('windows-only', '2.0')],
+                             [(item['package']['name'], item['version']) for item in queries])
+            self.assertEqual(2, report['packages_scanned'])
+
+    def test_malformed_lock_fails_before_network_request(self):
+        with tempfile.TemporaryDirectory() as directory:
+            lock = Path(directory) / 'requirements.txt'
+            lock.write_text('esp-pylib[cli]>=1.1.5\n')
+            with patch.object(usb_audit.urllib.request, 'urlopen') as request:
+                with self.assertRaisesRegex(ValueError, 'pinned requirement'):
+                    usb_audit.audit(lock)
+                request.assert_not_called()
 
     def test_complete_empty_results_are_clear(self):
         for result in ({}, {'vulns': []}, {'vulns': [], 'next_page_token': ''}):

@@ -3,6 +3,7 @@
 #include <Keypad.h>
 
 #include "KeypadPort.h"
+#include "StableKeypad.h"
 
 class ArduinoKeypadPort : public KeypadPort {
 public:
@@ -15,5 +16,5 @@ public:
 private:
   Keypad &keypad;
 
-  static KeypadEventState toEventState(KeyState state);
+  StableKeypad stable;
 };

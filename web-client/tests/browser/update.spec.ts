@@ -67,6 +67,7 @@ test.beforeAll(async () => {
   await new Promise<void>((resolve) => server.listen(4188, "localhost", resolve));
 });
 test.afterAll(async () => {
+  if (!server.listening) return;
   await new Promise<void>((resolve, reject) =>
     server.close((error) => (error ? reject(error) : resolve())),
   );
@@ -158,4 +159,33 @@ test("partial update keeps A; explicit B activation preserves IndexedDB and none
   await context.setOffline(true);
   await page.reload();
   await expect(page.locator('meta[name="test-build"]')).toHaveAttribute("content", "B");
+});
+
+test("cached client reopens at the same localhost URL with the local server stopped", async ({
+  page,
+  context,
+}) => {
+  version = "A";
+  interrupted = false;
+  await page.goto(origin);
+  await expect(page.getByText("Ready offline", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Classroom & data", exact: true }).click();
+  await page.getByLabel("Classroom name", { exact: true }).fill("Offline test classroom");
+  await page.getByRole("button", { name: "Save classroom", exact: true }).click();
+  await expect(
+    page.getByRole("heading", { name: "Offline test classroom", exact: true }),
+  ).toBeVisible();
+  await page.close();
+  await new Promise<void>((resolve, reject) =>
+    server.close((error) => (error ? reject(error) : resolve())),
+  );
+  const reopened = await context.newPage();
+  await reopened.goto(origin);
+  await expect(
+    reopened.getByRole("heading", { name: "Offline test classroom", exact: true }),
+  ).toBeVisible();
+  await expect(reopened.getByText("Ready offline", { exact: true })).toBeVisible();
+  await expect(
+    reopened.getByRole("button", { name: "Connect terminal", exact: true }),
+  ).toBeEnabled();
 });

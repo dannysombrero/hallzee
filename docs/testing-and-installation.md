@@ -63,6 +63,10 @@ normal installation, `--fast` / `-Fast` reuses tools and writes only the
 application and boot selection. It makes no new backup. Read
 [firmware updates and recovery](firmware-updates.md) before using fast mode.
 
+For lost OS bonds or unexpected physical digits, see
+[Bluetooth repair and keypad troubleshooting](bluetooth-repair-and-keypad.md). Its repair gesture
+and keypad filtering require a firmware update.
+
 ### Restore the standard UI after touch testing
 
 Run the regular flasher with the display and rotation options above and omit
@@ -141,14 +145,17 @@ on Windows x64. This installs checksum-pinned Node and locked dependencies,
 builds the offline app and serves `http://localhost:4190`. No Git, .NET or
 Arduino installation is needed. Replace `preview` with `check` to install the
 test browser and run all web checks, or `dev` for hot reload on port 5173.
+After **Ready offline**, bookmark and reopen the same `http://localhost:4190/`
+URL/profile without starting the server. Start `preview` again to download a
+new build, then **Check updates → Apply update**. Port 5173 has no offline worker.
 
 This is a separate local-data client; it does not use the marketing preview's
 simulated classroom. See the [teacher guide](chromebook-guide.md),
-[IT guide](web-client-it-guide.md) and [acceptance record](testing/web-client-acceptance.md).
-Mac is sufficient for shared automated checks. Physical Chromebook acceptance
+[IT guide](web-client-it-guide.md), [deployment guide](web-client-deployment.md) and [acceptance record](testing/web-client-acceptance.md).
+Mac is sufficient for shared automated checks and cloud deployment configuration. Physical Chromebook acceptance
 is pending. Windows BLE/PWA requires a Windows BLE PC to verify its OS passkey
 flow, encrypted GATT, bond reuse and reconnect/sleep; **Windows behavior is
-unverified**. No classroom site has been deployed.
+unverified**. The online testing origin is `https://web.hallzee.com` via Cloudflare Pages.
 
 For firmware/USB packaging failures, use the
 [release recovery steps](releasing.md#recover-a-failed-firmwareusb-build).

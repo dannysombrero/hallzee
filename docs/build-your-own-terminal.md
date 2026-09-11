@@ -87,3 +87,6 @@ If the display stays blank but the ESP32 appears over USB, disconnect power and
 check `VCC`, `GND`, `CS`, `RST`, `DC`, `MOSI`, and `SCLK` again. For the full
 hardware requirements, troubleshooting, and alternate 1.8″ ST7735 profile,
 see the [hardware reference](testing-reference.md#hardware-you-should-have).
+
+If digits appear without a deliberate keypress, inspect keypad support and
+connections using [the keypad troubleshooting checks](bluetooth-repair-and-keypad.md#unexpected-digits-on-the-physical-keypad).

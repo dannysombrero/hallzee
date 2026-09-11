@@ -3,6 +3,7 @@ import { LineFramer, commandBytes } from "./LineFramer";
 import { SERVICE_UUID, TX_UUID, RX_UUID } from "../protocol/constants";
 import { Signal } from "../app/events";
 import { abortCheck, deadline, HallzeeError } from "../app/errors";
+import { bluetoothError, type BluetoothStage } from "./BluetoothErrors";
 export class WebBluetoothTerminalConnection implements BluetoothPort {
   private device?: BluetoothDevice;
   private tx?: BluetoothRemoteGATTCharacteristic;
@@ -14,8 +15,12 @@ export class WebBluetoothTerminalConnection implements BluetoothPort {
   private writes: Promise<void> = Promise.resolve();
   onLine = this.lines.subscribe;
   onDisconnect = this.dropped.subscribe;
-  requestDevice() {
-    return navigator.bluetooth.requestDevice({ filters: [{ services: [SERVICE_UUID] }] });
+  async requestDevice() {
+    try {
+      return await navigator.bluetooth.requestDevice({ filters: [{ services: [SERVICE_UUID] }] });
+    } catch (error) {
+      throw bluetoothError(error, "chooser");
+    }
   }
   getRememberedDevices() {
     return typeof navigator.bluetooth?.getDevices === "function"
@@ -47,33 +52,53 @@ export class WebBluetoothTerminalConnection implements BluetoothPort {
       abortCheck(signal);
       if (generation !== this.generation) throw new HallzeeError("CANCELLED");
     };
-    const task = (async () => {
-      const server = await device.gatt!.connect();
-      if (signal?.aborted || generation !== this.generation) {
-        server.disconnect();
-        throw new HallzeeError("CANCELLED");
+    const step = async <T>(
+      stage: BluetoothStage,
+      task: () => Promise<T>,
+      ms = 10000,
+    ): Promise<T> => {
+      valid();
+      try {
+        const value = await deadline(task(), signal, ms);
+        valid();
+        return value;
+      } catch (error) {
+        throw bluetoothError(error, stage);
       }
-      const service = await server.getPrimaryService(SERVICE_UUID);
-      valid();
-      const tx = await service.getCharacteristic(TX_UUID);
-      valid();
-      const rx = await service.getCharacteristic(RX_UUID);
-      valid();
+    };
+    try {
+      const server = await step("connect", async () => {
+        const connected = await device.gatt!.connect();
+        if (signal?.aborted || generation !== this.generation) {
+          connected.disconnect();
+          throw new HallzeeError("CANCELLED");
+        }
+        return connected;
+      });
+      const service = await step("service", () => server.getPrimaryService(SERVICE_UUID));
+      const tx = await step("characteristics", () => service.getCharacteristic(TX_UUID));
+      const rx = await step("characteristics", () => service.getCharacteristic(RX_UUID));
       if (!rx.properties.write || !rx.writeValueWithResponse)
         throw new HallzeeError("ACK_WRITES_REQUIRED");
+      if (!tx.properties.read || !tx.readValue)
+        throw new HallzeeError(
+          "ENCRYPTED_READ_REQUIRED",
+          "This terminal is missing the readable Hallzee channel needed to establish secure pairing. Verify its firmware.",
+        );
+      // Firmware protects TX reads with encrypted MITM permissions. Trigger OS
+      // pairing before HELLO starts the eight-second application handshake.
+      // Read before subscribing: an old TX value is not a new protocol message.
+      await step("pairing", () => tx.readValue(), 60000);
       this.tx = tx;
       this.rx = rx;
       tx.addEventListener("characteristicvaluechanged", this.receive);
-      await tx.startNotifications();
-      valid();
-    })();
-    try {
-      await deadline(task, signal);
+      await step("notifications", () => tx.startNotifications());
     } catch (error) {
       if (generation === this.generation) this.disconnect();
       throw error;
     }
   }
+
   sendLine(line: string, signal?: AbortSignal) {
     const bytes = commandBytes(line);
     const generation = this.generation;
@@ -82,7 +107,11 @@ export class WebBluetoothTerminalConnection implements BluetoothPort {
         abortCheck(signal);
         if (!this.rx || generation !== this.generation)
           throw new HallzeeError("DISCONNECTED", "Reconnect to the terminal.", true);
-        await deadline(this.rx.writeValueWithResponse(bytes.slice(offset, offset + 20)), signal);
+        try {
+          await deadline(this.rx.writeValueWithResponse(bytes.slice(offset, offset + 20)), signal);
+        } catch (error) {
+          throw bluetoothError(error, "write");
+        }
       }
     });
     this.writes = task.catch(() => {});

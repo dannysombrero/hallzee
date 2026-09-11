@@ -20,6 +20,7 @@
 #include "ClockService.h"
 #include "Config.h"
 #include "KeypadController.h"
+#include "BondRepair.h"
 #include "MonotonicClock.h"
 #include "StudentIdPolicy.h"
 #include "TerminalController.h"
@@ -150,6 +151,8 @@ bool firmwareScreenVisible = false;
 int lastFirmwareProgress = -1;
 
 bool pairingUiActive = false;
+BondRepair bondRepair(bluetoothSerial);
+bool bondRepairUiActive = false;
 String displayedFriendlyName;
 bool ownerReleaseCleanupPending = false;
 unsigned long ownerReleaseStartedAt = 0;
@@ -170,6 +173,8 @@ bool isOwnerResetAllowed() {
 }
 
 void resetOwnerFromKeypad() {
+  bondRepair.reset();
+  bondRepairUiActive = false;
   bluetoothSerial.disconnectClient();
   if (terminalSecurity.resetOwner() && bluetoothSerial.clearBondedDevices()) {
     // Releasing ownership does not set the clock. Preserve the current setup
@@ -180,6 +185,22 @@ void resetOwnerFromKeypad() {
     terminalDisplay.showPairingError("RESET FAILED");
     transitionToIdle();
   }
+}
+
+bool isBondRepairAllowed() {
+  return !setupMode && !touchOverlayActive() && !pairingUiActive &&
+    !bondRepairUiActive && !ownerReleaseCleanupPending && !firmwareUpdater.busy() &&
+    !terminal.hasActivePass() && terminalSecurity.hasOwner();
+}
+
+void startBondRepair() {
+  if (!bondRepair.start(monotonicClock.milliseconds(), isBondRepairAllowed(),
+                        100000 + (esp_random() % 900000))) return;
+  // New link must prove the existing owner key; this never opens CLAIM mode.
+  terminalSecurity.clearSession();
+  enteredID = "";
+  bondRepairUiActive = true;
+  terminalDisplay.showBondRepairWaiting();
 }
 
 void startPairingMode() {
@@ -210,7 +231,8 @@ KeypadController keypadController(arduinoKeypad, monotonicClock, isSetupMode,
                                   handleNormalNumber, handleSingleStar,
                                   handleSingleHash, resetCurrentCheckout,
                                   isPairingAllowed, startPairingMode,
-                                  isOwnerResetAllowed, resetOwnerFromKeypad);
+                                  isOwnerResetAllowed, resetOwnerFromKeypad,
+                                  isBondRepairAllowed, startBondRepair);
 
 void setSystemClock24(int year, int month, int day, int hour, int minute,
                       int second) {
@@ -606,7 +628,7 @@ void processSetupEntry() {
 // ======================================================
 
 void handleSetupKey(char key) {
-  if (pairingUiActive) return;
+  if (pairingUiActive || bondRepairUiActive) return;
 
   if (key >= '0' && key <= '9') {
 
@@ -751,12 +773,10 @@ void submitID() {
 }
 void handleNormalNumber(char key) {
   if (touchOverlayActive()) return;
-  if (pairingUiActive) return;
+  if (pairingUiActive || bondRepairUiActive) return;
 
   if (enteredID.length() < tripStorage.getMaxStudentIdLength()) {
-    Serial.print("Key pressed: ");
-    Serial.println(key);
-
+    // Do not log typed digits: successive events can reconstruct a student ID.
     enteredID += key;
 
     // Partial redraw only
@@ -776,7 +796,7 @@ void handleSingleStar() {
     return;
   }
 #endif
-  if (pairingUiActive) return;
+  if (pairingUiActive || bondRepairUiActive) return;
 
   enteredID = "";
 
@@ -788,7 +808,7 @@ void handleSingleStar() {
 // HANDLE SINGLE # RELEASE
 // ======================================================
 
-void handleSingleHash() { if (!pairingUiActive && !touchOverlayActive()) submitID(); }
+void handleSingleHash() { if (!pairingUiActive && !bondRepairUiActive && !touchOverlayActive()) submitID(); }
 
 // ======================================================
 // SERIAL DIAGNOSTIC COMMANDS
@@ -805,7 +825,7 @@ void processSerialCommands() {
         tripStorage.printTripLog();
 #if defined(HALLZEE_TOUCH_TEST)
       } else if (serialCommandBuffer == "TOUCH_TEST") {
-        if (!setupMode && !pairingUiActive && !terminal.hasActivePass()) {
+        if (!setupMode && !pairingUiActive && !bondRepairUiActive && !terminal.hasActivePass()) {
           touchExperiment.open();
           Serial.println("TOUCH_TEST,OK");
         } else Serial.println("TOUCH_TEST,BUSY");
@@ -1009,9 +1029,9 @@ void loop() {
   if (!firmwareUpdater.busy()) processSerialCommands();
 
 #if defined(HALLZEE_TOUCH_TEST)
-  if (!firmwareUpdater.busy() && !setupMode && !pairingUiActive &&
+  if (!firmwareUpdater.busy() && !setupMode && !pairingUiActive && !bondRepairUiActive &&
       !terminal.hasActivePass() && touchExperiment.pending()) touchExperiment.open();
-  if (firmwareUpdater.busy() || setupMode || pairingUiActive) touchExperiment.suppress();
+  if (firmwareUpdater.busy() || setupMode || pairingUiActive || bondRepairUiActive) touchExperiment.suppress();
 #endif
   if (!firmwareUpdater.busy()) keypadController.poll();
 
@@ -1043,15 +1063,34 @@ void loop() {
   if (displayedFriendlyName != terminalIdentity.customName()) {
     displayedFriendlyName = terminalIdentity.customName();
     terminalDisplay.setFriendlyName(displayedFriendlyName);
-    if (!pairingUiActive && !setupMode) drawIdleScreen();
+    if (!pairingUiActive && !bondRepairUiActive && !setupMode) drawIdleScreen();
   }
 
   // The Bluetooth indicator is a small independent region; do not redraw the
   // rest of the kiosk screen while a desktop client connects or disconnects.
   const bool bluetoothConnected = bluetoothSerial.hasClient();
-  if (!touchOverlayActive() && !pairingUiActive && !setupMode && bluetoothConnected != lastDisplayedBluetoothState) {
+  if (!touchOverlayActive() && !pairingUiActive && !bondRepairUiActive && !setupMode && bluetoothConnected != lastDisplayedBluetoothState) {
     lastDisplayedBluetoothState = bluetoothConnected;
     terminalDisplay.drawBluetoothStatus(bluetoothConnected);
+  }
+
+  if (bondRepairUiActive) {
+    const auto previous = bondRepair.status();
+    bondRepair.poll(monotonicClock.milliseconds(), terminalSecurity.isAuthorized());
+    const auto current = bondRepair.status();
+    if (current == BondRepair::State::Ready && previous != current) {
+      terminalDisplay.showPairing(terminalIdentity.terminalId(),
+        terminalIdentity.customName(), bondRepair.code(), true);
+    } else if (!bondRepair.active()) {
+      // Expire the displayed code at the BLE layer too; existing bonds survive.
+      bluetoothSerial.setPairingPasskey(100000 + (esp_random() % 900000));
+      bondRepairUiActive = false;
+      if (current == BondRepair::State::Complete)
+        terminalDisplay.showPairingComplete(terminalIdentity.terminalSuffix(), true);
+      else terminalDisplay.showPairingError(current == BondRepair::State::Expired ? "REPAIR EXPIRED" : "REPAIR FAILED");
+      bondRepair.reset();
+      transitionToIdle();
+    }
   }
 
   if (pairingUiActive && terminalSecurity.hasOwner()) {
@@ -1064,7 +1103,7 @@ void loop() {
     transitionToIdle();
   }
 
-  if (setupMode || pairingUiActive) {
+  if (setupMode || pairingUiActive || bondRepairUiActive) {
     return;
   }
 

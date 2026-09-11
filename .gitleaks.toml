@@ -12,3 +12,12 @@ condition = "AND"
 regexTarget = "secret"
 regexes = ['''^0123456789ABCDEF$''']
 paths = ['''^receiver/(universal\.tests/TerminalV2MainViewModelTests\.cs|windows/BathroomSync\.Tests/TerminalIdentityProtocolTests\.cs)$''']
+
+[[allowlists]]
+description = "Reviewed synthetic web client contract examples and test fixtures"
+paths = [
+  '''^contracts/web-client/''',
+  '''^web-client/tests/''',
+  '''^(docs|wiki)/design/chromebook-web-client\.md$''',
+  '''^wiki/Design-Chromebook-Web-Client\.md$'''
+]

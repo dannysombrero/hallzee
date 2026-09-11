@@ -12,7 +12,15 @@ export async function installBluetooth(page: Page) {
       client = "",
       key: CryptoKey;
     class Characteristic extends EventTarget {
-      properties = { write: true };
+      properties = { write: true, read: true };
+      async readValue() {
+        if (root.simulatedPairingFailure)
+          throw new DOMException(
+            "synthetic private diagnostic payload",
+            root.simulatedPairingFailure === "unsupported" ? "NotSupportedError" : "NetworkError",
+          );
+        return new DataView(new ArrayBuffer(0));
+      }
       value?: DataView;
       async startNotifications() {
         root.notificationsStarted = true;

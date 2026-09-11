@@ -16,6 +16,8 @@
 #include "TerminalIdentity.h"
 #include "FirmwareFrame.h"
 #include "TouchInput.h"
+#include "StableKeypad.h"
+#include "BondRepair.h"
 #include "support/RecordingDisplay.h"
 
 namespace {
@@ -602,6 +604,111 @@ void testBellPolicyLocksWarnsAndFailsOpenOutsideCache() {
   TerminalController outsideCache(otherStorage, time, &policy);
   expectAction(outsideCache.submit("OPEN").action, TerminalAction::CheckedOut,
     "a date missing from the offline cache fails open");
+}
+
+void testStableKeypadRejectsGlitches() {
+  StableKeypad filter;
+  TerminalKeypadEvent events[12];
+  expectTrue(filter.update(0, 1, events, 12) == 0, "first scan is not a press");
+  expectTrue(filter.update(20, 0, events, 12) == 0, "20 ms glitch is discarded");
+  expectTrue(filter.update(100, 0, events, 12) == 0, "idle cannot invent a press");
+  filter.update(110, 1, events, 12);
+  expectTrue(filter.update(149, 1, events, 12) == 0, "press waits 40 ms");
+  expectTrue(filter.update(150, 1, events, 12) == 1 && events[0].key == '1' &&
+    events[0].state == KeypadEventState::Pressed, "stable press delivered once");
+  expectTrue(filter.update(1000, 1, events, 12) == 0, "long hold never repeats");
+  filter.update(1010, 0, events, 12);
+  expectTrue(filter.update(1030, 1, events, 12) == 0, "release bounce does not repeat");
+  filter.update(1100, 0, events, 12);
+  expectTrue(filter.update(1140, 0, events, 12) == 1 &&
+    events[0].state == KeypadEventState::Released, "stable release delivered");
+  filter.update(1200, 1, events, 12);
+  expectTrue(filter.update(1240, 1, events, 12) == 1, "deliberate repeated digit allowed");
+  StableKeypad chord;
+  const uint16_t starHash = (1 << 9) | (1 << 11);
+  chord.update(0xfffffff0, starHash, events, 12);
+  expectTrue(chord.update(24, starHash, events, 1) == 1 && events[0].key == '*',
+    "stable chord handles timer rollover and capacity");
+  expectTrue(chord.update(25, starHash, events, 1) == 1 && events[0].key == '#',
+    "capacity does not discard pending chord event");
+  StableKeypad overlap;
+  overlap.update(0, 1, events, 12);
+  overlap.update(40, 1, events, 12);
+  overlap.update(50, 3, events, 12);
+  expectTrue(overlap.update(90, 3, events, 12) == 1 && events[0].key == '2',
+    "rolling presses preserve second digit");
+}
+
+int repairCount = 0;
+void onRepair() { repairCount++; }
+void testBondRepairGesture() {
+  resetKeypadCallbacks();
+  repairCount = 0;
+  keypadOwnerResetAllowed = true;
+  FakeKeypad keypad;
+  FakeMonotonicClock clock;
+  KeypadController controller(keypad, clock, isKeypadSetupMode, isKeypadResetAllowed,
+    onSetupKey, onNumberKey, onClear, onSubmit, onReset, nullptr, nullptr,
+    isKeypadOwnerResetAllowed, onOwnerReset, isKeypadOwnerResetAllowed, onRepair);
+  keypad.batches.push_back({{'*', KeypadEventState::Pressed}});
+  controller.poll();
+  clock.currentMilliseconds = 4999; controller.poll();
+  expectTrue(repairCount == 0, "repair waits five seconds");
+  clock.currentMilliseconds = 5000; controller.poll();
+  clock.currentMilliseconds = 15000; controller.poll();
+  expectTrue(repairCount == 1 && ownerResetCount == 0, "star alone repairs once and never resets owner");
+  keypad.batches.push_back({{'*', KeypadEventState::Released}}); controller.poll();
+  expectTrue(clearCount == 0, "repair release does not clear or dismiss repair UI");
+  keypad.batches.push_back({{'*', KeypadEventState::Pressed}}); controller.poll();
+  clock.currentMilliseconds = 16000;
+  keypad.batches.push_back({{'#', KeypadEventState::Pressed}}); controller.poll();
+  clock.currentMilliseconds = 21000; controller.poll();
+  expectTrue(repairCount == 1, "star hash cannot trigger bond repair");
+  clock.currentMilliseconds = 26000; controller.poll();
+  expectTrue(ownerResetCount == 1, "existing owner reset chord preserved");
+  keypad.batches.push_back({{'*', KeypadEventState::Released}, {'#', KeypadEventState::Released}}); controller.poll();
+  keypadOwnerResetAllowed = false;
+  keypad.batches.push_back({{'*', KeypadEventState::Pressed}}); controller.poll();
+  clock.currentMilliseconds = 32000; controller.poll();
+  expectTrue(repairCount == 1, "repair eligibility enforced");
+  keypad.batches.push_back({{'*', KeypadEventState::Released}}); controller.poll();
+  keypadOwnerResetAllowed = true; keypadSetupMode = true;
+  keypad.batches.push_back({{'*', KeypadEventState::Pressed}}); controller.poll();
+  clock.currentMilliseconds = 38000; controller.poll();
+  expectTrue(repairCount == 1, "clock setup does not open repair");
+  keypadSetupMode = false;
+}
+
+void testBondRepairPreservesApplicationBoundary() {
+  class RepairPort : public FakeBluetoothSerial {
+  public:
+    int disconnects = 0, clears = 0, codeChanges = 0;
+    bool clearWorks = true;
+    void disconnectClient() override { disconnects++; }
+    bool clearBondedDevices() override { clears++; return clearWorks; }
+    void setPairingPasskey(uint32_t) override { codeChanges++; }
+  } port;
+  BondRepair repair(port);
+  // Synthetic code fixture; no real device credentials.
+  expectTrue(!repair.start(0, false, 654321), "disallowed repair has no side effects");
+  expectTrue(port.disconnects == 0 && port.clears == 0, "rejected repair leaves BLE untouched");
+  port.connected = true;
+  expectTrue(repair.start(0, true, 654321), "eligible repair starts");
+  repair.poll(1000, false);
+  expectTrue(port.clears == 0 && repair.code() == 0, "wait for actual disconnect before clearing bonds");
+  port.connected = false; repair.poll(2000, false);
+  expectTrue(port.clears == 1 && port.codeChanges == 1 && repair.code() != 0, "fresh code ready after bond removal");
+  repair.poll(3000, false);
+  expectTrue(repair.status() == BondRepair::State::Ready && port.clears == 1, "OS pairing alone does not complete owner authentication");
+  repair.poll(4000, true);
+  expectTrue(repair.status() == BondRepair::State::Complete && repair.code() == 0, "authenticated owner completes and clears temporary code");
+  repair.start(5000, true, 654321); repair.poll(5000, false); repair.poll(125000, false);
+  expectTrue(repair.status() == BondRepair::State::Expired && repair.code() == 0, "repair expires in two minutes");
+  port.connected = true; repair.start(130000, true, 654321); repair.poll(135000, false);
+  expectTrue(repair.status() == BondRepair::State::Failed, "stuck disconnect fails without clearing live bond");
+  port.connected = false; port.clearWorks = false;
+  repair.start(140000, true, 654321); repair.poll(140000, false);
+  expectTrue(repair.status() == BondRepair::State::Failed && repair.code() == 0, "bond deletion failure does not show a code");
 }
 
 void testKeypadControllerInterpretsKeysAndResetGesture() {
@@ -1317,6 +1424,25 @@ int main() {
   testTerminalManualCheckInPersistsManualTrip();
   testTerminalEnforcesConfiguredMultiPassCapacity();
   testBellPolicyLocksWarnsAndFailsOpenOutsideCache();
+  {
+    RecordingDisplay display;
+    TerminalDisplay terminal(display);
+    terminal.showBondRepairWaiting();
+    expectTrue(contains(display.commands, "println:Disconnecting...") &&
+      !contains(display.commands, "println:PAIR ERROR"), "repair waiting is not an error");
+    display.commands.clear();
+    terminal.showPairing("HZ-A1B2C3D4E5F6", "Test classroom", 654321, true);
+    expectTrue(contains(display.commands, "println:BT REPAIR") &&
+      contains(display.commands, "println:Code in OS prompt") &&
+      !contains(display.commands, "println:Enter passkey in app"), "repair code belongs in OS prompt only");
+    display.commands.clear();
+    terminal.showPairingComplete("A1B2C3D4E5F6", true);
+    expectTrue(contains(display.commands, "println:REPAIRED") &&
+      !contains(display.commands, "println:CLAIMED"), "repair does not announce a new claim");
+  }
+  testStableKeypadRejectsGlitches();
+  testBondRepairGesture();
+  testBondRepairPreservesApplicationBoundary();
   testKeypadControllerInterpretsKeysAndResetGesture();
   testFirmwareFrameBoundaries();
   testTerminalIdentityFormatting();

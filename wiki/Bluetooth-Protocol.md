@@ -248,7 +248,11 @@ format, key management, bootstrap migration, and outstanding physical tests.
 ## Web adapter conformance
 
 The development browser adapter uses the existing v2 UUIDs and protocol.
-It subscribes to TX before HELLO, sends newline-delimited UTF-8 in serialized
+It reads TX using the firmware's encrypted MITM read permission before subscribing
+or sending HELLO, allowing up to 60 seconds for OS pairing. The returned value
+is discarded before notification listeners attach. The application authentication
+timeout therefore starts after the encrypted link is ready. It subscribes to TX
+before HELLO, sends newline-delimited UTF-8 in serialized
 20-byte RX writes **with response**, and limits commands to 192 bytes before LF.
 CLAIM_COMMIT follows durable pending-key storage; AUTH_OK is required before
 application commands. Returning owners may authenticate a claimed IN_USE device.
@@ -260,3 +264,14 @@ numbers encode local wall time as UTC fields, not true UTC instants: compare
 against the browser's local components encoded the same way. See
 [shared fixtures](https://github.com/dannysombrero/hallzee/blob/main/contracts/web-client/v1/README.md) and
 [web recovery requirements](Design-Chromebook-Web-Client.md).
+
+
+### Repairing only the operating-system bond
+
+Updated firmware supports holding `*` alone for five seconds while owned and idle
+(outside clock setup/touch mode). It waits up to five seconds for disconnection,
+clears OS bonds, and displays a fresh code for two minutes. This does not enable
+CLAIM mode or alter the saved owner key. Clients reconnect using AUTH, not CLAIM;
+enter the displayed code in the OS prompt only. Completion requires successful
+owner authentication; expiry disconnects the unauthenticated client and rotates
+the BLE passkey. The `*`+`#` ownership-reset gesture remains separate.

@@ -15,7 +15,9 @@ KeypadController::KeypadController(
   IsPairingAllowed isPairingAllowed,
   ActionHandler onPairing,
   IsPairingAllowed isOwnerResetAllowed,
-  ActionHandler onOwnerReset
+  ActionHandler onOwnerReset,
+  IsPairingAllowed isBondRepairAllowed,
+  ActionHandler onBondRepair
 ) : keypad(keypad),
     clock(clock),
     isSetupMode(isSetupMode),
@@ -28,7 +30,9 @@ KeypadController::KeypadController(
     isPairingAllowed(isPairingAllowed),
     onPairing(onPairing),
     isOwnerResetAllowed(isOwnerResetAllowed),
-    onOwnerReset(onOwnerReset) {}
+    onOwnerReset(onOwnerReset),
+    isBondRepairAllowed(isBondRepairAllowed),
+    onBondRepair(onBondRepair) {}
 
 void KeypadController::begin() {
   keypad.configure(20, 500);
@@ -103,6 +107,22 @@ void KeypadController::processEvents() {
 }
 
 void KeypadController::checkResetCombo() {
+  // Holding * alone repairs the OS bond; *+# retains its existing reset meaning.
+  if (!isSetupMode() && starPressed && !hashPressed && !suppressStarHash &&
+      isBondRepairAllowed && isBondRepairAllowed()) {
+    if (!repairHoldActive) {
+      repairHoldActive = true;
+      repairHoldStarted = clock.milliseconds();
+    }
+    if (clock.milliseconds() - repairHoldStarted >= PAIRING_HOLD_MS) {
+      suppressStarHash = true;
+      repairHoldActive = false;
+      if (onBondRepair) onBondRepair();
+    }
+  } else {
+    repairHoldActive = false;
+  }
+
   if (isSetupMode() && (!isOwnerResetAllowed || !isOwnerResetAllowed()) &&
       (!isPairingAllowed || !isPairingAllowed())) {
     return;

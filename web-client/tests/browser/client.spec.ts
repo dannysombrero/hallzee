@@ -180,3 +180,56 @@ test("targeted check-in retains other active passes; confirmed release removes k
     )
     .toEqual([0, 1]);
 });
+
+test("native pairing rejection reports its stage and remains visible after focus", async ({
+  page,
+}) => {
+  await installBluetooth(page);
+  await page.goto("/");
+  await expect(page.getByText("Ready offline", { exact: true })).toBeVisible();
+  await page.evaluate(() => {
+    (window as any).simulatedPairingFailure = true;
+  });
+  await page.getByRole("button", { name: "Connect terminal", exact: true }).click();
+  await page.getByLabel("Physical pairing code").fill("807481");
+  await page.getByRole("checkbox").check();
+  await page.getByRole("button", { name: "Choose terminal and pair", exact: true }).click();
+  const error = page.getByRole("dialog").getByRole("alert");
+  await expect(error).toContainText("pairing / NetworkError");
+  await expect(error).not.toContainText("synthetic private");
+  await page.evaluate(() => window.dispatchEvent(new Event("focus")));
+  await expect(error).toContainText("pairing / NetworkError");
+});
+
+test("saved owner survives a lost OS bond and authenticates after repair without another claim", async ({
+  page,
+}) => {
+  await installBluetooth(page);
+  await page.goto("/");
+  await expect(page.getByText("Ready offline", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Connect terminal", exact: true }).click();
+  await page.getByLabel("Physical pairing code").fill("807481");
+  await page.getByRole("checkbox").check();
+  await page.getByRole("button", { name: "Choose terminal and pair", exact: true }).click();
+  await expect(page.getByText("Pass available", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Disconnect", exact: true }).click();
+  await page.evaluate(() => {
+    (window as any).simulatedPairingFailure = "unsupported";
+    (window as any).terminalCommands = [];
+  });
+  await page.getByRole("button", { name: "Connect terminal", exact: true }).click();
+  await page.getByRole("button", { name: "Choose saved terminal", exact: true }).click();
+  const error = page.getByRole("dialog").getByRole("alert");
+  await expect(error).toContainText("pairing / NotSupportedError");
+  await expect(error).toContainText("BT REPAIR");
+  await expect(page.getByLabel("Physical pairing code")).toHaveValue("");
+  // Simulate OS bond repair; leave application owner credentials unchanged.
+  await page.evaluate(() => {
+    (window as any).simulatedPairingFailure = false;
+  });
+  await page.getByRole("button", { name: "Choose saved terminal", exact: true }).click();
+  await expect(page.getByText("Pass available", { exact: true })).toBeVisible();
+  const commands = await page.evaluate(() => (window as any).terminalCommands as string[]);
+  expect(commands.some((c) => c.startsWith("AUTH,2,"))).toBe(true);
+  expect(commands.some((c) => c.startsWith("CLAIM"))).toBe(false);
+});

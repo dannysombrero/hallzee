@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Bluetooth, ShieldCheck } from "lucide-react";
 import { useHallzee } from "../app/HallzeeProvider";
 import { Dialog } from "./Dialog";
+import { capabilities } from "../app/capabilities";
 export function ConnectionDialog({ onClose }: { onClose: () => void }) {
   const { controller, state } = useHallzee();
   const [code, setCode] = useState("");
@@ -13,8 +14,17 @@ export function ConnectionDialog({ onClose }: { onClose: () => void }) {
     >
       <div className="dialog-intro">
         <Bluetooth />
-        <p>Keep your Hallzee terminal nearby. Chrome will open its own device chooser.</p>
+        <p>Keep your Hallzee terminal nearby. Your browser will open its own device chooser.</p>
       </div>
+      {!capabilities().bluetooth && (
+        <div className="banner warning" role="note">
+          <p>
+            <strong>Web Bluetooth is unavailable in this browser.</strong> Direct terminal Bluetooth
+            connection requires Google Chrome or Microsoft Edge. Local classroom records, rosters,
+            bell policies, and trip management remain fully functional.
+          </p>
+        </div>
+      )}
       {state.terminal ? (
         <>
           <p>
@@ -27,9 +37,17 @@ export function ConnectionDialog({ onClose }: { onClose: () => void }) {
           >
             Choose saved terminal
           </button>
+          <p className="muted">
+            If the operating system forgot its Bluetooth pairing, updated terminal firmware can
+            repair it: with no pass active, hold <strong>* alone for five seconds</strong> until
+            <strong> BT REPAIR</strong> appears. Then choose the saved terminal above and enter the
+            displayed code only in the operating system’s prompt. This preserves ownership and
+            records. If BT REPAIR does not appear, update the terminal firmware first.
+          </p>
           <hr />
           <p>
-            If a physical owner reset made the terminal unclaimed, use the fresh pairing code below.
+            The code field below is only for claiming an unclaimed terminal after an intentional
+            owner reset. It does not repair an existing owner’s Bluetooth bond.
           </p>
         </>
       ) : (
@@ -50,7 +68,9 @@ export function ConnectionDialog({ onClose }: { onClose: () => void }) {
         />
       </label>
       <p className="muted">
-        Chrome or the operating system may ask for this same code separately. The code is not saved.
+        Entering this code does not complete operating-system pairing. If macOS or Windows asks for
+        a Bluetooth code, enter the current code shown on the terminal there too. Hallzee waits up
+        to one minute for secure pairing and does not save the code.
       </p>
       <label className="check">
         <input
@@ -72,8 +92,8 @@ export function ConnectionDialog({ onClose }: { onClose: () => void }) {
         Choose terminal and pair
       </button>
       <p className="muted">
-        A terminal already owned by a desktop app must be released there first. Clearing Chrome’s
-        Bluetooth permission does not release ownership.
+        A terminal already owned by a desktop app or another browser must be released there first.
+        Clearing browser Bluetooth permissions does not release ownership.
       </p>
       {state.error && (
         <p role="alert" className="error">

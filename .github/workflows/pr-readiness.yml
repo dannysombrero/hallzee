@@ -37,7 +37,6 @@ jobs:
           import subprocess
 
           if os.environ["EVENT_NAME"] == "workflow_dispatch":
-              web_client = workflow_or_shared or any(path.startswith(("web-client/", "contracts/", "receiver/windows/BathroomSync.Core/")) for path in paths)
               selected = {name: True for name in ("desktop", "firmware", "website", "windows", "web_client")}
           else:
               base = os.environ["BASE_SHA"]

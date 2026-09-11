@@ -8,33 +8,17 @@ void ArduinoKeypadPort::configure(
 ) {
   keypad.setDebounceTime(debounceMilliseconds);
   keypad.setHoldTime(holdMilliseconds);
+  stable = StableKeypad();
 }
 
 size_t ArduinoKeypadPort::readEvents(TerminalKeypadEvent *events, size_t capacity) {
-  if (!keypad.getKeys()) {
-    return 0;
-  }
-
-  size_t count = 0;
-  for (int index = 0; index < LIST_MAX && count < capacity; index++) {
-    if (!keypad.key[index].stateChanged) {
-      continue;
+  keypad.getKeys();
+  uint16_t down = 0;
+  for (int index = 0; index < LIST_MAX; index++) {
+    if (keypad.key[index].kstate != PRESSED && keypad.key[index].kstate != HOLD) continue;
+    for (unsigned i = 0; i < 12; ++i) {
+      if (keypad.key[index].kchar == StableKeypad::keys[i]) down |= uint16_t(1) << i;
     }
-
-    events[count++] = {keypad.key[index].kchar, toEventState(keypad.key[index].kstate)};
   }
-  return count;
-}
-
-KeypadEventState ArduinoKeypadPort::toEventState(KeyState state) {
-  switch (state) {
-    case PRESSED:
-      return KeypadEventState::Pressed;
-    case RELEASED:
-      return KeypadEventState::Released;
-    case HOLD:
-      return KeypadEventState::Held;
-    default:
-      return KeypadEventState::Idle;
-  }
+  return stable.update(millis(), down, events, capacity);
 }

@@ -28,9 +28,10 @@ public:
   void drawClockSetupScreen(ClockSetupStep step, const String &entry);
   void showInvalidClockValue(const String &message);
   void showClockSet(const String &date, const String &time);
-  void showPairing(const String &terminalId, const String &friendlyName, uint32_t passkey);
+  void showPairing(const String &terminalId, const String &friendlyName, uint32_t passkey, bool bondRepair = false);
   void setFriendlyName(const String &name) { friendlyName = name; }
-  void showPairingComplete(const String &suffix);
+  void showBondRepairWaiting();
+  void showPairingComplete(const String &suffix, bool bondRepair = false);
   void showPairingError(const String &message);
   void showOwnerReset();
 

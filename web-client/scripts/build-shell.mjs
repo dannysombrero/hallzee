@@ -96,7 +96,7 @@ await writeFile(
       commit,
       dirty,
       sourceUrl,
-      productionOrigin: null,
+      productionOrigin: process.env.PRODUCTION_ORIGIN || null,
       hardwareAcceptance: "pending",
     },
     null,

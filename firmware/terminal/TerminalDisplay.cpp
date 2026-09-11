@@ -790,7 +790,8 @@ void TerminalDisplay::showClockSet(const String &date, const String &time) {
 void TerminalDisplay::showPairing(
   const String &terminalId,
   const String &name,
-  uint32_t passkey
+  uint32_t passkey,
+  bool bondRepair
 ) {
   prepareScreenTransition(UI_BACKGROUND);
   display.setFont(DisplayFont::BuiltIn);
@@ -799,7 +800,7 @@ void TerminalDisplay::showPairing(
   display.setTextColor(UI_TEXT);
   display.setTextSize(2);
   display.setCursor(10, large ? 16 : 6);
-  display.println("PAIRING");
+  display.println(bondRepair ? "BT REPAIR" : "PAIRING");
   display.setTextSize(1);
   display.setCursor(10, large ? 52 : 28);
   display.println(name);
@@ -815,7 +816,7 @@ void TerminalDisplay::showPairing(
   display.println(digits);
   display.setTextSize(1);
   display.setCursor(10, large ? 192 : 108);
-  display.println("Enter passkey in app");
+  display.println(bondRepair ? "Code in OS prompt" : "Enter passkey in app");
 }
 
 void TerminalDisplay::drawTerminalLabel() {
@@ -827,13 +828,27 @@ void TerminalDisplay::drawTerminalLabel() {
   display.println(friendlyName.length() > limit ? friendlyName.substring(0, limit - 3) + "..." : friendlyName);
 }
 
-void TerminalDisplay::showPairingComplete(const String &suffix) {
+void TerminalDisplay::showBondRepairWaiting() {
+  prepareScreenTransition(UI_BACKGROUND);
+  display.setFont(DisplayFont::BuiltIn);
+  display.setTextColor(UI_TEXT);
+  display.setTextSize(2);
+  display.setCursor(10, 16);
+  display.println("BT REPAIR");
+  display.setTextSize(1);
+  display.setCursor(10, 52);
+  display.println("Disconnecting...");
+  display.setCursor(10, 72);
+  display.println("Please wait");
+}
+
+void TerminalDisplay::showPairingComplete(const String &suffix, bool bondRepair) {
   prepareScreenTransition(DISPLAY_GREEN);
   if (display.isNative320x240()) {
     display.setTextColor(DISPLAY_BLACK);
     display.setFont(DisplayFont::DMSansBold18);
     display.setCursor(24, 60);
-    display.println("CLAIMED");
+    display.println(bondRepair ? "REPAIRED" : "CLAIMED");
 
     display.setFont(DisplayFont::DMSansRegular12);
     display.setCursor(24, 110);
@@ -848,7 +863,7 @@ void TerminalDisplay::showPairingComplete(const String &suffix) {
   display.setTextColor(DISPLAY_BLACK);
   display.setTextSize(2);
   display.setCursor(10, 22);
-  display.println("CLAIMED");
+  display.println(bondRepair ? "REPAIRED" : "CLAIMED");
   display.setTextSize(1);
   display.setCursor(10, 62);
   display.print("Hallzee-");

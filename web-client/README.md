@@ -1,7 +1,8 @@
 # Hallzee web client
 
-Local classroom client for Chrome, version 1.2.0-dev.1. Hardware acceptance is
-pending; this is a development build, not a supported Chromebook release.
+Local classroom client for Chromium browsers (Google Chrome and Microsoft Edge), version 1.2.0-dev.1.
+Hardware acceptance is pending; this is a development build, not a supported Chromebook/Windows release.
+Mozilla Firefox supports local classroom and data features; direct terminal Bluetooth is deferred to a future local helper daemon.
 
 From the repository root, one command installs checksum-pinned Node and locked
 npm packages, builds the offline app, and starts it at http://localhost:4190:

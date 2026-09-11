@@ -126,7 +126,7 @@ export class ApplicationController {
       if (!caps.secure || !caps.storage || !caps.crypto || !caps.locks)
         throw new HallzeeError(
           "CAPABILITY_REQUIRED",
-          "Hallzee needs a secure page, persistent browser storage, Web Crypto, and Web Locks. Open this build in Chrome.",
+          "Hallzee needs a secure page, persistent browser storage, Web Crypto, and Web Locks. Open this build in a supported browser (Chrome or Edge).",
         );
       if (!(await this.lock.acquire())) {
         this.publish({ locked: true });
@@ -161,7 +161,7 @@ export class ApplicationController {
         this.sync?.dispose();
         this.active.unknown();
         this.publish();
-        if (this.autoConnect) this.reconnect?.start();
+        if (this.autoConnect && this.state.terminal) this.reconnect?.start();
       });
       this.reconnect = new AutoReconnectCoordinator(
         async (signal) => {
@@ -175,7 +175,7 @@ export class ApplicationController {
           if (!handle)
             throw new HallzeeError(
               "CHOOSE_TERMINAL",
-              "Choose your saved terminal to reconnect. Chrome has no remembered device handle for it.",
+              "Choose your saved terminal to reconnect. The browser has no remembered device handle for it.",
             );
           await this.queue.run(
             "reconnect",
@@ -250,7 +250,7 @@ export class ApplicationController {
     this.active.unknown();
     this.publish();
     if (this.session?.state === "Authenticated") void this.syncNow();
-    else if (this.autoConnect) this.reconnect?.start();
+    else if (this.autoConnect && this.state.terminal) this.reconnect?.start();
   };
   async refresh() {
     if (!this.db || this.stopped) return;
@@ -393,7 +393,7 @@ export class ApplicationController {
     // Keep requestDevice in the user activation, before any async storage work.
     if (!capabilities().bluetooth) {
       this.publish({
-        error: "Web Bluetooth is unavailable. Use Chrome and check school browser policy.",
+        error: "Web Bluetooth is unavailable in this browser. Direct terminal connection requires Chrome or Edge; local classroom and data features remain available. Check browser policy if on a managed computer.",
       });
       return false;
     }

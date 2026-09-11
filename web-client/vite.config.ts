@@ -15,5 +15,5 @@ const headers = Object.fromEntries(
 export default defineConfig({
   preview: { headers },
   plugins: [react(), tailwindcss()],
-  build: { target: "chrome116", sourcemap: false },
+  build: { target: ["chrome116", "edge116"], sourcemap: false },
 });

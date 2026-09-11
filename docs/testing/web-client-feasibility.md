@@ -11,8 +11,10 @@ record.
 | IndexedDB durable transactions and CryptoKey structured clone | Production Chromium integration test stores a nonextractable key and authenticates after offline reload | Automated pass |
 | Browser GATT software adapter | Simulated GATT with actual 20-byte writes, fragmented notifications, full claim/auth and durable ACK | Automated pass; hardware excluded |
 | Offline shell and controlled updates | Actual worker A/B install, interrupted download, explicit activation and data/key survival | Automated pass |
+| Desktop Edge on Mac/Windows | Edge supports Web Bluetooth; shared implementation works. Mac testing establishes Edge-on-Mac; Windows requires Windows BLE PC | Web Bluetooth supported; Windows unverified |
+| Firefox local classroom / data features | Local IndexedDB, Web Crypto, Web Locks and offline shell work; direct terminal Web Bluetooth lacks browser support | Local features supported; Bluetooth deferred |
 | Managed Chromebook secure pairing, district policies, persistence/eviction, sleep and projection | No managed device available | Not run |
-| Windows Chrome BLE and installed PWA | Requires Windows BLE PC and ESP32 | Not run |
+| Windows Chrome/Edge BLE and installed PWA | Requires Windows BLE PC and ESP32 | Not run |
 | Mac Chrome physical BLE, installed PWA and projector | Requires ESP32 and display testing | Not run |
 
 The implementation therefore remains a development client. M0's managed
@@ -24,6 +26,6 @@ clean-machine Mac and Windows bootstrap images have not been tested.
 
 See [acceptance evidence](web-client-acceptance.md) and the
 [design](../design/chromebook-web-client.md) for the exact remaining hardware
-sequence. A Mac is sufficient for shared software tests; a Windows BLE PC is
-required for Chrome's Windows OS pairing, encrypted GATT, reconnect/sleep and PWA
-behavior. Windows behavior remains unverified.
+sequence. A Mac is sufficient for shared software tests and establishing Edge-on-Mac
+support; a Windows BLE PC is required for Chrome's and Edge's Windows OS pairing,
+encrypted GATT, reconnect/sleep and PWA behavior. Windows behavior remains unverified.

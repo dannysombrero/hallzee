@@ -14,3 +14,6 @@ and pairing instructions:
 Use the pin map in that guide rather than a generic ESP32 wiring diagram. The
 terminal uses 3.3 V logic and the firmware supports the original ESP32/WROOM-32
 board family, not ESP32-C3, S2, S3, or H2 boards.
+
+If digits appear without a deliberate keypress, inspect keypad support and
+connections using [the keypad troubleshooting checks](Bluetooth-Repair-and-Keypad.md#unexpected-digits-on-the-physical-keypad).

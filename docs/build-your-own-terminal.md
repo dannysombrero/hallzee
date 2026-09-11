@@ -16,32 +16,29 @@ to arrive and have different return terms. Prices change frequently.
 
 | Component | Buy | Why this part |
 | --- | --- | --- |
-| ESP32-WROOM-32D development board | [Amazon](https://link.amazon/B0iYLh3GS) | This is the board used and tested with the supplied 2.8″ case. Other original ESP32 boards can work, but may not fit the enclosure and can require model changes. Do **not** substitute an ESP32-C3, S2, S3, or H2; those are not supported by the current firmware. |
-| 3×4 membrane keypad | [Amazon](https://link.amazon/B06SMyEXs) · [AliExpress](https://s.click.aliexpress.com/e/_c4o7fm1F) | You need one keypad. This pack is a low-cost option, and the tested keypad has a reliable feel. |
-| 2.8″ TFT LCD screen | [Amazon](https://link.amazon/B0iAe7jEW) · [AliExpress](https://s.click.aliexpress.com/e/_c4NEynTj) | Use the red ILI9341 SPI module for the 2.8″ enclosure. A touch-capable module is fine; Hallzee does not require touch, so a non-touch version is usually cheaper. |
-| Dupont jumper wires | [Amazon](https://link.amazon/B06vL5zqx) · [AliExpress](https://s.click.aliexpress.com/e/_c3Vw560Z) | Get both female-to-female and female-to-male wires. You need at least seven male-to-female connections for the keypad and nine female-to-female connections for the screen. |
+| ESP32-WROOM-32D development board | [Amazon](https://link.amazon/B0iYLh3GS) | This is the board I used and tested with the supplied 2.8″ case. Other original ESP32 boards can work, but may not fit the enclosure and can require model changes. Do **not** substitute an ESP32-C3, S2, S3, or H2 as those are not supported by the current firmware. |
+| 3×4 membrane keypad | [Amazon](https://link.amazon/B06SMyEXs) · [AliExpress](https://s.click.aliexpress.com/e/_c4o7fm1F) | You only need 1 keypad. This pack was the lowest-cost option I found, and I liked the tested keypad feel more than the AliExpress one. |
+| 2.8″ TFT LCD screen | [Amazon](https://link.amazon/B0iAe7jEW) · [AliExpress](https://s.click.aliexpress.com/e/_c4NEynTj) | Use the red ILI9341 SPI module for the 2.8″ enclosure. A touch-capable module is fine. Hallzee does not require touch, so a non-touch version is usually cheaper. |
+| Dupont jumper wires | [Amazon](https://link.amazon/B06vL5zqx) · [AliExpress](https://s.click.aliexpress.com/e/_c3Vw560Z) | Get both female-to-female and female-to-male wires. You need at least 7 male-to-female connections for the keypad and 9 female-to-female connections for the screen.* |
 | M3 × 5 mm bolts | [Amazon](https://link.amazon/B018CffbF) · [AliExpress](https://s.click.aliexpress.com/e/_c3S8bd5J) | All enclosure screws use M3 × 5 mm. The current case needs 14, although kits usually contain more. |
 | Micro-USB wall charger | [Amazon](https://link.amazon/B09n9XGld) · [AliExpress](https://s.click.aliexpress.com/e/_c3iPfIwN) | The terminal needs micro-USB power. A micro-USB cable and a suitable USB wall adapter you already own also work. |
 
-Soldering also works, but the enclosure is designed around the listed Dupont
+*Soldering also works, but the enclosure is designed around the listed Dupont
 connectors, so no soldering is required.
 
 ## 3D printer and materials
 
-- [Bambu Lab P1S 3D printer](https://link.amazon/B0hQt6evb) — a reliable,
-  approachable option for a first printer.
-- [Creality Hyper PLA, blue](https://link.amazon/B0d37FG4q) — a proven option
-  for the enclosure. Most PLA brands work; a dependable printer matters more
-  than a particular filament brand.
+- [Bambu Lab P1S 3D printer](https://link.amazon/B0hQt6evb) - Of all the 3D printers I've used over the years (Creality, Elegoo, Bambu Labs), this printer has definitely been the best combination of new user experience, price, and reliability. I recommend it to all of the other teachers I meet who want a 3D printer for their classroom. 
+- [Creality Hyper PLA, blue](https://link.amazon/B0d37FG4q) - These days I've found the specific brand of filament isn't as important as the printer. Most brands of PLA (including cheaper ones) work just fine in my experience, but these are reliable and work well with the faster speeds of more recent gen of 3D printers (like the P1S).
 - Download the free [2.8″ terminal models](../models). The current enclosure
   consists of the main case, back, LCD/keypad cover, keypad support, and ESP32
-  stabilizer. The model files are licensed under CC BY-SA 4.0.
+  stabilizer. The model files are licensed under CC BY-SA 4.0. I've also included the .STEP files for easier modification if you want to make any adjustments based on the parts you end up using. 
 
 ## Wire the terminal
 
 Use an original ESP32 DevKit V1/WROOM-32 with 4 MB or more of flash and the
 2.8″ red ILI9341 SPI display. Disconnect USB power before wiring. The TFT and
-keypad use 3.3 V logic: **never connect 5 V to an ESP32 signal pin.**
+keypad use 3.3V logic: **never connect 5V to an ESP32 signal pin.**
 
 Wire by the labels printed on each part:
 

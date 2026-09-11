@@ -48,7 +48,18 @@ public:
     const auto last = value.find_last_not_of(" \t\r\n");
     value = first == std::string::npos ? "" : value.substr(first, last - first + 1);
   }
+  bool endsWith(const char *suffix) const {
+    if (suffix == nullptr) return false;
+    const std::string s(suffix);
+    if (s.length() > value.length()) return false;
+    return value.compare(value.length() - s.length(), s.length(), s) == 0;
+  }
+  bool endsWith(const String &suffix) const {
+    return endsWith(suffix.c_str());
+  }
   String &operator+=(char character) { value += character; return *this; }
+  String &operator+=(const char *suffix) { if (suffix) value += suffix; return *this; }
+  String &operator+=(const String &suffix) { value += suffix.value; return *this; }
   friend String operator+(const String &left, const char *right) {
     return String(static_cast<std::string>(left) + (right == nullptr ? "" : right));
   }

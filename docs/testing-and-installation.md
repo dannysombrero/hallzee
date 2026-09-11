@@ -160,12 +160,13 @@ tests. They do not replace a Windows PC with a physical terminal. Windows
 launch/BLE/USB behavior has not been verified by Mac-only checks. Physical Mac
 updates and clean-machine installation also need release acceptance testing;
 use [release readiness](release-readiness.md) and the detailed
-[Bluetooth checklist](testing-reference.md#windows--mac-bluetooth-verification).
+[Bluetooth checklist](testing-reference.md#windows--mac-bluetooth-verification),
+including the [hardware suffix and discovery badge checklist](testing-reference.md#windows--mac-bluetooth-verification).
 
 Terminal notification and disconnect callbacks are marshalled to the desktop
 UI thread before they update the dashboard. A Mac is sufficient for the shared
-view-model tests; a Windows PC is required to verify WinRT Bluetooth callback
-delivery during a real connected session. Windows behavior has not yet been
+view-model tests, layout inspection, and native firmware unit tests; a Windows PC is required to verify WinRT Bluetooth callback
+delivery during a real connected session and to verify refreshed names and status badges over WinRT. Windows behavior has not yet been
 verified by this Mac-only check.
 
 ## Pull requests, security and maintenance

@@ -35,9 +35,8 @@ the repository root as a sketch.
   emulators, troubleshooting, and hardware checks.
 - [Firmware updates](firmware-updates.md) explains USB preparation, signed
   Bluetooth updates, rollback behavior, and firmware releases.
-- [3D models](../models/) contains the enclosure and fabrication files; the
-  [Wiki model guide](https://github.com/dannysombrero/hallzee/wiki/3D-Models)
-  explains the current and historical sets.
+- [3D models](3d-models.md) contains enclosure renders, model files, and fabrication
+  assets; see also the [Wiki model guide](https://github.com/dannysombrero/hallzee/wiki/3D-Models).
 - [CI and repository security](ci-and-security.md) explains required checks,
   dependency review, secret scanning, and release protections.
 

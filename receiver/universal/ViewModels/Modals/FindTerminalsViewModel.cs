@@ -88,7 +88,7 @@ public sealed class FindTerminalsViewModel : INotifyPropertyChanged {
       foreach (var d in found) Devices.Add(d);
       SelectedDevice = Devices.FirstOrDefault();
       StatusText = Devices.Count > 0
-        ? $"Found {Devices.Count} terminal(s) nearby. In Use kiosks can only be reconnected by their owner."
+        ? "Claimed terminals require their owner to reconnect. Busy terminals cannot be newly paired. To pair a ready terminal, enter pairing mode on the kiosk and use its displayed passkey."
         : "No terminals found nearby. Ensure kiosk is powered on.";
     } catch (Exception ex) {
       StatusText = $"Scan failed: {ex.Message}";

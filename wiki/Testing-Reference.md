@@ -583,7 +583,7 @@ unverified by the display tests.
 For this pairing/status change, Mac testing is sufficient to validate the
 shared protocol and macOS BLE path, but it is not sufficient to verify the
 Windows BLE adapter. A Windows PC is required to verify the Windows-specific
-passkey prompt, `INUSE` discovery label, and Windows refusal to connect to an
+passkey prompt, `CLAIMED OR BUSY` discovery label, and Windows refusal to connect to an
 occupied kiosk. Windows behavior has not yet been verified by automated tests
 or by a second-terminal hardware run.
 
@@ -732,8 +732,11 @@ sure the ESP32 terminal is powered on, then use the desktop app to find and
 sync `Hallzee-XXXX`. Initial ownership requires holding `*` and `#` on an
 unclaimed, unoccupied terminal for five seconds, releasing both keys, and
 entering the displayed six-digit Bluetooth passkey. One continuous key hold
-starts only one pairing session. A claimed kiosk or one with an active checkout advertises `INUSE`
-and is shown as **IN USE**. The remembered owner may reconnect and authenticate
+starts only one pairing session. The advertised name preserves the hardware suffix:
+`Hallzee-XXXX` for default terminals, and `[name] [XXXX]` for custom names (e.g. `Room 204 [E5F6]`).
+A claimed kiosk or one with an active checkout advertises `INUSE` and is shown as
+**CLAIMED OR BUSY** in the discovery picker (unclaimed and unoccupied kiosks display
+**READY TO PAIR**). The remembered owner may reconnect and authenticate
 without the pairing passkey; a different client cannot claim or connect to it.
 Do not treat the advertised name or BLE address as proof of terminal identity.
 

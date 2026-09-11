@@ -15,9 +15,31 @@ Pairing can begin from any date/time setup step using the usual five-second
 `*` + `#` chord. The full terminal ID and friendly name appear with the six-digit
 passkey. Key releases do not edit the clock, and timeout resumes the same setup
 step. The terminal header displays **Terminal: [name]**;
-long names are abbreviated there. The full name is retained in identity/settings.
-Names carrying `-INUSE` are limited to a 23-character base to fit the 29-byte
-BLE name field without losing the status suffix.
+long names are abbreviated there. The full clean name is retained in identity/settings.
+
+### Hardware Suffix Preservation and Truncation Budget
+
+Every advertised terminal name preserves a recognizable 4-character hardware suffix (the last four hex characters of the ESP32 eFuse MAC). Custom names are formatted as `[name] [<suffix>]` (e.g. `Room 204 [E5F6]`), while default unnamed terminals advertise as `Hallzee-<suffix>` (e.g. `Hallzee-E5F6`). When claimed or occupied, `-INUSE` is appended (e.g. `Room 204 [E5F6]-INUSE` or `Hallzee-E5F6-INUSE`).
+
+To fit within Bluetooth Low Energy's 29-byte complete local name scan response limit without ever truncating the hardware tag or the `-INUSE` status:
+- Prefix budget: `29 - 7 - (inUse ? 6 : 0)`.
+- Without `-INUSE`: 22 characters available for the custom name prefix (`22 + 7 = 29` bytes).
+- With `-INUSE`: 16 characters available for the custom name prefix (`16 + 7 + 6 = 29` bytes).
+- The hardware marker `[<suffix>]` is always reconstructed after prefix truncation and is never truncated.
+- Example for a terminal with suffix `E5F6`:
+  - Default: `Hallzee-E5F6` (available) / `Hallzee-E5F6-INUSE` (in use)
+  - `Room 204`: `Room 204 [E5F6]` (available) / `Room 204 [E5F6]-INUSE` (in use)
+  - `ABCDEFGHIJKLMNOPQRSTUVWX` (24 chars): `ABCDEFGHIJKLMNOPQRSTUV [E5F6]` (available) / `ABCDEFGHIJKLMNOP [E5F6]-INUSE` (in use)
+
+User-entered names remain unchanged in non-volatile storage, settings acknowledgments, identity responses, SQLite database records, and normal LCD operation (`Room 204`); the `[<suffix>]` tag applies only to discovery advertisements. The 4-character suffix is for physical matching; the full authenticated terminal ID (`HZ-XXXXXXXXXXXX`) remains the authoritative identity.
+
+### Discovery Availability Badges and Refresh Timing
+
+The desktop discovery picker translates the advisory advertisement flags into distinct visual indicators:
+- **`READY TO PAIR`** (Green): Displayed for unclaimed, unoccupied terminals. Pairing still requires entering physical pairing mode on the terminal (`*` + `#` chord for 5 seconds) and entering the 6-digit passkey displayed on the kiosk screen.
+- **`CLAIMED OR BUSY`** (Amber): Displayed when the terminal advertises `-INUSE`. Claimed terminals require their remembered owner to reconnect; busy terminals cannot be newly paired. Remembered owners can still select and reconnect to a terminal displaying `CLAIMED OR BUSY`.
+- The raw transport ID line (`ID: ...`) is omitted from the discovery list to avoid confusing OS-generated Bluetooth handles with the physical terminal ID.
+- **Advertisement refresh timing:** A connected rename with `SET,TERMINAL_NAME` sets the updated BLE device name immediately on the hardware, but active BLE GATT connections maintain their current scan response until disconnection. Once disconnected, the terminal restarts advertising with the updated name.
 
 **Status:** Implemented; physical multi-device/platform verification remains
 

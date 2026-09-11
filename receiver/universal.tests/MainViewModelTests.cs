@@ -245,4 +245,16 @@ public sealed class MainViewModelTests : IDisposable {
     Assert.False(viewModel.PolicyModal.IsRenamingProfile);
   }
 
+  [Fact]
+  public async Task FindTerminalsScanSuccessShowsRevisedExplanation() {
+    await viewModel.FindTerminalsModal.ScanAsync();
+
+    Assert.NotEmpty(viewModel.FindTerminalsModal.Devices);
+    Assert.Equal(
+      "Claimed terminals require their owner to reconnect. Busy terminals cannot be newly paired. To pair a ready terminal, enter pairing mode on the kiosk and use its displayed passkey.",
+      viewModel.FindTerminalsModal.StatusText
+    );
+    Assert.NotNull(viewModel.FindTerminalsModal.SelectedDevice);
+  }
+
 }

@@ -30,9 +30,13 @@ connectors, so no soldering is required.
 
 - [Bambu Lab P1S 3D printer](https://link.amazon/B0hQt6evb) - Of all the 3D printers I've used over the years (Creality, Elegoo, Bambu Labs), this printer has definitely been the best combination of new user experience, price, and reliability. I recommend it to all of the other teachers I meet who want a 3D printer for their classroom. 
 - [Creality Hyper PLA, blue](https://link.amazon/B0d37FG4q) - These days I've found the specific brand of filament isn't as important as the printer. Most brands of PLA (including cheaper ones) work just fine in my experience, but these are reliable and work well with the faster speeds of more recent gen of 3D printers (like the P1S).
-- Download the free [2.8″ terminal models](../models). The current enclosure
+- Download the free [2.8″ terminal models](../models) (see the [3D models guide](3d-models.md)). The current enclosure
   consists of the main case, back, LCD/keypad cover, keypad support, and ESP32
-  stabilizer. The model files are licensed under CC BY-SA 4.0. I've also included the .STEP files for easier modification if you want to make any adjustments based on the parts you end up using. 
+  stabilizer. The model files are licensed under CC BY-SA 4.0. I've also included the .STEP files for easier modification if you want to make any adjustments based on the parts you end up using.
+
+<p align="center">
+  <img src="images/Hallzee_Terminal_3D_Render_2.png" alt="Hallzee 2.8-inch terminal 3D render in blue enclosure" width="450" />
+</p> 
 
 ## Wire the terminal
 

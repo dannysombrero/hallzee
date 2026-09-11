@@ -2,9 +2,9 @@
 
 The repository's canonical 3D-model folder is:
 
-[Browse Hallzee 3D models](https://github.com/dannysombrero/hallzee/tree/main/models)
+[Browse Hallzee 3D models](../models/)
 
-Use it for enclosure, mounting, and other fabrication files. 3D models and fabrication assets in `models/` are licensed under [Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)](License).
+Use it for enclosure, mounting, and other fabrication files. 3D models and fabrication assets in `models/` are licensed under [Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)](license.md).
 
 Production `.3mf` models for 2.8″ terminals and historical 1.8″ profiles are available in the repository.
 
@@ -14,21 +14,21 @@ Production `.3mf` models for 2.8″ terminals and historical 1.8″ profiles are
 Fully assembled Hallzee 2.8″ terminal enclosure with 3×4 membrane keypad and ILI9341 display:
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/dannysombrero/hallzee/main/models/Hallzee_Terminal_3D_Render_2.png" alt="Hallzee 2.8-inch terminal assembled 3D render with display and keypad" width="480" />
+  <img src="images/Hallzee_Terminal_3D_Render_2.png" alt="Hallzee 2.8-inch terminal assembled 3D render with display and keypad" width="480" />
 </p>
 
 ### Enclosure Shell
 Modular front cover and main body printed in PLA:
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/dannysombrero/hallzee/main/models/Hallzee_Terminal_3D_Render_1.png" alt="Hallzee 2.8-inch terminal enclosure shell 3D render" width="480" />
+  <img src="images/Hallzee_Terminal_3D_Render_1.png" alt="Hallzee 2.8-inch terminal enclosure shell 3D render" width="480" />
 </p>
 
 ### CAD Assembly and Port Geometry
 CAD model view displaying the enclosure contours, internal component fit, and side micro-USB cable cutout:
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/dannysombrero/hallzee/main/models/Hallzee_Terminal_3D_Render.png" alt="Hallzee 2.8-inch terminal CAD assembly wireframe render" width="560" />
+  <img src="images/Hallzee_Terminal_3D_Render.png" alt="Hallzee 2.8-inch terminal CAD assembly wireframe render" width="560" />
 </p>
 
 ## Fabrication Files
@@ -41,8 +41,7 @@ The current 2.8″ terminal enclosure consists of:
 - **ESP32 Stabilizer** (`Hallzee_Terminal_2.8''_ESP32_Stabilizer.3mf`): Internal stabilizer clip locking the ESP32 board in position.
 - **Complete CAD Model** (`Hallzee_Case_Whole_v1.step`): Full assembly STEP file for customization in CAD software (Fusion 360, FreeCAD, Onshape, etc.).
 
-Historical 1.8″ terminal profiles are archived in [`models/Historical/`](https://github.com/dannysombrero/hallzee/tree/main/models/Historical).
+Historical 1.8″ terminal profiles are archived in [`models/Historical/`](../models/Historical/).
 
 For the supported components, no-solder wiring, and assembly instructions, see
-[Build your own terminal](Build-Your-Own-Terminal).
-
+[Build your own terminal](build-your-own-terminal.md).

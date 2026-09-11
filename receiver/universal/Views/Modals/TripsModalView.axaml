@@ -38,12 +38,15 @@
 
           <!-- ROW 1: SEARCH & THEMED FILTER TOOLBAR -->
           <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">
-            <Border Background="#F0F9FF" BorderBrush="#BAE6FD" BorderThickness="1" CornerRadius="24" Padding="14,6">
-              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
-                <Path Data="{StaticResource IconSearch}" Width="16" Height="16" Stretch="Uniform" Stroke="#0284C7" StrokeThickness="2" StrokeLineCap="Round" VerticalAlignment="Center" />
-                <TextBox Grid.Column="1" Text="{Binding TripsModal.SearchText, UpdateSourceTrigger=PropertyChanged}" Watermark="Search student name, ID, or trip…" FontSize="13" Padding="0,6" Background="Transparent" BorderThickness="0" />
-              </Grid>
-            </Border>
+            <TextBox Classes="filter-search"
+                     Text="{Binding TripsModal.SearchText, UpdateSourceTrigger=PropertyChanged}"
+                     Watermark="Search student name, ID, or trip…"
+                     HorizontalAlignment="Stretch"
+                     VerticalAlignment="Center">
+              <TextBox.InnerLeftContent>
+                <Path Data="{StaticResource IconSearch}" Width="15" Height="15" Stretch="Uniform" Stroke="#0284C7" StrokeThickness="2" StrokeLineCap="Round" Margin="14,0,8,0" VerticalAlignment="Center" />
+              </TextBox.InnerLeftContent>
+            </TextBox>
             <ComboBox Grid.Column="1" Classes="filter-dropdown" ItemsSource="{Binding TripsModal.TimeframeOptions}" SelectedItem="{Binding TripsModal.SelectedTimeframe}" Width="125" VerticalAlignment="Center" ToolTip.Tip="Filter by date range" />
             <ComboBox Grid.Column="2" Classes="filter-dropdown" ItemsSource="{Binding TripsModal.DurationOptions}" SelectedItem="{Binding TripsModal.SelectedDuration}" Width="130" VerticalAlignment="Center" ToolTip.Tip="Filter by duration" />
             <ComboBox Grid.Column="3" Classes="filter-dropdown" ItemsSource="{Binding TripsModal.StatusOptions}" SelectedItem="{Binding TripsModal.SelectedStatus}" Width="130" VerticalAlignment="Center" ToolTip.Tip="Filter by status" />

@@ -65,8 +65,10 @@ void BluetoothSync::begin() {
   String advertisedName = BLUETOOTH_DEVICE_NAME;
 #ifdef ARDUINO
   advertisedInUse = security && security->hasOwner();
-  if (identity) advertisedName = identity->advertisedName(advertisedInUse);
+#else
+  advertisedInUse = false;
 #endif
+  if (identity) advertisedName = identity->advertisedName(advertisedInUse);
   ready = serial.begin(advertisedName.c_str());
 
   if (!ready) {
@@ -81,13 +83,10 @@ void BluetoothSync::begin() {
 void BluetoothSync::updateAvailability(bool inUse) {
 #ifdef ARDUINO
   inUse = inUse || (security && security->hasOwner());
+#endif
   if (!identity || advertisedInUse == inUse) return;
   String advertisedName = identity->advertisedName(inUse);
   if (serial.setDeviceName(advertisedName.c_str())) advertisedInUse = inUse;
-#else
-  (void)inUse;
-  (void)advertisedInUse;
-#endif
 }
 
 void BluetoothSync::poll() {
@@ -302,7 +301,8 @@ bool BluetoothSync::processAuthorizedIdentityCommand(const String &command) {
     serial.println("SETTINGS_ERROR,TERMINAL_NAME,INVALID_VALUE");
     return true;
   }
-  if (!serial.setDeviceName((advertisedInUse ? requestedName.substring(0, 23) + "-INUSE" : requestedName).c_str())) {
+  const String candidateDeviceName = identity->formatAdvertisedName(requestedName, advertisedInUse);
+  if (!serial.setDeviceName(candidateDeviceName.c_str())) {
     serial.println("SETTINGS_ERROR,TERMINAL_NAME,BLE_UPDATE_FAILED");
     return true;
   }

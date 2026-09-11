@@ -619,6 +619,29 @@
       <Setter Property="BorderBrush" Value="#0284C7" />
     </Style>
 
+    <!-- THEMED FILTER SEARCH (PILL SEARCH BOX FOR MODAL TOOLBARS) -->
+    <Style Selector="TextBox.filter-search">
+      <Setter Property="Background" Value="#F0F9FF" />
+      <Setter Property="BorderBrush" Value="#BAE6FD" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="20" />
+      <Setter Property="Padding" Value="4,7,14,7" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="MinHeight" Value="36" />
+      <Setter Property="Foreground" Value="#0F172A" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBox.filter-search:pointerover /template/ Border#PART_BorderElement">
+      <Setter Property="Background" Value="#E0F2FE" />
+      <Setter Property="BorderBrush" Value="#7DD3FC" />
+    </Style>
+    <Style Selector="TextBox.filter-search:focus /template/ Border#PART_BorderElement">
+      <Setter Property="Background" Value="White" />
+      <Setter Property="BorderBrush" Value="#0284C7" />
+      <Setter Property="BorderThickness" Value="1" />
+    </Style>
+
     <Style Selector="Button.pill-filter">
       <Setter Property="Background" Value="#F1F5F9" />
       <Setter Property="Foreground" Value="#475569" />

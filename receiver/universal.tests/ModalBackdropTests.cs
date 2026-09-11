@@ -47,4 +47,15 @@ public sealed class ModalBackdropTests : IDisposable {
     Assert.True(viewModel.IsModalOpen);
     Assert.Equal(modalName, viewModel.ActiveModal);
   }
+
+  [Fact]
+  public void TripsModalView_SearchInput_UsesFilterSearchWithInnerLeftContent() {
+    var view = new TripsModalView { DataContext = viewModel };
+    var textBoxes = Avalonia.LogicalTree.LogicalExtensions.GetLogicalDescendants(view);
+    var searchBox = System.Linq.Enumerable.OfType<TextBox>(textBoxes).FirstOrDefault();
+    Assert.NotNull(searchBox);
+    Assert.Contains("filter-search", searchBox.Classes);
+    Assert.Equal("Search student name, ID, or trip…", searchBox.Watermark);
+    Assert.NotNull(searchBox.InnerLeftContent);
+  }
 }

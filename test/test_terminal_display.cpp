@@ -163,14 +163,20 @@ public:
   bool connected = false;
   std::string input;
   std::vector<std::string> output;
+  std::vector<std::string> attemptedNames;
   std::string deviceName;
   std::string pin;
   std::string partialLine;
 
-  bool begin(const char *name) override { deviceName = name; return beginSucceeds; }
+  bool begin(const char *name) override {
+    if (name) attemptedNames.push_back(name);
+    deviceName = name ? name : "";
+    return beginSucceeds;
+  }
   bool setDeviceName(const char *name) override {
+    if (name) attemptedNames.push_back(name);
     if (!renameSucceeds) return false;
-    deviceName = name;
+    deviceName = name ? name : "";
     return true;
   }
   void setPin(const char *value, size_t) override { pin = value; }
@@ -790,34 +796,58 @@ void testTerminalRenamePersistenceAndFailures() {
     nullptr, nullptr, nullptr, nullptr, &identity);
   sync.begin();
   serial.connected = true;
+  serial.attemptedNames.clear();
+
   serial.input = "SET,TERMINAL_NAME,  Room #204  \n";
   sync.poll();
-  expectTrue(contains(serial.output, "SETTINGS_ACK,TERMINAL_NAME,Room #204"), "valid rename is trimmed and acknowledged");
+  expectTrue(contains(serial.output, "SETTINGS_ACK,TERMINAL_NAME,Room #204"), "valid rename is trimmed and acknowledged with clean name");
+  expectTrue(identity.customName() == "Room #204", "clean name is persisted in identity");
+  expectTrue(serial.deviceName == "Room #204 [E5F6]", "BLE device name updated with hardware marker");
+  expectTrue(!serial.attemptedNames.empty() && serial.attemptedNames.back() == "Room #204 [E5F6]", "attempted name matches candidate");
+
   TerminalIdentity restarted;
   restarted.begin();
   expectTrue(restarted.customName() == "Room #204", "rename survives reboot with NVS namespace limit");
   expectTrue(restarted.terminalId() == originalId, "rename retains stable device identity");
+  expectTrue(restarted.advertisedName(false) == "Room #204 [E5F6]", "restarted advertised name includes marker");
+  expectTrue(restarted.advertisedName(true) == "Room #204 [E5F6]-INUSE", "restarted advertised inUse includes marker and status");
 
   Preferences::failWrite = true;
   serial.output.clear();
+  serial.attemptedNames.clear();
   serial.input = "SET,TERMINAL_NAME,Room 205\n";
   sync.poll();
   expectTrue(contains(serial.output, "SETTINGS_ERROR,TERMINAL_NAME,STORAGE_FAILED"), "storage failures are not invalid names");
-  expectTrue(identity.customName() == "Room #204" && serial.deviceName == "Room #204", "failed save restores discovery name");
+  expectTrue(identity.customName() == "Room #204" && serial.deviceName == "Room #204 [E5F6]", "failed save restores discovery name");
   expectTrue(!contains(serial.output, "SETTINGS_ACK,TERMINAL_NAME,Room 205"), "failed save is never acknowledged");
+  expectTrue(serial.attemptedNames.size() >= 2, "recorded candidate and rollback names");
+  expectTrue(serial.attemptedNames[0] == "Room 205 [E5F6]", "first attempted candidate name");
+  expectTrue(serial.attemptedNames[1] == "Room #204 [E5F6]", "second attempted rollback name");
   Preferences::failWrite = false;
 
   serial.renameSucceeds = false;
+  serial.attemptedNames.clear();
   serial.input = "SET,TERMINAL_NAME,Room 206\n";
   sync.poll();
   expectTrue(contains(serial.output, "SETTINGS_ERROR,TERMINAL_NAME,BLE_UPDATE_FAILED"), "BLE failure has its own error");
   expectTrue(identity.customName() == "Room #204", "BLE failure does not persist a new name");
+  expectTrue(serial.deviceName == "Room #204 [E5F6]", "BLE failure leaves current device name unchanged");
+  expectTrue(!serial.attemptedNames.empty() && serial.attemptedNames[0] == "Room 206 [E5F6]", "BLE failure recorded candidate name");
   serial.renameSucceeds = true;
 
   serial.input = "SET,TERMINAL_NAME,Room,207\n";
   sync.poll();
   expectTrue(contains(serial.output, "SETTINGS_ERROR,TERMINAL_NAME,INVALID_VALUE"), "invalid name remains rejected");
-  expectTrue(identity.customName() == "Room #204" && serial.deviceName == "Room #204", "invalid name does not change device");
+  expectTrue(identity.customName() == "Room #204" && serial.deviceName == "Room #204 [E5F6]", "invalid name does not change device");
+
+  sync.updateAvailability(true);
+  expectTrue(serial.deviceName == "Room #204 [E5F6]-INUSE", "inUse status updates BLE name");
+  serial.output.clear();
+  serial.input = "SET,TERMINAL_NAME,Room 301\n";
+  sync.poll();
+  expectTrue(contains(serial.output, "SETTINGS_ACK,TERMINAL_NAME,Room 301"), "in-use rename acknowledged with clean name");
+  expectTrue(identity.customName() == "Room 301", "in-use rename persists clean name");
+  expectTrue(serial.deviceName == "Room 301 [E5F6]-INUSE", "in-use rename keeps -INUSE suffix on BLE");
 
   Preferences::failOpen = true;
   TerminalIdentity unavailable;
@@ -825,6 +855,91 @@ void testTerminalRenamePersistenceAndFailures() {
   expectTrue(unavailable.terminalId() == originalId && !unavailable.setCustomName("Room 208"), "unavailable storage keeps identity usable without false save success");
   Preferences::failOpen = false;
   Preferences::stored.clear();
+}
+
+void testTerminalIdentityFormatting() {
+  Preferences::stored.clear();
+  TerminalIdentity identity;
+  identity.begin();
+  const String suffix = identity.terminalSuffix();
+  expectTrue(suffix == "E5F6", "stub eFuse provides expected E5F6 suffix");
+
+  // 1. Default names
+  expectTrue(identity.formatAdvertisedName("", false) == "Hallzee-E5F6", "empty name without inUse formats as default");
+  expectTrue(identity.formatAdvertisedName("", true) == "Hallzee-E5F6-INUSE", "empty name with inUse formats as default");
+  expectTrue(identity.formatAdvertisedName("Hallzee", false) == "Hallzee-E5F6", "Hallzee without inUse formats as default");
+  expectTrue(identity.formatAdvertisedName("Hallzee", true) == "Hallzee-E5F6-INUSE", "Hallzee with inUse formats as default");
+  expectTrue(identity.formatAdvertisedName("Hallzee-E5F6", false) == "Hallzee-E5F6", "Hallzee-suffix without inUse formats as default");
+  expectTrue(identity.formatAdvertisedName("Hallzee-E5F6", true) == "Hallzee-E5F6-INUSE", "Hallzee-suffix with inUse formats as default");
+
+  // 2. Ordinary custom names
+  expectTrue(identity.formatAdvertisedName("Room 204", false) == "Room 204 [E5F6]", "ordinary custom name without inUse preserves suffix");
+  expectTrue(identity.formatAdvertisedName("Room 204", true) == "Room 204 [E5F6]-INUSE", "ordinary custom name with inUse preserves suffix");
+
+  // 3. Exact trailing markers (one exact trailing marker stripped and reconstructed)
+  expectTrue(identity.formatAdvertisedName("Room 204 [E5F6]", false) == "Room 204 [E5F6]", "exact trailing marker does not duplicate");
+  expectTrue(identity.formatAdvertisedName("Room 204 [E5F6]", true) == "Room 204 [E5F6]-INUSE", "exact trailing marker with inUse appends -INUSE");
+  expectTrue(identity.formatAdvertisedName("Room 204 [E5F6] [E5F6]", false) == "Room 204 [E5F6] [E5F6]", "only one exact trailing marker is stripped");
+
+  // 4. Incidental suffix text (not stripped)
+  expectTrue(identity.formatAdvertisedName("Lab E5F6", false) == "Lab E5F6 [E5F6]", "bare suffix is not stripped");
+  expectTrue(identity.formatAdvertisedName("Room [E5F6] 204", false) == "Room [E5F6] 204 [E5F6]", "marker in middle of name is not stripped");
+
+  // 5. Another terminal's marker (not stripped)
+  expectTrue(identity.formatAdvertisedName("Room 204 [A1B2]", false) == "Room 204 [A1B2] [E5F6]", "foreign terminal marker is not stripped");
+  expectTrue(identity.formatAdvertisedName("Room 204 [A1B2]", true) == "Room 204 [A1B2] [E5F6]-INUSE", "foreign marker with inUse preserves terminal suffix");
+
+  // 6. 22/16-character boundaries
+  const String max24 = "ABCDEFGHIJKLMNOPQRSTUVWX";
+  const String formatted24NoUse = identity.formatAdvertisedName(max24, false);
+  const String formatted24InUse = identity.formatAdvertisedName(max24, true);
+  expectTrue(formatted24NoUse == "ABCDEFGHIJKLMNOPQRSTUV [E5F6]", "24-char name truncates to 22-char prefix without inUse");
+  expectTrue(formatted24InUse == "ABCDEFGHIJKLMNOP [E5F6]-INUSE", "24-char name truncates to 16-char prefix with inUse");
+  expectTrue(formatted24NoUse.length() <= 29, "formatted 24-char name fits 29-byte BLE limit without inUse");
+  expectTrue(formatted24InUse.length() <= 29, "formatted 24-char name fits 29-byte BLE limit with inUse");
+
+  const String boundary22 = "1234567890123456789012";
+  expectTrue(identity.formatAdvertisedName(boundary22, false) == "1234567890123456789012 [E5F6]", "22-char name not truncated without inUse");
+  expectTrue(identity.formatAdvertisedName(boundary22, true) == "1234567890123456 [E5F6]-INUSE", "22-char name truncated to 16 with inUse");
+
+  const String boundary16 = "1234567890123456";
+  expectTrue(identity.formatAdvertisedName(boundary16, false) == "1234567890123456 [E5F6]", "16-char name fits without inUse");
+  expectTrue(identity.formatAdvertisedName(boundary16, true) == "1234567890123456 [E5F6]-INUSE", "16-char name fits with inUse");
+
+  // 7. Fresh storage and invalid stored names
+  Preferences::stored.clear();
+  TerminalIdentity fresh;
+  fresh.begin();
+  expectTrue(fresh.customName() == "Hallzee-E5F6", "fresh storage defaults to Hallzee-suffix");
+  expectTrue(fresh.advertisedName(false) == "Hallzee-E5F6", "fresh storage advertisedName without inUse");
+  expectTrue(fresh.advertisedName(true) == "Hallzee-E5F6-INUSE", "fresh storage advertisedName with inUse");
+
+  Preferences::stored.clear();
+  Preferences::stored["hallzee_id"]["custom_name"] = "   ";
+  TerminalIdentity invalidStored;
+  invalidStored.begin();
+  expectTrue(invalidStored.customName() == "Hallzee-E5F6", "invalid stored name falls back to default");
+  expectTrue(invalidStored.advertisedName(false) == "Hallzee-E5F6", "invalid stored name advertisedName without inUse");
+
+  // 8. Availability transitions rebuild without accumulating markers
+  FakeTripStorage storage;
+  FakeBluetoothSerial serial;
+  TerminalIdentity transitionId;
+  transitionId.begin();
+  transitionId.setCustomName("Room 204");
+  BluetoothSync sync(storage, serial, setBluetoothClock, onBluetoothClockSet,
+    nullptr, nullptr, nullptr, nullptr, &transitionId);
+  sync.begin();
+  expectTrue(serial.deviceName == "Room 204 [E5F6]", "initial advertised name with custom name has suffix");
+
+  sync.updateAvailability(true);
+  expectTrue(serial.deviceName == "Room 204 [E5F6]-INUSE", "availability transition to inUse appends -INUSE");
+  sync.updateAvailability(false);
+  expectTrue(serial.deviceName == "Room 204 [E5F6]", "availability transition to available removes -INUSE without accumulating markers");
+  sync.updateAvailability(true);
+  expectTrue(serial.deviceName == "Room 204 [E5F6]-INUSE", "second transition to inUse preserves single marker");
+  sync.updateAvailability(false);
+  expectTrue(serial.deviceName == "Room 204 [E5F6]", "second transition to available preserves single marker");
 }
 
 void testBluetoothOwnerRelease() {
@@ -1204,6 +1319,7 @@ int main() {
   testBellPolicyLocksWarnsAndFailsOpenOutsideCache();
   testKeypadControllerInterpretsKeysAndResetGesture();
   testFirmwareFrameBoundaries();
+  testTerminalIdentityFormatting();
   testTerminalRenamePersistenceAndFailures();
   testBluetoothOwnerRelease();
   testBluetoothProtocolAndRecovery();

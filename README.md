@@ -26,11 +26,13 @@ streamlining hall passes in your classroom. Students enter their ID when they
 leave and return. Teachers can see who is out, review trip history, manage a
 roster, and set classroom policies.
 
+---
+
 **Privacy-centered:** Student names stay on the teacher's computer, and the
 terminal continues working if Bluetooth or the internet is unavailable. Only
 paired terminals can access a device's trip history.
 
-**Open-source:** Hallzee is free to use, inspect, adapt, and share—there is no
+**Open-source:** Hallzee is free to use, inspect, adapt, and share. There is no
 software cost for your classroom.
 
 **DIY-Friendly:** Free 3D-printable models and straightforward setup make it
@@ -40,7 +42,7 @@ possible to build a terminal and use Hallzee with minimal technical experience.
   <img src="preview-site/public/hallzee-terminal.png" alt="A blue Hallzee keypad terminal mounted on a wall" width="560" />
 </p>
 
-## Start here
+## Start here:
 
 | I want to… | Go to… |
 | --- | --- |

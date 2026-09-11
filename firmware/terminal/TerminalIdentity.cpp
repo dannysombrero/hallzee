@@ -22,13 +22,13 @@ bool TerminalIdentity::begin() {
   // custom-name namespace is unavailable. Owner credentials use LittleFS.
   preferencesReady = preferences.begin(PREFERENCES_NAMESPACE, false);
   if (!preferencesReady) {
-    name = DEFAULT_NAME;
+    name = String(DEFAULT_NAME) + "-" + terminalSuffix();
     return true;
   }
 
   name = preferences.getString(CUSTOM_NAME_KEY, "");
   if (!isValidCustomName(name)) {
-    name = advertisedName();
+    name = String(DEFAULT_NAME) + "-" + terminalSuffix();
   }
   return true;
 }
@@ -37,16 +37,33 @@ String TerminalIdentity::terminalSuffix() const {
   return id.length() >= 4 ? id.substring(id.length() - 4) : id;
 }
 
-String TerminalIdentity::advertisedName(bool inUse) const {
-  String baseName;
-  if (name.length() > 0 && name != DEFAULT_NAME) {
-    baseName = name;
-  } else {
-    baseName = String(DEFAULT_NAME) + "-" + terminalSuffix();
+String TerminalIdentity::formatAdvertisedName(const String &candidateName, bool inUse) const {
+  const String suffix = terminalSuffix();
+  const String defaultBase = String(DEFAULT_NAME) + "-" + suffix;
+  if (candidateName.length() == 0 || candidateName == DEFAULT_NAME || candidateName == defaultBase) {
+    return inUse ? defaultBase + "-INUSE" : defaultBase;
   }
-  // A name AD field has 29 bytes; reserve all six bytes of the status suffix.
-  if (inUse && baseName.length() > 23) baseName = baseName.substring(0, 23);
-  return inUse ? baseName + "-INUSE" : baseName;
+
+  String base = candidateName;
+  const String marker = " [" + suffix + "]";
+  if (base.endsWith(marker)) {
+    base = base.substring(0, base.length() - marker.length());
+  }
+
+  const size_t prefixBudget = 29 - 7 - (inUse ? 6 : 0);
+  if (base.length() > prefixBudget) {
+    base = base.substring(0, prefixBudget);
+  }
+
+  String result = base + marker;
+  if (inUse) {
+    result += "-INUSE";
+  }
+  return result;
+}
+
+String TerminalIdentity::advertisedName(bool inUse) const {
+  return formatAdvertisedName(name, inUse);
 }
 
 bool TerminalIdentity::setCustomName(const String &requestedName) {

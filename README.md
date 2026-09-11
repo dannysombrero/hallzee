@@ -46,6 +46,7 @@ possible to build a terminal and use Hallzee with minimal technical experience.
 | --- | --- |
 | Use Hallzee in my classroom | [Teacher guide](docs/getting-started-users.md) |
 | Download the Windows or Mac app | [Desktop downloads](https://github.com/dannysombrero/hallzee/releases?q=client-v&expanded=true) |
+| Build a DIY terminal | [Build Your Own Terminal guide](docs/build-your-own-terminal.md) |
 | Set up or update a terminal | [Installation and firmware help](https://github.com/dannysombrero/hallzee/wiki/Testing-and-Installation) |
 | Fix a problem | [Teacher troubleshooting](docs/getting-started-users.md#when-something-isnt-working) |
 | Change the code or hardware | [Developer guide](docs/getting-started-developers.md) |

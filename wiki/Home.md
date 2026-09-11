@@ -22,6 +22,7 @@ trips when Bluetooth or the internet is unavailable.
 ## School IT and terminal setup
 
 - [Install, wire, and test Hallzee](Testing-and-Installation)
+- [Build your own terminal](Build-Your-Own-Terminal)
 - [Prepare or update terminal firmware](Firmware-Updates)
 - [Configure kiosk settings](Kiosk-Settings)
 - [Print or modify the enclosure](3D-Models)

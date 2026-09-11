@@ -8,3 +8,5 @@ Use it for enclosure, mounting, and other fabrication files. 3D models and fabri
 
 Production `.3mf` models for 2.8" terminals and historical 1.8" profiles are available in the repository.
 
+For the supported components, no-solder wiring, and assembly instructions, see
+[Build your own terminal](Build-Your-Own-Terminal).

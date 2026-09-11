@@ -26,6 +26,9 @@ project license and copyright notice use the Windows-friendly filenames
 
 Use an original ESP32 DevKit V1/WROOM-32 with at least 4 MB flash, a 3×4 keypad,
 and either an ST7735 or ILI9341 SPI display. C3/S2/S3/H2 boards are not supported.
+
+For component recommendations, shopping links, the 2.8″ enclosure, and a
+beginner-friendly wiring walkthrough, see [Build Your Own Terminal](build-your-own-terminal.md).
 Use a USB **data** cable and 3.3 V signal wiring.
 
 ### ESP32 board requirements

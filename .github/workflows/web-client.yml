@@ -35,12 +35,12 @@ jobs:
           cd dist
           zip -qr "../${ARTIFACT}.zip" .
           echo "artifact=${ARTIFACT}" >> "$GITHUB_OUTPUT"
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.package.outputs.artifact }}
           path: web-client/${{ steps.package.outputs.artifact }}.zip
           if-no-files-found: error
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: web-client-test-failures

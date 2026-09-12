@@ -37,6 +37,46 @@ unauthenticated client. Ownership, trips, roster, settings, and active-pass
 storage are not reset. Repair cannot recover a deleted browser owner key or
 transfer ownership to another client.
 
+## Authentication failure after a fast firmware update
+
+`bash scripts/flash-terminal-macos.sh --fast --display ili9341` is sufficient
+for application/Bluetooth firmware changes after the initial USB setup, provided
+it completes with **Fast USB write verified**. It compiles the current source,
+verifies bootloader/layout compatibility, and writes/verifies the application and
+boot selection. Both fast and regular USB flashing preserve NVS, including
+Hallzee ownership and Bluetooth bonds; a regular flash is not a bond reset.
+
+A `pairing / NetworkError` with **Bluetooth authentication incomplete** means
+the protected Bluetooth read failed before HELLO or Hallzee code verification.
+A stale OS bond is one possible cause, not a confirmed diagnosis. Before that
+read succeeds, **Currently Paired** can reflect a browser-stored credential
+without confirming the terminal's current ownership. If the terminal displays
+a six-digit pairing code, it is in the unclaimed pairing flow; do not infer that
+BT REPAIR is available just from the browser's saved label.
+
+For a Chromebook retry after this update:
+
+1. Close Hallzee tabs/PWA and other connected Hallzee clients. In ChromeOS
+   **Settings → Bluetooth**, select only this terminal and choose **Forget**, if
+   it is listed. This removes the OS bond; keep Hallzee site data, owner keys,
+   and classroom records. See [Google's device-forgetting instructions](https://support.google.com/chromebook/answer/2587653?hl=en).
+2. Restart the terminal. If it is unclaimed, open its six-digit pairing screen
+   with `*` + `#` held for five seconds, then release. If it still has an owner,
+   finish clock setup and active passes, then hold `*` alone for five seconds
+   until **BT REPAIR** appears. That path retains the owner credential.
+3. Reopen the same Hallzee URL/browser profile, click **Find nearby terminals**,
+   and choose the terminal. An unclaimed terminal should ask for its code in
+   Hallzee; a saved owner should reconnect without one. Do not pair it separately
+   through the ChromeOS Bluetooth settings screen.
+
+If the same encrypted-read error persists, the cause is unresolved; repeating
+full flashes or clearing classroom data is not a supported diagnosis. Record
+the exact terminal screen and sanitized error category, not pairing codes or
+raw Bluetooth logs. This retry needs the Chromebook; a Mac is sufficient to
+flash and run shared software checks but cannot verify ChromeOS behavior. A
+Windows PC is not required for this Chromebook retry. Windows BLE authentication,
+GATT notifications, and reconnect require a Windows BLE PC and remain unverified.
+
 ## Unexpected digits on the physical keypad
 
 In the reported incident, supporting the terminal on a hard surface stopped

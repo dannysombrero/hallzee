@@ -199,3 +199,22 @@ native WinRT and Chrome/Edge Windows Just Works pairing, encrypted GATT,
 bond replacement/reuse, reconnect/sleep, and installed-PWA behavior.
 **Windows behavior remains unverified.** This record does not claim that any
 terminal was flashed or that the reported Chromebook failure is physically fixed.
+
+
+### Post-update Chromebook encrypted-read failure
+
+The user reports running the ILI9341 fast USB flasher and updating the web
+client, then seeing **Currently Paired** followed by `pairing / NetworkError`
+and **Bluetooth authentication incomplete**. The terminal was described as
+being in pairing mode; exact firmware/browser versions and completion evidence
+were not supplied. The failure precedes HELLO, so the saved browser pairing label
+does not confirm current terminal ownership. Hardware acceptance remains pending.
+
+Source review confirms fast USB installs the current application and preserves
+NVS/bonds; regular USB also preserves NVS. A stale-bond recovery is the next
+physical check, not a confirmed fix or a reason for full flashing. The repair
+guide distinguishes an unclaimed six-digit pairing screen from owned-terminal
+BT REPAIR. This follow-up changes documentation only; no hardware was flashed
+or Bluetooth connection tested. Mac supports source review/software checks;
+ChromeOS recovery requires the Chromebook, not a Windows PC. Windows BLE
+pairing, encrypted GATT notifications, and reconnect remain unverified.

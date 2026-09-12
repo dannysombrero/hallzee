@@ -40,54 +40,56 @@ export function ConnectionDialog({ onClose }: { onClose: () => void }) {
 
     async function loadDevices() {
       const list: TerminalItem[] = [];
+      let remembered: any[] = [];
+
+      if (typeof navigator !== "undefined" && navigator.bluetooth?.getDevices) {
+        try {
+          remembered = await navigator.bluetooth.getDevices();
+        } catch {
+          // ignore
+        }
+      }
 
       // 1. Saved terminal in database
       if (state.terminal) {
+        const matchingNative = remembered.find(
+          (d) =>
+            d.id === state.terminal?.deviceIdHint ||
+            (state.terminal?.customName && d.name === state.terminal.customName) ||
+            (state.terminal?.terminalId && d.name?.endsWith(state.terminal.terminalId.slice(-4))) ||
+            remembered.length === 1
+        );
         list.push({
           id: state.terminal.terminalId,
           name: state.terminal.customName || `Hallzee-${state.terminal.terminalId.slice(-4)}`,
           isPaired: true,
           isInUse: false,
           rssi: -52,
+          nativeDevice: matchingNative,
         });
       }
 
       // 2. Previously permitted devices from Web Bluetooth API
-      if (typeof navigator !== "undefined" && navigator.bluetooth?.getDevices) {
-        try {
-          const remembered = await navigator.bluetooth.getDevices();
-          for (const d of remembered) {
-            const id = d.id || "simulated-gatt";
-            if (!list.some((item) => item.id === id)) {
-              list.push({
-                id,
-                name: d.name || "Hallzee E5F6",
-                isPaired: true,
-                isInUse: false,
-                rssi: -52,
-                nativeDevice: d,
-              });
-            }
-          }
-        } catch {
-          // ignore
+      for (const d of remembered) {
+        const id = d.id || "simulated-gatt";
+        if (!list.some((item) => item.id === id || (item.nativeDevice && item.nativeDevice.id === id))) {
+          list.push({
+            id,
+            name: d.name || "Hallzee Terminal",
+            isPaired: true,
+            isInUse: false,
+            rssi: -52,
+            nativeDevice: d,
+          });
         }
-      }
-
-      // 3. If no devices exist yet, provide default nearby terminal
-      if (list.length === 0) {
-        list.push({
-          id: "EAST-204",
-          name: "Hallzee-2A58",
-          isPaired: false,
-          isInUse: false,
-          rssi: -52,
-        });
       }
 
       if (!active) return;
       setDevices(list);
       setSelectedId(list[0]?.id || "");
+      if (list.length > 0 && list[0].isPaired) {
+        setStatusText("Your saved terminal is ready to reconnect. Click Reconnect to resume sync.");
+      }
     }
 
     void loadDevices();
@@ -99,43 +101,71 @@ export function ConnectionDialog({ onClose }: { onClose: () => void }) {
   const handleScan = () => {
     setIsScanning(true);
     setStatusText("Searching for devices...");
-    setTimeout(() => {
+    void (async () => {
+      let remembered: any[] = [];
+      if (typeof navigator !== "undefined" && navigator.bluetooth?.getDevices) {
+        try {
+          remembered = await navigator.bluetooth.getDevices();
+        } catch {
+          // ignore
+        }
+      }
       const list: TerminalItem[] = [];
       if (state.terminal) {
+        const matchingNative = remembered.find(
+          (d) =>
+            d.id === state.terminal?.deviceIdHint ||
+            (state.terminal?.customName && d.name === state.terminal.customName) ||
+            (state.terminal?.terminalId && d.name?.endsWith(state.terminal.terminalId.slice(-4))) ||
+            remembered.length === 1
+        );
         list.push({
           id: state.terminal.terminalId,
           name: state.terminal.customName || `Hallzee-${state.terminal.terminalId.slice(-4)}`,
           isPaired: true,
           isInUse: false,
           rssi: -52,
+          nativeDevice: matchingNative,
         });
       }
-      if (list.length === 0) {
-        list.push({
-          id: "EAST-204",
-          name: "Hallzee-2A58",
-          isPaired: false,
-          isInUse: false,
-          rssi: -52,
-        });
+      for (const d of remembered) {
+        const id = d.id || "simulated-gatt";
+        if (!list.some((item) => item.id === id || (item.nativeDevice && item.nativeDevice.id === id))) {
+          list.push({
+            id,
+            name: d.name || "Hallzee Terminal",
+            isPaired: true,
+            isInUse: false,
+            rssi: -52,
+            nativeDevice: d,
+          });
+        }
       }
       setDevices(list);
       setSelectedId(list[0]?.id || "");
       setStatusText(
-        "Claimed terminals require their owner to reconnect. Busy terminals cannot be newly paired. To pair a ready terminal, enter pairing mode on the kiosk and use its displayed passkey."
+        list.length > 0 && list[0].isPaired
+          ? "Your saved terminal is ready to reconnect. Click Reconnect to resume sync."
+          : "Claimed terminals require their owner to reconnect. To pair a ready terminal, enter pairing mode on the kiosk and use its displayed passkey."
       );
       setIsScanning(false);
-    }, 600);
+    })();
   };
 
   const handleConnect = () => {
     setIsConnecting(true);
     setStatusText("Connecting to terminal…");
-    const value = code.length === 6 ? code : undefined;
+    const selected = devices.find((d) => d.id === selectedId);
+    const value = !selected?.isPaired && code.length === 6 ? code : undefined;
     setCode("");
-    void controller
-      ?.chooseTerminal(value)
-      .then((ok) => {
+
+    const connectPromise =
+      selected?.nativeDevice && !value
+        ? controller?.connectDevice(selected.nativeDevice)
+        : controller?.chooseTerminal(value);
+
+    void connectPromise
+      ?.then((ok) => {
         setIsConnecting(false);
         if (ok) {
           onClose();
@@ -151,11 +181,14 @@ export function ConnectionDialog({ onClose }: { onClose: () => void }) {
       });
   };
 
+  const selectedDevice = devices.find((d) => d.id === selectedId);
+  const isSavedTerminal = selectedDevice?.isPaired;
+
   const isBusy = state.busy || isScanning || isConnecting;
   const canConnect =
     Boolean(selectedId) &&
     !isBusy &&
-    (code.length === 0 ? true : code.length === 6 && sameClass);
+    (isSavedTerminal ? true : code.length === 6 && sameClass);
 
   return (
     <Dialog
@@ -180,7 +213,9 @@ export function ConnectionDialog({ onClose }: { onClose: () => void }) {
       <div className="hallzee-device-box" role="listbox" aria-label="Nearby terminals">
         {devices.length === 0 ? (
           <div className="terminal-picker-empty">
-            {isScanning ? "Searching for devices…" : "No terminals found nearby."}
+            {isScanning
+              ? "Searching for devices…"
+              : "No saved or nearby terminals found. To pair an unclaimed kiosk, enter pairing mode on the kiosk (* and # for five seconds), enter its 6-digit passkey below, and click Connect & Sync."}
           </div>
         ) : (
           devices.map((device) => {
@@ -222,6 +257,8 @@ export function ConnectionDialog({ onClose }: { onClose: () => void }) {
                 <div className="terminal-picker-item-badge">
                   {device.isInUse ? (
                     <span className="terminal-badge busy">CLAIMED OR BUSY</span>
+                  ) : device.isPaired ? (
+                    <span className="terminal-badge paired">CURRENTLY PAIRED</span>
                   ) : (
                     <span className="terminal-badge ready">READY TO PAIR</span>
                   )}
@@ -232,32 +269,43 @@ export function ConnectionDialog({ onClose }: { onClose: () => void }) {
         )}
       </div>
 
-      <label>
-        <span className="label-with-tooltip">
-          Bluetooth passkey (unclaimed terminals only)
-          <InfoTooltip text="Only for claiming an unclaimed terminal after an intentional owner reset. With no pass active, hold * and # for five seconds on the kiosk to show the 6-digit code." />
-        </span>
-        <input
-          aria-label="Physical pairing code"
-          className="kiosk-pill-input"
-          placeholder="6 digits shown on the kiosk"
-          inputMode="numeric"
-          autoComplete="off"
-          type="password"
-          maxLength={6}
-          value={code}
-          onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-        />
-      </label>
+      {isSavedTerminal ? (
+        <div className="banner info" role="note">
+          <p>
+            <strong>This terminal is already paired to this classroom.</strong> Click{" "}
+            <strong>Reconnect</strong> to connect and resume sync. No pairing code or keypad gesture needed.
+          </p>
+        </div>
+      ) : (
+        <>
+          <label>
+            <span className="label-with-tooltip">
+              Bluetooth passkey (unclaimed terminals only)
+              <InfoTooltip text="Only for claiming an unclaimed terminal after an intentional owner reset. With no pass active, hold * and # for five seconds on the kiosk to show the 6-digit code. Note: Chrome/OS will also prompt for this same code to establish Bluetooth link encryption." />
+            </span>
+            <input
+              aria-label="Physical pairing code"
+              className="kiosk-pill-input"
+              placeholder="6 digits shown on the kiosk"
+              inputMode="numeric"
+              autoComplete="off"
+              type="password"
+              maxLength={6}
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+            />
+          </label>
 
-      <label className="check">
-        <input
-          type="checkbox"
-          checked={sameClass}
-          onChange={(e) => setSameClass(e.target.checked)}
-        />
-        <span>This terminal belongs to this classroom. I understand it may contain existing trip history.</span>
-      </label>
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={sameClass}
+              onChange={(e) => setSameClass(e.target.checked)}
+            />
+            <span>This terminal belongs to this classroom. I understand it may contain existing trip history.</span>
+          </label>
+        </>
+      )}
 
       {/* Action Row: Indeterminate Progress Bar + Scan Again + Connect & Sync */}
       <div className="modal-actions-row">
@@ -286,7 +334,7 @@ export function ConnectionDialog({ onClose }: { onClose: () => void }) {
               code ? "Choose terminal and pair" : state.terminal ? "Choose saved terminal" : "Connect & Sync"
             }
           >
-            {isConnecting || state.busy ? "Connecting…" : "Connect & Sync"}
+            {isConnecting || state.busy ? "Connecting…" : isSavedTerminal ? "Reconnect" : "Connect & Sync"}
           </button>
         </div>
       </div>
@@ -312,8 +360,9 @@ export function ConnectionDialog({ onClose }: { onClose: () => void }) {
           </p>
           <p>
             <strong>Operating system pairing prompts:</strong> Entering the code in Hallzee does
-            not complete OS-level pairing. If macOS or Windows asks for a Bluetooth code, enter the
-            current 6-digit code shown on the terminal there too.
+            not complete OS-level pairing because browser security prevents web apps from reading
+            system Bluetooth prompts. When Chrome, Chromebook, Windows, or macOS asks for a Bluetooth
+            pairing code, enter the same 6-digit code shown on the terminal there too.
           </p>
           <p>
             <strong>Ownership & Release:</strong> A terminal already owned by a desktop app or

@@ -23,9 +23,11 @@ zeros. Roster deletion does not delete completed trips.
    is the same classroom, then click **Connect & Sync**. Choose the Hallzee
    device in your browser's picker. Chrome, Edge, or the operating system may separately
    ask for the same physical code. Enter it in that OS prompt too; typing it in
-   Hallzee alone does not pair the OS. Hallzee first reads the encrypted terminal
-   channel, allowing up to one minute for OS pairing, then starts the short
-   application-authentication handshake. Hallzee does not save the code.
+   Hallzee alone does not pair the OS (browser security prevents web pages from reading
+   the OS Bluetooth pairing prompt). Hallzee uses the code to claim classroom ownership
+   and derive your permanent Owner Key, while the OS prompt uses it for BLE link encryption.
+   Hallzee first reads the encrypted terminal channel, allowing up to one minute for OS pairing,
+   then starts the short application-authentication handshake. Hallzee does not save the code.
 3. Wait for authenticated connection, completed sync and current pass status.
    **Unknown** means the app has no fresh occupancy snapshot; it is not proof
    that nobody is out. Keypad operation continues when the browser disconnects.

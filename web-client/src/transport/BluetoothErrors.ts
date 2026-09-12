@@ -73,7 +73,7 @@ reason(
     "Connection failed for unknown reason.",
   ],
   "Bluetooth connection failed",
-  "Close other apps connected to the terminal. On Mac, disconnect the terminal in System Settings → Bluetooth, then retry in Hallzee. If needed, power-cycle the terminal without factory resetting it.",
+  "Close other apps connected to the terminal. On Chromebook, disconnect or forget in Quick Settings → Bluetooth; on Mac, disconnect in System Settings → Bluetooth. Then retry in Hallzee. If needed, power-cycle the terminal without factory resetting it.",
   true,
 );
 /** Keep browser/device payloads out of diagnostics; only allowlisted error categories leave here. */
@@ -98,7 +98,7 @@ export function bluetoothError(error: unknown, stage: BluetoothStage): HallzeeEr
         ? rawName
         : "UnknownError";
   let help =
-    "Keep the terminal nearby, check Bluetooth is enabled, and close other connected apps. On Mac, disconnect the terminal in System Settings → Bluetooth, then retry in Hallzee.";
+    "Keep the terminal nearby, check Bluetooth is enabled, and close other connected apps. On Chromebook, check Quick Settings → Bluetooth; on Mac, disconnect in System Settings → Bluetooth. Then retry in Hallzee.";
   if (stage === "chooser" && name === "NotFoundError")
     help =
       "No terminal was selected. Open physical pairing mode if needed, then choose the terminal again.";

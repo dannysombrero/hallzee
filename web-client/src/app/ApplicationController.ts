@@ -161,6 +161,7 @@ export class ApplicationController {
         this.connection.abort();
         this.sync?.dispose();
         this.active.unknown();
+        this.device = undefined;
         this.publish();
         if (this.autoConnect && this.state.terminal) this.reconnect?.start();
       });
@@ -171,12 +172,19 @@ export class ApplicationController {
           if (!assigned) throw new HallzeeError("NO_ASSIGNMENT", "Choose a terminal to connect.");
           if (!handle || handle.id !== assigned.deviceIdHint) {
             const devices = await this.port.getRememberedDevices();
-            handle = devices.find((d) => d.id === assigned.deviceIdHint);
+            handle = devices.find(
+              (d) =>
+                d.id === assigned.deviceIdHint ||
+                (assigned.customName && d.name === assigned.customName) ||
+                (assigned.terminalId && d.name?.endsWith(assigned.terminalId.slice(-4))) ||
+                devices.length === 1,
+            );
           }
           if (!handle)
             throw new HallzeeError(
               "CHOOSE_TERMINAL",
               "Choose your saved terminal to reconnect. The browser has no remembered device handle for it.",
+              true,
             );
           await this.queue.run(
             "reconnect",
@@ -230,6 +238,7 @@ export class ApplicationController {
     this.sync?.dispose();
     this.session?.disconnect();
     this.active.unknown();
+    this.device = undefined;
     this.db?.close();
     this.lock.close();
     this.publish({ ready: false });
@@ -410,6 +419,16 @@ export class ApplicationController {
       await this.initialize();
     });
   }
+  async connectDevice(device: DeviceHandle) {
+    this.reconnect?.stop();
+    return this.action("connect", async () => {
+      this.autoConnect = true;
+      await this.db!.setMeta("autoConnect", true);
+      await this.requestPersistence();
+      await this.establish(device, undefined);
+      await this.initialize();
+    });
+  }
   retry() {
     this.clearError();
     this.autoConnect = true;
@@ -424,6 +443,7 @@ export class ApplicationController {
     this.sync?.dispose();
     this.session?.disconnect();
     this.active.unknown();
+    this.device = undefined;
     if (user) {
       this.autoConnect = false;
       void this.db

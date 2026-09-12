@@ -67,14 +67,34 @@ export class WebBluetoothTerminalConnection implements BluetoothPort {
       }
     };
     try {
-      const server = await step("connect", async () => {
-        const connected = await device.gatt!.connect();
-        if (signal?.aborted || generation !== this.generation) {
-          connected.disconnect();
-          throw new HallzeeError("CANCELLED");
-        }
-        return connected;
-      });
+      const server = await step(
+        "connect",
+        async () => {
+          let lastError: unknown;
+          for (let attempt = 0; attempt < 3; attempt++) {
+            valid();
+            try {
+              const connected = await device.gatt!.connect();
+              if (signal?.aborted || generation !== this.generation) {
+                connected.disconnect();
+                throw new HallzeeError("CANCELLED");
+              }
+              return connected;
+            } catch (error) {
+              lastError = error;
+              if (signal?.aborted || generation !== this.generation) throw error;
+              if (error instanceof HallzeeError && error.code === "CANCELLED") throw error;
+              // On ChromeOS/Linux BlueZ, initial GATT connect can race with OS-level pairing/bonding.
+              // A brief retry allows the OS to complete link bonding and successfully connect.
+              if (attempt < 2) {
+                await new Promise((resolve) => setTimeout(resolve, 800));
+              }
+            }
+          }
+          throw lastError;
+        },
+        15000,
+      );
       const service = await step("service", () => server.getPrimaryService(SERVICE_UUID));
       const tx = await step("characteristics", () => service.getCharacteristic(TX_UUID));
       const rx = await step("characteristics", () => service.getCharacteristic(RX_UUID));

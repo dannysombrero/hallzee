@@ -72,8 +72,11 @@ local Bluetooth companion daemon is released.
 
 ## Daily use and local data
 
-Current passes have individually targeted **Check in** controls. Trip history
-supports search/date/status/section filters and exports every filtered row, not
+Current passes have individually targeted **Check in** controls. Teachers can also start
+a pass directly from the computer by clicking **+ Start Pass**. Teacher-started passes are
+saved in local browser storage, resume automatically after a restart, start a live timer on
+the dashboard, and record a completed trip with status `MANUAL` upon clicking **Check in**.
+Trip history supports search/date/status/section filters and exports every filtered row, not
 only the visible page. CSV and JSON downloads contain unencrypted student data;
 choose a district-approved local destination. Nothing is uploaded by Hallzee.
 

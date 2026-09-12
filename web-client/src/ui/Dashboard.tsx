@@ -30,12 +30,27 @@ import { RosterDialog } from "./RosterDialog";
 import { PoliciesDialog } from "./PoliciesDialog";
 import { TerminalSettingsDialog } from "./TerminalSettingsDialog";
 import { DataSettingsDialog } from "./DataSettingsDialog";
+import { ManualCheckInDialog, type ManualPassDetails } from "./ManualCheckInDialog";
 import { ProjectionView, type ProjectionProps } from "./ProjectionView";
 import { DocumentPictureInPictureButton } from "./DocumentPictureInPictureButton";
 import { UpdateCoordinator, type OfflineStatus } from "../pwa/updateCoordinator";
 import { StatusPill } from "./StatusPill";
 
-type Modal = "connect" | "trips" | "roster" | "policies" | "terminal" | "data" | null;
+type Modal = "connect" | "trips" | "roster" | "policies" | "terminal" | "data" | "manual-pass" | null;
+
+interface StoredManualPass extends ManualPassDetails {
+  checkoutEpoch: number;
+}
+
+type ActivePassItem = {
+  studentId: string;
+  epoch: number;
+  isManual: boolean;
+  studentName?: string;
+  period?: string;
+  destination?: string;
+  purpose?: string;
+};
 
 export function Dashboard() {
   const { controller, state } = useHallzee();
@@ -53,6 +68,76 @@ export function Dashboard() {
   const defaultWarningMins = Math.round(state.policy.warningSeconds / 60) || 7;
   const [thresholdMinutes, setThresholdMinutes] = useState(defaultWarningMins);
   const [searchExceeded, setSearchExceeded] = useState("");
+
+  const [manualPass, setManualPass] = useState<StoredManualPass | null>(() => {
+    try {
+      const saved = localStorage.getItem("hallzee_manual_pass");
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const allActivePasses = useMemo<ActivePassItem[]>(() => {
+    const list: ActivePassItem[] = state.active.passes.map((p) => {
+      const student = state.students.find((s) => s.studentId === p.studentId);
+      return {
+        studentId: p.studentId,
+        epoch: p.epoch,
+        isManual: false,
+        studentName: fullName(student),
+      };
+    });
+    if (manualPass) {
+      list.push({
+        studentId: manualPass.studentId,
+        epoch: manualPass.checkoutEpoch,
+        isManual: true,
+        studentName: manualPass.studentName,
+        period: manualPass.period,
+        destination: manualPass.destination,
+        purpose: manualPass.purpose,
+      });
+    }
+    return list;
+  }, [state.active.passes, state.students, manualPass]);
+
+  const handleCheckInPass = async (passItem: ActivePassItem) => {
+    if (window.confirm("Check in this selected terminal pass now?")) {
+      if (passItem.isManual) {
+        const checkoutDate = new Date(passItem.epoch * 1000);
+        const durationSeconds = Math.max(
+          0,
+          Math.floor((now.getTime() - checkoutDate.getTime()) / 1000),
+        );
+        const pad = (n: number) => String(n).padStart(2, "0");
+        const timeOut = `${pad(checkoutDate.getHours())}:${pad(checkoutDate.getMinutes())}:${pad(checkoutDate.getSeconds())}`;
+        const timeIn = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+        const tripDate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+
+        await controller?.recordManualTrip(
+          {
+            tripId: Date.now(),
+            studentId: passItem.studentId,
+            tripDate,
+            timeOut,
+            timeIn,
+            durationSeconds,
+            status: "MANUAL",
+          },
+          passItem.period,
+        );
+        setManualPass(null);
+        try {
+          localStorage.removeItem("hallzee_manual_pass");
+        } catch {
+          // Ignore storage errors
+        }
+      } else {
+        await controller?.checkIn(passItem.studentId);
+      }
+    }
+  };
 
   useEffect(() => {
     const tick = setInterval(() => setNow(new Date()), 1000);
@@ -72,10 +157,10 @@ export function Dashboard() {
   const period = resolvePeriod(now, state.periods, state.exceptions);
   const windowDecision = evaluateWindow(now, period, state.policy);
   const projection: ProjectionProps = {
-    fresh: state.active.fresh,
-    occupiedCount: state.active.passes.length,
+    fresh: state.active.fresh || allActivePasses.length > 0,
+    occupiedCount: allActivePasses.length,
     capacity: state.policy.capacity,
-    elapsedSeconds: state.active.passes.map((p) => elapsed(p.epoch, now)),
+    elapsedSeconds: allActivePasses.map((p) => elapsed(p.epoch, now)),
     periodLabel: period?.periodName ?? "Between periods",
     windowDecision,
   };
@@ -436,7 +521,121 @@ export function Dashboard() {
             {offline.error && <p className="error">{offline.error}</p>}
 
             {/* HERO ACTIVE PASS CARD */}
-            {!state.active.fresh ? (
+            {allActivePasses.length > 0 ? (
+              allActivePasses.length === 1 ? (
+                /* State B: Single Pass Occupied */
+                (() => {
+                  const pass = allActivePasses[0];
+                  const passElapsed = elapsed(pass.epoch, now);
+                  const isOverdue = passElapsed > state.policy.warningSeconds;
+                  return (
+                    <section className="hero-pass-card occupied active-student">
+                      <div className="hero-pass-left">
+                        <div className="hero-avatar occupied">
+                          <UserX size={28} />
+                        </div>
+                        <div className="hero-pass-details">
+                          <StatusPill variant={isOverdue ? "danger" : "warning"}>
+                            {isOverdue ? "OVERDUE" : "PASS OCCUPIED"}
+                          </StatusPill>
+                          <h3>1 student out</h3>
+                          <p className="hero-pass-subtitle">
+                            <strong>{pass.studentName || pass.studentId}</strong>
+                            {pass.studentName ? ` (ID: #${pass.studentId})` : ""}
+                            {pass.period ? ` · ${pass.period}` : ""}
+                            {pass.destination ? ` · ${pass.destination}` : ""} ·{" "}
+                            {durationLabel(passElapsed)} elapsed
+                          </p>
+                        </div>
+                      </div>
+                      <div className="hero-floating-card">
+                        <div className="hero-floating-info">
+                          <span className="hero-floating-label amber">TRIP ELAPSED</span>
+                          <span className={`hero-floating-val mono ${isOverdue ? "danger" : ""}`}>
+                            {durationLabel(passElapsed)}
+                          </span>
+                          <span className="hero-floating-sub">Student ID: #{pass.studentId}</span>
+                        </div>
+                        <button
+                          className="dark-action"
+                          disabled={state.busy}
+                          onClick={() => void handleCheckInPass(pass)}
+                        >
+                          Check in
+                        </button>
+                      </div>
+                    </section>
+                  );
+                })()
+              ) : (
+                /* State B: Multiple Passes Occupied */
+                <>
+                  <section className="hero-pass-card occupied">
+                    <div className="hero-pass-left">
+                      <div className="hero-avatar occupied">
+                        <UserX size={28} />
+                      </div>
+                      <div className="hero-pass-details">
+                        <StatusPill variant="warning">MULTIPLE PASSES</StatusPill>
+                        <h3>{allActivePasses.length} students out</h3>
+                        <p className="hero-pass-subtitle">
+                          {allActivePasses.length} active passes in progress · Capacity:{" "}
+                          {state.policy.capacity}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="hero-floating-card">
+                      <div className="hero-floating-info">
+                        <span className="hero-floating-label amber">CAPACITY UTILIZATION</span>
+                        <span className="hero-floating-val mono">
+                          {allActivePasses.length} / {state.policy.capacity}
+                        </span>
+                        <span className="hero-floating-sub">Simultaneous students out</span>
+                      </div>
+                    </div>
+                  </section>
+                  <div className="additional-passes-list">
+                    {allActivePasses.map((pass) => {
+                      const passElapsed = elapsed(pass.epoch, now);
+                      const isOverdue = passElapsed > state.policy.warningSeconds;
+                      return (
+                        <div className="active-student-card active-student" key={pass.studentId}>
+                          <div className="hero-pass-left">
+                            <div className="hero-avatar occupied">
+                              <UserX size={24} />
+                            </div>
+                            <div className="hero-pass-details">
+                              <StatusPill variant={isOverdue ? "danger" : "warning"}>
+                                {isOverdue ? "OVERDUE" : "PASS OCCUPIED"}
+                              </StatusPill>
+                              <strong>{pass.studentName || pass.studentId}</strong>
+                              <span className="hero-pass-subtitle">
+                                Student ID: #{pass.studentId}
+                                {pass.period ? ` · ${pass.period}` : ""}
+                                {pass.destination ? ` · ${pass.destination}` : ""} ·{" "}
+                                {durationLabel(passElapsed)} elapsed
+                              </span>
+                            </div>
+                          </div>
+                          <div className="button-row">
+                            <span className={`hero-floating-val mono ${isOverdue ? "danger" : ""}`}>
+                              {durationLabel(passElapsed)}
+                            </span>
+                            <button
+                              className="dark-action"
+                              disabled={state.busy}
+                              onClick={() => void handleCheckInPass(pass)}
+                            >
+                              Check in
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )
+            ) : !state.active.fresh ? (
               /* State C: Status Unknown / Waiting for Terminal */
               <section className="hero-pass-card unknown">
                 <div className="hero-pass-left">
@@ -461,29 +660,35 @@ export function Dashboard() {
                       {connected ? "Receiving live activity" : "Sync to check pass status"}
                     </span>
                   </div>
-                  {connected ? (
-                    <button
-                      className="hallzee-pill-btn"
-                      disabled={!state.ready || state.busy}
-                      onClick={() => void controller?.syncNow()}
-                    >
-                      <RefreshCw size={14} className={state.syncing ? "spin" : ""} />
-                      Sync now
+                  <div className="flex items-center gap-2">
+                    <button className="hallzee-outline-btn" onClick={() => setModal("manual-pass")}>
+                      <Plus size={13} />
+                      Start Pass
                     </button>
-                  ) : (
-                    <button
-                      className="hallzee-pill-btn"
-                      aria-label="Connect terminal"
-                      disabled={!state.ready || state.busy}
-                      onClick={() => setModal("connect")}
-                    >
-                      <Search size={14} />
-                      Connect
-                    </button>
-                  )}
+                    {connected ? (
+                      <button
+                        className="hallzee-pill-btn"
+                        disabled={!state.ready || state.busy}
+                        onClick={() => void controller?.syncNow()}
+                      >
+                        <RefreshCw size={14} className={state.syncing ? "spin" : ""} />
+                        Sync now
+                      </button>
+                    ) : (
+                      <button
+                        className="hallzee-pill-btn"
+                        aria-label="Connect terminal"
+                        disabled={!state.ready || state.busy}
+                        onClick={() => setModal("connect")}
+                      >
+                        <Search size={14} />
+                        Connect
+                      </button>
+                    )}
+                  </div>
                 </div>
               </section>
-            ) : !state.active.passes.length ? (
+            ) : (
               /* State A: Pass Available */
               <section className="hero-pass-card available">
                 <div className="hero-pass-left">
@@ -505,131 +710,12 @@ export function Dashboard() {
                     <span className="hero-floating-val">Available</span>
                     <span className="hero-floating-sub">Ready for next student</span>
                   </div>
-                  <button className="hallzee-pill-btn" onClick={() => setModal("roster")}>
+                  <button className="hallzee-pill-btn" onClick={() => setModal("manual-pass")}>
                     <Plus size={14} />
                     Start Pass
                   </button>
                 </div>
               </section>
-            ) : state.active.passes.length === 1 ? (
-              /* State B: Single Pass Occupied */
-              (() => {
-                const pass = state.active.passes[0];
-                const student = state.students.find((s) => s.studentId === pass.studentId);
-                const studentName = fullName(student);
-                const passElapsed = elapsed(pass.epoch, now);
-                const isOverdue = passElapsed > state.policy.warningSeconds;
-                return (
-                  <section className="hero-pass-card occupied active-student">
-                    <div className="hero-pass-left">
-                      <div className="hero-avatar occupied">
-                        <UserX size={28} />
-                      </div>
-                      <div className="hero-pass-details">
-                        <StatusPill variant={isOverdue ? "danger" : "warning"}>
-                          {isOverdue ? "OVERDUE" : "PASS OCCUPIED"}
-                        </StatusPill>
-                        <h3>1 student out</h3>
-                        <p className="hero-pass-subtitle">
-                          <strong>{studentName || pass.studentId}</strong>
-                          {studentName ? ` (ID: #${pass.studentId})` : ""} ·{" "}
-                          {durationLabel(passElapsed)} elapsed
-                        </p>
-                      </div>
-                    </div>
-                    <div className="hero-floating-card">
-                      <div className="hero-floating-info">
-                        <span className="hero-floating-label amber">TRIP ELAPSED</span>
-                        <span className={`hero-floating-val mono ${isOverdue ? "danger" : ""}`}>
-                          {durationLabel(passElapsed)}
-                        </span>
-                        <span className="hero-floating-sub">Student ID: #{pass.studentId}</span>
-                      </div>
-                      <button
-                        className="dark-action"
-                        disabled={state.busy}
-                        onClick={() => {
-                          if (window.confirm("Check in this selected terminal pass now?")) {
-                            void controller?.checkIn(pass.studentId);
-                          }
-                        }}
-                      >
-                        Check in
-                      </button>
-                    </div>
-                  </section>
-                );
-              })()
-            ) : (
-              /* State B: Multiple Passes Occupied */
-              <>
-                <section className="hero-pass-card occupied">
-                  <div className="hero-pass-left">
-                    <div className="hero-avatar occupied">
-                      <UserX size={28} />
-                    </div>
-                    <div className="hero-pass-details">
-                      <StatusPill variant="warning">MULTIPLE PASSES</StatusPill>
-                      <h3>{state.active.passes.length} students out</h3>
-                      <p className="hero-pass-subtitle">
-                        {state.active.passes.length} active passes in progress · Capacity:{" "}
-                        {state.policy.capacity}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="hero-floating-card">
-                    <div className="hero-floating-info">
-                      <span className="hero-floating-label amber">CAPACITY UTILIZATION</span>
-                      <span className="hero-floating-val mono">
-                        {state.active.passes.length} / {state.policy.capacity}
-                      </span>
-                      <span className="hero-floating-sub">Simultaneous students out</span>
-                    </div>
-                  </div>
-                </section>
-                <div className="additional-passes-list">
-                  {state.active.passes.map((pass) => {
-                    const student = state.students.find((s) => s.studentId === pass.studentId);
-                    const studentName = fullName(student);
-                    const passElapsed = elapsed(pass.epoch, now);
-                    const isOverdue = passElapsed > state.policy.warningSeconds;
-                    return (
-                      <div className="active-student-card active-student" key={pass.studentId}>
-                        <div className="hero-pass-left">
-                          <div className="hero-avatar occupied">
-                            <UserX size={24} />
-                          </div>
-                          <div className="hero-pass-details">
-                            <StatusPill variant={isOverdue ? "danger" : "warning"}>
-                              {isOverdue ? "OVERDUE" : "PASS OCCUPIED"}
-                            </StatusPill>
-                            <strong>{studentName || pass.studentId}</strong>
-                            <span className="hero-pass-subtitle">
-                              Student ID: #{pass.studentId} · {durationLabel(passElapsed)} elapsed
-                            </span>
-                          </div>
-                        </div>
-                        <div className="button-row">
-                          <span className={`hero-floating-val mono ${isOverdue ? "danger" : ""}`}>
-                            {durationLabel(passElapsed)}
-                          </span>
-                          <button
-                            className="dark-action"
-                            disabled={state.busy}
-                            onClick={() => {
-                              if (window.confirm("Check in this selected terminal pass now?")) {
-                                void controller?.checkIn(pass.studentId);
-                              }
-                            }}
-                          >
-                            Check in
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
             )}
 
             {/* MAIN DASHBOARD 2-COLUMN GRID (1.8fr 1.2fr) */}
@@ -893,6 +979,23 @@ export function Dashboard() {
       {modal === "policies" && <PoliciesDialog onClose={close} />}
       {modal === "terminal" && <TerminalSettingsDialog onClose={close} />}
       {modal === "data" && state.workspace && <DataSettingsDialog onClose={close} />}
+      {modal === "manual-pass" && (
+        <ManualCheckInDialog
+          onClose={close}
+          onStartPass={(pass) => {
+            const stored: StoredManualPass = {
+              ...pass,
+              checkoutEpoch: Math.floor(Date.now() / 1000),
+            };
+            setManualPass(stored);
+            try {
+              localStorage.setItem("hallzee_manual_pass", JSON.stringify(stored));
+            } catch {
+              // Ignore storage errors
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

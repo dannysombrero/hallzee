@@ -5,7 +5,7 @@ import { HallzeeError, abortCheck, errorText } from "./errors";
 import { LocalDatabase } from "../storage/LocalDatabase";
 import { CredentialRepository } from "../storage/CredentialRepository";
 import { WorkspaceRepository } from "../storage/WorkspaceRepository";
-import { TripRepository } from "../storage/TripRepository";
+import { TripRepository, type TripContext } from "../storage/TripRepository";
 import { BackupService, type Backup } from "../storage/BackupService";
 import {
   defaultPolicy,
@@ -14,6 +14,7 @@ import {
   type Student,
   type Enrollment,
   type Trip,
+  type WireTrip,
   type Policy,
   type BellPeriod,
   type ScheduleException,
@@ -624,6 +625,19 @@ export class ApplicationController {
       await this.queryActive();
       await this.sync!.drain();
     });
+  }
+  async recordManualTrip(wire: WireTrip, period?: string) {
+    if (!this.tripRepo || !this.state.workspace) return;
+    const terminalId = this.state.terminal?.terminalId ?? "LOCAL";
+    const context: TripContext = {
+      terminalId,
+      receivedWorkspaceId: this.state.workspace.workspaceId,
+      scheduleName: null,
+      classSection: period ?? null,
+      contextSource: "resolved-on-receipt",
+    };
+    await this.tripRepo.store(wire, context);
+    await this.refresh();
   }
   unpair() {
     return this.action("release", async () => {

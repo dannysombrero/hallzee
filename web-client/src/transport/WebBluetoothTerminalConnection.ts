@@ -105,8 +105,8 @@ export class WebBluetoothTerminalConnection implements BluetoothPort {
           "ENCRYPTED_READ_REQUIRED",
           "This terminal is missing the readable Hallzee channel needed to establish secure pairing. Verify its firmware.",
         );
-      // Firmware protects TX reads with encrypted MITM permissions. Trigger OS
-      // pairing before HELLO starts the eight-second application handshake.
+      // Firmware protects TX reads with encrypted permissions. Establish the
+      // Just Works link before HELLO starts the eight-second application handshake.
       // Read before subscribing: an old TX value is not a new protocol message.
       await step("pairing", () => tx.readValue(), 60000);
       this.tx = tx;

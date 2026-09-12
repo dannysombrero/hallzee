@@ -17,10 +17,12 @@ public:
   bool begin(const char *deviceName) override;
   void setPin(const char *pin, size_t length) override;
   bool hasClient() override;
+  uint32_t connectionGeneration() const override { return generation; }
+  void observeConnection(uint32_t currentGeneration) override { observedGeneration = currentGeneration; }
   bool isReady() const { return server && txCharacteristic && rxCharacteristic; }
   void disconnectClient() override;
   bool clearBondedDevices() override;
-  void setPairingPasskey(uint32_t passkey) override;
+  void setPairingStatus(bool claimed, uint16_t suffix) override;
   bool setDeviceName(const char *deviceName) override;
   int available() override;
   int read() override;
@@ -38,6 +40,7 @@ private:
   void enqueue(const uint8_t *data, size_t length);
   void send(const String &text);
   void restartAdvertising();
+  void updateAdvertisement();
   void handleConnect(uint16_t connectionId);
   void handleDisconnect(uint16_t connectionId);
 
@@ -46,6 +49,10 @@ private:
   BLECharacteristic *rxCharacteristic = nullptr;
   QueueHandle_t receiveQueue = nullptr;
   std::atomic<bool> connected{false};
+  std::atomic<uint32_t> generation{0};
+  std::atomic<uint32_t> observedGeneration{0};
+  std::atomic<bool> claimed{false};
+  std::atomic<uint16_t> terminalSuffix{0};
   String advertisedName;
-  uint16_t activeConnectionId = 0xFFFF;
+  std::atomic<uint16_t> activeConnectionId{0xFFFF};
 };

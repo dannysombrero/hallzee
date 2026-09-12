@@ -8,4 +8,7 @@
     <ApplicationId>com.hallzee.macbleagent</ApplicationId>
     <SupportedOSPlatformVersion>10.15</SupportedOSPlatformVersion>
   </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../windows/BathroomSync.Core/Protocol/TerminalAdvertisementProtocol.cs" Link="Protocol/TerminalAdvertisementProtocol.cs" />
+  </ItemGroup>
 </Project>

@@ -153,9 +153,26 @@ This is a separate local-data client; it does not use the marketing preview's
 simulated classroom. See the [teacher guide](chromebook-guide.md),
 [IT guide](web-client-it-guide.md), [deployment guide](web-client-deployment.md) and [acceptance record](testing/web-client-acceptance.md).
 Mac is sufficient for shared automated checks and cloud deployment configuration. Physical Chromebook acceptance
-is pending. Windows BLE/PWA requires a Windows BLE PC to verify its OS passkey
-flow, encrypted GATT, bond reuse and reconnect/sleep; **Windows behavior is
-unverified**. The online testing origin is `https://web.hallzee.com` via Cloudflare Pages.
+is pending. A Chromebook is required to verify ChromeOS permission, pairing,
+and sleep/wake behavior. Windows BLE/PWA requires a Windows BLE PC to verify
+Just Works pairing, encrypted GATT, bond reuse and reconnect/sleep;
+**Windows behavior is unverified**. The online testing origin is `https://web.hallzee.com` via Cloudflare Pages.
+
+### Pair once, then reconnect
+
+Install the current terminal firmware and client together. On an unowned idle
+terminal, hold `*` + `#` for five seconds and release. Choose **Find Nearby
+Terminals**, select its stable name (for example `Hallzee-2A58`), then enter the
+six-digit code in Hallzee's dialog. The code is for Hallzee; no Bluetooth
+passkey entry is required. An OS pairing permission prompt may still appear.
+
+Returning owners reconnect using the saved app/profile key without code or
+pairing mode, including after terminal restart. Automatic web reconnect needs
+a browser-provided remembered device; otherwise click **Reconnect** and select
+the saved terminal. Hallzee displays ownership labels in its own screen;
+Bluetooth names no longer include ownership/occupancy suffixes. Browser chooser
+rows and OS indicators are browser-controlled. See the [teacher guide](chromebook-guide.md#pair-and-reconnect)
+and [repair guide](bluetooth-repair-and-keypad.md) for details.
 
 For firmware/USB packaging failures, use the
 [release recovery steps](releasing.md#recover-a-failed-firmwareusb-build).

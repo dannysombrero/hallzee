@@ -14,6 +14,7 @@
 #include "TripRecordCodec.h"
 #include "TerminalDisplay.h"
 #include "TerminalIdentity.h"
+#include "TerminalAdvertisement.h"
 #include "FirmwareFrame.h"
 #include "TouchInput.h"
 #include "StableKeypad.h"
@@ -163,6 +164,10 @@ public:
   bool beginSucceeds = true;
   bool renameSucceeds = true;
   bool connected = false;
+  uint32_t generation = 0;
+  uint32_t observedGeneration = 0;
+  bool advertisedClaimed = false;
+  uint16_t advertisedSuffix = 0;
   std::string input;
   std::vector<std::string> output;
   std::vector<std::string> attemptedNames;
@@ -183,6 +188,12 @@ public:
   }
   void setPin(const char *value, size_t) override { pin = value; }
   bool hasClient() override { return connected; }
+  uint32_t connectionGeneration() const override { return generation; }
+  void observeConnection(uint32_t currentGeneration) override { observedGeneration = currentGeneration; }
+  void setPairingStatus(bool claimed, uint16_t suffix) override {
+    advertisedClaimed = claimed;
+    advertisedSuffix = suffix;
+  }
   int available() override { return static_cast<int>(input.size()); }
   int read() override { const char value = input.front(); input.erase(0, 1); return value; }
   void print(const char *text) override { partialLine += text; }
@@ -682,33 +693,32 @@ void testBondRepairGesture() {
 void testBondRepairPreservesApplicationBoundary() {
   class RepairPort : public FakeBluetoothSerial {
   public:
-    int disconnects = 0, clears = 0, codeChanges = 0;
+    int disconnects = 0, clears = 0;
     bool clearWorks = true;
     void disconnectClient() override { disconnects++; }
     bool clearBondedDevices() override { clears++; return clearWorks; }
-    void setPairingPasskey(uint32_t) override { codeChanges++; }
   } port;
   BondRepair repair(port);
-  // Synthetic code fixture; no real device credentials.
-  expectTrue(!repair.start(0, false, 654321), "disallowed repair has no side effects");
+  expectTrue(!repair.start(0, false), "disallowed repair has no side effects");
   expectTrue(port.disconnects == 0 && port.clears == 0, "rejected repair leaves BLE untouched");
   port.connected = true;
-  expectTrue(repair.start(0, true, 654321), "eligible repair starts");
+  expectTrue(repair.start(0, true), "eligible repair starts without another pairing code");
+  expectTrue(!repair.start(10, true), "active repair cannot restart its timeout");
   repair.poll(1000, false);
-  expectTrue(port.clears == 0 && repair.code() == 0, "wait for actual disconnect before clearing bonds");
+  expectTrue(port.clears == 0 && repair.status() == BondRepair::State::Disconnecting, "wait for actual disconnect before clearing bonds");
   port.connected = false; repair.poll(2000, false);
-  expectTrue(port.clears == 1 && port.codeChanges == 1 && repair.code() != 0, "fresh code ready after bond removal");
+  expectTrue(port.clears == 1 && repair.status() == BondRepair::State::Ready, "owner can reconnect after old bond removal");
   repair.poll(3000, false);
   expectTrue(repair.status() == BondRepair::State::Ready && port.clears == 1, "OS pairing alone does not complete owner authentication");
   repair.poll(4000, true);
-  expectTrue(repair.status() == BondRepair::State::Complete && repair.code() == 0, "authenticated owner completes and clears temporary code");
-  repair.start(5000, true, 654321); repair.poll(5000, false); repair.poll(125000, false);
-  expectTrue(repair.status() == BondRepair::State::Expired && repair.code() == 0, "repair expires in two minutes");
-  port.connected = true; repair.start(130000, true, 654321); repair.poll(135000, false);
+  expectTrue(repair.status() == BondRepair::State::Complete, "only authenticated owner completes repair");
+  repair.start(5000, true); repair.poll(5000, false); repair.poll(125000, false);
+  expectTrue(repair.status() == BondRepair::State::Expired, "repair expires in two minutes");
+  port.connected = true; repair.start(130000, true); repair.poll(135000, false);
   expectTrue(repair.status() == BondRepair::State::Failed, "stuck disconnect fails without clearing live bond");
   port.connected = false; port.clearWorks = false;
-  repair.start(140000, true, 654321); repair.poll(140000, false);
-  expectTrue(repair.status() == BondRepair::State::Failed && repair.code() == 0, "bond deletion failure does not show a code");
+  repair.start(140000, true); repair.poll(140000, false);
+  expectTrue(repair.status() == BondRepair::State::Failed, "bond deletion failure does not invite reconnect");
 }
 
 void testKeypadControllerInterpretsKeysAndResetGesture() {
@@ -916,8 +926,7 @@ void testTerminalRenamePersistenceAndFailures() {
   restarted.begin();
   expectTrue(restarted.customName() == "Room #204", "rename survives reboot with NVS namespace limit");
   expectTrue(restarted.terminalId() == originalId, "rename retains stable device identity");
-  expectTrue(restarted.advertisedName(false) == "Room #204 [E5F6]", "restarted advertised name includes marker");
-  expectTrue(restarted.advertisedName(true) == "Room #204 [E5F6]-INUSE", "restarted advertised inUse includes marker and status");
+  expectTrue(restarted.advertisedName() == "Room #204 [E5F6]", "restarted advertised name includes stable marker");
 
   Preferences::failWrite = true;
   serial.output.clear();
@@ -947,14 +956,14 @@ void testTerminalRenamePersistenceAndFailures() {
   expectTrue(contains(serial.output, "SETTINGS_ERROR,TERMINAL_NAME,INVALID_VALUE"), "invalid name remains rejected");
   expectTrue(identity.customName() == "Room #204" && serial.deviceName == "Room #204 [E5F6]", "invalid name does not change device");
 
-  sync.updateAvailability(true);
-  expectTrue(serial.deviceName == "Room #204 [E5F6]-INUSE", "inUse status updates BLE name");
+  sync.updatePairingStatus();
+  expectTrue(serial.deviceName == "Room #204 [E5F6]", "pairing status does not rename BLE device");
   serial.output.clear();
   serial.input = "SET,TERMINAL_NAME,Room 301\n";
   sync.poll();
-  expectTrue(contains(serial.output, "SETTINGS_ACK,TERMINAL_NAME,Room 301"), "in-use rename acknowledged with clean name");
-  expectTrue(identity.customName() == "Room 301", "in-use rename persists clean name");
-  expectTrue(serial.deviceName == "Room 301 [E5F6]-INUSE", "in-use rename keeps -INUSE suffix on BLE");
+  expectTrue(contains(serial.output, "SETTINGS_ACK,TERMINAL_NAME,Room 301"), "rename after status refresh acknowledged with clean name");
+  expectTrue(identity.customName() == "Room 301", "rename after status refresh persists clean name");
+  expectTrue(serial.deviceName == "Room 301 [E5F6]", "rename retains only name and stable identity marker");
 
   Preferences::failOpen = true;
   TerminalIdentity unavailable;
@@ -968,85 +977,83 @@ void testTerminalIdentityFormatting() {
   Preferences::stored.clear();
   TerminalIdentity identity;
   identity.begin();
-  const String suffix = identity.terminalSuffix();
-  expectTrue(suffix == "E5F6", "stub eFuse provides expected E5F6 suffix");
+  expectTrue(identity.terminalSuffix() == "E5F6", "stub eFuse provides expected suffix");
+  for (const String &name : {String(""), String("Hallzee"), String("Hallzee-E5F6")}) {
+    expectTrue(identity.formatAdvertisedName(name) == "Hallzee-E5F6", "default discovery name is stable");
+  }
+  expectTrue(identity.formatAdvertisedName("Room 204") == "Room 204 [E5F6]", "custom name includes terminal suffix");
+  expectTrue(identity.formatAdvertisedName("Room 204 [E5F6]") == "Room 204 [E5F6]", "exact trailing marker does not duplicate");
+  expectTrue(identity.formatAdvertisedName("Room 204 [E5F6] [E5F6]") == "Room 204 [E5F6] [E5F6]", "only one exact trailing marker is stripped");
+  expectTrue(identity.formatAdvertisedName("Lab E5F6") == "Lab E5F6 [E5F6]", "bare suffix is not stripped");
+  expectTrue(identity.formatAdvertisedName("Room [E5F6] 204") == "Room [E5F6] 204 [E5F6]", "marker in middle of name is not stripped");
+  expectTrue(identity.formatAdvertisedName("Room 204 [A1B2]") == "Room 204 [A1B2] [E5F6]", "foreign marker is not stripped");
+  const String longName = identity.formatAdvertisedName("ABCDEFGHIJKLMNOPQRSTUVWX");
+  expectTrue(longName == "ABCDEFGHIJKLMNOPQRSTUV [E5F6]" && longName.length() == 29,
+             "long names retain the full 22-character prefix and fit the BLE scan response");
+  expectTrue(identity.formatAdvertisedName("1234567890123456789012") == "1234567890123456789012 [E5F6]", "22-character boundary is not truncated");
 
-  // 1. Default names
-  expectTrue(identity.formatAdvertisedName("", false) == "Hallzee-E5F6", "empty name without inUse formats as default");
-  expectTrue(identity.formatAdvertisedName("", true) == "Hallzee-E5F6-INUSE", "empty name with inUse formats as default");
-  expectTrue(identity.formatAdvertisedName("Hallzee", false) == "Hallzee-E5F6", "Hallzee without inUse formats as default");
-  expectTrue(identity.formatAdvertisedName("Hallzee", true) == "Hallzee-E5F6-INUSE", "Hallzee with inUse formats as default");
-  expectTrue(identity.formatAdvertisedName("Hallzee-E5F6", false) == "Hallzee-E5F6", "Hallzee-suffix without inUse formats as default");
-  expectTrue(identity.formatAdvertisedName("Hallzee-E5F6", true) == "Hallzee-E5F6-INUSE", "Hallzee-suffix with inUse formats as default");
-
-  // 2. Ordinary custom names
-  expectTrue(identity.formatAdvertisedName("Room 204", false) == "Room 204 [E5F6]", "ordinary custom name without inUse preserves suffix");
-  expectTrue(identity.formatAdvertisedName("Room 204", true) == "Room 204 [E5F6]-INUSE", "ordinary custom name with inUse preserves suffix");
-
-  // 3. Exact trailing markers (one exact trailing marker stripped and reconstructed)
-  expectTrue(identity.formatAdvertisedName("Room 204 [E5F6]", false) == "Room 204 [E5F6]", "exact trailing marker does not duplicate");
-  expectTrue(identity.formatAdvertisedName("Room 204 [E5F6]", true) == "Room 204 [E5F6]-INUSE", "exact trailing marker with inUse appends -INUSE");
-  expectTrue(identity.formatAdvertisedName("Room 204 [E5F6] [E5F6]", false) == "Room 204 [E5F6] [E5F6]", "only one exact trailing marker is stripped");
-
-  // 4. Incidental suffix text (not stripped)
-  expectTrue(identity.formatAdvertisedName("Lab E5F6", false) == "Lab E5F6 [E5F6]", "bare suffix is not stripped");
-  expectTrue(identity.formatAdvertisedName("Room [E5F6] 204", false) == "Room [E5F6] 204 [E5F6]", "marker in middle of name is not stripped");
-
-  // 5. Another terminal's marker (not stripped)
-  expectTrue(identity.formatAdvertisedName("Room 204 [A1B2]", false) == "Room 204 [A1B2] [E5F6]", "foreign terminal marker is not stripped");
-  expectTrue(identity.formatAdvertisedName("Room 204 [A1B2]", true) == "Room 204 [A1B2] [E5F6]-INUSE", "foreign marker with inUse preserves terminal suffix");
-
-  // 6. 22/16-character boundaries
-  const String max24 = "ABCDEFGHIJKLMNOPQRSTUVWX";
-  const String formatted24NoUse = identity.formatAdvertisedName(max24, false);
-  const String formatted24InUse = identity.formatAdvertisedName(max24, true);
-  expectTrue(formatted24NoUse == "ABCDEFGHIJKLMNOPQRSTUV [E5F6]", "24-char name truncates to 22-char prefix without inUse");
-  expectTrue(formatted24InUse == "ABCDEFGHIJKLMNOP [E5F6]-INUSE", "24-char name truncates to 16-char prefix with inUse");
-  expectTrue(formatted24NoUse.length() <= 29, "formatted 24-char name fits 29-byte BLE limit without inUse");
-  expectTrue(formatted24InUse.length() <= 29, "formatted 24-char name fits 29-byte BLE limit with inUse");
-
-  const String boundary22 = "1234567890123456789012";
-  expectTrue(identity.formatAdvertisedName(boundary22, false) == "1234567890123456789012 [E5F6]", "22-char name not truncated without inUse");
-  expectTrue(identity.formatAdvertisedName(boundary22, true) == "1234567890123456 [E5F6]-INUSE", "22-char name truncated to 16 with inUse");
-
-  const String boundary16 = "1234567890123456";
-  expectTrue(identity.formatAdvertisedName(boundary16, false) == "1234567890123456 [E5F6]", "16-char name fits without inUse");
-  expectTrue(identity.formatAdvertisedName(boundary16, true) == "1234567890123456 [E5F6]-INUSE", "16-char name fits with inUse");
-
-  // 7. Fresh storage and invalid stored names
   Preferences::stored.clear();
   TerminalIdentity fresh;
   fresh.begin();
-  expectTrue(fresh.customName() == "Hallzee-E5F6", "fresh storage defaults to Hallzee-suffix");
-  expectTrue(fresh.advertisedName(false) == "Hallzee-E5F6", "fresh storage advertisedName without inUse");
-  expectTrue(fresh.advertisedName(true) == "Hallzee-E5F6-INUSE", "fresh storage advertisedName with inUse");
-
-  Preferences::stored.clear();
+  expectTrue(fresh.customName() == "Hallzee-E5F6" && fresh.advertisedName() == "Hallzee-E5F6", "fresh storage uses stable default name");
   Preferences::stored["hallzee_id"]["custom_name"] = "   ";
   TerminalIdentity invalidStored;
   invalidStored.begin();
-  expectTrue(invalidStored.customName() == "Hallzee-E5F6", "invalid stored name falls back to default");
-  expectTrue(invalidStored.advertisedName(false) == "Hallzee-E5F6", "invalid stored name advertisedName without inUse");
+  expectTrue(invalidStored.advertisedName() == "Hallzee-E5F6", "invalid stored name falls back to default");
 
-  // 8. Availability transitions rebuild without accumulating markers
   FakeTripStorage storage;
   FakeBluetoothSerial serial;
   TerminalIdentity transitionId;
   transitionId.begin();
   transitionId.setCustomName("Room 204");
   BluetoothSync sync(storage, serial, setBluetoothClock, onBluetoothClockSet,
-    nullptr, nullptr, nullptr, nullptr, &transitionId);
+    fakeGetActivePass, nullptr, nullptr, nullptr, &transitionId);
   sync.begin();
-  expectTrue(serial.deviceName == "Room 204 [E5F6]", "initial advertised name with custom name has suffix");
+  expectTrue(serial.deviceName == "Room 204 [E5F6]" && serial.advertisedSuffix == 0xE5F6,
+             "discovery carries stable name and separate terminal suffix metadata");
+  serial.attemptedNames.clear();
+  fakeHasActivePass = true;
+  sync.updatePairingStatus();
+  fakeHasActivePass = false;
+  sync.updatePairingStatus();
+  expectTrue(serial.deviceName == "Room 204 [E5F6]" && serial.attemptedNames.empty(),
+             "checkout activity and status refreshes never rename Bluetooth device");
 
-  sync.updateAvailability(true);
-  expectTrue(serial.deviceName == "Room 204 [E5F6]-INUSE", "availability transition to inUse appends -INUSE");
-  sync.updateAvailability(false);
-  expectTrue(serial.deviceName == "Room 204 [E5F6]", "availability transition to available removes -INUSE without accumulating markers");
-  sync.updateAvailability(true);
-  expectTrue(serial.deviceName == "Room 204 [E5F6]-INUSE", "second transition to inUse preserves single marker");
-  sync.updateAvailability(false);
-  expectTrue(serial.deviceName == "Room 204 [E5F6]", "second transition to available preserves single marker");
+  const auto unclaimed = terminalAdvertisement(false, 0xE5F6);
+  const auto claimed = terminalAdvertisement(true, 0xE5F6);
+  expectTrue(unclaimed == std::array<uint8_t, 8>{0xFF, 0xFF, 'H', 'Z', 1, 0, 0xE5, 0xF6},
+             "unclaimed discovery metadata matches desktop wire format");
+  expectTrue(claimed == std::array<uint8_t, 8>{0xFF, 0xFF, 'H', 'Z', 1, 1, 0xE5, 0xF6},
+             "claim changes metadata flag without identity/name changes");
+  expectTrue(3 + 18 + 2 + claimed.size() == 31, "flags, service, and metadata fit a legacy advertisement");
+}
+
+void testBluetoothReconnectResetsSessionState() {
+  FakeTripStorage storage;
+  FakeBluetoothSerial serial;
+  BluetoothSync sync(storage, serial, setBluetoothClock, onBluetoothClockSet);
+  sync.begin();
+  serial.connected = true;
+  serial.generation = 1;
+  serial.input = "SET,TERMINAL_NAME,";
+  sync.poll();
+  serial.output.clear();
+  // Simulate disconnect and reconnect happening entirely between poll calls.
+  serial.generation = 2;
+  sync.notifyCheckout("SYNTHETIC1", 1);
+  expectTrue(serial.output.empty(), "new connection cannot receive prior owner's events before poll");
+  serial.input = "HELLO,1\n";
+  sync.poll();
+  expectTrue(contains(serial.output, "HALLZEE_READY,1"), "rapid reconnect restarts handshake");
+  expectTrue(serial.observedGeneration == 2, "application observes new generation after clearing old session state");
+  expectTrue(serial.output.size() == 2 && serial.output[0] == "HALLZEE_READY,1" &&
+             serial.output[1] == "HALLZEE_READY,1",
+             "rapid reconnect discards previous connection's partial command");
+  serial.output.clear();
+  serial.input = "HELLO,1\n";
+  sync.poll();
+  expectTrue(serial.output.size() == 1 && serial.output[0] == "HALLZEE_READY,1",
+             "subsequent poll handles commands without another connection event");
 }
 
 void testBluetoothOwnerRelease() {
@@ -1433,8 +1440,9 @@ int main() {
     display.commands.clear();
     terminal.showPairing("HZ-A1B2C3D4E5F6", "Test classroom", 654321, true);
     expectTrue(contains(display.commands, "println:BT REPAIR") &&
-      contains(display.commands, "println:Code in OS prompt") &&
-      !contains(display.commands, "println:Enter passkey in app"), "repair code belongs in OS prompt only");
+      contains(display.commands, "println:Reconnect in Hallzee") &&
+      contains(display.commands, "println:No pairing code needed") &&
+      !contains(display.commands, "println:654321"), "repair reconnects existing owner without another code");
     display.commands.clear();
     terminal.showPairingComplete("A1B2C3D4E5F6", true);
     expectTrue(contains(display.commands, "println:REPAIRED") &&
@@ -1446,6 +1454,7 @@ int main() {
   testKeypadControllerInterpretsKeysAndResetGesture();
   testFirmwareFrameBoundaries();
   testTerminalIdentityFormatting();
+  testBluetoothReconnectResetsSessionState();
   testTerminalRenamePersistenceAndFailures();
   testBluetoothOwnerRelease();
   testBluetoothProtocolAndRecovery();

@@ -42,7 +42,7 @@ public:
   void begin();
   void setOwnerReleaseHandler(OwnerReleaseHandler handler) { ownerReleaseHandler = handler; }
   void poll();
-  void updateAvailability(bool inUse);
+  void updatePairingStatus();
 
   void notifyCheckout(const String &studentId, uint32_t checkoutEpoch);
   void notifyCheckin(const String &studentId, unsigned long durationSeconds);
@@ -67,6 +67,7 @@ private:
 
   bool ready = false;
   bool wasConnected = false;
+  uint32_t observedConnectionGeneration = 0;
   String commandBuffer;
   bool discardingInput = false;
   bool syncInProgress = false;
@@ -76,7 +77,6 @@ private:
   String handshakeNonce;
   String commitNonce;
   unsigned long authorizationStartedAt = 0;
-  bool advertisedInUse = false;
   OwnerReleaseHandler ownerReleaseHandler = nullptr;
 
   void updateConnection();

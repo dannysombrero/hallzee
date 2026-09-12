@@ -7,9 +7,8 @@ class BondRepair {
 public:
   enum class State { Idle, Disconnecting, Ready, Complete, Failed, Expired };
   explicit BondRepair(BluetoothSerialPort &port) : port(port) {}
-  bool start(uint32_t now, bool allowed, uint32_t freshPasskey) {
-    if (!allowed || active() || freshPasskey < 100000 || freshPasskey > 999999) return false;
-    passkey = freshPasskey;
+  bool start(uint32_t now, bool allowed) {
+    if (!allowed || active()) return false;
     started = now;
     state = State::Disconnecting;
     port.disconnectClient();
@@ -22,7 +21,6 @@ public:
         return;
       }
       if (!port.clearBondedDevices()) { finish(State::Failed); return; }
-      port.setPairingPasskey(passkey);
       started = now;
       state = State::Ready;
     } else if (state == State::Ready) {
@@ -35,11 +33,10 @@ public:
   }
   bool active() const { return state == State::Disconnecting || state == State::Ready; }
   State status() const { return state; }
-  uint32_t code() const { return state == State::Ready ? passkey : 0; }
   void reset() { finish(State::Idle); }
 private:
   BluetoothSerialPort &port;
   State state = State::Idle;
-  uint32_t started = 0, passkey = 0;
-  void finish(State next) { state = next; passkey = 0; }
+  uint32_t started = 0;
+  void finish(State next) { state = next; }
 };

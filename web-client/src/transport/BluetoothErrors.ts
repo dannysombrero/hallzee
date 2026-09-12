@@ -47,7 +47,7 @@ reason(
     "GATT Error: Not paired.",
   ],
   "Bluetooth authentication incomplete",
-  "The operating system could not complete Bluetooth authentication. For a saved terminal with updated firmware, hold * alone for five seconds while idle to show BT REPAIR. Choose the saved terminal and enter that code only in the OS prompt. Keep Hallzee site data and ownership.",
+  "The operating system could not complete Bluetooth authentication. For a saved terminal with updated firmware, hold * alone for five seconds while idle to show BT REPAIR. Then select the saved terminal in Hallzee. Updated firmware reconnects without an OS passkey. Keep Hallzee site data and ownership.",
 );
 reason(
   ["Connection already in progress.", "GATT operation already in progress."],
@@ -107,7 +107,7 @@ export function bluetoothError(error: unknown, stage: BluetoothStage): HallzeeEr
       "Check browser site Bluetooth permission and macOS/Windows permission for Chrome or Edge. A district policy may also block access.";
   else if (stage === "pairing")
     help =
-      "The encrypted Bluetooth read failed; this does not mean Hallzee ownership was lost. For a saved terminal with updated firmware, hold * alone for five seconds while idle to show BT REPAIR, choose the saved terminal, and enter that code in the OS prompt. For an unclaimed terminal, use its physical pairing screen. Do not reset ownership or clear Hallzee site data.";
+      "The encrypted Bluetooth read failed; this does not mean Hallzee ownership was lost. For a saved terminal with updated firmware, hold * alone for five seconds while idle to show BT REPAIR, then choose the saved terminal in Hallzee; updated firmware needs no OS passkey. For an unclaimed terminal, update firmware and enter its physical pairing code in Hallzee after selection. Do not reset ownership or clear Hallzee site data.";
   else if (["service", "characteristics"].includes(stage) && name === "NotFoundError")
     help =
       "The selected device does not expose the expected Hallzee firmware service or channels. Verify the selected terminal and firmware.";

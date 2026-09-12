@@ -1,8 +1,8 @@
 # Web client IT guide
 
-**Status:** Development artifact only; no production origin or approved district
-Chrome or Edge version is selected. Managed Chromebook and physical Windows/Mac BLE
-acceptance are pending. Do not interpret a successful headless test as deployment
+**Status:** Testing origin `https://web.hallzee.com`; no district Chrome or Edge
+version is approved. Managed Chromebook and physical Windows/Mac BLE acceptance
+for the updated pairing flow are pending. Do not interpret a successful headless test as deployment
 approval. [Acceptance checklist](testing/web-client-acceptance.md).
 
 ## Hosting contract
@@ -32,7 +32,13 @@ IndexedDB and Web Locks for the local app; Web Bluetooth for terminal operation;
 service workers/cache storage for offline use. Mozilla Firefox supports local classroom
 data and offline storage, but lacks Web Bluetooth for direct terminal connection (deferred
 to a future local helper daemon). Document PiP is optional. Saved
-Bluetooth `getDevices()` support varies; an explicit picker remains available.
+Bluetooth `getDevices()` support varies and returns only previously granted
+devices; an explicit **Reconnect** picker remains available. It reconnects a
+saved owner without another physical pairing code. New claims use **Find Nearby
+Terminals → select device → enter code in Hallzee** after updating firmware;
+the code is not an OS Bluetooth passkey. Hallzee cannot pre-label every nearby
+row or suppress a browser-owned **Paired** indicator in the system chooser.
+See [the Web Bluetooth permission model](https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-getdevices).
 Do not require experimental browser flags in a classroom deployment.
 
 Allow the approved site and Bluetooth device access in district policy. Review
@@ -40,7 +46,11 @@ browser policies for Chrome and Microsoft Edge such as `DefaultWebBluetoothGuard
 `WebBluetoothAskForUrls` and `WebBluetoothBlockedForUrls` for the deployed browser
 version. A blocked chooser is an IT configuration issue; the app cannot bypass
 it. Test the actual managed student/teacher OU, OS Bluetooth permissions,
-encrypted pairing and notifications before enabling a pilot.
+encrypted Just Works pairing and notifications before enabling a pilot. This
+removes the OS passkey entry but also removes the initial BLE link's MITM
+protection. The six-digit v2 application claim is not a PAKE and does not provide
+equivalent protection against an active intermediary; review the
+[protocol security tradeoff](bluetooth-protocol.md#ble-transport).
 
 Use persistent individual teacher profiles. Guest/Incognito, forced profile
 reset, scheduled site-data clearing and browser cleanup tools can erase roster,
@@ -61,5 +71,5 @@ pairing, permission revocation, lid sleep, profile persistence/eviction, offline
 PWA restart, update/rollback and actual smartboard projection. Run the documented
 six-hour/100-trip soak and lowest-powered Chromebook performance checks.
 A Mac covers shared automated checks and establishes Edge-on-Mac support. Windows requires
-a Windows BLE PC for OS passkey, encrypted GATT, bond reuse, reconnect/sleep and installed-PWA
+a Windows BLE PC for Just Works pairing/permission, encrypted GATT, bond reuse, reconnect/sleep and installed-PWA
 checks in Chrome and Edge; **Windows behavior is unverified**. Managed ChromeOS acceptance remains separate.

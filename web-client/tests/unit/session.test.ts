@@ -4,6 +4,37 @@ import fixtures from "../../../contracts/web-client/v1/identity.json";
 import { deriveOwnerKey } from "../../src/protocol/WebTerminalCrypto";
 const f = fixtures.cases[0];
 describe("A02/A04/A05 secure ownership session", () => {
+  it.each([
+    { claimed: false, saved: false, status: "Not Paired" },
+    { claimed: false, saved: true, status: "Not Paired" },
+    { claimed: true, saved: false, status: "Paired to other device" },
+    { claimed: true, saved: true, status: "Currently Paired" },
+  ])("inspects ownership without claiming or retaining a handshake: $status ($claimed/$saved)", async ({ claimed, saved, status }) => {
+    const { db, credentials, port, session } = await setup();
+    await db.setMeta("installationId", f.clientId);
+    if (saved) await credentials.savePending(f.terminalId, f.clientId,
+      await deriveOwnerKey(f.passkey, f.terminalId, f.clientId));
+    port.onCommand = () => port.lines.emit(`IDENTITY,2,${f.terminalId},E5F6,${claimed ? "CLAIMED" : "UNCLAIMED"},IN_USE,${f.nonce}`);
+    expect(await session.inspect({ id: "test", name: "Hallzee-E5F6" })).toEqual({
+      device: { id: "test", name: "Hallzee-E5F6" }, name: "Hallzee-E5F6", terminalId: f.terminalId,
+      pairingStatus: status, inUse: true,
+    });
+    expect(port.sent).toHaveLength(1);
+    expect(port.sent[0]).toMatch(/^HELLO,/);
+    expect(session.state).toBe("Disconnected");
+    expect(Boolean(await credentials.get(f.terminalId))).toBe(saved);
+    await expect(session.send("SYNC_ALL")).rejects.toMatchObject({ code: "AUTH_REQUIRED" });
+    session.dispose(); db.close();
+  });
+  it("disconnects a cancelled identity inspection without changing ownership", async () => {
+    const { db, port, session } = await setup();
+    const control = new AbortController();
+    port.onCommand = () => control.abort();
+    await expect(session.inspect({ id: "test" }, control.signal)).rejects.toMatchObject({ code: "CANCELLED" });
+    expect(session.state).toBe("Disconnected");
+    expect(await db.all("credentials")).toEqual([]);
+    session.dispose(); db.close();
+  });
   it("saves a non-extractable key before commit and verifies literal proofs", async () => {
     const { db, credentials, workspace, port, session } = await setup();
     await db.setMeta("installationId", f.clientId);

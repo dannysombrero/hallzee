@@ -12,7 +12,7 @@ using Windows.Devices.Bluetooth.GenericAttributeProfile;
 using Windows.Devices.Enumeration;
 using Windows.Storage.Streams;
 
-sealed class BluetoothConnectionManager : ITerminalBinaryConnection, ITerminalConnection, ITerminalPairingPasskeySink {
+sealed class BluetoothConnectionManager : ITerminalBinaryConnection, ITerminalConnection {
   const string TerminalName = "Hallzee";
   static readonly Guid ServiceUuid = Guid.Parse("005924a2-c6e5-4340-9bb8-22d9dd37a283");
   static readonly Guid TxUuid = Guid.Parse("44a359f3-9215-4189-a3cb-e7ce18ad40d6");
@@ -30,42 +30,49 @@ sealed class BluetoothConnectionManager : ITerminalBinaryConnection, ITerminalCo
   GattCharacteristic? rxCharacteristic;
   bool isDisconnecting;
   bool isConnecting;
-  string? pairingPasskey;
 
   public event EventHandler<string>? TextReceived;
   public event EventHandler<string>? ConnectionLost;
   public bool IsConnected => bluetoothDevice?.ConnectionStatus == BluetoothConnectionStatus.Connected;
 
-  public void SetPairingPasskey(string? value) {
-    pairingPasskey = string.IsNullOrWhiteSpace(value)
-      ? null
-      : TerminalIdentityProtocol.NormalizePairingPasskey(value);
-  }
-
   public async Task<IReadOnlyList<TerminalDevice>> DiscoverAsync() {
-    await DisconnectAsync();
     var found = new Dictionary<ulong, TerminalDevice>();
     var watcher = new BluetoothLEAdvertisementWatcher {
       ScanningMode = BluetoothLEScanningMode.Active
     };
-    watcher.AdvertisementFilter.Advertisement.ServiceUuids.Add(ServiceUuid);
-
     void OnAdvertisementReceived(BluetoothLEAdvertisementWatcher _, BluetoothLEAdvertisementReceivedEventArgs args) {
+      // A name-only scan response has no service UUID. Filter here so Windows
+      // can deliver both packets, but only retain devices advertising Hallzee.
+      lock (found) {
+        if (!args.Advertisement.ServiceUuids.Contains(ServiceUuid) &&
+            !found.ContainsKey(args.BluetoothAddress)) return;
+      }
       DiscoveredAddressTypes[args.BluetoothAddress] = args.BluetoothAddressType;
       var name = string.IsNullOrWhiteSpace(args.Advertisement.LocalName)
         ? TerminalName
         : args.Advertisement.LocalName;
-      var inUse = name.EndsWith("-INUSE", StringComparison.OrdinalIgnoreCase);
-      var displayName = inUse ? name[..^6] : name;
-      lock (found) {
-        // Service-only advertisements can follow the name-bearing scan response.
-        if (string.IsNullOrWhiteSpace(args.Advertisement.LocalName) && found.TryGetValue(args.BluetoothAddress, out var previous)) {
-          found[args.BluetoothAddress] = previous with { Rssi = args.RawSignalStrengthInDBm };
-          return;
+      bool? isClaimed = null;
+      string? suffix = null;
+      foreach (var manufacturer in args.Advertisement.ManufacturerData) {
+        if (manufacturer.CompanyId != TerminalAdvertisementProtocol.CompanyId) continue;
+        using var reader = DataReader.FromBuffer(manufacturer.Data);
+        var payload = new byte[reader.UnconsumedBufferLength];
+        reader.ReadBytes(payload);
+        if (TerminalAdvertisementProtocol.TryParse(payload, out var claimed, out var terminalSuffix)) {
+          isClaimed = claimed;
+          suffix = terminalSuffix;
         }
+      }
+      lock (found) {
+        found.TryGetValue(args.BluetoothAddress, out var previous);
+        // Primary packets carry pairing metadata; scan responses carry the
+        // stable name. Merge them without inferring status from the name.
         found[args.BluetoothAddress] = new TerminalDevice(
-          args.BluetoothAddress.ToString("X12"), displayName, false, inUse,
-          args.RawSignalStrengthInDBm
+          args.BluetoothAddress.ToString("X12"),
+          string.IsNullOrWhiteSpace(args.Advertisement.LocalName) ? previous?.Name ?? TerminalName : name,
+          false, Rssi: args.RawSignalStrengthInDBm,
+          IsClaimed: isClaimed ?? previous?.IsClaimed,
+          TerminalSuffix: suffix ?? previous?.TerminalSuffix
         );
       }
     }
@@ -147,9 +154,7 @@ sealed class BluetoothConnectionManager : ITerminalBinaryConnection, ITerminalCo
       } catch (Exception exception) {
         lastException = exception;
         await CleanupFailedConnectionAsync();
-        // Never repeat an OS pairing ceremony automatically. The caller must
-        // decide whether to retry a failed passkey operation.
-        if (pairingPasskey is not null || attempt == 3) throw;
+        if (attempt == 3) throw;
         await Task.Delay(TimeSpan.FromMilliseconds(500 * attempt), cancellationToken);
       }
     }
@@ -160,12 +165,6 @@ sealed class BluetoothConnectionManager : ITerminalBinaryConnection, ITerminalCo
     var dev = await BluetoothLEDevice.FromBluetoothAddressAsync(address, addressType).AsTask(cancellationToken)
       ?? throw new InvalidOperationException($"Windows could not open Hallzee device ({addressType}).");
 
-    if (pairingPasskey is not null) {
-      await PairWithDisplayedPasskeyAsync(dev, pairingPasskey, cancellationToken);
-      dev.Dispose();
-      dev = await BluetoothLEDevice.FromBluetoothAddressAsync(address, addressType).AsTask(cancellationToken)
-        ?? throw new InvalidOperationException($"Windows could not reopen Hallzee after pairing ({addressType}).");
-    }
     bluetoothDevice = dev;
 
     // The advertisement is available before Windows has populated its GATT cache.
@@ -190,49 +189,14 @@ sealed class BluetoothConnectionManager : ITerminalBinaryConnection, ITerminalCo
 
     txCharacteristic = txResult.Characteristics[0];
     rxCharacteristic = rxResult.Characteristics[0];
-    txCharacteristic.ProtectionLevel = GattProtectionLevel.EncryptionAndAuthenticationRequired;
-    rxCharacteristic.ProtectionLevel = GattProtectionLevel.EncryptionAndAuthenticationRequired;
+    txCharacteristic.ProtectionLevel = GattProtectionLevel.EncryptionRequired;
+    rxCharacteristic.ProtectionLevel = GattProtectionLevel.EncryptionRequired;
     txCharacteristic.ValueChanged += HandleValueChanged;
     var notifyStatus = await txCharacteristic.WriteClientCharacteristicConfigurationDescriptorAsync(
       GattClientCharacteristicConfigurationDescriptorValue.Notify
     ).AsTask(cancellationToken);
     if (notifyStatus != GattCommunicationStatus.Success)
       throw new InvalidOperationException($"Windows could not subscribe to Hallzee updates ({notifyStatus}). Check that the terminal firmware includes the BLE notification descriptor.");
-  }
-
-  static async Task PairWithDisplayedPasskeyAsync(
-    BluetoothLEDevice device,
-    string passkey,
-    CancellationToken cancellationToken) {
-    var pairing = device.DeviceInformation.Pairing;
-    if (pairing.IsPaired) {
-      var unpairResult = await pairing.UnpairAsync().AsTask(cancellationToken);
-      if (unpairResult.Status is not (DeviceUnpairingResultStatus.Unpaired or DeviceUnpairingResultStatus.AlreadyUnpaired)) {
-        throw new InvalidOperationException($"Windows could not remove the stale Hallzee pairing ({unpairResult.Status}).");
-      }
-    }
-
-    var custom = pairing.Custom;
-    void HandlePairingRequested(DeviceInformationCustomPairing _, DevicePairingRequestedEventArgs args) {
-      if (args.PairingKind == DevicePairingKinds.ProvidePin) {
-        args.Accept(passkey);
-      } else if (args.PairingKind == DevicePairingKinds.ConfirmOnly) {
-        args.Accept();
-      }
-    }
-
-    custom.PairingRequested += HandlePairingRequested;
-    try {
-      var result = await custom.PairAsync(
-        DevicePairingKinds.ProvidePin | DevicePairingKinds.ConfirmOnly,
-        DevicePairingProtectionLevel.EncryptionAndAuthentication
-      ).AsTask(cancellationToken);
-      if (result.Status is not (DevicePairingResultStatus.Paired or DevicePairingResultStatus.AlreadyPaired)) {
-        throw new InvalidOperationException($"Windows rejected the Hallzee passkey ({result.Status}).");
-      }
-    } finally {
-      custom.PairingRequested -= HandlePairingRequested;
-    }
   }
 
   Task CleanupFailedConnectionAsync() {

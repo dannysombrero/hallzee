@@ -12,7 +12,7 @@ public enum TerminalSessionState {
 
 public sealed class TerminalClaimRequiredException : InvalidOperationException {
   public TerminalClaimRequiredException(string terminalId)
-    : base($"Terminal {terminalId} is unclaimed and requires the physical Bluetooth passkey.") {
+    : base($"Terminal {terminalId} is not paired and requires the code shown in pairing mode.") {
     TerminalId = terminalId;
   }
 
@@ -148,7 +148,7 @@ public sealed class TerminalSession : IAsyncDisposable, IDisposable {
             claimResult = await WaitAsync(claimCompletion.Task, cancellationToken);
           } catch (TimeoutException exception) {
             throw new TimeoutException(
-              "Timed out waiting for the terminal to accept the pairing passkey (CLAIM_OK).",
+              "Timed out waiting for the terminal to accept the pairing code (CLAIM_OK).",
               exception);
           }
           if (!string.Equals(claimResult.TerminalId, identity.TerminalId, StringComparison.OrdinalIgnoreCase)) {

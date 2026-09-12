@@ -4,9 +4,9 @@ This page preserves the detailed regression notes and hardware reference from
 the pre-launch installation guide. Statements about pending fixes, old workflow
 names, package versions and past verification describe their original changes;
 they are not the current setup instructions. Use
-[Installation and testing](Testing-and-Installation) for current commands,
-[CI and security](CI-and-Security) for required checks, and
-[releasing](Releasing) for the current same-repository publication process.
+[Installation and testing](Testing-and-Installation.md) for current commands,
+[CI and security](CI-and-Security.md) for required checks, and
+[releasing](Releasing.md) for the current same-repository publication process.
 
 The [board requirements](#esp32-board-requirements),
 [wiring table](#physical-wiring), and
@@ -15,7 +15,7 @@ useful detailed references.
 
 ## September open source review
 
-See [open source readiness](Open-Source-Readiness) for the history audit,
+See [open source readiness](Open-Source-Readiness.md) for the history audit,
 dependency alerts, supported-version policy, and recommended branch rules.
 The generated inventory in `docs/dependency-inventory.json` covers npm and
 locally restored NuGet packages; refresh it after dependency updates with
@@ -180,7 +180,7 @@ folder rather than merging files into the old `.app`.
 The Mac packaging script now signs native libraries before the helper and outer
 app, verifies every library separately, and launches the helper without arguments
 on a matching host architecture. That startup check exits before Bluetooth use.
-The [release workflow](releasing.md) installs the tools and runs these checks.
+The [release workflow](Releasing.md) installs the tools and runs these checks.
 A Mac is sufficient to verify this fix; no Windows PC or Windows-specific
 capability is involved. Windows behavior has not been reverified for this change.
 Physical Bluetooth connection and clean-machine installation remain separate
@@ -188,7 +188,7 @@ release checks.
 
 ## Bluetooth firmware updates
 
-Use the [firmware update guide](Firmware-Updates) for Device version reporting,
+Use the [firmware update guide](Firmware-Updates.md) for Device version reporting,
 local `.hallzee-fw` import, GitHub update checks, and release signing. The source
 flash scripts below now perform the one-time OTA USB setup, backing up and
 migrating existing LittleFS files to the larger app-slot layout. Keep the private
@@ -219,7 +219,7 @@ selection, and the bundled Windows esptool execution. Physical fast USB and
 Windows behavior have not yet been verified.
 
 For terminals moving between teachers, see the proposed
-[reassignment and record provenance design](Design-Terminal-Reassignment).
+[reassignment and record provenance design](Design-Terminal-Reassignment.md).
 Owner reset currently preserves trips; it is not a classroom-data handoff.
 
 A Mac is sufficient for the update-check button and unavailable-public-feed
@@ -260,8 +260,10 @@ physical Windows PC.
 5. Find Nearby Terminals shows **Signal Strength:** followed by four ascending
    bars, the quality label, and RSSI in dBm. Excellent fills four bars, Good
    three, Fair two, and Weak one; unavailable readings leave all bars gray.
-   The selected row remains blue. Claimed terminals show
-   **IN USE** even without an active pass; their remembered owner can reconnect.
+   The selected row remains blue. Known ownership shows **Currently Paired**,
+   **Not Paired**, or **Paired to other device**; active-pass status is separate.
+   Saved owners can reconnect while passes are active. Unknown ownership must
+   not be treated as unclaimed.
 6. From date/time setup, hold `*` + `#` for five seconds on an unclaimed terminal.
    Pairing shows the full ID, friendly name, and six-digit passkey. Release the
    keys; the clock entry must remain intact if pairing expires.
@@ -390,7 +392,7 @@ The board must meet all of the following minimum requirements:
 | Requirement | Minimum / expected value | Why it matters |
 | --- | --- | --- |
 | MCU | Original ESP32/WROOM-32 family using the `esp32:esp32` Arduino target | The firmware currently requires the original ESP32 Bluetooth stack and board definition |
-| Bluetooth | Bluetooth Low Energy peripheral support with the ESP32 Bluedroid stack | The terminal advertises a secure BLE GATT service and supports passkey/bonding |
+| Bluetooth | Bluetooth Low Energy peripheral support with the ESP32 Bluedroid stack | The terminal advertises a secure BLE GATT service and supports encrypted Just Works bonding and application claim codes |
 | Available GPIO | At least 12 freely usable GPIOs in addition to the USB-UART connection | Seven GPIOs scan the keypad and five drive the TFT |
 | Flash | 4 MB or more | The firmware uses program flash plus NVS and LittleFS trip-log storage |
 | RAM | Standard original ESP32 SRAM; no PSRAM is required | The current firmware does not depend on external PSRAM |
@@ -550,8 +552,8 @@ folder and run `Hallzee.exe`.
 
 ### Download or publish a desktop app
 
-For teachers, use [the teacher guide](Getting-Started-Users). For maintainers,
-[Build, test, and publish Hallzee](Releasing) covers one-click Actions builds
+For teachers, use [the teacher guide](Getting-Started-Users.md). For maintainers,
+[Build, test, and publish Hallzee](Releasing.md) covers one-click Actions builds
 of Windows x64 and Mac Apple-silicon/Intel packages, followed by publishing the
 exact tested artifacts to a public downloads repository. Actions installs all
 build prerequisites. The Mac ZIP includes its Bluetooth helper.
@@ -560,7 +562,7 @@ Mac testing is sufficient for shared UI and update-feed logic. A Windows PC is
 required for Windows ZIP launch, WinRT pairing/reconnect, native file dialogs,
 and BLE firmware transfer. Those Windows behaviors have not yet been verified.
 Clean-machine Mac installation and physical OTA on both platforms also remain
-release checks; see the [v1.0 review](Release-Readiness).
+release checks; see the [v1.0 review](Release-Readiness.md).
 
 ## Choose the right way to check a change
 
@@ -573,7 +575,10 @@ release checks; see the [v1.0 review](Release-Readiness).
 | Finding, reconnecting to, or directly syncing a physical Bluetooth terminal | Shared Avalonia desktop client and the physical ESP32 terminal | No — Bluetooth LE is fully supported natively on both macOS and Windows |
 | Windows installer or Windows-only operating-system behavior | Windows desktop client | **Yes** |
 
-Mac testing using the Universal desktop client now fully supports physical Bluetooth LE discovery and data transfer to the ESP32 terminal. A Windows PC is only needed to test Windows-specific packaging or installation behaviors.
+A Mac with an ESP32 can verify the Universal client's macOS BLE discovery and
+data transfer. A Windows BLE PC is required to verify WinRT discovery, encrypted
+GATT, bonding, and reconnect as well as Windows packaging and installation.
+**Windows behavior remains unverified by Mac testing.**
 
 For the native ILI9341 UI, Mac testing is sufficient to inspect the 320×240
 landscape rendering and physical-key instructions. A Windows PC is not
@@ -583,8 +588,8 @@ unverified by the display tests.
 For this pairing/status change, Mac testing is sufficient to validate the
 shared protocol and macOS BLE path, but it is not sufficient to verify the
 Windows BLE adapter. A Windows PC is required to verify the Windows-specific
-passkey prompt, `CLAIMED OR BUSY` discovery label, and Windows refusal to connect to an
-occupied kiosk. Windows behavior has not yet been verified by automated tests
+Just Works pairing, encrypted WinRT GATT, discovery ownership labels, and saved-
+owner reconnect while a pass is active. Windows behavior has not yet been verified by automated tests
 or by a second-terminal hardware run.
 
 ## Quick checks on a Mac
@@ -633,27 +638,27 @@ dotnet run --project receiver/universal/BathroomSync.Universal.csproj
 
 The Universal client connects to the physical ESP32 terminal via Bluetooth LE on both macOS and Windows.
 Physical clients use the v2 identity/authentication flow. For an unclaimed
-terminal, hold `*` and `#` for five seconds before connecting, then enter the
-displayed six-digit Bluetooth passkey in the Find Terminals dialog and choose
-Connect again. On Windows, the client supplies those digits directly to the
-authenticated pairing ceremony. On macOS, enter the same value if the operating
-system also presents a Bluetooth passkey prompt.
+terminal, hold `*` and `#` for five seconds and release. Choose **Find Nearby
+Terminals**, select the matching terminal, and enter the displayed six-digit code
+in Hallzee's pairing dialog. Updated firmware uses encrypted Just Works bonding;
+no OS passkey entry is required on Windows or Mac. OS pairing permission may
+still be requested. The app code is never forwarded to that OS ceremony.
 Production builds store the owner credential in the platform secure store:
 Windows PasswordVault and macOS Keychain. Preview builds and automated tests
 use an in-memory store. Durable credentials are now available for passkey-free
-reconnect after restarting the app or computer; BLE reconnect retry and startup
-reconnect UI remain in progress.
+reconnect after restarting the app or computer. Automatic retries target the
+last authenticated terminal; **Reconnect** also authenticates without a code.
 On macOS, Connect & Sync waits until CoreBluetooth confirms that terminal
 notifications are enabled before sending any sync commands. If this readiness
 handshake does not complete within 15 seconds, the app reports a connection
 failure instead of silently dropping the first commands.
 Protected macOS writes are acknowledged and allow up to 60 seconds for the
-operating-system passkey prompt to complete before reporting a write failure.
+operating-system encryption/permission setup before reporting a write failure.
 On Windows, Connect & Sync records whether the terminal advertises with a Random
 or Public BLE address type and applies a 45-second connection/setup timeout per
 address type with automatic fallback before establishing GATT subscriptions.
 Owner reconnects retry transient device/service/notification failures up to
-three times with fresh GATT objects and do not repeat a failed passkey ceremony.
+three times with fresh GATT objects and keep the saved application credential.
 Encrypted writes are acknowledged and allow up to 60 seconds for Windows pairing.
 
 ### Firmware and display behavior
@@ -693,9 +698,8 @@ Its display bus is intentionally limited to 20 MHz to reduce corruption on
 long or loosely connected SPI wiring. The native UI also uses embedded
 FreeSans bitmap fonts rather than the built-in block font.
 
-For keypad and display-flow checks, open the
-[display emulator](https://github.com/dannysombrero/hallzee/blob/main/tools/display-emulator.html)
-or use the
+For keypad and display-flow checks, open `tools/display-emulator.html` in a
+browser or use the setup in the
 [Wokwi guide](https://github.com/dannysombrero/hallzee/blob/main/firmware/terminal/WOKWI.md).
 
 ### Restore the standard UI after touch testing
@@ -716,7 +720,7 @@ This restores the normal screen without touch input, the calibration prompt,
 or the typing sandbox. The four separate touch wires may stay connected.
 The normal bootstrap backs up and verifies terminal data during installation.
 
-See the [paused experiment and calibration notes](touch-test.md) for future work.
+See the [paused experiment and calibration notes](Touch-Test.md) for future work.
 The experimental calibration currently lives in RAM; persistent per-device
 calibration could avoid repeating it, but has not been implemented.
 
@@ -731,13 +735,15 @@ Use a Mac or Windows PC to test actual Bluetooth behavior. Install the .NET 8 SD
 sure the ESP32 terminal is powered on, then use the desktop app to find and
 sync `Hallzee-XXXX`. Initial ownership requires holding `*` and `#` on an
 unclaimed, unoccupied terminal for five seconds, releasing both keys, and
-entering the displayed six-digit Bluetooth passkey. One continuous key hold
-starts only one pairing session. The advertised name preserves the hardware suffix:
-`Hallzee-XXXX` for default terminals, and `[name] [XXXX]` for custom names (e.g. `Room 204 [E5F6]`).
-A claimed kiosk or one with an active checkout advertises `INUSE` and is shown as
-**CLAIMED OR BUSY** in the discovery picker (unclaimed and unoccupied kiosks display
-**READY TO PAIR**). The remembered owner may reconnect and authenticate
-without the pairing passkey; a different client cannot claim or connect to it.
+selecting its name before entering the six-digit code in Hallzee's dialog.
+One continuous hold starts only one pairing session. Current firmware pairs
+through encrypted Just Works, without an OS passkey. Its name remains
+`Hallzee-XXXX`, or `[name] [XXXX]` for a custom name (for example `Room 204 [E5F6]`),
+across claim, reboot, active passes, and disconnect. Hallzee displays known
+ownership as **Currently Paired**, **Not Paired**, or **Paired to other device**;
+an unknown legacy device must not be assumed unclaimed. The saved owner may
+reconnect without a code or pairing mode even with active passes. Another
+client cannot claim an owned terminal.
 Do not treat the advertised name or BLE address as proof of terminal identity.
 
 Before calling a Windows change complete, check:
@@ -763,9 +769,13 @@ Before calling a Windows change complete, check:
     The terminal must not clear its BLE bond just because owner storage was
     temporarily unavailable during startup; bonds are cleared only by explicit
     pairing mode or owner reset.
-12. With an active checkout, the terminal advertises `INUSE`; the remembered
-    owner can still reconnect and check the student back in without a passkey,
-    while an unrecognized client is rejected.
+12. With an active checkout, the Bluetooth name remains unchanged; the remembered
+    owner reconnects and checks the fictional student back in without a code,
+    while an unrecognized client is rejected. Verify all three ownership labels
+    within Hallzee using an unclaimed terminal and two isolated app profiles.
+13. Enter a new claim code after waiting more than eight seconds at the app
+    dialog; the client must use a fresh identity nonce and finish pairing while
+    the terminal's physical two-minute claim window remains open.
 
 If a test claim must be cleared, connect the USB serial monitor at 115200 baud
 and send the line `OWNER_RESET`. Confirm `OWNER_RESET,OK`; this clears only the

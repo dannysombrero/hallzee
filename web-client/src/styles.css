@@ -1753,6 +1753,10 @@ dialog::backdrop {
   background: #fef3c7;
   color: #92400e;
 }
+.terminal-badge.unknown {
+  background: #f1f5f9;
+  color: #475569;
+}
 .terminal-picker-empty {
   display: flex;
   align-items: center;

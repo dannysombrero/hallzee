@@ -19,11 +19,23 @@ public sealed class TerminalV2MainViewModelTests {
     try {
       using var viewModel = new MainViewModel(connection, folder, isPreviewMode: false);
       await viewModel.FindTerminalsModal.ScanAsync();
+      Assert.False(viewModel.FindTerminalsModal.IsAwaitingPairingCode);
+      await viewModel.ConnectAndSyncAsync();
+      Assert.False(viewModel.IsConnected);
+      Assert.False(connection.IsConnected);
+      Assert.True(viewModel.FindTerminalsModal.IsAwaitingPairingCode);
+      Assert.Equal("Not Paired", viewModel.FindTerminalsModal.SelectedDevice!.PairingStatusText);
+      Assert.DoesNotContain(connection.SentCommands, command => command.StartsWith("CLAIM,"));
       viewModel.FindTerminalsModal.PairingPasskey = "807481";
 
       await viewModel.ConnectAndSyncAsync();
 
       Assert.True(viewModel.IsConnected);
+      Assert.False(viewModel.FindTerminalsModal.IsAwaitingPairingCode);
+      Assert.Empty(viewModel.FindTerminalsModal.PairingPasskey);
+      Assert.Equal("Currently Paired", viewModel.FindTerminalsModal.SelectedDevice!.PairingStatusText);
+      Assert.Equal(2, connection.ConnectCount);
+      Assert.Equal(2, connection.SentCommands.Count(command => command.StartsWith("HELLO,2,")));
       Assert.Contains(connection.SentCommands, command => command.StartsWith("HELLO,2,"));
       Assert.Contains(connection.SentCommands, command => command.StartsWith("CLAIM,2,"));
       Assert.Contains(connection.SentCommands, command => command.StartsWith("CLAIM_COMMIT,2,"));
@@ -32,6 +44,78 @@ public sealed class TerminalV2MainViewModelTests {
     } finally {
       if (Directory.Exists(folder)) Directory.Delete(folder, true);
     }
+  }
+
+  [Fact]
+  public async Task OtherOwnersTerminalDoesNotPromptForCodeOrAttemptClaim() {
+    var folder = Path.Combine(Path.GetTempPath(), "HallzeeOtherOwner", Guid.NewGuid().ToString("N"));
+    var connection = new FakeV2Connection { Claimed = true };
+    try {
+      using var vm = new MainViewModel(connection, folder, false);
+      await vm.FindTerminalsModal.ScanAsync();
+      Assert.Equal("Paired to other device", vm.FindTerminalsModal.SelectedDevice!.PairingStatusText);
+      await vm.ConnectAndSyncAsync();
+      Assert.False(vm.IsConnected);
+      Assert.False(connection.IsConnected);
+      Assert.False(vm.FindTerminalsModal.IsAwaitingPairingCode);
+      Assert.Contains("Paired to other device", vm.FindTerminalsModal.StatusText);
+      Assert.DoesNotContain(connection.SentCommands, command =>
+        command.StartsWith("CLAIM,") || command.StartsWith("AUTH,") || command == "GET_SETTINGS");
+    } finally { if (Directory.Exists(folder)) Directory.Delete(folder, true); }
+  }
+
+  [Fact]
+  public async Task SavedOwnerReconnectsAfterAppRestartWithoutPairingCode() {
+    var folder = Path.Combine(Path.GetTempPath(), "HallzeeRestartPairing", Guid.NewGuid().ToString("N"));
+    var credentials = new InMemoryTerminalCredentialStore();
+    try {
+      using (var first = new MainViewModel(new FakeV2Connection(), folder, false, credentials)) {
+        await first.FindTerminalsModal.ScanAsync();
+        first.FindTerminalsModal.PairingPasskey = "807481";
+        await first.ConnectAndSyncAsync();
+        Assert.True(first.IsConnected);
+        await first.DisconnectAsync();
+      }
+      var reconnected = new FakeV2Connection { Claimed = true };
+      using var restarted = new MainViewModel(reconnected, folder, false, credentials);
+      var deadline = DateTime.UtcNow.AddSeconds(2);
+      while (!restarted.IsConnected && DateTime.UtcNow < deadline) await Task.Delay(10);
+      Assert.True(restarted.IsConnected);
+      Assert.Contains(reconnected.SentCommands, command => command.StartsWith("AUTH,2,"));
+      Assert.DoesNotContain(reconnected.SentCommands, command => command.StartsWith("CLAIM,"));
+      Assert.Equal(0, reconnected.DiscoverCount);
+      await restarted.FindTerminalsModal.ScanAsync();
+      Assert.True(restarted.IsConnected);
+      Assert.Equal("Currently Paired", restarted.FindTerminalsModal.SelectedDevice!.PairingStatusText);
+      reconnected.HideConnectedAdvertisement = true;
+      await restarted.FindTerminalsModal.ScanAsync();
+      Assert.Single(restarted.FindTerminalsModal.Devices);
+      Assert.Equal("Currently Paired", restarted.FindTerminalsModal.SelectedDevice!.PairingStatusText);
+      reconnected.HideConnectedAdvertisement = false;
+      // A factory-reset terminal reports unclaimed even if a stale local key exists.
+      reconnected.Claimed = false;
+      await restarted.FindTerminalsModal.ScanAsync();
+      Assert.Equal("Not Paired", restarted.FindTerminalsModal.SelectedDevice!.PairingStatusText);
+    } finally { if (Directory.Exists(folder)) Directory.Delete(folder, true); }
+  }
+
+  [Fact]
+  public async Task MatchingSuffixAndOsBondDoNotEstablishLocalOwnership() {
+    var folder = Path.Combine(Path.GetTempPath(), "HallzeeDiscoveryIdentity", Guid.NewGuid().ToString("N"));
+    Directory.CreateDirectory(folder);
+    var credentials = new InMemoryTerminalCredentialStore();
+    credentials.SaveOwnerKey(TerminalId, new byte[32]);
+    var repository = new ProfileAndPolicySqliteRepository(Path.Combine(folder, "hallzee-trips.db"));
+    repository.SaveTerminal(new TerminalDeviceConfig(TerminalId, "Synthetic Terminal", TransportId: "different-transport"));
+    var connection = new FakeV2Connection { Claimed = true, AdvertisedOsPaired = true };
+    try {
+      using var vm = new MainViewModel(connection, folder, false, credentials);
+      await vm.FindTerminalsModal.ScanAsync();
+      Assert.Equal("Paired to other device", vm.FindTerminalsModal.SelectedDevice!.PairingStatusText);
+      connection.AdvertisesPairingStatus = false;
+      await vm.FindTerminalsModal.ScanAsync();
+      Assert.Equal("Unable to check pairing", vm.FindTerminalsModal.SelectedDevice!.PairingStatusText);
+    } finally { Directory.Delete(folder, true); }
   }
 
   [Fact]
@@ -221,7 +305,11 @@ public sealed class TerminalV2MainViewModelTests {
 
   sealed class FakeV2Connection : ITerminalConnection {
     bool connected;
-    bool claimed;
+    public bool Claimed { get; set; }
+    public bool AdvertisesPairingStatus { get; set; } = true;
+    public bool AdvertisedOsPaired { get; init; }
+    public bool HideConnectedAdvertisement { get; set; }
+    public bool IsConnected => connected;
     public bool RejectRelease { get; init; }
     public bool RejectName { get; init; }
     public bool HoldFirmwareInfo { get; init; }
@@ -234,8 +322,12 @@ public sealed class TerminalV2MainViewModelTests {
 
     public Task<IReadOnlyList<TerminalDevice>> DiscoverAsync() {
       DiscoverCount++;
+      if (HideConnectedAdvertisement && connected)
+        return Task.FromResult<IReadOnlyList<TerminalDevice>>(Array.Empty<TerminalDevice>());
       IReadOnlyList<TerminalDevice> devices = new[] {
-        new TerminalDevice("transport-v2", "Hallzee-A1B2", false, false)
+        new TerminalDevice("transport-v2", "Hallzee-A1B2", AdvertisedOsPaired,
+          IsClaimed: AdvertisesPairingStatus ? Claimed : null,
+          TerminalSuffix: AdvertisesPairingStatus ? "E5F6" : null)
       };
       return Task.FromResult(devices);
     }
@@ -251,15 +343,17 @@ public sealed class TerminalV2MainViewModelTests {
       SentCommands.Add(command);
 
       if (command.StartsWith("HELLO,2,")) {
-        Emit($"IDENTITY,2,{TerminalId},E5F6,{(claimed ? "CLAIMED" : "UNCLAIMED")},AVAILABLE,{IdentityNonce}\n");
+        Emit($"IDENTITY,2,{TerminalId},E5F6,{(Claimed ? "CLAIMED" : "UNCLAIMED")},AVAILABLE,{IdentityNonce}\n");
       } else if (command.StartsWith("CLAIM,2,")) {
         Emit($"CLAIM_OK,2,{TerminalId},{CommitNonce}\n");
       } else if (command.StartsWith("CLAIM_COMMIT,2,")) {
-        claimed = true;
+        Claimed = true;
+        Emit($"AUTH_OK,2,{TerminalId},Hallzee-A1B2\n");
+      } else if (command.StartsWith("AUTH,2,") && Claimed) {
         Emit($"AUTH_OK,2,{TerminalId},Hallzee-A1B2\n");
       } else if (command == "RELEASE_OWNER") {
         if (RejectRelease) Emit("ERROR,OWNER_RELEASE_FAILED\n");
-        else { claimed = false; Emit("OWNER_RELEASED\n"); }
+        else { Claimed = false; Emit("OWNER_RELEASED\n"); }
       } else if (command.StartsWith("SET,TERMINAL_NAME,") && RejectName) {
         Emit("SETTINGS_ERROR,TERMINAL_NAME,INVALID_VALUE\n");
       } else if (command.StartsWith("SET,TERMINAL_NAME,") || command.StartsWith("SET,MAX_ID_LENGTH,")) {

@@ -7,11 +7,14 @@ Bluetooth transport. Physical clients use the v2 terminal identity and
 authorization handshake before syncing through the shared protocol and SQLite
 store. Preview mode uses the simulated v1 terminal.
 
-For an unclaimed physical terminal, hold `*` and `#` for five seconds, enter
-the displayed six-digit Bluetooth passkey in the Find Terminals dialog, and
-connect again. A kiosk with an active checkout is shown as **In Use**; its
-remembered owner can reconnect without the passkey, while other clients must
-wait until it becomes available.
+For an unclaimed physical terminal, hold `*` and `#` for five seconds and
+release. Choose **Find Nearby Terminals**, select its stable name, then enter
+the displayed six-digit code in Hallzee's pairing dialog. Current firmware uses
+encrypted Just Works bonding without an OS passkey. Known ownership appears
+inside Hallzee as **Currently Paired**, **Not Paired**, or **Paired to other
+device**. An active checkout does not prevent its saved owner from reconnecting
+without a code or pairing mode. Other clients need explicit owner release/reset
+before making a new claim. See [setup and testing](../../docs/testing-and-installation.md).
 The **Mini Window** top-bar action opens a compact always-on-top companion
 widget. It displays the current period range, live digital clock, prominent
 pass status indicator (**PASSES CLOSED**, **PASS AVAILABLE**, or **PASS UNAVAILABLE**

@@ -808,7 +808,15 @@ void TerminalDisplay::showPairing(
   display.print("ID: ");
   display.println(terminalId);
   display.setCursor(10, large ? 105 : 62);
-  display.println("ENTER THIS PASSKEY");
+  if (bondRepair) {
+    display.println("Reconnect in Hallzee");
+    display.setCursor(10, large ? 130 : 78);
+    display.println("Use your paired device");
+    display.setCursor(10, large ? 192 : 108);
+    display.println("No pairing code needed");
+    return;
+  }
+  display.println("PAIRING CODE");
   display.setTextSize(large ? 3 : 2);
   display.setCursor(10, large ? 130 : 78);
   String digits = String(passkey);
@@ -816,7 +824,7 @@ void TerminalDisplay::showPairing(
   display.println(digits);
   display.setTextSize(1);
   display.setCursor(10, large ? 192 : 108);
-  display.println(bondRepair ? "Code in OS prompt" : "Enter passkey in app");
+  display.println("Enter code in Hallzee");
 }
 
 void TerminalDisplay::drawTerminalLabel() {

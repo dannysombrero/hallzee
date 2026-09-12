@@ -251,7 +251,7 @@ public sealed class MainViewModelTests : IDisposable {
 
     Assert.NotEmpty(viewModel.FindTerminalsModal.Devices);
     Assert.Equal(
-      "Claimed terminals require their owner to reconnect. Busy terminals cannot be newly paired. To pair a ready terminal, enter pairing mode on the kiosk and use its displayed passkey.",
+      "Select a terminal to connect. New terminals ask for the code shown in pairing mode; currently paired terminals reconnect without a code.",
       viewModel.FindTerminalsModal.StatusText
     );
     Assert.NotNull(viewModel.FindTerminalsModal.SelectedDevice);

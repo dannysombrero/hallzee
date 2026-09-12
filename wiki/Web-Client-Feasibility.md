@@ -2,8 +2,9 @@
 
 Recorded 2026-09-11. The user has Chrome on a Mac, but no district-managed
 Chromebook available. Physical terminal acceptance was deferred; software work
-continued under that explicit instruction. No deployment is authorized by this
-record.
+continued under that explicit instruction. A later Chromebook report and the
+updated no-OS-passkey pairing flow are tracked in [acceptance evidence](Web-Client-Acceptance.md#chromebook-pairing-simplification-2026-09-12).
+This historical baseline does not approve a physical platform.
 
 | Capability | Evidence | Status |
 | --- | --- | --- |

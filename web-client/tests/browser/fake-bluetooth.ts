@@ -153,7 +153,7 @@ export async function installBluetooth(page: Page) {
     }
     class Device extends EventTarget {
       id = "simulated-gatt";
-      name = "Hallzee E5F6";
+      name = "Hallzee-E5F6";
       gatt = {
         connected: false,
         connect: async () => {
@@ -169,9 +169,16 @@ export async function installBluetooth(page: Page) {
       };
     }
     const device = new Device();
+    root.fakeGattConnected = () => device.gatt.connected;
     Object.defineProperty(navigator, "bluetooth", {
       configurable: true,
-      value: { requestDevice: async () => device, getDevices: async () => [device] },
+      value: {
+        requestDevice: async () => {
+          sessionStorage.setItem("simPermission", "1");
+          return device;
+        },
+        getDevices: async () => !root.simNoRememberedDevices && sessionStorage.getItem("simPermission") ? [device] : [],
+      },
     });
   });
 }

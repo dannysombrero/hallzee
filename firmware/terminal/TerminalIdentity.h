@@ -10,8 +10,8 @@ public:
 
   const String &terminalId() const { return id; }
   String terminalSuffix() const;
-  String advertisedName(bool inUse = false) const;
-  String formatAdvertisedName(const String &candidateName, bool inUse = false) const;
+  String advertisedName() const;
+  String formatAdvertisedName(const String &candidateName) const;
   const String &customName() const { return name; }
 
   bool setCustomName(const String &requestedName);

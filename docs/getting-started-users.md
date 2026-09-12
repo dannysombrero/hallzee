@@ -32,14 +32,18 @@ Have your powered terminal nearby and turn on your computer's Bluetooth.
 1. With no student checked out, hold `*` and `#` together on the terminal for
    **five seconds**, then release. Its screen shows a name, unique ID, and
    six-digit pairing code.
-2. In Hallzee, choose **Find Terminal**. Select the matching terminal and enter
-   its code when asked. Choose **Connect** again if prompted.
+2. In Hallzee, choose **Find Nearby Terminals** and select the matching name.
+   Enter its code in Hallzee's pairing dialog. With current firmware, no
+   Bluetooth passkey entry is needed; the OS may ask permission to pair.
 3. Choose **Sync Now**. Hallzee sets the terminal clock and retrieves saved trips.
 
 You can start pairing even if the terminal is asking you to set its date and
-time. Your computer normally remembers the pairing and reconnects next time.
-A terminal belongs to one computer at a time. **IN USE** may mean it is already
-paired to another computer, not necessarily that a student is out.
+time. The same app remembers ownership and reconnects after app or terminal
+restart without a code or pairing mode. If necessary, click **Reconnect** and
+select the saved terminal. Hallzee labels known terminals **Currently Paired**,
+**Not Paired**, or **Paired to other device**; those states are separate from
+student occupancy. Bluetooth names remain stable, such as `Hallzee-2A58`.
+Install the current terminal firmware as well as the client for this flow.
 
 ## Set up your classroom once
 

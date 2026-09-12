@@ -37,11 +37,11 @@ String TerminalIdentity::terminalSuffix() const {
   return id.length() >= 4 ? id.substring(id.length() - 4) : id;
 }
 
-String TerminalIdentity::formatAdvertisedName(const String &candidateName, bool inUse) const {
+String TerminalIdentity::formatAdvertisedName(const String &candidateName) const {
   const String suffix = terminalSuffix();
   const String defaultBase = String(DEFAULT_NAME) + "-" + suffix;
   if (candidateName.length() == 0 || candidateName == DEFAULT_NAME || candidateName == defaultBase) {
-    return inUse ? defaultBase + "-INUSE" : defaultBase;
+    return defaultBase;
   }
 
   String base = candidateName;
@@ -50,20 +50,16 @@ String TerminalIdentity::formatAdvertisedName(const String &candidateName, bool 
     base = base.substring(0, base.length() - marker.length());
   }
 
-  const size_t prefixBudget = 29 - 7 - (inUse ? 6 : 0);
+  const size_t prefixBudget = 29 - 7;
   if (base.length() > prefixBudget) {
     base = base.substring(0, prefixBudget);
   }
 
-  String result = base + marker;
-  if (inUse) {
-    result += "-INUSE";
-  }
-  return result;
+  return base + marker;
 }
 
-String TerminalIdentity::advertisedName(bool inUse) const {
-  return formatAdvertisedName(name, inUse);
+String TerminalIdentity::advertisedName() const {
+  return formatAdvertisedName(name);
 }
 
 bool TerminalIdentity::setCustomName(const String &requestedName) {

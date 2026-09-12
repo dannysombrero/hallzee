@@ -29,7 +29,7 @@
         
         <Grid ColumnDefinitions="*,Auto">
           <StackPanel Spacing="2">
-            <TextBlock Text="Find Nearby Terminals" FontSize="20" FontWeight="Bold" Foreground="#0F172A" />
+            <TextBlock Text="{Binding FindTerminalsModal.Title}" FontSize="20" FontWeight="Bold" Foreground="#0F172A" />
             <TextBlock Text="Discover nearby Hallzee Bluetooth LE kiosks." FontSize="13" Foreground="#64748B" />
           </StackPanel>
           <Button Grid.Column="1" Classes="secondary" Content="✕" Click="OnCloseClick" Width="36" Height="36" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
@@ -40,7 +40,7 @@
         <Border Grid.Row="2" Classes="hallzee-table-container" MinHeight="140" MaxHeight="220" Margin="0,2,0,2">
           <Border Classes="hallzee-table-inner">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
-              <ListBox ItemsSource="{Binding FindTerminalsModal.Devices}" SelectedItem="{Binding FindTerminalsModal.SelectedDevice}" Classes="hallzee-table-list terminal-picker">
+              <ListBox ItemsSource="{Binding FindTerminalsModal.Devices}" SelectedItem="{Binding FindTerminalsModal.SelectedDevice}" IsEnabled="{Binding !FindTerminalsModal.IsBusy}" Classes="hallzee-table-list terminal-picker">
                 <ListBox.ItemTemplate>
                   <DataTemplate>
                     <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,4" VerticalAlignment="Center">
@@ -60,14 +60,9 @@
                           </TextBlock>
                         </Grid>
                       </StackPanel>
-                      <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Border Background="#FEF3C7" CornerRadius="6" Padding="8,3" VerticalAlignment="Center" IsVisible="{Binding IsInUse}">
-                          <TextBlock Text="CLAIMED OR BUSY" FontSize="10" FontWeight="Bold" Foreground="#92400E" />
-                        </Border>
-                        <Border Background="#DCFCE7" CornerRadius="6" Padding="8,3" VerticalAlignment="Center" IsVisible="{Binding !IsInUse}">
-                          <TextBlock Text="READY TO PAIR" FontSize="10" FontWeight="Bold" Foreground="#166534" />
-                        </Border>
-                      </StackPanel>
+                      <Border Grid.Column="2" Background="#E2E8F0" CornerRadius="6" Padding="8,3" VerticalAlignment="Center" MaxWidth="130">
+                        <TextBlock Text="{Binding PairingStatusText}" FontSize="11" FontWeight="Bold" Foreground="#334155" TextWrapping="Wrap" />
+                      </Border>
                     </Grid>
                   </DataTemplate>
                 </ListBox.ItemTemplate>
@@ -76,9 +71,9 @@
           </Border>
         </Border>
 
-        <StackPanel Grid.Row="3" Spacing="5">
-          <TextBlock Text="Bluetooth passkey (unclaimed terminals only)" FontSize="12" Foreground="#475569" />
-          <TextBox Text="{Binding FindTerminalsModal.PairingPasskey}" Watermark="6 digits shown on the kiosk" MaxLength="6" />
+        <StackPanel Grid.Row="3" Spacing="5" IsVisible="{Binding FindTerminalsModal.IsAwaitingPairingCode}">
+          <TextBlock Text="Pairing code from terminal" FontSize="12" Foreground="#475569" />
+          <TextBox Text="{Binding FindTerminalsModal.PairingPasskey}" Watermark="Enter the 6-digit code" MaxLength="6" PasswordChar="●" IsEnabled="{Binding !FindTerminalsModal.IsBusy}" />
         </StackPanel>
 
         <Grid Grid.Row="4" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10" VerticalAlignment="Center">

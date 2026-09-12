@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { IDBFactory } from "fake-indexeddb";
 import { ApplicationController } from "../../src/app/ApplicationController";
 import { LocalDatabase, request } from "../../src/storage/LocalDatabase";
+import { CredentialRepository } from "../../src/storage/CredentialRepository";
 import { FakePort, tick } from "./helpers";
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -41,6 +42,48 @@ function environment() {
   return { win, doc, location };
 }
 describe("runtime teardown and storage lifecycle", () => {
+  it("closing discovery releases the operation queue even while the browser chooser is still open", async () => {
+    environment();
+    Object.defineProperty(navigator, "bluetooth", { value: { requestDevice: vi.fn() }, configurable: true });
+    const port = new FakePort();
+    let select!: (value: { id: string }) => void;
+    port.requestDevice = () => new Promise((resolve) => { select = resolve; });
+    const controller = new ApplicationController(port);
+    await controller.start();
+    const cancel = new AbortController();
+    const pending = controller.inspectTerminal(undefined, cancel.signal);
+    await tick();
+    expect(controller.getSnapshot().busy).toBe(true);
+    cancel.abort();
+    expect(await pending).toBeUndefined();
+    expect(controller.getSnapshot().busy).toBe(false);
+    expect(controller.getSnapshot().error).toBeNull();
+    select({ id: "test-device" });
+    await tick();
+    expect(port.sent).toEqual([]);
+    expect(port.connected).toBe(false);
+    controller.stop();
+  });
+  it("keeps the saved chooser fallback when remembered-device enumeration fails", async () => {
+    environment();
+    const port = new FakePort();
+    port.getRememberedDevices = async () => { throw new DOMException("synthetic diagnostic", "NotAllowedError"); };
+    const controller = new ApplicationController(port);
+    await controller.start();
+    const db = await LocalDatabase.open("hallzee-web");
+    const credentials = new CredentialRepository(db);
+    const terminalId = "HZ-000000000001";
+    const client = await credentials.installationId();
+    const key = await crypto.subtle.generateKey({ name: "HMAC", hash: "SHA-256", length: 256 }, false, ["sign"]);
+    await credentials.savePending(terminalId, client, key);
+    await credentials.confirm({ terminalId, customName: "Test terminal", protocolVersion: 2,
+      deviceIdHint: "test-device", maxIdLength: 10 });
+    expect(await controller.knownTerminals()).toEqual([{
+      device: undefined, terminalId, name: "Test terminal", pairingStatus: "Currently Paired",
+    }]);
+    expect(port.sent).toEqual([]);
+    db.close(); controller.stop();
+  });
   it("Strict Mode start/stop/start never lets a disposed controller retain a lock or listeners", async () => {
     const { win } = environment();
     const events = vi.spyOn(win, "addEventListener");

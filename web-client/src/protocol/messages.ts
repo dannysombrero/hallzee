@@ -108,8 +108,16 @@ export function protocolError(line: string) {
     .join("_")
     .replace(/[^A-Z0-9_]/g, "")
     .slice(0, 80);
+  const help: Record<string, string> = {
+    PAIRING_MODE_REQUIRED: "Open pairing mode on the terminal, then enter the code currently shown there in Hallzee.",
+    AUTH_FAILED_CLAIM: "That pairing code was not accepted. Check the code currently shown on the terminal and try again.",
+    ALREADY_CLAIMED: "This terminal is already paired. Reconnect from its paired client, or release it there before pairing here.",
+    TERMINAL_IN_USE: "Check in every active pass before pairing this terminal.",
+    AUTH_FAILED_AUTH: "The saved pairing was not accepted. Check that you selected your paired terminal. Keep Hallzee site data and records.",
+    AUTH_TIMEOUT: "The connection timed out. Reconnect to start a fresh authentication.",
+  };
   return new HallzeeError(
     code || "PROTOCOL_ERROR",
-    `The terminal rejected the operation (${code || "PROTOCOL_ERROR"}). Reconnect or check its settings.`,
+    help[code] ?? `The terminal rejected the operation (${code || "PROTOCOL_ERROR"}). Reconnect or check its settings.`,
   );
 }

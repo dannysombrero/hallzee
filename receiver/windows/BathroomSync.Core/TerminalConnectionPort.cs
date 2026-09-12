@@ -5,8 +5,18 @@ public sealed record TerminalDevice(
   string Name,
   bool IsPaired,
   bool IsInUse = false,
-  int? Rssi = null
+  int? Rssi = null,
+  bool? IsClaimed = null,
+  string? TerminalId = null,
+  string? TerminalSuffix = null
 ) {
+  // IsPaired means this installation holds an owner credential; OS Bluetooth
+  // bonds and advertised device names do not establish Hallzee ownership.
+  public string PairingStatusText => IsClaimed == false ? "Not Paired"
+    : IsPaired ? "Currently Paired"
+    : IsClaimed == true ? "Paired to other device"
+    : "Unable to check pairing";
+
   public string SignalStrengthText => Rssi is null ? "Signal unavailable" : $"{Rssi} dBm";
   public int SignalBarCount => Rssi switch {
     >= -60 => 4,
@@ -27,7 +37,7 @@ public sealed record TerminalDevice(
     _ => "Unknown"
   };
 
-  public override string ToString() => IsPaired ? $"{Name} (paired)" : Name;
+  public override string ToString() => $"{Name} · {PairingStatusText}";
 }
 
 public interface ITerminalConnection : IDisposable {
@@ -38,10 +48,6 @@ public interface ITerminalConnection : IDisposable {
   Task ConnectAsync(TerminalDevice terminal);
   Task SendAsync(string command);
   Task DisconnectAsync();
-}
-
-public interface ITerminalPairingPasskeySink {
-  void SetPairingPasskey(string? pairingPasskey);
 }
 
 public sealed class TerminalBondRepairRequiredException : InvalidOperationException {

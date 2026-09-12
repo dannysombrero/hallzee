@@ -151,11 +151,28 @@ new build, then **Check updates → Apply update**. Port 5173 has no offline wor
 
 This is a separate local-data client; it does not use the marketing preview's
 simulated classroom. See the [teacher guide](Chromebook-Guide.md),
-[IT guide](Web-Client-IT-Guide.md) and [acceptance record](Web-Client-Acceptance.md).
-Mac is sufficient for shared automated checks. Physical Chromebook acceptance
-is pending. Windows BLE/PWA requires a Windows BLE PC to verify its OS passkey
-flow, encrypted GATT, bond reuse and reconnect/sleep; **Windows behavior is
-unverified**. No classroom site has been deployed.
+[IT guide](Web-Client-IT-Guide.md), [deployment guide](https://github.com/dannysombrero/hallzee/blob/main/docs/web-client-deployment.md) and [acceptance record](Web-Client-Acceptance.md).
+Mac is sufficient for shared automated checks and cloud deployment configuration. Physical Chromebook acceptance
+is pending. A Chromebook is required to verify ChromeOS permission, pairing,
+and sleep/wake behavior. Windows BLE/PWA requires a Windows BLE PC to verify
+Just Works pairing, encrypted GATT, bond reuse and reconnect/sleep;
+**Windows behavior is unverified**. The online testing origin is `https://web.hallzee.com` via Cloudflare Pages.
+
+### Pair once, then reconnect
+
+Install the current terminal firmware and client together. On an unowned idle
+terminal, hold `*` + `#` for five seconds and release. Choose **Find Nearby
+Terminals**, select its stable name (for example `Hallzee-2A58`), then enter the
+six-digit code in Hallzee's dialog. The code is for Hallzee; no Bluetooth
+passkey entry is required. An OS pairing permission prompt may still appear.
+
+Returning owners reconnect using the saved app/profile key without code or
+pairing mode, including after terminal restart. Automatic web reconnect needs
+a browser-provided remembered device; otherwise click **Reconnect** and select
+the saved terminal. Hallzee displays ownership labels in its own screen;
+Bluetooth names no longer include ownership/occupancy suffixes. Browser chooser
+rows and OS indicators are browser-controlled. See the [teacher guide](Chromebook-Guide.md#pair-and-reconnect)
+and [repair guide](Bluetooth-Repair-and-Keypad.md) for details.
 
 For firmware/USB packaging failures, use the
 [release recovery steps](Releasing.md#recover-a-failed-firmwareusb-build).

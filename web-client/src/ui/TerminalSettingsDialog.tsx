@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { useHallzee } from "../app/HallzeeProvider";
 import { Dialog } from "./Dialog";
+import { ConnectionDialog } from "./ConnectionDialog";
 import { validateBackup, type Backup } from "../storage/BackupService";
 import { download } from "../domain/TripReports";
 import { errorText } from "../app/errors";
@@ -28,6 +29,7 @@ export function TerminalSettingsDialog({
 }) {
   const { controller, state } = useHallzee();
   const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab);
+  const [pairTerminal, setPairTerminal] = useState(false);
 
   // Classroom Profile State
   const [workspace, setWorkspace] = useState(
@@ -94,6 +96,8 @@ export function TerminalSettingsDialog({
     const text = await controller?.backup();
     if (text) download(text, "hallzee-classroom-backup.json");
   };
+
+  if (pairTerminal) return <ConnectionDialog onClose={onClose} />;
 
   return (
     <Dialog
@@ -342,7 +346,7 @@ export function TerminalSettingsDialog({
               <button
                 type="button"
                 className="hallzee-pill-btn mt-2"
-                onClick={() => controller?.chooseTerminal()}
+                onClick={() => setPairTerminal(true)}
               >
                 Pair Terminal
               </button>

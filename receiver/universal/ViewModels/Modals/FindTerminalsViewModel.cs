@@ -7,13 +7,19 @@ namespace BathroomSync.Universal.ViewModels;
 
 public sealed class FindTerminalsViewModel : INotifyPropertyChanged {
   readonly ITerminalConnection connection;
+  readonly Func<TerminalDevice, TerminalDevice>? resolvePairingStatus;
+  readonly Func<TerminalDevice?>? currentTerminal;
   bool isScanning;
   bool isConnecting;
   TerminalDevice? selectedDevice;
   string statusText = "Searching for devices...";
 
-  public FindTerminalsViewModel(ITerminalConnection connection) {
+  public FindTerminalsViewModel(ITerminalConnection connection,
+      Func<TerminalDevice, TerminalDevice>? resolvePairingStatus = null,
+      Func<TerminalDevice?>? currentTerminal = null) {
     this.connection = connection;
+    this.resolvePairingStatus = resolvePairingStatus;
+    this.currentTerminal = currentTerminal;
   }
 
   public event PropertyChangedEventHandler? PropertyChanged;
@@ -50,15 +56,55 @@ public sealed class FindTerminalsViewModel : INotifyPropertyChanged {
   public TerminalDevice? SelectedDevice {
     get => selectedDevice;
     set {
+      if (selectedDevice?.Id != value?.Id) ResetPairingPrompt();
       selectedDevice = value;
       OnPropertyChanged();
       OnPropertyChanged(nameof(CanConnect));
     }
   }
 
-  public bool CanConnect => SelectedDevice != null && !IsBusy;
+  public bool CanConnect => SelectedDevice != null && !IsBusy &&
+    (!IsAwaitingPairingCode || (PairingPasskey.Length == 6 && PairingPasskey.All(char.IsAsciiDigit)));
 
-  public string ConnectButtonText => IsConnecting ? "Connecting…" : "Connect & Sync";
+  public string ConnectButtonText => IsConnecting ? "Connecting…"
+    : IsAwaitingPairingCode ? "Pair & Connect" : "Connect";
+
+  bool isAwaitingPairingCode;
+  public bool IsAwaitingPairingCode {
+    get => isAwaitingPairingCode;
+    private set {
+      isAwaitingPairingCode = value;
+      OnPropertyChanged();
+      OnPropertyChanged(nameof(ConnectButtonText));
+      OnPropertyChanged(nameof(CanConnect));
+      OnPropertyChanged(nameof(Title));
+    }
+  }
+
+  public string Title => IsAwaitingPairingCode ? "Pair Terminal" : "Find Nearby Terminals";
+
+  public void RequestPairingCode() => IsAwaitingPairingCode = true;
+
+  public void ResetPairingPrompt() {
+    IsAwaitingPairingCode = false;
+    PairingPasskey = "";
+  }
+
+  public void SetConnecting(bool value) => IsConnecting = value;
+
+  public void UpdateDevice(TerminalDevice updated) {
+    var wasSelected = SelectedDevice?.Id == updated.Id;
+    var enteredCode = PairingPasskey;
+    var awaitingCode = IsAwaitingPairingCode;
+    var previous = Devices.FirstOrDefault(device => device.Id == updated.Id);
+    if (previous != null) Devices[Devices.IndexOf(previous)] = updated;
+    if (wasSelected) {
+      // List selection may temporarily clear when a record is replaced.
+      SelectedDevice = updated;
+      PairingPasskey = enteredCode;
+      IsAwaitingPairingCode = awaitingCode;
+    }
+  }
 
   public string StatusText {
     get => statusText;
@@ -71,6 +117,7 @@ public sealed class FindTerminalsViewModel : INotifyPropertyChanged {
       if (pairingPasskey == value) return;
       pairingPasskey = value;
       OnPropertyChanged();
+      OnPropertyChanged(nameof(CanConnect));
     }
   }
 
@@ -79,16 +126,22 @@ public sealed class FindTerminalsViewModel : INotifyPropertyChanged {
   public void SetStatus(string message) => StatusText = message;
 
   public async Task ScanAsync() {
+    if (IsBusy) return;
+    ResetPairingPrompt();
     IsScanning = true;
     StatusText = "Searching for devices...";
     Devices.Clear();
 
     try {
       var found = await connection.DiscoverAsync();
-      foreach (var d in found) Devices.Add(d);
+      foreach (var d in found) Devices.Add(resolvePairingStatus?.Invoke(d) ?? d);
+      // Connected peripherals may stop advertising. Keep the authenticated
+      // terminal visible without disconnecting it just to discover it again.
+      var current = currentTerminal?.Invoke();
+      if (current != null && Devices.All(device => device.Id != current.Id)) Devices.Insert(0, current);
       SelectedDevice = Devices.FirstOrDefault();
       StatusText = Devices.Count > 0
-        ? "Claimed terminals require their owner to reconnect. Busy terminals cannot be newly paired. To pair a ready terminal, enter pairing mode on the kiosk and use its displayed passkey."
+        ? "Select a terminal to connect. New terminals ask for the code shown in pairing mode; currently paired terminals reconnect without a code."
         : "No terminals found nearby. Ensure kiosk is powered on.";
     } catch (Exception ex) {
       StatusText = $"Scan failed: {ex.Message}";

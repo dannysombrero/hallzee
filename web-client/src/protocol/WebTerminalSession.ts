@@ -11,6 +11,7 @@ import {
 import { parseIdentity, protocolError } from "./messages";
 import { abortCheck, deadline, HallzeeError } from "../app/errors";
 import { Signal } from "../app/events";
+import type { DiscoveredTerminal } from "../transport/TerminalDiscovery";
 export type SessionState =
   | "Disconnected"
   | "Connecting"
@@ -87,6 +88,36 @@ export class WebTerminalSession {
       if (this.pending === pending) this.pending = undefined;
     }
   }
+  /** Read public ownership metadata only; release the link before asking for a code. */
+  async inspect(device: DeviceHandle, signal?: AbortSignal): Promise<DiscoveredTerminal> {
+    this.disconnect();
+    const generation = this.generation;
+    const check = () => {
+      abortCheck(signal);
+      if (generation !== this.generation) throw new HallzeeError("CANCELLED");
+    };
+    try {
+      const client = await this.credentials.installationId();
+      check();
+      await this.port.connect(device, signal);
+      check();
+      const identity = parseIdentity(await this.exchange(
+        `HELLO,2,${client}`, (line) => line.startsWith("IDENTITY,"), signal, 8000,
+      ));
+      const saved = await this.credentials.get(identity.terminalId);
+      check();
+      return {
+        device,
+        terminalId: identity.terminalId,
+        name: device.name || `Hallzee-${identity.terminalId.slice(-4)}`,
+        pairingStatus: !identity.claimed ? "Not Paired"
+          : saved?.clientId === client ? "Currently Paired" : "Paired to other device",
+        inUse: identity.inUse,
+      };
+    } finally {
+      if (generation === this.generation) this.disconnect();
+    }
+  }
   async open(
     device: DeviceHandle,
     workspaceId: string,
@@ -147,7 +178,7 @@ export class WebTerminalSession {
         if (!code)
           throw new HallzeeError(
             "CLAIM_REQUIRED",
-            "Open physical pairing mode and enter the code before choosing the terminal.",
+            "Open pairing mode on the terminal, then enter its six-digit code in Hallzee.",
           );
         this.setState("AwaitingClaim");
         const proof = await computeClaimProof(code, client, id, identity.nonce);

@@ -59,10 +59,13 @@ with a cursor stream. Each has an explicit rule below.
    IndexedDB meets transactional local storage and structured `CryptoKey`
    persistence requirements without a WASM/worker/VFS compatibility layer.
    Choose versioned JSON for web data backup and CSV for reports/rosters.
-4. Preserve protocol v2 and current terminal security. Normal connections use
-   existing firmware; recovery of a forgotten OS bond now requires the firmware
-   repair gesture described below. An incompatible secure-pairing result blocks release on that platform;
-   do not remove encryption/MITM protection to make a browser work.
+4. Preserve protocol v2 application ownership and encrypted GATT. The simplified
+   single-code workflow requires updated firmware using Secure Connections Just
+   Works; the app code is not an OS passkey. This deliberately changes the
+   initial-link MITM guarantee: v2 HMAC/HKDF is not a PAKE and an active
+   intermediary can offline-guess a captured six-digit claim transcript. See
+   [the security tradeoff](../bluetooth-protocol.md#ble-transport). Hardware
+   pairing/encryption failures still block release on the affected platform.
 5. The C# core and firmware define existing wire/business behavior. TypeScript
    is a second implementation with shared conformance fixtures, not a second
    specification. Explicit web differences in this plan override copying known
@@ -179,10 +182,11 @@ Perform these steps with fictional records and a test terminal:
    terminal firmware version/commit, board, and Bluetooth adapter. Test normal
    Stable settings, without experimental flags, extensions, or Developer Mode.
 2. Prove chooser discovery by service UUID, encrypted notification subscription,
-   acknowledged writes, OS passkey interaction, app claim proof and commit,
-   browser restart, owner authentication, and an occupied-owner reconnect.
-3. Verify the actual order and timing of OS pairing prompts versus `HELLO`.
-   Collect the app passkey before `HELLO` so human typing is outside its deadline.
+   acknowledged writes, Just Works without OS passkey entry, app claim proof and
+   commit, browser restart, owner authentication, and occupied-owner reconnect.
+3. Select the terminal before requesting its application code. Verify a fresh
+   `HELLO` starts after code entry so human typing cannot expire its nonce.
+   Record any OS permission prompt and the encrypted-read order.
 4. Record availability and outcomes of `getDevices`, strict IndexedDB
    transactions, stored/reloaded non-extractable HMAC keys, Web Locks, service
    workers, and Document PiP. API presence alone is not a passing result.
@@ -394,27 +398,35 @@ Disconnected -> Connecting -> AwaitingIdentity
 Any state -> Disconnected / Failed (typed reason)
 ```
 
-First-pairing UI tells the teacher to open the physical five-second pairing
-window, enter its six-digit code locally, then click **Choose terminal and pair**.
-The OS may separately request that same code. Do not start `HELLO` while waiting
-for the app passkey. Before HELLO, read the TX characteristic protected by
-`ESP_GATT_PERM_READ_ENC_MITM`, allowing up to 60 seconds for operating-system
-pairing; discard its value before attaching notification listeners. This keeps
-the eight-second application handshake separate from the human OS prompt.
-Discovery/notification/write steps keep ten-second per-operation limits; automatic
-reconnect still has its overall 45-second budget. A saved-terminal reconnect does
-not request an application passkey, although an OS bond may need to be repaired.
+First-pairing UI tells the teacher to hold the physical pairing chord for five
+seconds, release, click **Find Nearby Terminals**, select the terminal in Chrome's chooser,
+then enter its six-digit code in Hallzee's dialog. The code is not passed to the
+OS. An identity probe may disconnect while the dialog is open; after entry,
+reconnect and start a fresh `HELLO` so its nonce remains valid. Before HELLO,
+read TX with `ESP_GATT_PERM_READ_ENCRYPTED`, allowing up to 60 seconds for OS
+pairing permission/encryption; discard its value before attaching notification
+listeners. Saved owners skip the code dialog and authenticate directly.
+Discovery/notification/write steps keep ten-second per-operation limits;
+automatic reconnect retains its overall 45-second budget.
+
+Automatic web reconnect uses the same granted device handle or `getDevices()`
+when provided by the browser. It never opens a chooser. If permissions or a
+remembered handle are unavailable, **Reconnect** invokes the chooser from a user
+click and the selected saved owner uses AUTH without physical pairing mode.
+The page cannot list or pre-label all unknown nearby chooser entries; show only
+real saved/selected terminals and known ownership, with no fabricated RSSI.
+The browser controls any OS **Paired** badge independently of Hallzee's stable
+name. See [Chrome's chooser rules](https://developer.chrome.com/docs/capabilities/bluetooth)
+and the [granted-device API](https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-getdevices).
 
 For a lost OS bond on an owned terminal, updated firmware adds **hold `*` alone
 for five seconds** while idle (outside clock setup/touch mode). Wait for actual
 disconnection before clearing terminal-side bonds; fail if it takes five seconds.
-Display a fresh six-digit **BT REPAIR** code for two minutes. Keep CLAIM disabled,
-retain the existing owner key and records, and require AUTH from the saved client.
-The code belongs only in the OS prompt; the browser claim field stays empty.
-On success or expiry, invalidate the temporary code. Expiry disconnects the
-unauthenticated link. No reset of ownership is part of this operation. Physical
-Mac/ChromeOS/Windows bond replacement remains a release acceptance gate.
-
+Display **BT REPAIR** and reconnect instructions for two minutes, without a code.
+Keep CLAIM disabled, retain the owner key and records, and require AUTH from the
+saved client after Just Works pairing. Expiry disconnects the unauthenticated
+link. Ownership is not reset. Physical Mac/ChromeOS/Windows bond replacement
+remains a release acceptance gate.
 
 1. Send `HELLO,2,<C>` and strictly validate `IDENTITY` including suffix/version,
    claimed/availability tokens, nonce, and any saved expected terminal ID.
@@ -933,8 +945,8 @@ platform supported on the strength of another row.
 | Mac + Chrome Stable + ESP32 | Development reference and Mac browser BLE/PWA | Mac web support |
 | Mac + Edge Stable + ESP32 | Edge on Mac browser BLE/PWA and separate profile boundary | Mac Edge support |
 | District-managed Chromebook + target Chrome build + ESP32 | Real policy, persistence, secure BLE, sleep and projection | Chromebook pilot and general availability |
-| Windows 11 BLE PC + Chrome Stable + ESP32 | Chrome chooser/Windows OS passkey flow, GATT writes/notifications, bond reuse/reconnect/sleep and PWA | Windows Chrome web support |
-| Windows 11 BLE PC + Edge Stable + ESP32 | Edge chooser/Windows OS passkey flow, GATT writes/notifications, bond reuse/reconnect/sleep and PWA | Windows Edge web support |
+| Windows 11 BLE PC + Chrome Stable + ESP32 | Chrome chooser/Windows Just Works pairing/permission flow, GATT writes/notifications, bond reuse/reconnect/sleep and PWA | Windows Chrome web support |
+| Windows 11 BLE PC + Edge Stable + ESP32 | Edge chooser/Windows Just Works pairing/permission flow, GATT writes/notifications, bond reuse/reconnect/sleep and PWA | Windows Edge web support |
 | Actual classroom smartboard/projector | Mirrored/extended display and PiP versus tab/fullscreen sharing | Smartboard workflow claim |
 
 A Mac is sufficient for shared automated logic/UI tests, Mac Chrome hardware

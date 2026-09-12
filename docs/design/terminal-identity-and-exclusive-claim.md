@@ -2,44 +2,52 @@
 
 ## Discovery and physical identification
 
-The discovery name carries `-INUSE` when the terminal is claimed **or** has an
-active pass. This badge describes availability to a new teacher; the v2 identity
-response still reports ownership and active-pass availability separately, and
-authentication permits the remembered owner to reconnect. The BLE service UUID
-is advertised separately from the name-bearing scan response. Name changes are
-refreshed while disconnected or when the current owner disconnects. Windows
-preserves a received name/status when a later service-only advertisement arrives;
-macOS prefers the advertised local name over the OS cache.
+Bluetooth names are stable across pairing, reconnect, and active passes:
+`Hallzee-XXXX` by default or `[name] [XXXX]` for a custom name. `XXXX` is the
+last four hex characters of the ESP32 eFuse-derived terminal ID. No ownership
+or occupancy suffix is added to the name. Custom prefixes have 22 characters
+within the 29-byte name budget, preserving the space and `[XXXX]` suffix. The
+full custom name remains unchanged in storage, settings, and normal LCD use.
+The full authenticated `HZ-XXXXXXXXXXXX` ID is authoritative; names and suffixes
+are for physical matching, never authentication.
 
-Pairing can begin from any date/time setup step using the usual five-second
-`*` + `#` chord. The full terminal ID and friendly name appear with the six-digit
-passkey. Key releases do not edit the clock, and timeout resumes the same setup
-step. The terminal header displays **Terminal: [name]**;
-long names are abbreviated there. The full clean name is retained in identity/settings.
+The service UUID is advertised separately from the name-bearing scan response.
+Windows retains known scan-response information across service-only packets;
+macOS prefers the advertised local name over the OS cache. A connected rename
+updates the local name and is advertised after disconnect.
 
-### Hardware Suffix Preservation and Truncation Budget
+Pairing can begin from date/time setup using the five-second `*` + `#` chord.
+The terminal displays its full ID, name, and six-digit application pairing code.
+Release the keys; expiry resumes the same setup step without editing the clock.
+Select the terminal first, then enter that code in Hallzee's pairing dialog.
+The app performs a fresh identity handshake after the user finishes typing so
+an expired pre-entry nonce cannot cause the claim to fail.
 
-Every advertised terminal name preserves a recognizable 4-character hardware suffix (the last four hex characters of the ESP32 eFuse MAC). Custom names are formatted as `[name] [<suffix>]` (e.g. `Room 204 [E5F6]`), while default unnamed terminals advertise as `Hallzee-<suffix>` (e.g. `Hallzee-E5F6`). When claimed or occupied, `-INUSE` is appended (e.g. `Room 204 [E5F6]-INUSE` or `Hallzee-E5F6-INUSE`).
+### Ownership labels belong in Hallzee
 
-To fit within Bluetooth Low Energy's 29-byte complete local name scan response limit without ever truncating the hardware tag or the `-INUSE` status:
-- Prefix budget: `29 - 7 - (inUse ? 6 : 0)`.
-- Without `-INUSE`: 22 characters available for the custom name prefix (`22 + 7 = 29` bytes).
-- With `-INUSE`: 16 characters available for the custom name prefix (`16 + 7 + 6 = 29` bytes).
-- The hardware marker `[<suffix>]` is always reconstructed after prefix truncation and is never truncated.
-- Example for a terminal with suffix `E5F6`:
-  - Default: `Hallzee-E5F6` (available) / `Hallzee-E5F6-INUSE` (in use)
-  - `Room 204`: `Room 204 [E5F6]` (available) / `Room 204 [E5F6]-INUSE` (in use)
-  - `ABCDEFGHIJKLMNOPQRSTUVWX` (24 chars): `ABCDEFGHIJKLMNOPQRSTUV [E5F6]` (available) / `ABCDEFGHIJKLMNOP [E5F6]-INUSE` (in use)
+The client displays **Currently Paired**, **Not Paired**, or **Paired to other
+device** when ownership is known. Native discovery reads manufacturer company
+`0xFFFF` with six payload bytes: ASCII `HZ`, version byte `0x01`, flags (bit 0 means
+claimed), then the hardware suffix high/low bytes. This fits with the service
+UUID and flags in the 31-byte primary advertisement; the stable name remains
+in the scan response. No owner ID or credential is advertised.
 
-User-entered names remain unchanged in non-volatile storage, settings acknowledgments, identity responses, SQLite database records, and normal LCD operation (`Room 204`); the `[<suffix>]` tag applies only to discovery advertisements. The 4-character suffix is for physical matching; the full authenticated terminal ID (`HZ-XXXXXXXXXXXX`) remains the authoritative identity.
+Native **Currently Paired** requires a saved transport ID mapped to the full
+terminal ID and owner credential, with a consistent suffix. A suffix alone is
+never ownership evidence. Missing/legacy metadata shows **Unable to check
+pairing** until connection; scans do not connect to every nearby terminal.
+Active-pass availability is separate: the owner may reconnect while a pass is
+active. All discovery labels are advisory until HELLO verifies the full ID and
+AUTH proves ownership.
 
-### Discovery Availability Badges and Refresh Timing
-
-The desktop discovery picker translates the advisory advertisement flags into distinct visual indicators:
-- **`READY TO PAIR`** (Green): Displayed for unclaimed, unoccupied terminals. Pairing still requires entering physical pairing mode on the terminal (`*` + `#` chord for 5 seconds) and entering the 6-digit passkey displayed on the kiosk screen.
-- **`CLAIMED OR BUSY`** (Amber): Displayed when the terminal advertises `-INUSE`. Claimed terminals require their remembered owner to reconnect; busy terminals cannot be newly paired. Remembered owners can still select and reconnect to a terminal displaying `CLAIMED OR BUSY`.
-- The raw transport ID line (`ID: ...`) is omitted from the discovery list to avoid confusing OS-generated Bluetooth handles with the physical terminal ID.
-- **Advertisement refresh timing:** A connected rename with `SET,TERMINAL_NAME` sets the updated BLE device name immediately on the hardware, but active BLE GATT connections maintain their current scan response until disconnection. Once disconnected, the terminal restarts advertising with the updated name.
+The browser's chooser cannot be replaced with an arbitrary nearby-device list:
+`requestDevice()` requires a user action, and `getDevices()` returns devices
+already granted to that origin. Thus the web client checks a newly selected
+terminal before displaying its ownership; it cannot pre-label all unknown
+nearby devices. It must not invent devices or RSSI. A browser-provided **Paired**
+indicator is separate OS UI and cannot be removed by changing Hallzee's name.
+See [Chrome's Web Bluetooth guide](https://developer.chrome.com/docs/capabilities/bluetooth)
+and the [granted-device API](https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-getdevices).
 
 **Status:** Implemented; physical multi-device/platform verification remains
 
@@ -218,16 +226,27 @@ profile expected. If it differs:
 
 Ownership uses two layers:
 
-1. **BLE link security:** require LE Secure Connections, MITM protection, and
-   bonding for the GATT characteristics. The operating system may present its
-   normal Bluetooth confirmation UI. A claimed terminal retains only its owner
-   bond; additional bonds are rejected.
+1. **BLE link security:** use LE Secure Connections Just Works, bonding, and
+   encrypted GATT permissions. No OS passkey is required, although the operating
+   system may request pairing permission. Just Works does not authenticate the
+   initial link against an active man-in-the-middle. Only one BLE central is
+   admitted at a time. A Bluetooth bond by itself grants no Hallzee ownership.
 2. **Application ownership:** use a challenge-response proof tied to the stable
    terminal_id and client_id. BLE transport identity alone is never accepted as
    ownership.
 
 Do not implement new cryptographic primitives. Use ESP32/mbedTLS HMAC-SHA-256 and
 HKDF-SHA-256 on firmware and System.Security.Cryptography on desktop.
+
+**Security change (2026-09-12):** the single app-code workflow replaces the old
+MITM-protected Bluetooth passkey ceremony. The v2 six-digit HMAC/HKDF protocol
+is not a PAKE: an active intermediary that captures the initial claim transcript
+can guess the code offline and derive the permanent owner key. Application
+proofs, a short claim window, and online retry limits do not restore BLE MITM
+protection. Saved-owner authentication and command gates remain, but do not claim
+this first-pairing flow has equivalent security to authenticated BLE pairing.
+See the [protocol security discussion](../bluetooth-protocol.md#ble-transport)
+and [Bluetooth SIG Security Manager specification](https://www.bluetooth.com/wp-content/uploads/Files/Specification/HTML/Core_v6.3/out/en/host/security-manager-specification.html).
 
 ### 6.1 Physical claim mode
 
@@ -236,11 +255,11 @@ HKDF-SHA-256 on firmware and System.Security.Cryptography on desktop.
   claim window. The existing two-second active-pass reset behavior remains
   unchanged when a pass is active.
 - The kiosk displays PAIR Hallzee-XXXX and one random six-digit pairing passkey.
-- The same six-digit value is supplied to the app after the secure BLE link is
-  established. On Windows, the client supplies that value directly to WinRT's
-  authenticated pairing ceremony, so the app field is the only expected entry.
-  macOS may still present its own passkey prompt while establishing the bond;
-  enter the same displayed value if it does.
+- The six-digit value is entered only in Hallzee after terminal selection.
+  It is an application claim code, not an OS Bluetooth passkey. Windows and
+  macOS establish encrypted Just Works bonding; no client forwards these digits
+  into an OS pairing ceremony. The client may disconnect its identity probe
+  while displaying the dialog, then use a fresh HELLO nonce to claim.
 - The passkey is held in RAM only and regenerated whenever claim mode restarts.
 - Claim mode closes immediately after a successful claim or when the timer
   expires. Expiration clears the key and any pending nonce.
@@ -286,12 +305,15 @@ replaces the identity nonce with a new commit nonce; it never reuses the claim
 challenge for CLAIM_COMMIT. Three failed proofs in one claim window close the
 window and disconnect the client.
 
-During the claim window, firmware permits one pending bond. A failed, aborted,
-or expired claim deletes that pending bond. CLAIM_COMMIT records the authenticated
-peer identity as the owner bond and removes every other bond. On later boots,
-connections from a non-owner bonded peer are disconnected before application
-commands are processed. BLE address resolution remains the BLE stack's job;
-terminal_id and the application proof remain the final authorization check.
+Current firmware does not map a BLE peer bond to the application owner or prune
+all non-owner bonds on CLAIM_COMMIT. It admits one active central, permits public
+HELLO identity inspection over encrypted GATT, and gates records/settings on the
+application owner proof. Failed/expired application sessions are cleared and
+unauthenticated sessions time out. Bond cleanup occurs on explicit owner
+release/reset and Bluetooth repair. Normal startup and physical pairing-mode
+entry preserve bonds, including those just created by discovery probes.
+BLE address resolution remains the stack's job; the full terminal ID and
+application proof determine ownership, not the existence of a Bluetooth bond.
 
 ### 6.4 Credential storage
 
@@ -584,7 +606,7 @@ Add these modules at the repository root:
 Change these existing files:
 
 - ArduinoBluetoothSerialPort.h/.cpp
-  - configure Secure Connections, MITM, and bonding;
+  - configure Secure Connections Just Works, encryption, and bonding;
   - track the active connection ID;
   - reject/disconnect an additional central;
   - expose disconnectClient() through BluetoothSerialPort;
@@ -612,7 +634,7 @@ Change these existing files:
 Before implementation, pin and document the supported ESP32 Arduino board
 package version. Security APIs differ between major versions; do not silently
 switch BLE libraries in this feature. If the current library cannot enforce
-encrypted MITM-protected characteristics, stop after the compile spike and
+encrypted characteristics, stop after the compile spike and
 record the required library migration as a separate prerequisite.
 
 ---
@@ -688,13 +710,13 @@ firmware/terminal/ArduinoBluetoothSerialPort.*, and temporary
 compile-only test code if required.
 
 - Record the exact ESP32 board package version installed by bootstrap scripts.
-- Confirm the current BLE library exposes Secure Connections, MITM, bonding,
+- Confirm the current BLE library exposes Secure Connections Just Works, bonding,
   encrypted characteristic permissions, bond removal, connection ID, and server
-  disconnect APIs on the supported package. Confirm that security callbacks
-  expose enough peer identity to retain one owner bond and remove a failed
-  pending bond.
+  disconnect APIs on the supported package. Peer-specific owner-bond retention
+  is not implemented; do not report application ownership tests as proof of a
+  bond-level owner whitelist.
 - Compile on a clean bootstrap environment.
-- Do not proceed if encrypted MITM characteristics cannot be enforced; document
+- Do not proceed if encrypted characteristics cannot be enforced; document
   the prerequisite library decision instead.
 
 Exit criteria: clean firmware compile and a short checked-in compatibility note;
@@ -864,7 +886,7 @@ unchanged as applicable.
 | Core protocol, crypto, migration, repository, and ViewModel tests | **Yes** | No | Platform-neutral .NET behavior |
 | macOS discovery, Keychain persistence, bonding prompt, reconnect, and CoreBluetooth identifier change handling | **Yes, for macOS only** | No | macOS CoreBluetooth and Keychain |
 | Windows discovery, DPAPI persistence, bonding prompt, address-type fallback, and reconnect | No | **Yes** | WinRT BLE GATT, Windows Bluetooth security UI, and DPAPI |
-| One-central rejection, MITM-protected characteristic access, claim/auth, timeout, reconnect, and bond retention | No | **Yes** | Physical ESP32 plus a BLE-capable Windows PC; repeat with a second PC or phone as competing central |
+| One-central rejection, encrypted characteristic access, claim/auth, timeout, reconnect, and bond retention | No | **Yes** | Physical ESP32 plus a BLE-capable Windows PC; repeat with a second PC or phone as competing central |
 | Two nearby terminals with identical original firmware names and overlapping trip IDs | No | **Yes** | Two physical ESP32 kiosks and one Windows PC |
 | USB owner reset preserving LittleFS history and settings | Mac script can be checked | **Yes for Windows script** | Physical ESP32 USB serial on each platform |
 
@@ -1067,8 +1089,8 @@ Files:
 
 Tasks:
 
-1. Never call custom pairing or `UnpairAsync` when no passkey was supplied.
-   Owner reconnect must reuse the existing Windows bond.
+1. Never feed the application code to custom OS pairing. Owner reconnect
+   reuses the Windows bond; `UnpairAsync` belongs only to explicit bond repair.
 2. Dispose the old characteristics, service, and `BluetoothLEDevice` before each
    retry and detach every event handler exactly once.
 3. After advertisement discovery, open the reported address type first. Try the
@@ -1137,9 +1159,9 @@ Tasks:
 1. A claimed terminal must advertise and accept `HELLO`/`AUTH` whenever powered
    and not occupied, regardless of claim-mode state or the clock-setup screen.
 2. Retain the owner record and BLE bond across disconnect and reboot.
-3. Clear bonds only during an explicit owner reset, an unclaimed pairing-mode
-   start, or a documented bond-repair operation. Never clear a claimed owner's
-   bond during ordinary boot or disconnect.
+3. Clear bonds only during explicit owner reset/release or a documented
+   bond-repair operation. Preserve bonds during ordinary boot, disconnect,
+   and application pairing-mode entry.
 4. Continue rejecting `CLAIM` while claimed. Reassignment requires the physical
    10-second owner reset or authenticated **Disconnect & Unpair** while unoccupied.
 5. Keep the 10-second unauthenticated-session timeout, but restart it for each

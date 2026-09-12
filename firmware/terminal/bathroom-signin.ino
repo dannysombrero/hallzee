@@ -194,8 +194,7 @@ bool isBondRepairAllowed() {
 }
 
 void startBondRepair() {
-  if (!bondRepair.start(monotonicClock.milliseconds(), isBondRepairAllowed(),
-                        100000 + (esp_random() % 900000))) return;
+  if (!bondRepair.start(monotonicClock.milliseconds(), isBondRepairAllowed())) return;
   // New link must prove the existing owner key; this never opens CLAIM mode.
   terminalSecurity.clearSession();
   enteredID = "";
@@ -209,13 +208,9 @@ void startPairingMode() {
     return;
   }
   bluetoothSerial.disconnectClient();
-  if (!bluetoothSerial.clearBondedDevices()) {
-    terminalSecurity.stopClaimMode();
-    terminalDisplay.showPairingError("PAIR RESET FAILED");
-    transitionToIdle();
-    return;
-  }
-  bluetoothSerial.setPairingPasskey(terminalSecurity.pairingPasskey());
+  // A fresh application code does not invalidate the OS encryption bond.
+  // Clearing it here would break a browser that just probed this terminal.
+  // Owner reset/release and explicit BT REPAIR handle bond removal instead.
   pairingUiActive = true;
   terminalDisplay.showPairing(terminalIdentity.terminalId(),
                               terminalIdentity.customName(),
@@ -894,7 +889,7 @@ void setup() {
   // Do not clear BLE bonds merely because the owner record is unavailable at
   // boot. A transient NVS read failure must not make macOS report
   // "Peer removed pairing information" on the next reconnect. Bond removal is
-  // reserved for explicit pairing mode and owner reset.
+  // reserved for owner reset/release and explicit Bluetooth repair.
   Serial.print("Terminal owner: ");
   Serial.println(terminalSecurity.hasOwner() ? "CLAIMED" : "UNCLAIMED");
 
@@ -1059,7 +1054,7 @@ void loop() {
     bluetoothSerial.clearBondedDevices();
     ownerReleaseCleanupPending = false;
   }
-  bluetoothSync.updateAvailability(terminal.hasActivePass());
+  bluetoothSync.updatePairingStatus();
   if (displayedFriendlyName != terminalIdentity.customName()) {
     displayedFriendlyName = terminalIdentity.customName();
     terminalDisplay.setFriendlyName(displayedFriendlyName);
@@ -1080,10 +1075,8 @@ void loop() {
     const auto current = bondRepair.status();
     if (current == BondRepair::State::Ready && previous != current) {
       terminalDisplay.showPairing(terminalIdentity.terminalId(),
-        terminalIdentity.customName(), bondRepair.code(), true);
+        terminalIdentity.customName(), 0, true);
     } else if (!bondRepair.active()) {
-      // Expire the displayed code at the BLE layer too; existing bonds survive.
-      bluetoothSerial.setPairingPasskey(100000 + (esp_random() % 900000));
       bondRepairUiActive = false;
       if (current == BondRepair::State::Complete)
         terminalDisplay.showPairingComplete(terminalIdentity.terminalSuffix(), true);

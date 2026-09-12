@@ -1,7 +1,7 @@
 import { Signal } from "./events";
 import { capabilities } from "./capabilities";
 import { RuntimeLock } from "./RuntimeLock";
-import { HallzeeError, abortCheck, errorText } from "./errors";
+import { HallzeeError, abortCheck, deadline, errorText } from "./errors";
 import { LocalDatabase } from "../storage/LocalDatabase";
 import { CredentialRepository } from "../storage/CredentialRepository";
 import { WorkspaceRepository } from "../storage/WorkspaceRepository";
@@ -21,6 +21,7 @@ import {
 } from "../storage/schema";
 import { WebBluetoothTerminalConnection } from "../transport/WebBluetoothTerminalConnection";
 import type { BluetoothPort, DeviceHandle } from "../transport/BluetoothPort";
+import type { DiscoveredTerminal } from "../transport/TerminalDiscovery";
 import { WebTerminalSession, type SessionState } from "../protocol/WebTerminalSession";
 import { TerminalOperationQueue } from "../protocol/TerminalOperationQueue";
 import { terminalName } from "../protocol/WebTerminalCrypto";
@@ -95,6 +96,7 @@ export class ApplicationController {
   private lifetime = new AbortController();
   private device?: DeviceHandle;
   private autoConnect = false;
+  private discoveryOpen = 0;
   private reconnect?: AutoReconnectCoordinator;
   private timer?: ReturnType<typeof setInterval>;
   private refreshTimer?: ReturnType<typeof setTimeout>;
@@ -163,7 +165,7 @@ export class ApplicationController {
         this.active.unknown();
         this.device = undefined;
         this.publish();
-        if (this.autoConnect && this.state.terminal) this.reconnect?.start();
+        if (!this.discoveryOpen && this.autoConnect && this.state.terminal) this.reconnect?.start();
       });
       this.reconnect = new AutoReconnectCoordinator(
         async (signal) => {
@@ -174,17 +176,14 @@ export class ApplicationController {
             const devices = await this.port.getRememberedDevices();
             handle = devices.find(
               (d) =>
-                d.id === assigned.deviceIdHint ||
-                (assigned.customName && d.name === assigned.customName) ||
-                (assigned.terminalId && d.name?.endsWith(assigned.terminalId.slice(-4))) ||
-                devices.length === 1,
+                d.id === assigned.deviceIdHint,
             );
           }
           if (!handle)
             throw new HallzeeError(
               "CHOOSE_TERMINAL",
               "Choose your saved terminal to reconnect. The browser has no remembered device handle for it.",
-              true,
+              false,
             );
           await this.queue.run(
             "reconnect",
@@ -256,7 +255,7 @@ export class ApplicationController {
       this.resume();
       return;
     }
-    if (!this.state.ready) return;
+    if (!this.state.ready || this.state.busy || this.discoveryOpen) return;
     this.active.unknown();
     this.publish();
     if (this.session?.state === "Authenticated") void this.syncNow();
@@ -334,6 +333,10 @@ export class ApplicationController {
       await this.refresh();
       return true;
     } catch (error) {
+      if (kind === "inspect" && error instanceof HallzeeError && error.code === "CANCELLED") {
+        this.publish({ error: null });
+        return false;
+      }
       if (
         ["connect", "sync", "settings", "check-in", "release", "recovery", "policy"].includes(kind)
       )
@@ -345,7 +348,7 @@ export class ApplicationController {
       this.publish({ busy: this.operationCount > 0 });
     }
   }
-  private async establish(handle: DeviceHandle, code?: string, outerSignal?: AbortSignal) {
+  private async establish(handle: DeviceHandle, code?: string, outerSignal?: AbortSignal, expectedId?: string) {
     if (!this.session || !this.state.workspace) throw new HallzeeError("NOT_READY");
     this.connection.abort();
     this.connection = new AbortController();
@@ -359,7 +362,7 @@ export class ApplicationController {
       const terminal = await this.session.open(
         handle,
         this.state.workspace.workspaceId,
-        this.state.terminal?.terminalId,
+        this.state.terminal?.terminalId ?? expectedId,
         code,
         control.signal,
       );
@@ -399,33 +402,64 @@ export class ApplicationController {
       code = undefined;
     }
   }
-  async chooseTerminal(code?: string) {
-    // Keep requestDevice in the user activation, before any async storage work.
-    if (!capabilities().bluetooth) {
-      this.publish({
-        error: "Web Bluetooth is unavailable in this browser. Direct terminal connection requires Chrome or Edge; local classroom and data features remain available. Check browser policy if on a managed computer.",
-      });
-      return false;
+  beginDiscovery() {
+    this.discoveryOpen++;
+    this.reconnect?.stop();
+    return () => {
+      this.discoveryOpen--;
+      if (!this.discoveryOpen && this.autoConnect && this.state.terminal && this.session?.state !== "Authenticated")
+        this.reconnect?.start();
+    };
+  }
+  async knownTerminals(): Promise<DiscoveredTerminal[]> {
+    if (!this.db || !this.credentials) return [];
+    // Failure to enumerate permissions must not hide the saved chooser fallback.
+    const devices = await this.port.getRememberedDevices().catch(() => []);
+    const terminals = await this.db.all("terminals");
+    const client = await this.credentials.installationId();
+    const rows: DiscoveredTerminal[] = devices.map((device) => ({
+      device, name: device.name || "Hallzee terminal", pairingStatus: "Status unknown",
+    }));
+    for (const terminal of terminals) {
+      const credential = await this.credentials.get(terminal.terminalId);
+      if (credential?.clientId !== client) continue;
+      const row = rows.find((r) => r.device?.id === terminal.deviceIdHint);
+      const saved: DiscoveredTerminal = {
+        device: row?.device, terminalId: terminal.terminalId,
+        name: terminal.customName || `Hallzee-${terminal.terminalId.slice(-4)}`,
+        pairingStatus: "Currently Paired",
+      };
+      if (row) Object.assign(row, saved);
+      else rows.unshift(saved);
     }
-    const selection = this.port.requestDevice();
+    return rows;
+  }
+  async inspectTerminal(device?: DeviceHandle, signal?: AbortSignal): Promise<DiscoveredTerminal | undefined> {
+    if (!capabilities().bluetooth) {
+      this.publish({ error: "Web Bluetooth is unavailable in this browser. Use Chrome or Edge and check your school’s Bluetooth policy." });
+      return undefined;
+    }
+    // Invoke the chooser synchronously within the user's click, never after storage work.
+    const selection = device ? Promise.resolve(device) : this.port.requestDevice();
     void selection.catch(() => {});
     this.reconnect?.stop();
-    return this.action("connect", async () => {
-      const device = await selection;
-      this.autoConnect = true;
-      await this.db!.setMeta("autoConnect", true);
-      await this.requestPersistence();
-      await this.establish(device, code);
-      await this.initialize();
+    const inspectionSignal = AbortSignal.any([this.lifetime.signal, ...(signal ? [signal] : [])]);
+    let result: DiscoveredTerminal | undefined;
+    await this.action("inspect", async () => {
+      if (!this.session || this.session.state === "Authenticated") throw new HallzeeError("OPERATION_BUSY");
+      const selected = await deadline(selection, inspectionSignal, 120000);
+      abortCheck(inspectionSignal);
+      result = await this.session.inspect(selected, inspectionSignal);
     });
+    return result;
   }
-  async connectDevice(device: DeviceHandle) {
+  async connectDevice(device: DeviceHandle, code?: string, expectedId?: string, signal?: AbortSignal) {
     this.reconnect?.stop();
     return this.action("connect", async () => {
       this.autoConnect = true;
       await this.db!.setMeta("autoConnect", true);
       await this.requestPersistence();
-      await this.establish(device, undefined);
+      await this.establish(device, code, signal, expectedId);
       await this.initialize();
     });
   }

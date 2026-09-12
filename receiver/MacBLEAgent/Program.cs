@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using CoreBluetooth;
 using Foundation;
 using CoreFoundation;
+using BathroomSync.Core;
 
 namespace BathroomSync.MacBLEAgent;
 
@@ -169,13 +170,21 @@ class Program
         {
             var idStr = peripheral.Identifier.ToString();
             var name = advertisementData[CBAdvertisement.DataLocalNameKey]?.ToString() ?? peripheral.Name ?? "Hallzee";
-            var inUse = name.EndsWith("-INUSE", StringComparison.OrdinalIgnoreCase);
-            if (!foundDevices.TryGetValue(idStr, out var previousName) || previousName != name)
-            {
-                foundDevices[idStr] = name;
-                foundPeripherals[idStr] = peripheral;
-                EmitEvent("Discovered", new { Id = idStr, Name = inUse ? name[..^6] : name, IsInUse = inUse, Rssi = RSSI.Int32Value });
+            bool? isClaimed = null;
+            string? suffix = null;
+            if (advertisementData[CBAdvertisement.DataManufacturerDataKey] is NSData manufacturerData) {
+                var bytes = manufacturerData.ToArray();
+                // CoreBluetooth includes the two little-endian company bytes.
+                if (bytes.Length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFF &&
+                    TerminalAdvertisementProtocol.TryParse(bytes.AsSpan(2), out var claimed, out var observedSuffix)) {
+                    isClaimed = claimed;
+                    suffix = observedSuffix;
+                }
             }
+            foundDevices[idStr] = name;
+            foundPeripherals[idStr] = peripheral;
+            EmitEvent("Discovered", new { Id = idStr, Name = name, IsClaimed = isClaimed,
+                TerminalSuffix = suffix, Rssi = RSSI.Int32Value });
         }
         
         public void Connect(string id)
@@ -226,6 +235,11 @@ class Program
         
         public override void DisconnectedPeripheral(CBCentralManager central, CBPeripheral peripheral, NSError? error)
         {
+            // Explicit disconnect already clears the target. Do not turn its
+            // delayed callback into an unexpected connection-loss/retry loop.
+            if (targetPeripheral == null || !string.Equals(targetPeripheral.Identifier.ToString(),
+                peripheral.Identifier.ToString(), StringComparison.OrdinalIgnoreCase) ||
+                peripheral.State != CBPeripheralState.Disconnected) return;
             EmitEvent("ConnectionLost", new { Message = "Hallzee disconnected." });
             Disconnect();
         }
@@ -292,7 +306,7 @@ class Program
             currentWriteRequestId = pending.RequestId;
             currentWriteCompletesRequest = pending.IsFinal;
             var nsData = NSData.FromArray(pending.Data);
-            // The firmware requires an encrypted, authenticated link. A write
+            // The firmware requires an encrypted link. A write
             // with response triggers that negotiation and gives us a callback
             // instead of allowing protected writes to disappear silently.
             targetPeripheral.WriteValue(

@@ -260,8 +260,10 @@ physical Windows PC.
 5. Find Nearby Terminals shows **Signal Strength:** followed by four ascending
    bars, the quality label, and RSSI in dBm. Excellent fills four bars, Good
    three, Fair two, and Weak one; unavailable readings leave all bars gray.
-   The selected row remains blue. Claimed terminals show
-   **IN USE** even without an active pass; their remembered owner can reconnect.
+   The selected row remains blue. Known ownership shows **Currently Paired**,
+   **Not Paired**, or **Paired to other device**; active-pass status is separate.
+   Saved owners can reconnect while passes are active. Unknown ownership must
+   not be treated as unclaimed.
 6. From date/time setup, hold `*` + `#` for five seconds on an unclaimed terminal.
    Pairing shows the full ID, friendly name, and six-digit passkey. Release the
    keys; the clock entry must remain intact if pairing expires.
@@ -390,7 +392,7 @@ The board must meet all of the following minimum requirements:
 | Requirement | Minimum / expected value | Why it matters |
 | --- | --- | --- |
 | MCU | Original ESP32/WROOM-32 family using the `esp32:esp32` Arduino target | The firmware currently requires the original ESP32 Bluetooth stack and board definition |
-| Bluetooth | Bluetooth Low Energy peripheral support with the ESP32 Bluedroid stack | The terminal advertises a secure BLE GATT service and supports passkey/bonding |
+| Bluetooth | Bluetooth Low Energy peripheral support with the ESP32 Bluedroid stack | The terminal advertises a secure BLE GATT service and supports encrypted Just Works bonding and application claim codes |
 | Available GPIO | At least 12 freely usable GPIOs in addition to the USB-UART connection | Seven GPIOs scan the keypad and five drive the TFT |
 | Flash | 4 MB or more | The firmware uses program flash plus NVS and LittleFS trip-log storage |
 | RAM | Standard original ESP32 SRAM; no PSRAM is required | The current firmware does not depend on external PSRAM |
@@ -573,7 +575,10 @@ release checks; see the [v1.0 review](release-readiness.md).
 | Finding, reconnecting to, or directly syncing a physical Bluetooth terminal | Shared Avalonia desktop client and the physical ESP32 terminal | No — Bluetooth LE is fully supported natively on both macOS and Windows |
 | Windows installer or Windows-only operating-system behavior | Windows desktop client | **Yes** |
 
-Mac testing using the Universal desktop client now fully supports physical Bluetooth LE discovery and data transfer to the ESP32 terminal. A Windows PC is only needed to test Windows-specific packaging or installation behaviors.
+A Mac with an ESP32 can verify the Universal client's macOS BLE discovery and
+data transfer. A Windows BLE PC is required to verify WinRT discovery, encrypted
+GATT, bonding, and reconnect as well as Windows packaging and installation.
+**Windows behavior remains unverified by Mac testing.**
 
 For the native ILI9341 UI, Mac testing is sufficient to inspect the 320×240
 landscape rendering and physical-key instructions. A Windows PC is not
@@ -583,8 +588,8 @@ unverified by the display tests.
 For this pairing/status change, Mac testing is sufficient to validate the
 shared protocol and macOS BLE path, but it is not sufficient to verify the
 Windows BLE adapter. A Windows PC is required to verify the Windows-specific
-passkey prompt, `CLAIMED OR BUSY` discovery label, and Windows refusal to connect to an
-occupied kiosk. Windows behavior has not yet been verified by automated tests
+Just Works pairing, encrypted WinRT GATT, discovery ownership labels, and saved-
+owner reconnect while a pass is active. Windows behavior has not yet been verified by automated tests
 or by a second-terminal hardware run.
 
 ## Quick checks on a Mac
@@ -633,27 +638,27 @@ dotnet run --project receiver/universal/BathroomSync.Universal.csproj
 
 The Universal client connects to the physical ESP32 terminal via Bluetooth LE on both macOS and Windows.
 Physical clients use the v2 identity/authentication flow. For an unclaimed
-terminal, hold `*` and `#` for five seconds before connecting, then enter the
-displayed six-digit Bluetooth passkey in the Find Terminals dialog and choose
-Connect again. On Windows, the client supplies those digits directly to the
-authenticated pairing ceremony. On macOS, enter the same value if the operating
-system also presents a Bluetooth passkey prompt.
+terminal, hold `*` and `#` for five seconds and release. Choose **Find Nearby
+Terminals**, select the matching terminal, and enter the displayed six-digit code
+in Hallzee's pairing dialog. Updated firmware uses encrypted Just Works bonding;
+no OS passkey entry is required on Windows or Mac. OS pairing permission may
+still be requested. The app code is never forwarded to that OS ceremony.
 Production builds store the owner credential in the platform secure store:
 Windows PasswordVault and macOS Keychain. Preview builds and automated tests
 use an in-memory store. Durable credentials are now available for passkey-free
-reconnect after restarting the app or computer; BLE reconnect retry and startup
-reconnect UI remain in progress.
+reconnect after restarting the app or computer. Automatic retries target the
+last authenticated terminal; **Reconnect** also authenticates without a code.
 On macOS, Connect & Sync waits until CoreBluetooth confirms that terminal
 notifications are enabled before sending any sync commands. If this readiness
 handshake does not complete within 15 seconds, the app reports a connection
 failure instead of silently dropping the first commands.
 Protected macOS writes are acknowledged and allow up to 60 seconds for the
-operating-system passkey prompt to complete before reporting a write failure.
+operating-system encryption/permission setup before reporting a write failure.
 On Windows, Connect & Sync records whether the terminal advertises with a Random
 or Public BLE address type and applies a 45-second connection/setup timeout per
 address type with automatic fallback before establishing GATT subscriptions.
 Owner reconnects retry transient device/service/notification failures up to
-three times with fresh GATT objects and do not repeat a failed passkey ceremony.
+three times with fresh GATT objects and keep the saved application credential.
 Encrypted writes are acknowledged and allow up to 60 seconds for Windows pairing.
 
 ### Firmware and display behavior
@@ -730,13 +735,15 @@ Use a Mac or Windows PC to test actual Bluetooth behavior. Install the .NET 8 SD
 sure the ESP32 terminal is powered on, then use the desktop app to find and
 sync `Hallzee-XXXX`. Initial ownership requires holding `*` and `#` on an
 unclaimed, unoccupied terminal for five seconds, releasing both keys, and
-entering the displayed six-digit Bluetooth passkey. One continuous key hold
-starts only one pairing session. The advertised name preserves the hardware suffix:
-`Hallzee-XXXX` for default terminals, and `[name] [XXXX]` for custom names (e.g. `Room 204 [E5F6]`).
-A claimed kiosk or one with an active checkout advertises `INUSE` and is shown as
-**CLAIMED OR BUSY** in the discovery picker (unclaimed and unoccupied kiosks display
-**READY TO PAIR**). The remembered owner may reconnect and authenticate
-without the pairing passkey; a different client cannot claim or connect to it.
+selecting its name before entering the six-digit code in Hallzee's dialog.
+One continuous hold starts only one pairing session. Current firmware pairs
+through encrypted Just Works, without an OS passkey. Its name remains
+`Hallzee-XXXX`, or `[name] [XXXX]` for a custom name (for example `Room 204 [E5F6]`),
+across claim, reboot, active passes, and disconnect. Hallzee displays known
+ownership as **Currently Paired**, **Not Paired**, or **Paired to other device**;
+an unknown legacy device must not be assumed unclaimed. The saved owner may
+reconnect without a code or pairing mode even with active passes. Another
+client cannot claim an owned terminal.
 Do not treat the advertised name or BLE address as proof of terminal identity.
 
 Before calling a Windows change complete, check:
@@ -762,9 +769,13 @@ Before calling a Windows change complete, check:
     The terminal must not clear its BLE bond just because owner storage was
     temporarily unavailable during startup; bonds are cleared only by explicit
     pairing mode or owner reset.
-12. With an active checkout, the terminal advertises `INUSE`; the remembered
-    owner can still reconnect and check the student back in without a passkey,
-    while an unrecognized client is rejected.
+12. With an active checkout, the Bluetooth name remains unchanged; the remembered
+    owner reconnects and checks the fictional student back in without a code,
+    while an unrecognized client is rejected. Verify all three ownership labels
+    within Hallzee using an unclaimed terminal and two isolated app profiles.
+13. Enter a new claim code after waiting more than eight seconds at the app
+    dialog; the client must use a fresh identity nonce and finish pairing while
+    the terminal's physical two-minute claim window remains open.
 
 If a test claim must be cleared, connect the USB serial monitor at 115200 baud
 and send the line `OWNER_RESET`. Confirm `OWNER_RESET,OK`; this clears only the

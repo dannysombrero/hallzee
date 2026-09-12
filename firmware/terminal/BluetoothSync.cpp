@@ -63,12 +63,8 @@ void BluetoothSync::notifyCompletedTrip(const String &record) {
 
 void BluetoothSync::begin() {
   String advertisedName = BLUETOOTH_DEVICE_NAME;
-#ifdef ARDUINO
-  advertisedInUse = security && security->hasOwner();
-#else
-  advertisedInUse = false;
-#endif
-  if (identity) advertisedName = identity->advertisedName(advertisedInUse);
+  updatePairingStatus();
+  if (identity) advertisedName = identity->advertisedName();
   ready = serial.begin(advertisedName.c_str());
 
   if (!ready) {
@@ -80,13 +76,14 @@ void BluetoothSync::begin() {
   Serial.println(advertisedName);
 }
 
-void BluetoothSync::updateAvailability(bool inUse) {
+void BluetoothSync::updatePairingStatus() {
+  if (!identity) return;
+  bool claimed = false;
 #ifdef ARDUINO
-  inUse = inUse || (security && security->hasOwner());
+  claimed = security && security->hasOwner();
 #endif
-  if (!identity || advertisedInUse == inUse) return;
-  String advertisedName = identity->advertisedName(inUse);
-  if (serial.setDeviceName(advertisedName.c_str())) advertisedInUse = inUse;
+  const uint16_t suffix = static_cast<uint16_t>(strtoul(identity->terminalSuffix().c_str(), nullptr, 16));
+  serial.setPairingStatus(claimed, suffix);
 }
 
 void BluetoothSync::poll() {
@@ -108,18 +105,22 @@ void BluetoothSync::poll() {
 void BluetoothSync::updateConnection() {
   if (!ready) return;
   const bool isConnected = serial.hasClient();
-  if (isConnected == wasConnected) return;
+  const uint32_t generation = serial.connectionGeneration();
+  if (isConnected == wasConnected && generation == observedConnectionGeneration) return;
 
+  observedConnectionGeneration = generation;
   wasConnected = isConnected;
+  // A disconnect and reconnect can both happen between loop iterations.
+  // Reset partial commands and authentication even when hasClient stays true.
+  resetSyncState();
+#ifdef ARDUINO
+  if (security) security->clearSession();
+#endif
+  serial.observeConnection(generation);
   if (isConnected) {
     Serial.println("Bluetooth LE client connected.");
 #ifdef ARDUINO
-    if (security) {
-      security->clearSession();
-      handshakeNonce = "";
-      commitNonce = "";
-      authorizationStartedAt = 0;
-    } else {
+    if (!security) {
       serial.println("HALLZEE_READY,1");
     }
 #else
@@ -129,10 +130,6 @@ void BluetoothSync::updateConnection() {
   }
 
   Serial.println("Bluetooth LE client disconnected.");
-#ifdef ARDUINO
-  if (security) security->clearSession();
-#endif
-  resetSyncState();
 }
 
 void BluetoothSync::resetSyncState() {
@@ -149,6 +146,7 @@ void BluetoothSync::resetSyncState() {
 }
 
 bool BluetoothSync::isAuthorized() const {
+  if (!serial.hasClient() || serial.connectionGeneration() != observedConnectionGeneration) return false;
 #ifdef ARDUINO
   return security == nullptr || security->isAuthorized();
 #else
@@ -244,6 +242,7 @@ void BluetoothSync::processAuthenticationCommand(const String &command) {
       } else {
         authorizationStartedAt = 0;
         commitNonce = "";
+        updatePairingStatus();
         serial.print("AUTH_OK,2,");
         serial.print(identity->terminalId());
         serial.print(",");
@@ -301,14 +300,14 @@ bool BluetoothSync::processAuthorizedIdentityCommand(const String &command) {
     serial.println("SETTINGS_ERROR,TERMINAL_NAME,INVALID_VALUE");
     return true;
   }
-  const String candidateDeviceName = identity->formatAdvertisedName(requestedName, advertisedInUse);
+  const String candidateDeviceName = identity->formatAdvertisedName(requestedName);
   if (!serial.setDeviceName(candidateDeviceName.c_str())) {
     serial.println("SETTINGS_ERROR,TERMINAL_NAME,BLE_UPDATE_FAILED");
     return true;
   }
   if (!identity->setCustomName(requestedName)) {
     // Restore discovery to the persisted name if the write failed.
-    serial.setDeviceName(identity->advertisedName(advertisedInUse).c_str());
+    serial.setDeviceName(identity->advertisedName().c_str());
     serial.println("SETTINGS_ERROR,TERMINAL_NAME,STORAGE_FAILED");
     return true;
   }
@@ -575,6 +574,7 @@ void BluetoothSync::processCommands() {
   if (!ready) return;
 
   while (serial.available()) {
+    if (serial.connectionGeneration() != observedConnectionGeneration) updateConnection();
     const char received = static_cast<char>(serial.read());
     if (binaryFrame.count || received == 0) {
       if (binaryFrame.push(static_cast<uint8_t>(received))) {
@@ -610,6 +610,7 @@ void BluetoothSync::processCommands() {
             serial.println("ERROR,OWNER_RELEASE_FAILED");
           } else {
             authorizationStartedAt = 0;
+            updatePairingStatus();
             serial.println("OWNER_RELEASED");
           }
         } else if (processAuthorizedIdentityCommand(commandBuffer)) {

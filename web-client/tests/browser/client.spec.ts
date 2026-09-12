@@ -77,9 +77,9 @@ test("real transport claims, stores CryptoKey, ACKs committed trips and authenti
   await page.goto("/");
   await expect(page.getByText("Ready offline", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Connect terminal", exact: true }).click();
+  await page.getByRole("button", { name: "Find nearby terminals", exact: true }).click();
   await page.getByLabel("Physical pairing code").fill("807481");
-  await page.getByRole("checkbox").check();
-  await page.getByRole("button", { name: "Choose terminal and pair", exact: true }).click();
+  await page.getByRole("button", { name: "Pair & Connect", exact: true }).click();
   await expect(page.getByText("Pass available", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Sync now", exact: true })).toBeEnabled();
   expect(await page.evaluate(() => (window as any).terminalCommands.includes("ACK,1"))).toBe(true);
@@ -117,9 +117,7 @@ test("security headers and unsupported Bluetooth", async ({ page }) => {
   const response = await page.goto("/");
   expect(response?.headers()["content-security-policy"]).toContain("connect-src 'self'");
   await page.getByRole("button", { name: "Connect terminal", exact: true }).click();
-  await page.getByLabel("Physical pairing code").fill("807481");
-  await page.getByRole("checkbox").check();
-  await page.getByRole("button", { name: "Choose terminal and pair", exact: true }).click();
+  await page.getByRole("button", { name: "Find nearby terminals", exact: true }).click();
   await expect(page.getByRole("dialog").getByRole("alert")).toContainText(
     "Web Bluetooth is unavailable",
   );
@@ -138,9 +136,9 @@ test("targeted check-in retains other active passes; confirmed release removes k
     ];
   });
   await page.getByRole("button", { name: "Connect terminal", exact: true }).click();
+  await page.getByRole("button", { name: "Find nearby terminals", exact: true }).click();
   await page.getByLabel("Physical pairing code").fill("807481");
-  await page.getByRole("checkbox").check();
-  await page.getByRole("button", { name: "Choose terminal and pair", exact: true }).click();
+  await page.getByRole("button", { name: "Pair & Connect", exact: true }).click();
   await expect(page.getByText("2 students out", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Sync now", exact: true })).toBeEnabled();
   page.on("dialog", (d) => d.accept());
@@ -191,9 +189,7 @@ test("native pairing rejection reports its stage and remains visible after focus
     (window as any).simulatedPairingFailure = true;
   });
   await page.getByRole("button", { name: "Connect terminal", exact: true }).click();
-  await page.getByLabel("Physical pairing code").fill("807481");
-  await page.getByRole("checkbox").check();
-  await page.getByRole("button", { name: "Choose terminal and pair", exact: true }).click();
+  await page.getByRole("button", { name: "Find nearby terminals", exact: true }).click();
   const error = page.getByRole("dialog").getByRole("alert");
   await expect(error).toContainText("pairing / NetworkError");
   await expect(error).not.toContainText("synthetic private");
@@ -208,9 +204,9 @@ test("saved owner survives a lost OS bond and authenticates after repair without
   await page.goto("/");
   await expect(page.getByText("Ready offline", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Connect terminal", exact: true }).click();
+  await page.getByRole("button", { name: "Find nearby terminals", exact: true }).click();
   await page.getByLabel("Physical pairing code").fill("807481");
-  await page.getByRole("checkbox").check();
-  await page.getByRole("button", { name: "Choose terminal and pair", exact: true }).click();
+  await page.getByRole("button", { name: "Pair & Connect", exact: true }).click();
   await expect(page.getByText("Pass available", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Disconnect", exact: true }).click();
   await page.evaluate(() => {
@@ -218,52 +214,93 @@ test("saved owner survives a lost OS bond and authenticates after repair without
     (window as any).terminalCommands = [];
   });
   await page.getByRole("button", { name: "Connect terminal", exact: true }).click();
-  await page.getByRole("button", { name: "Choose saved terminal", exact: true }).click();
+  await page.getByRole("button", { name: "Reconnect Test terminal", exact: true }).click();
   const error = page.getByRole("dialog").getByRole("alert");
   await expect(error).toContainText("pairing / NotSupportedError");
   await expect(error).toContainText("BT REPAIR");
-  await expect(page.getByLabel("Physical pairing code")).toHaveValue("");
+  await expect(page.getByLabel("Physical pairing code")).toHaveCount(0);
   // Simulate OS bond repair; leave application owner credentials unchanged.
   await page.evaluate(() => {
     (window as any).simulatedPairingFailure = false;
   });
-  await page.getByRole("button", { name: "Choose saved terminal", exact: true }).click();
+  await page.getByRole("button", { name: "Reconnect Test terminal", exact: true }).click();
   await expect(page.getByText("Pass available", { exact: true })).toBeVisible();
   const commands = await page.evaluate(() => (window as any).terminalCommands as string[]);
   expect(commands.some((c) => c.startsWith("AUTH,2,"))).toBe(true);
   expect(commands.some((c) => c.startsWith("CLAIM"))).toBe(false);
 });
 
-test("connection dialog presents desktop styling, info tooltips and collapsible troubleshooting", async ({
-  page,
-}) => {
+test("discovery has no fictional rows or signal values and prompts only after selection", async ({ page }) => {
   await installBluetooth(page);
   await page.goto("/");
-  await expect(page.getByText("Ready offline", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Connect terminal", exact: true }).click();
   const dialog = page.getByRole("dialog");
-  await expect(dialog).toBeVisible();
   await expect(dialog.getByText("Discover nearby Hallzee Bluetooth LE kiosks.")).toBeVisible();
-
-  // Test interactive device picker
-  const deviceItem = dialog.getByRole("option").first();
-  await expect(deviceItem).toBeVisible();
-  await expect(deviceItem).toContainText("Signal Strength:");
-  await deviceItem.click();
-  await expect(deviceItem).toHaveAttribute("aria-selected", "true");
-
-  // Test InfoTooltip toggle
-  const infoBtn = dialog.getByLabel("More information").first();
-  await expect(infoBtn).toBeVisible();
-  await infoBtn.click();
-  const tooltip = dialog.getByRole("tooltip");
-  await expect(tooltip).toBeVisible();
-  await expect(tooltip).toContainText("Only for claiming an unclaimed terminal");
-
-  // Test troubleshooting disclosure toggle
-  const summary = dialog.getByText("Pairing tips & Bluetooth troubleshooting");
-  await expect(summary).toBeVisible();
-  await summary.click();
+  await expect(dialog.getByText("No saved terminals.", { exact: false })).toBeVisible();
+  await expect(dialog).not.toContainText("dBm");
+  await expect(page.getByLabel("Physical pairing code")).toHaveCount(0);
+  await dialog.getByText("Pairing tips & Bluetooth troubleshooting").click();
   await expect(dialog.getByText("Lost Bluetooth pairing (BT REPAIR):")).toBeVisible();
-  await expect(dialog.getByText("Ownership & Release:")).toBeVisible();
+  await page.getByRole("button", { name: "Find nearby terminals", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Enter terminal pairing code" })).toBeVisible();
+  // The probe has released GATT: human input cannot expire a firmware challenge.
+  expect(await page.evaluate(() => (window as any).fakeGattConnected())).toBe(false);
+  expect(await page.evaluate(() => (window as any).terminalCommands.every((c: string) => c.startsWith("HELLO,")))).toBe(true);
+  await page.getByRole("button", { name: "Back", exact: true }).click();
+  await expect(dialog.getByText("Not Paired", { exact: true })).toBeVisible();
+});
+
+test("another owner is shown in Hallzee and never requests a pairing code", async ({ page }) => {
+  await installBluetooth(page);
+  await page.goto("/");
+  await page.evaluate(() => sessionStorage.setItem("simClaimed", "1"));
+  await page.getByRole("button", { name: "Connect terminal", exact: true }).click();
+  await page.getByRole("button", { name: "Find nearby terminals", exact: true }).click();
+  await expect(page.getByText("Paired to other device", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Physical pairing code")).toHaveCount(0);
+  expect(await page.evaluate(() => (window as any).terminalCommands.every((c: string) => c.startsWith("HELLO,")))).toBe(true);
+});
+
+test("saved owner can use the chooser when remembered handles are unavailable without code or mode", async ({ page }) => {
+  await installBluetooth(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: "Connect terminal", exact: true }).click();
+  await page.getByRole("button", { name: "Find nearby terminals", exact: true }).click();
+  await page.getByLabel("Physical pairing code").fill("807481");
+  await page.getByRole("button", { name: "Pair & Connect", exact: true }).click();
+  await expect(page.getByText("Pass available", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Disconnect", exact: true }).click();
+  await page.evaluate(() => {
+    (window as any).simNoRememberedDevices = true;
+    (window as any).terminalCommands = [];
+  });
+  await page.getByRole("button", { name: "Connect terminal", exact: true }).click();
+  await expect(page.getByText("Currently Paired", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Reconnect Test terminal", exact: true }).click();
+  await expect(page.getByText("Pass available", { exact: true })).toBeVisible();
+  const commands = await page.evaluate(() => (window as any).terminalCommands as string[]);
+  expect(commands.some((c) => c.startsWith("AUTH,"))).toBe(true);
+  expect(commands.some((c) => c.startsWith("CLAIM"))).toBe(false);
+});
+
+test("a factory-reset terminal overrides the saved pairing status and asks for a fresh code", async ({ page }) => {
+  await installBluetooth(page);
+  await page.goto("/");
+  await page.getByRole("button", { name: "Connect terminal", exact: true }).click();
+  await page.getByRole("button", { name: "Find nearby terminals", exact: true }).click();
+  await page.getByLabel("Physical pairing code").fill("807481");
+  await page.getByRole("button", { name: "Pair & Connect", exact: true }).click();
+  await expect(page.getByText("Pass available", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Disconnect", exact: true }).click();
+  await page.evaluate(() => {
+    sessionStorage.removeItem("simClaimed");
+    (window as any).terminalCommands = [];
+  });
+  await page.getByRole("button", { name: "Connect terminal", exact: true }).click();
+  await page.getByRole("button", { name: "Reconnect Test terminal", exact: true }).click();
+  await expect(page.getByLabel("Physical pairing code")).toBeVisible();
+  await page.getByRole("button", { name: "Back", exact: true }).click();
+  await expect(page.getByText("Not Paired", { exact: true })).toBeVisible();
+  await expect(page.getByText("Currently Paired", { exact: true })).toHaveCount(0);
+  expect(await page.evaluate(() => (window as any).terminalCommands.every((c: string) => c.startsWith("HELLO,")))).toBe(true);
 });

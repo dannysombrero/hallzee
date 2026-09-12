@@ -140,8 +140,11 @@ dotnet run --project receiver/universal/BathroomSync.Universal.csproj
 ```
 
 The physical client uses Bluetooth LE on macOS and Windows. On a new terminal,
-hold `*` and `#` for five seconds, enter the displayed six-digit passkey in
-**Find Terminals**, and connect again.
+hold `*` and `#` for five seconds and release. Choose **Find Nearby Terminals**,
+select the terminal, then enter the six-digit code in Hallzee's pairing dialog.
+Current firmware uses encrypted Just Works Bluetooth pairing without an OS
+passkey. Returning owners reconnect without a code or pairing mode; see the
+[main setup guide](testing-and-installation.md#pair-once-then-reconnect).
 
 ## Run tests
 

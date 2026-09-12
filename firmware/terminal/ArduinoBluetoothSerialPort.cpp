@@ -1,7 +1,9 @@
 #include "ArduinoBluetoothSerialPort.h"
+#include "TerminalAdvertisement.h"
 #include <BLESecurity.h>
 #if defined(CONFIG_BLUEDROID_ENABLED)
 #include <esp_gap_ble_api.h>
+#include <esp_gatts_api.h>
 #elif defined(CONFIG_NIMBLE_ENABLED)
 #include <host/ble_hs.h>
 #include <services/gap/ble_svc_gap.h>
@@ -15,6 +17,17 @@ namespace {
 constexpr char SERVICE_UUID[] = "005924a2-c6e5-4340-9bb8-22d9dd37a283";
 constexpr char TX_UUID[] = "44a359f3-9215-4189-a3cb-e7ce18ad40d6";
 constexpr char RX_UUID[] = "e80f9559-49eb-47bc-af04-8e92e98ced56";
+#if defined(CONFIG_BLUEDROID_ENABLED)
+// BLEServer keeps its GATT interface private. Capture the one Hallzee server's
+// registration through the supported event hook for addressed notifications.
+std::atomic<esp_gatt_if_t> transportGattInterface{ESP_GATT_IF_NONE};
+void onGattEvent(esp_gatts_cb_event_t event, esp_gatt_if_t interface,
+                 esp_ble_gatts_cb_param_t *param) {
+  if (event == ESP_GATTS_REG_EVT && param && param->reg.status == ESP_GATT_OK) {
+    transportGattInterface = interface;
+  }
+}
+#endif
 }
 
 class ArduinoBluetoothSerialPort::ServerCallbacks : public BLEServerCallbacks {
@@ -47,7 +60,23 @@ private:
 class ArduinoBluetoothSerialPort::RxCallbacks : public BLECharacteristicCallbacks {
 public:
   explicit RxCallbacks(ArduinoBluetoothSerialPort &owner) : owner(owner) {}
+#if defined(CONFIG_BLUEDROID_ENABLED)
+  void onWrite(BLECharacteristic *characteristic, esp_ble_gatts_cb_param_t *param) override {
+    if (!param || !owner.connected || param->write.conn_id != owner.activeConnectionId) return;
+    receive(characteristic);
+  }
+#elif defined(CONFIG_NIMBLE_ENABLED)
+  void onWrite(BLECharacteristic *characteristic, ble_gap_conn_desc *desc) override {
+    if (!desc || !owner.connected || desc->conn_handle != owner.activeConnectionId) return;
+    receive(characteristic);
+  }
+#else
   void onWrite(BLECharacteristic *characteristic) override {
+    receive(characteristic);
+  }
+#endif
+private:
+  void receive(BLECharacteristic *characteristic) {
 #if defined(ESP_ARDUINO_VERSION_MAJOR) && ESP_ARDUINO_VERSION_MAJOR >= 3
     const String value = characteristic->getValue();
     owner.enqueue(reinterpret_cast<const uint8_t *>(value.c_str()), value.length());
@@ -56,7 +85,6 @@ public:
     owner.enqueue(reinterpret_cast<const uint8_t *>(value.data()), value.size());
 #endif
   }
-private:
   ArduinoBluetoothSerialPort &owner;
 };
 
@@ -65,9 +93,18 @@ bool ArduinoBluetoothSerialPort::begin(const char *deviceName) {
   if (!receiveQueue) return false;
   BLEDevice::init(deviceName);
   BLEDevice::setMTU(247);
-  BLESecurity::setAuthenticationMode(ESP_LE_AUTH_REQ_SC_MITM_BOND);
-  BLESecurity::setCapability(ESP_IO_CAP_OUT);
+  // The physical six-digit code belongs to the application claim protocol.
+  // Secure Connections Just Works encrypts and bonds the BLE link without a
+  // second OS passkey prompt. Use the boolean overload: on ESP32 3.3.11 it
+  // also enables security and selects the matching encryption level.
+  BLESecurity::setAuthenticationMode(true, false, true);
+  BLESecurity::setCapability(ESP_IO_CAP_NONE);
   BLESecurity::setKeySize(16);
+  BLESecurity::setInitEncryptionKey(ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK);
+  BLESecurity::setRespEncryptionKey(ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK);
+#if defined(CONFIG_BLUEDROID_ENABLED)
+  BLEDevice::setCustomGattsHandler(onGattEvent);
+#endif
   server = BLEDevice::createServer();
   if (!server) return false;
   server->setCallbacks(new ServerCallbacks(*this));
@@ -84,8 +121,8 @@ bool ArduinoBluetoothSerialPort::begin(const char *deviceName) {
     BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_WRITE_NR
   );
   if (!txCharacteristic || !rxCharacteristic) return false;
-  txCharacteristic->setAccessPermissions(ESP_GATT_PERM_READ_ENC_MITM);
-  rxCharacteristic->setAccessPermissions(ESP_GATT_PERM_WRITE_ENC_MITM);
+  txCharacteristic->setAccessPermissions(ESP_GATT_PERM_READ_ENCRYPTED);
+  rxCharacteristic->setAccessPermissions(ESP_GATT_PERM_WRITE_ENCRYPTED);
   // Windows enables notifications by writing the standard Client Characteristic
   // Configuration Descriptor (CCCD). The ESP32 library does not add it for us.
   txCharacteristic->addDescriptor(new BLE2902());
@@ -94,16 +131,13 @@ bool ArduinoBluetoothSerialPort::begin(const char *deviceName) {
   service->start();
   BLEAdvertising *advertising = BLEDevice::getAdvertising();
   // Keep the service UUID in the advertisement and the whole name in the
-  // scan response. Rebuild the latter after claims, resets, and renames.
-  BLEAdvertisementData serviceData;
-  serviceData.setFlags(0x06);
-  serviceData.setCompleteServices(BLEUUID(SERVICE_UUID));
+  // scan response. Ownership is manufacturer metadata, never a name suffix.
   advertising->setScanResponse(true);
   advertisedName = deviceName;
   BLEAdvertisementData nameData;
   nameData.setName(advertisedName);
   advertising->setScanResponseData(nameData);
-  advertising->setAdvertisementData(serviceData);
+  updateAdvertisement();
   advertising->start();
   return true;
 }
@@ -144,8 +178,25 @@ bool ArduinoBluetoothSerialPort::clearBondedDevices() {
 #endif
 }
 
-void ArduinoBluetoothSerialPort::setPairingPasskey(uint32_t passkey) {
-  BLESecurity::setPassKey(true, passkey);
+void ArduinoBluetoothSerialPort::setPairingStatus(bool isClaimed, uint16_t suffix) {
+  if (claimed == isClaimed && terminalSuffix == suffix) return;
+  claimed = isClaimed;
+  terminalSuffix = suffix;
+  if (server && !connected) {
+    server->getAdvertising()->stop();
+    restartAdvertising();
+  }
+}
+
+void ArduinoBluetoothSerialPort::updateAdvertisement() {
+  if (!server) return;
+  BLEAdvertisementData serviceData;
+  serviceData.setFlags(0x06);
+  serviceData.setCompleteServices(BLEUUID(SERVICE_UUID));
+  const auto metadata = terminalAdvertisement(claimed, terminalSuffix);
+  serviceData.setManufacturerData(String(
+    reinterpret_cast<const char *>(metadata.data()), metadata.size()));
+  server->getAdvertising()->setAdvertisementData(serviceData);
 }
 
 bool ArduinoBluetoothSerialPort::setDeviceName(const char *deviceName) {
@@ -191,14 +242,20 @@ void ArduinoBluetoothSerialPort::handleConnect(uint16_t connectionId) {
     if (server && connectionId != 0xFFFF) server->disconnect(connectionId);
     return;
   }
-  connected = true;
+  // TX is readable to trigger link encryption. Never retain an earlier
+  // owner's notification value for a newly connected, unauthenticated peer.
+  if (txCharacteristic) txCharacteristic->setValue("");
+  if (receiveQueue) xQueueReset(receiveQueue);
+  generation++;
   activeConnectionId = connectionId;
+  connected = true;
 }
 
 void ArduinoBluetoothSerialPort::handleDisconnect(uint16_t connectionId) {
   if (!connected || activeConnectionId == 0xFFFF ||
       connectionId == activeConnectionId || connectionId == 0xFFFF) {
     connected = false;
+    if (txCharacteristic) txCharacteristic->setValue("");
     if (receiveQueue) xQueueReset(receiveQueue);
     activeConnectionId = 0xFFFF;
     restartAdvertising();
@@ -207,15 +264,37 @@ void ArduinoBluetoothSerialPort::handleDisconnect(uint16_t connectionId) {
 
 void ArduinoBluetoothSerialPort::send(const String &text) {
   if (!connected || !txCharacteristic) return;
+  // An application response can use multiple print() calls. Do not let a
+  // subsequent fragment adopt a new peer before the application clears the
+  // previous session and explicitly observes that connection.
+  const uint32_t sendingGeneration = observedGeneration;
+  if (sendingGeneration != generation) return;
+  const uint16_t sendingConnection = activeConnectionId;
+  auto *notifications = static_cast<BLE2902 *>(
+    txCharacteristic->getDescriptorByUUID(static_cast<uint16_t>(0x2902)));
+  if (notifications && !notifications->getNotifications()) return;
   // Keep notifications below the default 20-byte ATT payload so this works
   // immediately without depending on MTU negotiation.
   constexpr size_t CHUNK_SIZE = 20;
   for (size_t offset = 0; offset < text.length(); offset += CHUNK_SIZE) {
+    if (!connected || generation != sendingGeneration) return;
     const size_t length = min(CHUNK_SIZE, text.length() - offset);
+#if defined(CONFIG_BLUEDROID_ENABLED)
+    // Address the admitted peer, not every peer in the BLE server's map.
+    // Keep the readable TX value empty: a pre-auth read is only used to
+    // establish encryption and must never expose previous notification data.
+    const esp_err_t result = esp_ble_gatts_send_indicate(
+      transportGattInterface, sendingConnection, txCharacteristic->getHandle(),
+      length, reinterpret_cast<uint8_t *>(const_cast<char *>(text.c_str() + offset)), false);
+    if (result != ESP_OK) return;
+#else
+    (void)sendingConnection;
     txCharacteristic->setValue(
       reinterpret_cast<const uint8_t *>(text.c_str() + offset), length
     );
     txCharacteristic->notify();
+    txCharacteristic->setValue("");
+#endif
   }
 }
 
@@ -226,6 +305,7 @@ void ArduinoBluetoothSerialPort::println(const String &text) { send(text + "\n")
 
 void ArduinoBluetoothSerialPort::restartAdvertising() {
   if (!server) return;
+  updateAdvertisement();
   BLEAdvertisementData nameData;
   nameData.setName(advertisedName);
   auto *advertising = server->getAdvertising();

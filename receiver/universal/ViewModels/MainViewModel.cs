@@ -107,7 +107,8 @@ public sealed partial class MainViewModel : INotifyPropertyChanged, IDisposable 
       connectedTerminalName = LastPairedDeviceName;
       TerminalSettingsModal.TerminalName = LastPairedDeviceName;
     }
-    FindTerminalsModal = new FindTerminalsViewModel(connection);
+    FindTerminalsModal = new FindTerminalsViewModel(connection, ResolveDiscoveredPairingStatus,
+      () => IsConnected ? lastAuthenticatedDevice : null);
     ManualCheckInModal = new ManualCheckInViewModel(rosterService);
 
     if (terminalSession != null) terminalSession.StateChanged += HandleTerminalSessionStateChanged;
@@ -505,6 +506,7 @@ public sealed partial class MainViewModel : INotifyPropertyChanged, IDisposable 
 
   public void CloseModal() {
     if(IsFirmwareInstalling) return;
+    if (IsFindTerminalsModalVisible) FindTerminalsModal.ResetPairingPrompt();
     ActiveModal = "None";
     RosterModal.CancelImport();
     ManualCheckInModal.Reset(ActiveProfile.ProfileId);
@@ -623,7 +625,7 @@ public sealed partial class MainViewModel : INotifyPropertyChanged, IDisposable 
   }
 
   public async Task ConnectAndSyncAsync() {
-    if (IsDeviceBusy) return;
+    if (IsDeviceBusy || FindTerminalsModal.IsBusy) return;
     var device = FindTerminalsModal.SelectedDevice;
     if (device == null) return;
     CancelAutomaticReconnect();
@@ -643,20 +645,34 @@ public sealed partial class MainViewModel : INotifyPropertyChanged, IDisposable 
       return;
     }
 
-    var pairingPromptHint = string.IsNullOrWhiteSpace(FindTerminalsModal.PairingPasskey)
-      ? ""
-      : OperatingSystem.IsWindows()
-        ? " Windows pairing will use the six digits entered above."
-        : " If the operating system asks for a Bluetooth passkey, enter the same six digits shown on the kiosk.";
-    FindTerminalsModal.SetStatus($"Connecting to {device.Name} and verifying identity…{pairingPromptHint}");
-    var pairingPasskeySink = connection as ITerminalPairingPasskeySink;
-    pairingPasskeySink?.SetPairingPasskey(FindTerminalsModal.PairingPasskey);
+    FindTerminalsModal.SetConnecting(true);
+    FindTerminalsModal.SetStatus($"Connecting to {device.Name} and checking pairing…");
     try {
-      var identity = await terminalSession.OpenAsync(device);
+      var identity = await terminalSession.OpenAsync(device, device.TerminalId);
+      device = ResolveDiscoveredPairingStatus(device with {
+        TerminalId = identity.TerminalId,
+        TerminalSuffix = identity.TerminalSuffix,
+        IsClaimed = identity.IsClaimed,
+        IsInUse = identity.IsInUse
+      });
+      FindTerminalsModal.UpdateDevice(device);
       if (!identity.IsClaimed && string.IsNullOrWhiteSpace(FindTerminalsModal.PairingPasskey)) {
+        // Release the radio while the user reads the physical code. A fresh
+        // connection below obtains a new HELLO nonce before submitting CLAIM.
+        await terminalSession.DisconnectAsync();
+        IsConnected = false;
+        FindTerminalsModal.RequestPairingCode();
         FindTerminalsModal.SetStatus(
-          $"Unclaimed terminal {identity.TerminalId}. Hold * and # on the kiosk for five seconds, then enter its six-digit passkey above."
+          "Enter the six-digit pairing code shown on this terminal. To show it, hold * and # on the terminal for five seconds."
         );
+        return;
+      }
+
+      if (identity.IsClaimed && !device.IsPaired) {
+        await terminalSession.DisconnectAsync();
+        IsConnected = false;
+        FindTerminalsModal.ResetPairingPrompt();
+        FindTerminalsModal.SetStatus("Paired to other device. Use its paired client, or release ownership before pairing this client.");
         return;
       }
 
@@ -674,10 +690,14 @@ public sealed partial class MainViewModel : INotifyPropertyChanged, IDisposable 
       ));
       profileRepository.AssignTerminalToProfile(ActiveProfile.ProfileId, authenticated.TerminalId);
       ConnectedTerminalName = authenticated.CustomName;
-      lastAuthenticatedDevice = device with { Name = authenticated.CustomName };
+      lastAuthenticatedDevice = device with {
+        Name = authenticated.CustomName, IsPaired = true, IsClaimed = true,
+        TerminalId = authenticated.TerminalId
+      };
+      FindTerminalsModal.UpdateDevice(lastAuthenticatedDevice);
       lastAuthenticatedTerminalId = authenticated.TerminalId;
       NotifyDeviceState();
-      FindTerminalsModal.PairingPasskey = "";
+      FindTerminalsModal.ResetPairingPrompt();
       IsConnected = true;
       CloseModal();
       await SyncNowAsync();
@@ -691,8 +711,28 @@ public sealed partial class MainViewModel : INotifyPropertyChanged, IDisposable 
       FindTerminalsModal.SetStatus($"Secure connection failed: {exception.Message}");
       IsConnected = false;
     } finally {
-      pairingPasskeySink?.SetPairingPasskey(null);
+      FindTerminalsModal.SetConnecting(false);
     }
+  }
+
+  TerminalDevice ResolveDiscoveredPairingStatus(TerminalDevice device) {
+    if (ownerCredentialStore == null) return device;
+    // A suffix is only a discovery hint, never an ownership lookup key. Match
+    // the remembered OS transport to its full identity before using a key.
+    var terminalId = device.TerminalId ?? profileRepository.GetAllTerminals()
+      .FirstOrDefault(saved => string.Equals(saved.TransportId ?? saved.BleAddress,
+        device.Id, StringComparison.OrdinalIgnoreCase))?.TerminalId;
+    if (terminalId != null && device.TerminalSuffix != null &&
+        !terminalId.EndsWith(device.TerminalSuffix, StringComparison.OrdinalIgnoreCase)) {
+      terminalId = null;
+    }
+    var hasCredential = false;
+    if (device.IsClaimed != false && terminalId != null &&
+        ownerCredentialStore.TryGetOwnerKey(terminalId, out var ownerKey)) {
+      Array.Clear(ownerKey);
+      hasCredential = true;
+    }
+    return device with { IsPaired = hasCredential, TerminalId = terminalId };
   }
 
   public Task SyncNowAsync() => IsFirmwareInstalling ? Task.CompletedTask : operationCoordinator.RunAsync(SyncNowCoreAsync);
@@ -1374,7 +1414,8 @@ public sealed partial class MainViewModel : INotifyPropertyChanged, IDisposable 
     terminalActivePass.SetUnknown();
     Dashboard.ClearLiveCheckouts();
     RefreshDisplayedActivePass();
-    if (!intentionalDisconnect && terminalSession != null &&
+    if (!intentionalDisconnect && !FindTerminalsModal.IsConnecting &&
+        !FindTerminalsModal.IsAwaitingPairingCode && terminalSession != null &&
         lastAuthenticatedDevice != null && lastAuthenticatedTerminalId != null) {
       StartAutomaticReconnect();
     }
@@ -1490,6 +1531,9 @@ public sealed partial class MainViewModel : INotifyPropertyChanged, IDisposable 
             ClaimStatus: "CLAIMED",
             TransportId: device.Id));
           profileRepository.AssignTerminalToProfile(ActiveProfile.ProfileId, authenticated.TerminalId);
+          lastAuthenticatedDevice = device with { Name = authenticated.CustomName,
+            IsPaired = true, IsClaimed = true, TerminalId = authenticated.TerminalId };
+          lastAuthenticatedTerminalId = authenticated.TerminalId;
           ConnectedTerminalName = authenticated.CustomName;
           IsConnected = true;
           OnPropertyChanged(nameof(IsReconnectPromptVisible));

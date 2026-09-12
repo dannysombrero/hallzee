@@ -1,9 +1,9 @@
 # Hallzee in Chrome and Edge
 
-The web client is available as a **local development build**. Chromebook,
-Windows and Mac physical Bluetooth acceptance is still pending; there is no
-published classroom URL yet. Use the [contributor setup](testing-and-installation.md)
-to preview it. Use fictional records during evaluation.
+The web client testing site is [web.hallzee.com](https://web.hallzee.com); a local development
+build is also available through the [contributor setup](testing-and-installation.md).
+Physical Bluetooth acceptance remains pending on Chromebook, Windows, and Mac
+for the updated pairing flow. Use fictional records during evaluation.
 
 ## Prepare your classroom
 
@@ -17,25 +17,40 @@ zeros. Roster deletion does not delete completed trips.
 
 ## Pair and reconnect
 
-1. Release the terminal from any previous desktop/browser owner first. With no
-   active pass, hold `*` and `#` for five seconds and release to open pairing.
-2. Click **Connect terminal**, select the kiosk in **Find Nearby Terminals**, enter the terminal's six-digit passkey if unclaimed, confirm this
-   is the same classroom, then click **Connect & Sync**. Choose the Hallzee
-   device in your browser's picker. Chrome, Edge, or the operating system may separately
-   ask for the same physical code. Enter it in that OS prompt too; typing it in
-   Hallzee alone does not pair the OS (browser security prevents web pages from reading
-   the OS Bluetooth pairing prompt). Hallzee uses the code to claim classroom ownership
-   and derive your permanent Owner Key, while the OS prompt uses it for BLE link encryption.
-   Hallzee first reads the encrypted terminal channel, allowing up to one minute for OS pairing,
-   then starts the short application-authentication handshake. Hallzee does not save the code.
-3. Wait for authenticated connection, completed sync and current pass status.
-   **Unknown** means the app has no fresh occupancy snapshot; it is not proof
-   that nobody is out. Keypad operation continues when the browser disconnects.
+Update both the web app and terminal firmware for this flow; updating the app
+alone cannot change the terminal's Bluetooth pairing method. Use the
+[firmware installer](testing-and-installation.md#assemble-or-flash-a-terminal).
 
-This profile saves an owner key. After restart, Hallzee tries remembered devices
-for up to 45 seconds. If the browser does not provide a remembered device handle,
-click **Connect terminal → Choose saved terminal**. A chooser is never opened
-by an automatic retry. Keep Bluetooth enabled even when internet is disconnected.
+1. With no active pass and no existing owner, hold `*` and `#` for five seconds
+   and release. The terminal displays its name and a six-digit pairing code.
+2. Click **Find Nearby Terminals**, then select the matching name, such as
+   `Hallzee-2A58`, in the browser's device chooser.
+3. Enter the terminal's code in Hallzee's pairing dialog and click **Pair & Connect**.
+   The code is entered once in the app; the Bluetooth chooser does not require those digits.
+   The operating system may still ask permission to pair. Confirm this is the
+   same classroom when requested, then wait for authenticated connection and sync.
+
+**Unknown** pass status means the app has no fresh occupancy snapshot; it does
+not mean nobody is out. Keypad operation continues when the browser disconnects.
+
+This browser profile saves the owner key. Reopening the same app/profile or
+losing a connection starts a remembered-device reconnect attempt, with a
+45-second budget. When the browser cannot restore its saved device handle,
+click **Reconnect** and select the saved terminal in the chooser. Returning
+owners need neither pairing mode nor a code, including after terminal reboot.
+Automatic retries never open a chooser; they need the saved key, browser device
+permission, Bluetooth enabled, and a terminal that is awake and in range.
+
+Hallzee shows **Currently Paired**, **Not Paired**, or **Paired to other device**
+when ownership is known. These describe Hallzee ownership for this app/profile,
+not OS Bluetooth pairing or whether a student is out. The browser owns its
+nearby-device chooser and does not expose every nearby terminal to the page.
+A newly selected terminal's ownership must be checked before Hallzee can label
+it; a saved row alone does not prove that the terminal is currently nearby.
+Bluetooth names remain stable, without Hallzee-added `Paired` or `In Use` text.
+The browser may show its own OS pairing indicator, which Hallzee cannot remove.
+See [Chrome's device chooser](https://developer.chrome.com/docs/capabilities/bluetooth)
+and [previously granted devices](https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-getdevices).
 
 **Disconnect** preserves ownership. **Terminal settings → Disconnect & Unpair**
 first syncs, requires no active passes, and releases the owner. Local keys are
@@ -57,8 +72,8 @@ records and explicitly re-authenticating the terminal:
 2. In **Terminal settings → Disconnect & Unpair**, release the terminal owner.
 3. Open Hallzee in the target browser (Chrome or Edge).
 4. In **Classroom & data → Restore backup**, import your backup JSON to restore roster and history.
-5. Click **Connect terminal**, enter a new pairing code from the terminal (`*` and `#` for five
-   seconds), and pair.
+5. Open pairing mode on the terminal (`*` and `#` for five seconds), click
+   **Find Nearby Terminals**, select it, then enter the code in Hallzee.
 
 > [!NOTE]
 > Bluetooth repair alone (`*` for five seconds) restores a lost OS Bluetooth pairing, but it
@@ -152,8 +167,8 @@ The web client dashboard matches the Hallzee Universal desktop client layout:
 
 A Mac is sufficient for shared software testing and establishing Edge-on-Mac
 support. It does not verify managed Chromebook policy, storage eviction, BLE
-pairing or sleep/wake. A Windows BLE PC is required to verify Windows OS passkey
-flow, encrypted GATT, bond reuse, reconnect/sleep and installed-PWA behavior in
+pairing or sleep/wake. A Windows BLE PC is required to verify Windows Bluetooth
+permission/Just Works pairing, encrypted GATT, bond reuse, reconnect/sleep and installed-PWA behavior in
 Chrome and Edge. **Windows behavior is unverified.**
 See [acceptance evidence](testing/web-client-acceptance.md).
 
@@ -162,14 +177,15 @@ your browser (Chrome or Edge) under **System Settings → Privacy & Security →
 then quit and reopen the browser. The browser's chooser showing **Paired** does not
 establish that GATT connection or Hallzee ownership succeeded. If the error instead says
 **Bluetooth connection failed**, close other connected apps, power-cycle the
-terminal (do not factory reset), reopen physical pairing mode, and retry nearby.
+terminal (do not factory reset), and retry nearby. Open physical pairing mode
+only for a new claim; a saved owner reconnects without it.
 
 On macOS, if the terminal is already connected in **System Settings → Bluetooth**
 and the browser fails at `connect / NetworkError`, disconnect it there and retry from
 Hallzee's chooser. Disconnecting is sufficient; do not forget the device, clear
 Hallzee data, or reset ownership. This recovered the reported local Mac connection.
 
-If the OS asks for a new code when reconnecting an owned terminal, see
+If an old OS bond prevents reconnecting an owned terminal, see
 [Bluetooth repair and keypad troubleshooting](bluetooth-repair-and-keypad.md). Updated firmware
 adds **hold `*` alone for five seconds** to repair the OS bond while retaining
 ownership. The browser claim-code field is for unclaimed terminals only.

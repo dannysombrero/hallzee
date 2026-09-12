@@ -4,12 +4,31 @@
 
 Hallzee advertises a Bluetooth Low Energy GATT service under `Hallzee-XXXX`,
 where `XXXX` is the last four characters of the stable eFuse-derived terminal
-ID. Protocol v2 requires LE Secure Connections with MITM protection and
-bonding. The six-digit Bluetooth passkey is shown on the physical terminal only
-while its physical claim window is open. During first claim, the same passkey
-is used by the app to create the one-time claim proof; the desktop then derives
-a 32-byte owner credential and does not reuse the six-digit value for returning
-authentication.
+ID. Names do not change when ownership or occupancy changes. Custom names retain
+that hardware suffix as `[name] [XXXX]`. Protocol v2 uses LE Secure Connections
+Just Works with bonding and encrypted GATT reads/writes, without an OS passkey.
+The six-digit code shown during physical claim mode is entered only in Hallzee
+to create the one-time claim proof and derive a 32-byte owner credential.
+Returning authentication uses that credential, never the six-digit code.
+
+Just Works encrypts the link but does not authenticate it against an active
+man-in-the-middle during pairing; see the [Bluetooth SIG security specification](https://www.bluetooth.com/wp-content/uploads/Files/Specification/HTML/Core_v6.3/out/en/host/security-manager-specification.html).
+The existing v2 six-digit HMAC/HKDF claim is not a password-authenticated key
+exchange (PAKE). An active intermediary that captures a claim or authentication
+transcript on an intercepted link can try the finite code space offline and
+derive the owner key. This also matters when replacing a lost BLE bond. Physical
+claim mode and retry limits do not remove that risk. This changes the initial-claim
+security guarantee from the former MITM-protected BLE design; it does not provide
+equivalent MITM protection through the app code. Saved-owner challenge-response
+and command authorization remain enforced.
+
+Native ownership discovery uses manufacturer company `0xFFFF` with six payload
+bytes: ASCII `H`, ASCII `Z`, version byte `0x01`, flags (bit 0 = claimed), suffix high byte,
+and suffix low byte. The name is carried separately in the scan response. This
+is an unauthenticated hint: a saved exact transport-ID/full-terminal-ID/key match
+is needed to label **Currently Paired**, and HELLO/AUTH remain authoritative.
+Web Bluetooth cannot inspect every ungranted chooser device; it checks identity
+after explicit selection and labels only real saved/selected devices.
 
 | Role | UUID |
 | --- | --- |
@@ -19,8 +38,13 @@ authentication.
 
 The client enables notifications before sending commands. Commands and messages
 remain UTF-8, newline-delimited text. Both physical clients divide writes into
-20-byte chunks and use acknowledged writes for the encrypted/authenticated RX
+20-byte chunks and use acknowledged writes for the encrypted RX
 characteristic. The firmware buffers fragments until a newline arrives.
+On the supported ESP32 Bluedroid transport, TX reads remain empty and exist only
+to establish link encryption; notifications target the admitted connection.
+Firmware clears application authentication and partial frames on every link
+change, including a disconnect/reconnect occurring between main-loop polls,
+before allowing output on the new connection.
 
 ## Normal incremental session
 
@@ -50,8 +74,8 @@ The client must not send application commands until `AUTH_OK`. An unclaimed
 terminal requires the physical claim flow (`CLAIM` followed by
 `CLAIM_COMMIT`) before it can be used. The physical passkey is valid only
 while the terminal is unclaimed, unoccupied, and inside its physical claim
-window. A terminal reporting `IN_USE` rejects the connection before auth and
-the client must show it as unavailable. A claimed terminal rejects a different
+window. `IN_USE` prevents a new claim but still permits the saved owner to
+authenticate and check in active passes. A claimed terminal rejects a different
 client installation, and the terminal disconnects an additional BLE central
 while another central is active. The client cursor is the largest trip ID
 durably stored in SQLite. A normal sync therefore transfers only newer records
@@ -179,14 +203,16 @@ The desktop must still de-duplicate by trip ID. A restored or replaced client
 database should run a full recovery once before returning to cursor mode.
 
 On disconnect, both sides clear partial session state. The kiosk resumes BLE
-advertising; Find terminal discards any stale Windows GATT object before its
-five-second discovery attempt. If a terminal is replaced or factory-reset and
+advertising; discovery preserves an existing authenticated connection. A new
+connection attempt discards stale GATT state before opening the selected terminal. If a terminal is replaced or factory-reset and
 trip IDs restart, perform a full recovery into a new database rather than
 assuming the old cursor belongs to the new device.
 
-An unclaimed terminal removes stale ESP32 bond records at startup and whenever
-physical pairing mode begins. This ensures the operating system negotiates the
-currently displayed passkey instead of reusing a bond from an earlier claim.
+Normal startup, disconnect, and opening an application pairing-code window
+preserve OS encryption bonds, including a bond created by a discovery probe.
+Only explicit owner reset/release or BT REPAIR removes terminal-side bonds.
+This prevents a newly displayed application code from invalidating the browser’s
+existing encrypted connection. Application ownership still requires CLAIM/AUTH.
 
 
 ## Firmware update protocol (schema 1)
@@ -248,7 +274,7 @@ format, key management, bootstrap migration, and outstanding physical tests.
 ## Web adapter conformance
 
 The development browser adapter uses the existing v2 UUIDs and protocol.
-It reads TX using the firmware's encrypted MITM read permission before subscribing
+It reads TX using the firmware's encrypted read permission before subscribing
 or sending HELLO, allowing up to 60 seconds for OS pairing. The returned value
 is discarded before notification listeners attach. The application authentication
 timeout therefore starts after the encrypted link is ready. It subscribes to TX
@@ -270,8 +296,8 @@ against the browser's local components encoded the same way. See
 
 Updated firmware supports holding `*` alone for five seconds while owned and idle
 (outside clock setup/touch mode). It waits up to five seconds for disconnection,
-clears OS bonds, and displays a fresh code for two minutes. This does not enable
-CLAIM mode or alter the saved owner key. Clients reconnect using AUTH, not CLAIM;
-enter the displayed code in the OS prompt only. Completion requires successful
-owner authentication; expiry disconnects the unauthenticated client and rotates
-the BLE passkey. The `*`+`#` ownership-reset gesture remains separate.
+clears OS bonds, and displays reconnect instructions for two minutes, without
+a code. This does not enable CLAIM mode or alter the saved owner key. Clients
+reconnect using AUTH, not CLAIM, after Just Works bonding. Completion requires
+successful owner authentication; expiry disconnects the unauthenticated client.
+The `*`+`#` ownership-reset gesture remains separate.

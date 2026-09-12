@@ -157,7 +157,7 @@ public static partial class TerminalIdentityProtocol {
     var normalized = pairingPasskey.Trim();
     if (normalized.Length != PairingPasskeyLength ||
         normalized.Any(character => character < '0' || character > '9')) {
-      throw new FormatException($"Bluetooth passkey must contain {PairingPasskeyLength} digits.");
+      throw new FormatException($"Pairing code must contain {PairingPasskeyLength} digits.");
     }
     return normalized;
   }

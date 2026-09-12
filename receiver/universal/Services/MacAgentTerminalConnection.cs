@@ -87,7 +87,6 @@ public class MacAgentTerminalConnection : ITerminalConnection, ITerminalBinaryCo
         finally
         {
             if (ReferenceEquals(discoveryTcs, discoveryAttempt)) discoveryTcs = null;
-            SendCommand("Disconnect", null);
         }
     }
 
@@ -99,7 +98,6 @@ public class MacAgentTerminalConnection : ITerminalConnection, ITerminalBinaryCo
         await EnsureAgentRunning();
         if (agentInput == null) throw new InvalidOperationException("The macOS Bluetooth helper is unavailable.");
 
-        if (action == "Send") Console.WriteLine($"[PC -> MAC -> ESP32] {text}");
         var requestId = Guid.NewGuid().ToString("N");
         var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         pendingWrites[requestId] = completion;
@@ -242,13 +240,20 @@ public class MacAgentTerminalConnection : ITerminalConnection, ITerminalBinaryCo
                     case "Discovered":
                         var id = data.GetProperty("Id").GetString();
                         var name = data.GetProperty("Name").GetString();
-                        var inUse = data.TryGetProperty("IsInUse", out var inUseValue) && inUseValue.GetBoolean();
+                        bool? isClaimed = data.TryGetProperty("IsClaimed", out var claimValue) &&
+                            claimValue.ValueKind is JsonValueKind.True or JsonValueKind.False
+                            ? claimValue.GetBoolean() : null;
+                        var suffix = data.TryGetProperty("TerminalSuffix", out var suffixValue) &&
+                            suffixValue.ValueKind == JsonValueKind.String ? suffixValue.GetString() : null;
                         var rssi = data.TryGetProperty("Rssi", out var rssiValue) && rssiValue.TryGetInt32(out var parsedRssi)
                             ? parsedRssi
                             : (int?)null;
                         if (id != null) {
+                            var previous = discoveredDevices.Find(device => device.Id == id);
                             discoveredDevices.RemoveAll(device => device.Id == id);
-                            discoveredDevices.Add(new TerminalDevice(id, name ?? "Hallzee", false, inUse, rssi));
+                            discoveredDevices.Add(new TerminalDevice(id, name ?? "Hallzee", false, Rssi: rssi,
+                                IsClaimed: isClaimed ?? previous?.IsClaimed,
+                                TerminalSuffix: suffix ?? previous?.TerminalSuffix));
                         }
                         break;
                     case "DiscoverComplete":
@@ -261,7 +266,6 @@ public class MacAgentTerminalConnection : ITerminalConnection, ITerminalBinaryCo
                         var text = data.GetProperty("Text").GetString();
                         if (text != null) 
                         {
-                            Console.WriteLine($"[ESP32 -> MAC -> PC] {text.Replace("\n", "\\n")}");
                             TextReceived?.Invoke(this, text);
                         }
                         break;
@@ -322,7 +326,7 @@ public class MacAgentTerminalConnection : ITerminalConnection, ITerminalBinaryCo
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Failed to parse agent event: {rawJson}. Exception: {ex.Message}");
+            Console.WriteLine($"Failed to parse Bluetooth helper event ({ex.GetType().Name}).");
         }
     }
 }

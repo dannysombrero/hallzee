@@ -49,10 +49,14 @@ reason(
   "Bluetooth authentication incomplete",
   "The operating system could not complete Bluetooth authentication. For a saved terminal with updated firmware, hold * alone for five seconds while idle to show BT REPAIR. Then select the saved terminal in Hallzee. Updated firmware reconnects without an OS passkey. Keep Hallzee site data and ownership.",
 );
+const busyMessages = ["Connection already in progress.", "GATT operation already in progress."];
+export function isBluetoothBusy(error: unknown): boolean {
+  return error instanceof Error && error.name === "NetworkError" && busyMessages.includes(error.message);
+}
 reason(
-  ["Connection already in progress.", "GATT operation already in progress."],
+  busyMessages,
   "Bluetooth operation already in progress",
-  "Close other apps or tabs connecting to the terminal, wait for their connection attempt to finish, then retry.",
+  "Chrome or the operating system is still finishing a Bluetooth operation. This can happen with only this Hallzee tab open. Wait briefly, then retry. If it persists, close and reopen Hallzee; keep its site data and saved ownership.",
   true,
 );
 reason(

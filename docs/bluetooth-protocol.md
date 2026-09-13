@@ -28,7 +28,16 @@ and suffix low byte. The name is carried separately in the scan response. This
 is an unauthenticated hint: a saved exact transport-ID/full-terminal-ID/key match
 is needed to label **Currently Paired**, and HELLO/AUTH remain authoritative.
 Web Bluetooth cannot inspect every ungranted chooser device; it checks identity
-after explicit selection and labels only real saved/selected devices.
+after explicit selection and labels only real saved/selected devices. Saved web
+rows show **Status unknown** until the live identity check; a saved credential
+or Chrome's chooser badge alone cannot confirm current ownership.
+
+Web transport deadlines do not cancel native browser promises. GATT operations
+remain serialized until those promises settle, including late-connect cleanup,
+even after cancellation or disconnect. New connects wait up to ten seconds for
+old work to drain, then allow an 800 ms disconnect cooldown. Briefly busy setup
+operations retry at most twice, 800 ms apart; command writes are not replayed.
+An unsettled old operation pauses retries with a specific diagnostic.
 
 | Role | UUID |
 | --- | --- |

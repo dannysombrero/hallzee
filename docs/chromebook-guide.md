@@ -45,10 +45,14 @@ Hallzee shows **Currently Paired**, **Not Paired**, or **Paired to other device*
 when ownership is known. These describe Hallzee ownership for this app/profile,
 not OS Bluetooth pairing or whether a student is out. The browser owns its
 nearby-device chooser and does not expose every nearby terminal to the page.
-A newly selected terminal's ownership must be checked before Hallzee can label
-it; a saved row alone does not prove that the terminal is currently nearby.
+Until Hallzee checks the live terminal, its row shows **Status unknown**, including
+saved pairings; a saved row alone does not prove the terminal is nearby or still
+has the same owner. Select a saved row to reconnect without re-entering a code.
 Bluetooth names remain stable, without Hallzee-added `Paired` or `In Use` text.
-The browser may show its own OS pairing indicator, which Hallzee cannot remove.
+Chrome's chooser can add **Paired** because this site was previously allowed to
+access the device, even after a failed connection. Hallzee cannot remove that
+browser badge; it does not confirm Hallzee ownership, a connection, or a working
+OS bond. See the [Chromium permission check](https://chromium.googlesource.com/chromium/src/+/main/content/browser/bluetooth/web_bluetooth_service_impl.cc#493).
 See [Chrome's device chooser](https://developer.chrome.com/docs/capabilities/bluetooth)
 and [previously granted devices](https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-getdevices).
 

@@ -275,7 +275,8 @@ test("saved owner can use the chooser when remembered handles are unavailable wi
     (window as any).terminalCommands = [];
   });
   await page.getByRole("button", { name: "Connect terminal", exact: true }).click();
-  await expect(page.getByText("Currently Paired", { exact: true })).toBeVisible();
+  await expect(page.getByText("Status unknown", { exact: true })).toBeVisible();
+  await expect(page.getByText("Currently Paired", { exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Reconnect Test terminal", exact: true }).click();
   await expect(page.getByText("Pass available", { exact: true })).toBeVisible();
   const commands = await page.evaluate(() => (window as any).terminalCommands as string[]);
@@ -297,10 +298,49 @@ test("a factory-reset terminal overrides the saved pairing status and asks for a
     (window as any).terminalCommands = [];
   });
   await page.getByRole("button", { name: "Connect terminal", exact: true }).click();
+  await expect(page.getByText("Status unknown", { exact: true })).toBeVisible();
+  await expect(page.getByText("Currently Paired", { exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Reconnect Test terminal", exact: true }).click();
   await expect(page.getByLabel("Physical pairing code")).toBeVisible();
   await page.getByRole("button", { name: "Back", exact: true }).click();
   await expect(page.getByText("Not Paired", { exact: true })).toBeVisible();
   await expect(page.getByText("Currently Paired", { exact: true })).toHaveCount(0);
   expect(await page.evaluate(() => (window as any).terminalCommands.every((c: string) => c.startsWith("HELLO,")))).toBe(true);
+});
+
+test("closing and reopening discovery waits for Chrome's cancelled read in the same tab", async ({ page }) => {
+  await installBluetooth(page);
+  await page.goto("/");
+  await page.evaluate(() => {
+    (window as any).simHoldNextRead = true;
+    (window as any).simDisconnectDelay = 500;
+  });
+  await page.getByRole("button", { name: "Connect terminal", exact: true }).click();
+  await page.getByRole("button", { name: "Find nearby terminals", exact: true }).click();
+  await expect.poll(() => page.evaluate(() => (window as any).fakeReadPending)).toBe(true);
+  await page.getByRole("button", { name: "Close dialog", exact: true }).click();
+  await page.getByRole("button", { name: "Connect terminal", exact: true }).click();
+  await page.getByRole("button", { name: "Find nearby terminals", exact: true }).click();
+  // Leave the native read outstanding past the normal reconnect cooldown.
+  await page.waitForTimeout(1000);
+  expect(await page.evaluate(() => (window as any).fakeConnectCalls)).toBe(1);
+  await expect(page.getByLabel("Physical pairing code")).toHaveCount(0);
+  await page.evaluate(() => (window as any).finishFakeRead());
+  await expect(page.getByLabel("Physical pairing code")).toBeVisible();
+  expect(await page.evaluate(() => (window as any).fakeConnectCalls)).toBe(2);
+  await page.getByLabel("Physical pairing code").fill("807481");
+  await page.getByRole("button", { name: "Pair & Connect", exact: true }).click();
+  await expect(page.getByText("Pass available", { exact: true })).toBeVisible();
+  await expect(page.getByRole("alert")).toHaveCount(0);
+});
+
+test("a briefly busy encrypted read recovers without asking the user to close other tabs", async ({ page }) => {
+  await installBluetooth(page);
+  await page.goto("/");
+  await page.evaluate(() => { (window as any).simBusyReads = 1; });
+  await page.getByRole("button", { name: "Connect terminal", exact: true }).click();
+  await page.getByRole("button", { name: "Find nearby terminals", exact: true }).click();
+  await expect(page.getByLabel("Physical pairing code")).toBeVisible();
+  expect(await page.evaluate(() => (window as any).fakeConnectCalls)).toBe(1);
+  await expect(page.getByRole("alert")).toHaveCount(0);
 });

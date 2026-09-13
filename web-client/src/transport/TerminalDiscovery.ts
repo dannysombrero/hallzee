@@ -6,5 +6,6 @@ export interface DiscoveredTerminal {
   terminalId?: string;
   name: string;
   pairingStatus: PairingStatus;
+  hasSavedCredential?: boolean;
   inUse?: boolean;
 }

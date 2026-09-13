@@ -79,7 +79,7 @@ describe("runtime teardown and storage lifecycle", () => {
     await credentials.confirm({ terminalId, customName: "Test terminal", protocolVersion: 2,
       deviceIdHint: "test-device", maxIdLength: 10 });
     expect(await controller.knownTerminals()).toEqual([{
-      device: undefined, terminalId, name: "Test terminal", pairingStatus: "Currently Paired",
+      device: undefined, terminalId, name: "Test terminal", pairingStatus: "Status unknown", hasSavedCredential: true,
     }]);
     expect(port.sent).toEqual([]);
     db.close(); controller.stop();

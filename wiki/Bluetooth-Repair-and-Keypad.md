@@ -48,9 +48,9 @@ Hallzee ownership and Bluetooth bonds; a regular flash is not a bond reset.
 
 A `pairing / NetworkError` with **Bluetooth authentication incomplete** means
 the protected Bluetooth read failed before HELLO or Hallzee code verification.
-A stale OS bond is one possible cause, not a confirmed diagnosis. Before that
-read succeeds, **Currently Paired** can reflect a browser-stored credential
-without confirming the terminal's current ownership. If the terminal displays
+A stale OS bond is one possible cause, not a confirmed diagnosis. The web client
+now shows **Status unknown** for saved rows until it can check the live terminal;
+a saved credential alone does not confirm current ownership. If the terminal displays
 a six-digit pairing code, it is in the unclaimed pairing flow; do not infer that
 BT REPAIR is available just from the browser's saved label.
 
@@ -76,6 +76,38 @@ raw Bluetooth logs. This retry needs the Chromebook; a Mac is sufficient to
 flash and run shared software checks but cannot verify ChromeOS behavior. A
 Windows PC is not required for this Chromebook retry. Windows BLE authentication,
 GATT notifications, and reconnect require a Windows BLE PC and remain unverified.
+
+## Operation already in progress with only one tab
+
+This error does not prove another app or tab is connected. A Hallzee timeout or
+cancelled discovery can finish before Chrome's native Bluetooth operation does.
+The web transport now waits for that operation to settle before reconnecting,
+including any late connection cleanup. It gives the OS a short disconnect
+cooldown and retries briefly busy setup operations on the same connection.
+Command writes are never automatically replayed. If Chrome does not settle the
+old operation within ten seconds of a new attempt, Hallzee pauses attempts and
+explains the pending operation instead of starting overlapping work.
+
+Install/apply the updated **web client** for this fix. No additional firmware
+flash is needed if the current no-passkey firmware was already installed.
+Retry **Find nearby terminals**. Pairing mode affects the later Hallzee code
+check; switching it on/off cannot resolve a pending native Bluetooth operation.
+A full flash or repeated Chromebook restarts are not a fix for this app race.
+Physical confirmation of the reported Chromebook failure remains pending.
+
+Chrome's chooser can display `Hallzee-XXXX — Paired` when the site already has
+permission to access that device, even if the connection then fails. This is
+Chrome's own badge, not part of the advertised name, a live-connection indicator,
+or proof of Hallzee ownership or a working OS bond. Hallzee cannot suppress it.
+See the [Chromium permission check](https://chromium.googlesource.com/chromium/src/+/main/content/browser/bluetooth/web_bluetooth_service_impl.cc#493)
+and [chooser display inputs](https://chromium.googlesource.com/chromium/src/+/main/content/browser/bluetooth/bluetooth_device_chooser_controller.cc#338).
+Do not clear site data to remove the badge; that would delete the owner key and
+classroom records.
+
+A Mac is sufficient for automated regression checks, but cannot verify this
+ChromeOS failure. Retesting this issue requires the Chromebook and terminal;
+a Windows PC is not required. Windows BLE authentication, notifications and
+reconnect remain unverified and require separate Windows BLE hardware testing.
 
 ## Unexpected digits on the physical keypad
 

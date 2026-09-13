@@ -5,6 +5,7 @@ export async function installBluetooth(page: Page) {
     const root = window as any;
     root.terminalCommands = [];
     root.fakePasses = [];
+    root.fakeConnectCalls = 0;
     const encoder = new TextEncoder(),
       terminal = "HZ-A1B2C3D4E5F6",
       nonce = "00112233445566778899AABBCCDDEEFF";
@@ -14,6 +15,17 @@ export async function installBluetooth(page: Page) {
     class Characteristic extends EventTarget {
       properties = { write: true, read: true };
       async readValue() {
+        if (root.simHoldNextRead) {
+          root.simHoldNextRead = false;
+          root.fakeReadPending = true;
+          await new Promise<void>((resolve) => {
+            root.finishFakeRead = () => { root.fakeReadPending = false; resolve(); };
+          });
+        }
+        if (root.simBusyReads > 0) {
+          root.simBusyReads--;
+          throw new DOMException("GATT operation already in progress.", "NetworkError");
+        }
         if (root.simulatedPairingFailure)
           throw new DOMException(
             "synthetic private diagnostic payload",
@@ -157,11 +169,17 @@ export async function installBluetooth(page: Page) {
       gatt = {
         connected: false,
         connect: async () => {
+          root.fakeConnectCalls++;
+          if (root.fakeReadPending || Date.now() < root.fakeDisconnectUntil)
+            throw new DOMException("Connection already in progress.", "NetworkError");
           this.gatt.connected = true;
           return this.gatt;
         },
         disconnect: () => {
           this.gatt.connected = false;
+          root.fakeDisconnectUntil = Date.now() + (root.simDisconnectDelay ?? 0);
+          buffer = "";
+          root.notificationsStarted = false;
         },
         getPrimaryService: async () => ({
           getCharacteristic: async (uuid: string) => (uuid.startsWith("44a359f3") ? tx : rx),

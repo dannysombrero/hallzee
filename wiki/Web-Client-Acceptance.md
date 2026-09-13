@@ -140,7 +140,7 @@ or pairing mode. Web reconnect uses a granted device handle when available;
 otherwise a user-clicked chooser selects the same saved terminal without a new
 claim. Known ownership appears in Hallzee, and Bluetooth names remain stable.
 The browser owns its nearby chooser; the app cannot pre-label unknown nearby
-terminals or remove browser-generated OS pairing indicators.
+terminals or remove browser-generated pairing/permission indicators.
 
 Firmware installation is required. The old firmware's OS passkey requirement
 cannot be changed by downloading a new web app alone. The security tradeoff is
@@ -218,3 +218,39 @@ BT REPAIR. This follow-up changes documentation only; no hardware was flashed
 or Bluetooth connection tested. Mac supports source review/software checks;
 ChromeOS recovery requires the Chromebook, not a Windows PC. Windows BLE
 pairing, encrypted GATT notifications, and reconnect remain unverified.
+
+### Single-tab pending Bluetooth operation (2026-09-12)
+
+The user reports the same failure in and out of terminal pairing mode after
+restarting the Chromebook, now with **Bluetooth operation already in progress**.
+They confirmed **Paired** appears in Chrome's chooser. Chromium derives that
+badge from remembered site permission; it does not prove Hallzee ownership,
+a live connection, or a working OS bond. Earlier OS-badge wording in the guides
+has been corrected.
+
+Source review found that Hallzee's timeout/cancellation wrappers could complete
+while a native connect/read/write remained pending. The transport now retains
+raw operation serialization across disconnects, performs late-connect cleanup
+before replacement connections, observes a disconnect cooldown, and retries
+briefly busy setup operations. Pending native work that does not settle pauses
+new attempts with a specific message. Failed writes are not replayed. Unexpected
+link loss remains a disconnect error rather than silent user cancellation.
+Saved rows show **Status unknown** before live inspection, retaining the saved
+Reconnect action without claiming that a cached credential proves ownership.
+
+Validation: **87 web unit tests and 14 Chromium browser scenarios**, type checking,
+lint and production build pass. New unit cases cover cancelled/timed-out native
+connects, reads and writes, late completion before reconnect, a never-settling
+read, link loss, bounded busy-read retries, and non-replayed writes. Browser
+cases exercise closing/reopening discovery with a pending native read and
+recovering from a briefly busy encrypted read. Existing saved-owner and reset
+scenarios verify unknown status before inspection. These use simulated GATT,
+not ChromeOS's native Bluetooth stack. Repository hygiene and diff sanitization
+checks pass. No firmware was changed or flashed, and no client was deployed.
+
+Install/apply the new web client, then retry selection on the Chromebook with
+the already updated terminal firmware. A Mac is sufficient for shared automated
+checks but cannot validate this ChromeOS failure. No Windows PC is required for
+this Chromebook check; Windows BLE authentication, notifications and reconnect
+remain unverified and need separate Windows BLE hardware testing. The physical
+cause of the originally reported authentication failure remains unconfirmed.

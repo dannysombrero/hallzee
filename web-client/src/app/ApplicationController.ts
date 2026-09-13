@@ -427,7 +427,7 @@ export class ApplicationController {
       const saved: DiscoveredTerminal = {
         device: row?.device, terminalId: terminal.terminalId,
         name: terminal.customName || `Hallzee-${terminal.terminalId.slice(-4)}`,
-        pairingStatus: "Currently Paired",
+        pairingStatus: "Status unknown", hasSavedCredential: true,
       };
       if (row) Object.assign(row, saved);
       else rows.unshift(saved);

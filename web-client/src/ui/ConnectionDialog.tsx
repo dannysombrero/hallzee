@@ -143,7 +143,7 @@ export function ConnectionDialog({ onClose }: { onClose: () => void }) {
                 className="terminal-picker-item"
                 disabled={busy}
                 onClick={() => void select(device)}
-                aria-label={`${device.pairingStatus === "Currently Paired" ? "Reconnect" : "Select"} ${device.name}`}
+                aria-label={`${device.hasSavedCredential || device.pairingStatus === "Currently Paired" ? "Reconnect" : "Select"} ${device.name}`}
               >
                 <span className="terminal-picker-item-icon"><Radio size={22} /></span>
                 <div className="terminal-picker-item-info">
@@ -156,7 +156,7 @@ export function ConnectionDialog({ onClose }: { onClose: () => void }) {
               </button>
             ))}
           </div>
-          <p>Browsers list only terminals you have allowed. Pairing status is checked when you select one; a saved pairing is checked again before reconnecting.</p>
+          <p>Browsers list only terminals you have allowed. Status unknown means Hallzee has not checked the terminal yet, even if this browser has a saved pairing. Select it to check and reconnect.</p>
           <div className="modal-actions-row">
             <button type="button" className="hallzee-pill-btn" disabled={busy} onClick={() => void select()}>
               {busy ? "Connecting…" : "Find nearby terminals"}
@@ -171,6 +171,7 @@ export function ConnectionDialog({ onClose }: { onClose: () => void }) {
         <div className="help-disclosure-content">
           <p><strong>Reconnect:</strong> Hallzee tries your saved terminal when this app reopens and after a dropped connection. If your browser needs you to choose it again, click the saved terminal or Find nearby terminals. No new pairing code or pairing mode is needed.</p>
           <p><strong>Bluetooth prompts:</strong> Updated firmware uses a code only in Hallzee. The browser or operating system may still ask you to allow Bluetooth access. Firmware that asks for a separate Bluetooth passkey needs updating.</p>
+          <p><strong>Browser’s Paired badge:</strong> Chrome can show “Paired” when this site already has permission to access the terminal, even after a failed connection. Hallzee cannot hide that browser badge; it does not confirm ownership or a connection.</p>
           <p><strong>Lost Bluetooth pairing (BT REPAIR):</strong> With updated firmware and no active pass, hold * alone for five seconds to repair a stale Bluetooth bond, then reconnect. Keep Hallzee site data and ownership.</p>
           <p><strong>Ownership & Release:</strong> Another app or browser profile counts as another device. Clearing Bluetooth permission does not release ownership. Terminal names stay the same when paired.</p>
         </div>

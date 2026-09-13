@@ -1,6 +1,6 @@
 import { errorText } from "../../src/app/errors";
 import { bluetoothError } from "../../src/transport/BluetoothErrors";
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { WebBluetoothTerminalConnection } from "../../src/transport/WebBluetoothTerminalConnection";
 import { TX_UUID, SERVICE_UUID } from "../../src/protocol/constants";
 import { ActivePassStore } from "../../src/sync/ActivePassStore";
@@ -78,11 +78,127 @@ describe("browser GATT adapter", () => {
     );
     const control = new AbortController();
     const result = port.connect(h.device, control.signal);
+    await vi.waitFor(() => expect(h.gatt.connect).toHaveBeenCalledTimes(2));
     control.abort();
     await expect(result).rejects.toBeDefined();
     resolve();
     await Promise.resolve();
     expect(h.rx.writeValueWithResponse).not.toHaveBeenCalled();
+  });
+});
+
+describe("native Bluetooth operations outliving their caller", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  for (const stage of ["connect", "read", "write"] as const) {
+    for (const interrupt of ["abort", "timeout"] as const) {
+      it(`waits for a pending ${stage} after ${interrupt} before reconnecting the same device`, async () => {
+        const h = hardware(), port = new WebBluetoothTerminalConnection();
+        const control = new AbortController();
+        let finish!: () => void;
+        if (stage === "connect") h.gatt.connect.mockImplementationOnce(() =>
+          new Promise((resolve) => { finish = () => resolve(h.gatt); }));
+        if (stage === "read") h.tx.readValue.mockImplementationOnce(() =>
+          new Promise((resolve) => { finish = () => resolve(new DataView(new ArrayBuffer(0))); }));
+        if (stage === "write") {
+          await port.connect(h.device);
+          h.rx.writeValueWithResponse.mockImplementationOnce(() =>
+            new Promise((resolve) => { finish = () => resolve(); }));
+        }
+        const first = (stage === "write"
+          ? port.sendLine("X".repeat(45), control.signal)
+          : port.connect(h.device, control.signal)).catch((error) => error);
+        await vi.advanceTimersByTimeAsync(0);
+        expect(finish).toBeTypeOf("function");
+        if (interrupt === "abort") control.abort();
+        else await vi.advanceTimersByTimeAsync(stage === "read" ? 60000 : stage === "connect" ? 15000 : 10000);
+        expect(await first).toMatchObject({ code: interrupt === "abort" ? "CANCELLED"
+          : `BLUETOOTH_${stage === "read" ? "PAIRING" : stage.toUpperCase()}_TIMEOUTERROR` });
+
+        const second = port.connect(h.device);
+        await vi.advanceTimersByTimeAsync(1000);
+        expect(h.gatt.connect).toHaveBeenCalledTimes(1);
+        finish();
+        await vi.advanceTimersByTimeAsync(800);
+        await second;
+        expect(h.gatt.connect).toHaveBeenCalledTimes(2);
+        // A cancelled connect must close its late native result before the
+        // replacement starts; a cancelled write must drop its remaining chunks.
+        const lastDisconnect = h.gatt.disconnect.mock.invocationCallOrder.at(-1)!;
+        expect(lastDisconnect).toBeLessThan(h.gatt.connect.mock.invocationCallOrder[1]);
+        await port.sendLine("NEW");
+        expect(new TextDecoder().decode(Uint8Array.from(h.chunks.flatMap((c) => [...c])))).toBe("NEW\n");
+        port.disconnect();
+      });
+    }
+  }
+
+  it("pauses new attempts when Chrome never settles a cancelled native operation", async () => {
+    const h = hardware(), port = new WebBluetoothTerminalConnection();
+    let finish!: () => void;
+    h.tx.readValue.mockImplementationOnce(() => new Promise((resolve) => {
+      finish = () => resolve(new DataView(new ArrayBuffer(0)));
+    }));
+    const control = new AbortController();
+    const first = port.connect(h.device, control.signal).catch((error) => error);
+    await vi.advanceTimersByTimeAsync(0);
+    control.abort();
+    await first;
+    const second = port.connect(h.device).catch((error) => error);
+    await vi.advanceTimersByTimeAsync(10000);
+    expect(await second).toMatchObject({ code: "BLUETOOTH_OPERATION_PENDING", retryable: false });
+    expect(h.gatt.connect).toHaveBeenCalledTimes(1);
+    finish();
+    await vi.advanceTimersByTimeAsync(0);
+    await port.connect(h.device);
+    expect(h.gatt.connect).toHaveBeenCalledTimes(2);
+    port.disconnect();
+  });
+
+  it("reports a dropped link during a pending read as a disconnect, not user cancellation", async () => {
+    const h = hardware(), port = new WebBluetoothTerminalConnection();
+    let finish!: () => void;
+    h.tx.readValue.mockImplementationOnce(() => new Promise((resolve) => {
+      finish = () => resolve(new DataView(new ArrayBuffer(0)));
+    }));
+    const connecting = port.connect(h.device).catch((error) => error);
+    await vi.advanceTimersByTimeAsync(0);
+    h.device.dispatchEvent(new Event("gattserverdisconnected"));
+    expect(await connecting).toMatchObject({ code: "DISCONNECTED", retryable: true });
+    finish();
+    await vi.advanceTimersByTimeAsync(0);
+  });
+
+  it("retries a busy encrypted read on the existing connection before sending HELLO", async () => {
+    const h = hardware(), port = new WebBluetoothTerminalConnection();
+    h.tx.readValue.mockRejectedValueOnce(new DOMException("GATT operation already in progress.", "NetworkError"));
+    const connecting = port.connect(h.device);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(h.rx.writeValueWithResponse).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(800);
+    await connecting;
+    expect(h.gatt.connect).toHaveBeenCalledTimes(1);
+    expect(h.tx.readValue).toHaveBeenCalledTimes(2);
+    await port.sendLine("HELLO");
+    port.disconnect();
+  });
+
+  it("bounds setup retries and never replays a busy command write", async () => {
+    const h = hardware(), port = new WebBluetoothTerminalConnection();
+    const busy = new DOMException("GATT operation already in progress.", "NetworkError");
+    h.tx.readValue.mockRejectedValue(busy);
+    const connecting = port.connect(h.device).catch((error) => error);
+    await vi.advanceTimersByTimeAsync(1600);
+    expect(await connecting).toMatchObject({ code: "BLUETOOTH_PAIRING_NETWORKERROR" });
+    expect(h.tx.readValue).toHaveBeenCalledTimes(3);
+    h.tx.readValue.mockResolvedValue(new DataView(new ArrayBuffer(0)));
+    const second = port.connect(h.device);
+    await vi.advanceTimersByTimeAsync(800);
+    await second;
+    h.rx.writeValueWithResponse.mockRejectedValueOnce(busy);
+    await expect(port.sendLine("HELLO")).rejects.toMatchObject({ code: "BLUETOOTH_WRITE_NETWORKERROR" });
+    expect(h.rx.writeValueWithResponse).toHaveBeenCalledTimes(1);
   });
 });
 describe("occupancy and transfer bounds", () => {
@@ -250,4 +366,10 @@ it("explains saved-owner bond recovery for unsupported encrypted reads without s
   expect(shown.message).toContain("Do not reset ownership");
   expect(shown.message).not.toContain("synthetic private");
   expect(shown.retryable).toBe(false);
+});
+
+it("explains that a busy Bluetooth operation can come from this tab", () => {
+  const shown = bluetoothError(new DOMException("GATT operation already in progress.", "NetworkError"), "pairing");
+  expect(shown.message).toContain("only this Hallzee tab open");
+  expect(shown.message).not.toContain("Close other apps or tabs");
 });

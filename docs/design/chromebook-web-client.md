@@ -407,7 +407,13 @@ read TX with `ESP_GATT_PERM_READ_ENCRYPTED`, allowing up to 60 seconds for OS
 pairing permission/encryption; discard its value before attaching notification
 listeners. Saved owners skip the code dialog and authenticate directly.
 Discovery/notification/write steps keep ten-second per-operation limits;
-automatic reconnect retains its overall 45-second budget.
+automatic reconnect retains its overall 45-second budget. Timeout/abort wrappers
+must not release the native GATT queue: pending operations and late-connect
+cleanup stay serialized across disconnects. A new connect waits at most ten
+seconds for the previous operation to settle, then observes an 800 ms disconnect
+cooldown. If the native operation stays pending, stop retries with an explicit
+message. Retry briefly busy setup operations at most twice, 800 ms apart, on the
+same connection when applicable; never replay command writes.
 
 Automatic web reconnect uses the same granted device handle or `getDevices()`
 when provided by the browser. It never opens a chooser. If permissions or a
@@ -415,8 +421,12 @@ remembered handle are unavailable, **Reconnect** invokes the chooser from a user
 click and the selected saved owner uses AUTH without physical pairing mode.
 The page cannot list or pre-label all unknown nearby chooser entries; show only
 real saved/selected terminals and known ownership, with no fabricated RSSI.
-The browser controls any OS **Paired** badge independently of Hallzee's stable
-name. See [Chrome's chooser rules](https://developer.chrome.com/docs/capabilities/bluetooth)
+Saved web rows initially show **Status unknown** until live inspection, with
+saved-credential presence tracked separately for the Reconnect action. Chrome
+controls the chooser's **Paired** badge independently of Hallzee's stable name;
+it can mean this site has permission, even after connection failure, rather than
+Hallzee ownership or a working OS bond. See the [Chromium permission check](https://chromium.googlesource.com/chromium/src/+/main/content/browser/bluetooth/web_bluetooth_service_impl.cc#493),
+[Chrome's chooser rules](https://developer.chrome.com/docs/capabilities/bluetooth)
 and the [granted-device API](https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetooth-getdevices).
 
 For a lost OS bond on an owned terminal, updated firmware adds **hold `*` alone

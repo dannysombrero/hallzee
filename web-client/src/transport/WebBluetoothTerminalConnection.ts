@@ -3,7 +3,7 @@ import { LineFramer, commandBytes } from "./LineFramer";
 import { SERVICE_UUID, TX_UUID, RX_UUID } from "../protocol/constants";
 import { Signal } from "../app/events";
 import { abortCheck, deadline, HallzeeError } from "../app/errors";
-import { bluetoothError, isBluetoothBusy, type BluetoothStage } from "./BluetoothErrors";
+import { bluetoothDisconnected, bluetoothError, isBluetoothBusy, type BluetoothStage } from "./BluetoothErrors";
 function connectionCheck(signal: AbortSignal) {
   if (signal.aborted && signal.reason instanceof HallzeeError) throw signal.reason;
   abortCheck(signal);
@@ -21,6 +21,7 @@ export class WebBluetoothTerminalConnection implements BluetoothPort {
   // A timeout/abort stops our caller, not necessarily Chrome's native operation.
   // Keep the raw operation in this queue until it settles, even across disconnects.
   private operations: Promise<void> = Promise.resolve();
+  private activeStage?: BluetoothStage;
   private reconnectAfter = 0;
   onLine = this.lines.subscribe;
   onDisconnect = this.dropped.subscribe;
@@ -47,8 +48,7 @@ export class WebBluetoothTerminalConnection implements BluetoothPort {
     }
   };
   private lost = () => {
-    this.connection.abort(new HallzeeError("DISCONNECTED",
-      "The terminal disconnected during a Bluetooth operation. Wait briefly, then reconnect in Hallzee.", true));
+    this.connection.abort(bluetoothDisconnected(this.activeStage));
     this.disconnect();
     this.dropped.emit();
   };
@@ -65,21 +65,27 @@ export class WebBluetoothTerminalConnection implements BluetoothPort {
     ms = 10000,
   ): Promise<T> {
     const operation = this.operations.then(async () => {
-      for (let attempt = 0; ; attempt++) {
-        valid();
-        try {
-          const value = await task();
+      valid();
+      this.activeStage = stage;
+      try {
+        for (let attempt = 0; ; attempt++) {
           valid();
-          return value;
-        } catch (error) {
-          valid();
-          // Only retry rejected setup operations. Never replay a command write:
-          // the terminal may already have received some of its bytes.
-          const retry = stage !== "write" && (isBluetoothBusy(error) ||
-            (stage === "connect" && bluetoothError(error, stage).retryable));
-          if (!retry || attempt >= 2) throw error;
-          await new Promise((resolve) => setTimeout(resolve, 800));
+          try {
+            const value = await task();
+            valid();
+            return value;
+          } catch (error) {
+            valid();
+            // Only retry rejected setup operations. Never replay a command write:
+            // the terminal may already have received some of its bytes.
+            const retry = stage !== "write" && (isBluetoothBusy(error) ||
+              (stage === "connect" && bluetoothError(error, stage).retryable));
+            if (!retry || attempt >= 2) throw error;
+            await new Promise((resolve) => setTimeout(resolve, 800));
+          }
         }
+      } finally {
+        this.activeStage = undefined;
       }
     });
     this.operations = operation.then(() => {}, () => {});

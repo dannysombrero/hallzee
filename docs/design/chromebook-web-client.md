@@ -405,7 +405,12 @@ OS. An identity probe may disconnect while the dialog is open; after entry,
 reconnect and start a fresh `HELLO` so its nonce remains valid. Before HELLO,
 read TX with `ESP_GATT_PERM_READ_ENCRYPTED`, allowing up to 60 seconds for OS
 pairing permission/encryption; discard its value before attaching notification
-listeners. Saved owners skip the code dialog and authenticate directly.
+listeners. Firmware uses `setForceAuthentication(false)` so the first protected
+access triggers security after discovery, rather than requesting authentication
+from the initial connect event. Encrypted permissions and bonding stay enabled.
+Saved owners skip the code dialog and authenticate directly. Link loss preserves
+the active operation stage in its error even if the disconnect event races a
+native rejection; arbitrary native messages remain excluded from diagnostics.
 Discovery/notification/write steps keep ten-second per-operation limits;
 automatic reconnect retains its overall 45-second budget. Timeout/abort wrappers
 must not release the native GATT queue: pending operations and late-connect

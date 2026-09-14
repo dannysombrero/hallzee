@@ -174,8 +174,14 @@ a browser-provided remembered device; otherwise click **Reconnect** and select
 the saved terminal. Hallzee shows **Status unknown** until it checks the live
 terminal, including for saved pairings. Chrome's own **Paired** chooser badge
 can mean prior site permission; it does not confirm a Hallzee connection.
-The web client waits for cancelled native Bluetooth work before reconnecting;
-installing this client fix does not require another firmware flash.
+The web client waits for cancelled native Bluetooth work before reconnecting.
+The Windows pre-code disconnect correction also needs current firmware: it
+starts security on protected access after discovery. Rebuild/flash with
+`bash scripts/flash-terminal-macos.sh --fast --display ili9341` for an already
+installed ILI9341 terminal, then apply the deployed web update. Mac can flash and
+run automated checks; a Windows BLE PC is required to verify Chrome/Edge security
+negotiation, code entry and reconnect. This Windows correction is not yet
+physically verified.
 Bluetooth names no longer include ownership/occupancy suffixes. Browser chooser
 rows and OS indicators are browser-controlled. See the [teacher guide](chromebook-guide.md#pair-and-reconnect)
 and [repair guide](bluetooth-repair-and-keypad.md) for details.

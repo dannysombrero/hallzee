@@ -88,8 +88,8 @@ Command writes are never automatically replayed. If Chrome does not settle the
 old operation within ten seconds of a new attempt, Hallzee pauses attempts and
 explains the pending operation instead of starting overlapping work.
 
-Install/apply the updated **web client** for this fix. No additional firmware
-flash is needed if the current no-passkey firmware was already installed.
+The September 12 pending-operation fix changes the **web client** only. The
+September 14 Windows pre-code disconnect correction below also changes firmware.
 Retry **Find nearby terminals**. Pairing mode affects the later Hallzee code
 check; switching it on/off cannot resolve a pending native Bluetooth operation.
 A full flash or repeated Chromebook restarts are not a fix for this app race.
@@ -108,6 +108,55 @@ A Mac is sufficient for automated regression checks, but cannot verify this
 ChromeOS failure. Retesting this issue requires the Chromebook and terminal;
 a Windows PC is not required. Windows BLE authentication, notifications and
 reconnect remain unverified and require separate Windows BLE hardware testing.
+
+## Windows Chrome/Edge disconnect before the code prompt
+
+On September 14, the user reported a disconnect before Hallzee's pairing-code
+prompt in both Windows Chrome and Edge, while the website worked in Mac Chrome.
+The older disconnect message omitted the active stage, so it cannot establish
+whether Windows failed during connection, discovery, the encrypted read, or
+notification setup. The physical failure cause is still unconfirmed.
+
+Firmware now defers security negotiation until protected characteristic access.
+The pinned ESP32 library otherwise requests security immediately on connection,
+which can overlap Windows service discovery. The web client already performs
+an encrypted TX read after discovery and before notifications/HELLO. This
+correction keeps encryption, bonding and the Hallzee owner proof enabled. The
+[ESP32 API contract](https://github.com/espressif/arduino-esp32/blob/3.3.11/libraries/BLE/src/BLESecurity.cpp#L217-L224)
+documents the on-demand behavior. Chromium also documents that macOS handles
+protected-access pairing transparently, while Windows requires an explicit
+pairing attempt after an authentication error; see [secure characteristics](https://chromium.googlesource.com/chromium/src/+/main/content/browser/bluetooth/README.md#secure-characteristics).
+That difference supports investigating initiation timing, but does not prove it
+caused this hardware failure. A new web diagnostic also preserves the exact
+stage, such as `connect / Disconnected` or `pairing / Disconnected`.
+
+For the next check:
+
+1. On the Mac, from the updated repository, run
+   `bash scripts/flash-terminal-macos.sh --fast --display ili9341` for the already
+   installed ILI9341 terminal. Wait for **Fast USB write verified**. No full flash,
+   ownership reset or data deletion is required by this firmware change.
+2. Deploy the updated web client, then **Check updates → Apply update** on Windows.
+3. For first pairing, use an unclaimed test terminal showing its six-digit code,
+   select it in Hallzee, and enter the code only when Hallzee asks. If the terminal
+   still belongs to the Mac, release it from that owning Hallzee profile before
+   testing a new Windows claim; merely disconnecting or forgetting OS Bluetooth
+   does not transfer ownership. For an existing Windows owner, reconnect from its
+   original browser profile without a code. Chrome and Edge have separate keys.
+4. If it still disconnects, record the new stage, Windows/browser versions and
+   whether the terminal shows a pairing screen or normal idle screen. Do not
+   share codes, owner credentials or raw Bluetooth logs.
+
+An initial **Unknown** name in the browser chooser and its later **Paired** badge
+are browser discovery/permission state, not Hallzee ownership. Firmware still
+advertises the stable name in its scan response; this change does not promise
+to replace an unknown chooser name before the browser obtains it.
+
+A Mac is sufficient to flash and run shared automated checks, but **is not
+sufficient to verify this Windows fix**. A Windows BLE PC is required for Chrome
+and Edge service discovery, protected-read security negotiation, notifications,
+first-claim code entry, bond reuse and reconnect. Windows success after this
+change remains unverified; Mac Chrome's reported success predates this change.
 
 ## Unexpected digits on the physical keypad
 

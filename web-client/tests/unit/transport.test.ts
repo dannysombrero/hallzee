@@ -165,10 +165,37 @@ describe("native Bluetooth operations outliving their caller", () => {
     const connecting = port.connect(h.device).catch((error) => error);
     await vi.advanceTimersByTimeAsync(0);
     h.device.dispatchEvent(new Event("gattserverdisconnected"));
-    expect(await connecting).toMatchObject({ code: "DISCONNECTED", retryable: true });
+    expect(await connecting).toMatchObject({ code: "DISCONNECTED", retryable: true,
+      message: expect.stringContaining("pairing / Disconnected") });
     finish();
     await vi.advanceTimersByTimeAsync(0);
   });
+
+  it.each(["connect", "service", "notifications"] as const)(
+    "preserves the %s stage when native disconnection races a rejected operation", async (stage) => {
+      const h = hardware(), port = new WebBluetoothTerminalConnection();
+      const fail = async () => {
+        h.device.dispatchEvent(new Event("gattserverdisconnected"));
+        throw new DOMException("synthetic private native diagnostic", "NetworkError");
+      };
+      if (stage === "connect") h.gatt.connect.mockImplementationOnce(fail);
+      else if (stage === "service") h.gatt.getPrimaryService.mockImplementationOnce(fail);
+      else vi.spyOn(h.tx, "startNotifications").mockImplementationOnce(fail);
+      const error = await port.connect(h.device).catch((error) => error);
+      expect(error).toMatchObject({ code: "DISCONNECTED", retryable: true });
+      expect(error.message).toContain(`${stage} / Disconnected`);
+      expect(error.message).not.toContain("synthetic private");
+      // Clearing a previous stage must not leak it into a subsequent idle drop.
+      const again = port.connect(h.device);
+      await vi.advanceTimersByTimeAsync(800);
+      await again;
+      const write = port.sendLine("HELLO");
+      await write;
+      h.device.dispatchEvent(new Event("gattserverdisconnected"));
+      const lost = await port.sendLine("HELLO").catch((error) => error);
+      expect(lost.message).toBe("The terminal disconnected. Reconnect in Hallzee.");
+    },
+  );
 
   it("retries a busy encrypted read on the existing connection before sending HELLO", async () => {
     const h = hardware(), port = new WebBluetoothTerminalConnection();

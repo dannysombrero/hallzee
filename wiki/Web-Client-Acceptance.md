@@ -53,8 +53,8 @@ claims made by passing the smaller automated set above.
 | Mac Chrome + ESP32 secure BLE / installed PWA | Local regular profile; user report 2026-09-11; exact versions not recorded | Connection succeeded after disconnecting terminal in macOS Bluetooth settings; full secure BLE/PWA matrix pending |
 | Mac Edge + ESP32 secure BLE / installed PWA | Edge on Mac; testing establishes Edge-on-Mac support | Pending hardware verification |
 | Chromebook + ESP32 | User report 2026-09-12; managed state/versions not recorded | Original flow connects then disconnects before claim; updated pairing flow pending |
-| Windows 11 BLE PC + Chrome + ESP32 | Not recorded | Not run |
-| Windows 11 BLE PC + Edge + ESP32 | Windows BLE PC with Microsoft Edge | Not run |
+| Windows BLE PC + Chrome + ESP32 | User report 2026-09-14; exact Windows/browser versions not recorded | Disconnects before Hallzee code entry; security-initiation correction pending hardware retry |
+| Windows BLE PC + Edge + ESP32 | Same user report 2026-09-14; exact versions not recorded | Same pre-code disconnect; correction pending hardware retry |
 | Firefox local classroom / data features | Local profile; roster, trip history, reports, policies | Supported; terminal Bluetooth deferred |
 | Actual smartboard/projector, mirrored/extended/tab sharing | Not recorded | Not run |
 | Six-hour / 100-trip soak and 10,000-row startup | Not recorded | Not run |
@@ -254,3 +254,39 @@ checks but cannot validate this ChromeOS failure. No Windows PC is required for
 this Chromebook check; Windows BLE authentication, notifications and reconnect
 remain unverified and need separate Windows BLE hardware testing. The physical
 cause of the originally reported authentication failure remains unconfirmed.
+
+### Windows pre-code disconnect (2026-09-14)
+
+The user reports **Unknown** initially in Windows Chrome's chooser, then the
+terminal name and **Paired** on subsequent attempts, with a link-drop error and
+no Hallzee pairing-code prompt. Both Windows Chrome and Edge fail. They confirmed
+that **the website in Chrome on Mac works**. Exact versions and the terminal's
+ownership/pairing-screen state were not established. The old generic drop error
+does not identify the failing GATT stage or establish the root cause.
+
+Firmware now explicitly uses `setForceAuthentication(false)` in the pinned
+Arduino-ESP32 3.3.11 library. Discovery precedes client-triggered security on
+protected access, avoiding the library's immediate connect-event security
+request. Encrypted TX/RX permissions, bonding and the existing owner proof stay
+enabled. This is a targeted interoperability correction, not a confirmed Windows
+hardware fix. Browser disconnects now retain the active operation stage even
+when a native rejection races the event. No names, addresses or native payloads
+are added to diagnostics. Browser-controlled Unknown/Paired chooser labels are
+not rewritten or treated as Hallzee ownership.
+
+Shared validation passed: **90 web unit tests**, **15 Chromium browser scenarios**,
+type checking, lint, production build, and native firmware/touch tests. The new
+browser regression simulates a link drop before HELLO, checks that the pairing
+stage is retained without native payloads, and reaches the code prompt on retry.
+Unit regressions also cover connection/discovery/notification-stage drops and
+prevent a stale stage from appearing on a later idle disconnect. The ILI9341
+rotation-1 firmware compile passed at **1,364,221 bytes** within the 1,572,864-byte
+application slot. Reproduce with
+`bash scripts/flash-terminal-macos.sh --fast --compile-only --display ili9341`.
+Repository hygiene tests and working-tree/diff secret reviews passed.
+
+A Mac is sufficient for the shared checks and firmware flashing; Windows Chrome and Edge
+must be retested on a Windows BLE PC for service discovery, encrypted read,
+notifications, first-claim code entry, bond reuse and reconnect. Windows success
+remains unverified; the user's Mac success applies to the preceding firmware.
+No terminal was flashed and no web client was deployed in this change.

@@ -98,6 +98,11 @@ bool ArduinoBluetoothSerialPort::begin(const char *deviceName) {
   // second OS passkey prompt. Use the boolean overload: on ESP32 3.3.11 it
   // also enables security and selects the matching encryption level.
   BLESecurity::setAuthenticationMode(true, false, true);
+  // Let the central finish service discovery before it negotiates security on
+  // the first protected read/write. Arduino-ESP32 3.3.11 otherwise initiates
+  // security from CONNECT_EVT, which can race Windows browser GATT discovery.
+  // This changes initiation timing only; encrypted permissions stay mandatory.
+  BLESecurity::setForceAuthentication(false);
   BLESecurity::setCapability(ESP_IO_CAP_NONE);
   BLESecurity::setKeySize(16);
   BLESecurity::setInitEncryptionKey(ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK);

@@ -15,6 +15,11 @@ export async function installBluetooth(page: Page) {
     class Characteristic extends EventTarget {
       properties = { write: true, read: true };
       async readValue() {
+        if (root.simDisconnectDuringRead) {
+          device.gatt.disconnect();
+          device.dispatchEvent(new Event("gattserverdisconnected"));
+          throw new DOMException("synthetic private native diagnostic", "NetworkError");
+        }
         if (root.simHoldNextRead) {
           root.simHoldNextRead = false;
           root.fakeReadPending = true;

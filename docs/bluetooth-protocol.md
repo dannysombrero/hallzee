@@ -11,6 +11,15 @@ The six-digit code shown during physical claim mode is entered only in Hallzee
 to create the one-time claim proof and derive a 32-byte owner credential.
 Returning authentication uses that credential, never the six-digit code.
 
+Firmware explicitly disables forced authentication at link connection using
+`BLESecurity::setForceAuthentication(false)`. The central first discovers GATT,
+then accessing an encrypted characteristic triggers security. In the web client,
+this is the empty protected TX read before notifications and HELLO. The pinned
+Arduino-ESP32 3.3.11 default otherwise starts security from the connection event,
+which can overlap Windows browser discovery. This changes initiation timing,
+not encryption requirements, bonding, or Hallzee owner authentication. See the
+[upstream initiation contract](https://github.com/espressif/arduino-esp32/blob/3.3.11/libraries/BLE/src/BLESecurity.cpp#L217-L224).
+
 Just Works encrypts the link but does not authenticate it against an active
 man-in-the-middle during pairing; see the [Bluetooth SIG security specification](https://www.bluetooth.com/wp-content/uploads/Files/Specification/HTML/Core_v6.3/out/en/host/security-manager-specification.html).
 The existing v2 six-digit HMAC/HKDF claim is not a password-authenticated key
@@ -37,7 +46,10 @@ remain serialized until those promises settle, including late-connect cleanup,
 even after cancellation or disconnect. New connects wait up to ten seconds for
 old work to drain, then allow an 800 ms disconnect cooldown. Briefly busy setup
 operations retry at most twice, 800 ms apart; command writes are not replayed.
-An unsettled old operation pauses retries with a specific diagnostic.
+An unsettled old operation pauses retries with a specific diagnostic. An unexpected
+link loss reports the active GATT stage, for example `pairing / Disconnected`,
+even when the disconnect event arrives before the native promise rejects. These
+categories contain no native error payload, pairing code, or device address.
 
 | Role | UUID |
 | --- | --- |

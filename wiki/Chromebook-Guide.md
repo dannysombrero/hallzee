@@ -65,6 +65,12 @@ restore it. Use the previous client to release or physical owner recovery.
 Unpairing does not sanitize records for a different teacher; cross-teacher
 handoff is outside this version.
 
+For the reported Windows Chrome/Edge disconnect before code entry, install the
+current firmware and web client, then follow the [Windows retry steps](Bluetooth-Repair-and-Keypad.md#windows-chromeedge-disconnect-before-the-code-prompt).
+The firmware correction defers security until protected access after discovery;
+its Windows hardware result remains unverified. Mac-only testing is insufficient:
+a Windows BLE PC must verify discovery, encryption, notifications and reconnect.
+
 ### Switching browsers (Chrome ↔ Edge)
 
 Google Chrome and Microsoft Edge maintain separate local storage, IndexedDB databases,

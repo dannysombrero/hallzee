@@ -16,6 +16,11 @@ const labels: Record<BluetoothStage, string> = {
   notifications: "subscribing to terminal updates",
   write: "sending a terminal command",
 };
+export function bluetoothDisconnected(stage?: BluetoothStage): HallzeeError {
+  return new HallzeeError("DISCONNECTED", stage
+    ? `The terminal disconnected while ${labels[stage]} (${stage} / Disconnected). The Bluetooth operation did not finish. Retry in Hallzee; if it repeats, report this stage. The browser's Paired badge does not confirm a Hallzee connection.`
+    : "The terminal disconnected. Reconnect in Hallzee.", true);
+}
 // Exact Chromium messages only: never interpolate a native message into UI or logs.
 // Source: chromium/src third_party/blink/renderer/modules/bluetooth/bluetooth_error.cc
 const nativeReasons = new Map<string, { label: string; help: string; retryable: boolean }>();

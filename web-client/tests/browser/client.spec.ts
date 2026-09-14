@@ -344,3 +344,19 @@ test("a briefly busy encrypted read recovers without asking the user to close ot
   expect(await page.evaluate(() => (window as any).fakeConnectCalls)).toBe(1);
   await expect(page.getByRole("alert")).toHaveCount(0);
 });
+
+test("a link drop before the code prompt reports the pairing stage and allows a fresh retry", async ({ page }) => {
+  await installBluetooth(page);
+  await page.goto("/");
+  await page.evaluate(() => { (window as any).simDisconnectDuringRead = true; });
+  await page.getByRole("button", { name: "Connect terminal", exact: true }).click();
+  await page.getByRole("button", { name: "Find nearby terminals", exact: true }).click();
+  const error = page.getByRole("dialog").getByRole("alert");
+  await expect(error).toContainText("pairing / Disconnected");
+  await expect(error).not.toContainText("synthetic private");
+  await expect(page.getByLabel("Physical pairing code")).toHaveCount(0);
+  expect(await page.evaluate(() => (window as any).terminalCommands.length)).toBe(0);
+  await page.evaluate(() => { (window as any).simDisconnectDuringRead = false; });
+  await page.getByRole("button", { name: "Find nearby terminals", exact: true }).click();
+  await expect(page.getByLabel("Physical pairing code")).toBeVisible();
+});

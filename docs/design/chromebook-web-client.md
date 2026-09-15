@@ -401,8 +401,14 @@ Any state -> Disconnected / Failed (typed reason)
 First-pairing UI tells the teacher to hold the physical pairing chord for five
 seconds, release, click **Find Nearby Terminals**, select the terminal in Chrome's chooser,
 then enter its six-digit code in Hallzee's dialog. The code is not passed to the
-OS. An identity probe may disconnect while the dialog is open; after entry,
-reconnect and start a fresh `HELLO` so its nonce remains valid. Before HELLO,
+OS. After the identity probe, send `CLAIM_ABORT,2,<C>` and await
+`CLAIM_ABORT_OK` to clear its challenge and ten-second firmware deadline. Retain
+the encrypted link for the selected eligible terminal for up to two minutes;
+start a fresh `HELLO` after code entry, verify full identity again, and use the
+new nonce. Saved owners use that same link for a fresh HELLO/AUTH. Dialog
+cancellation, Back, expiry, another selection or disposal releases the probe;
+a real link drop requires a new connection. Transfer the link to authentication
+without leaving the old input timer/abort listener attached. Before the first HELLO,
 read TX with `ESP_GATT_PERM_READ_ENCRYPTED`, allowing up to 60 seconds for OS
 pairing permission/encryption; discard its value before attaching notification
 listeners. Firmware uses `setForceAuthentication(false)` so the first protected

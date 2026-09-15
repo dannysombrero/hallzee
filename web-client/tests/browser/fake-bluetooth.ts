@@ -6,6 +6,8 @@ export async function installBluetooth(page: Page) {
     root.terminalCommands = [];
     root.fakePasses = [];
     root.fakeConnectCalls = 0;
+    root.fakeEncryptedReads = 0;
+    let authorizationTimer: ReturnType<typeof setTimeout> | undefined;
     const encoder = new TextEncoder(),
       terminal = "HZ-A1B2C3D4E5F6",
       nonce = "00112233445566778899AABBCCDDEEFF";
@@ -15,6 +17,7 @@ export async function installBluetooth(page: Page) {
     class Characteristic extends EventTarget {
       properties = { write: true, read: true };
       async readValue() {
+        root.fakeEncryptedReads++;
         if (root.simDisconnectDuringRead) {
           device.gatt.disconnect();
           device.dispatchEvent(new Event("gattserverdisconnected"));
@@ -76,6 +79,11 @@ export async function installBluetooth(page: Page) {
       const p = line.split(",");
       switch (p[0]) {
         case "HELLO":
+          clearTimeout(authorizationTimer);
+          authorizationTimer = setTimeout(() => {
+            emit("ERROR,AUTH_TIMEOUT");
+            root.fakeDrop();
+          }, 10000);
           client = p[2];
           {
             const material = await crypto.subtle.importKey(
@@ -102,6 +110,10 @@ export async function installBluetooth(page: Page) {
             `IDENTITY,2,${terminal},E5F6,${sessionStorage.getItem("simClaimed") ? "CLAIMED" : "UNCLAIMED"},AVAILABLE,${nonce}`,
           );
           break;
+        case "CLAIM_ABORT":
+          clearTimeout(authorizationTimer);
+          emit("CLAIM_ABORT_OK");
+          break;
         case "CLAIM": {
           const pass = await crypto.subtle.importKey(
             "raw",
@@ -120,6 +132,7 @@ export async function installBluetooth(page: Page) {
           if (p[3] !== (await sign(key, `AUTH|2|${terminal}|${client}|${nonce}`)))
             throw Error("Auth proof mismatch");
           sessionStorage.setItem("simClaimed", "1");
+          clearTimeout(authorizationTimer);
           emit(`AUTH_OK,2,${terminal},Test terminal`);
           break;
         case "GET_SETTINGS":
@@ -181,6 +194,7 @@ export async function installBluetooth(page: Page) {
           return this.gatt;
         },
         disconnect: () => {
+          clearTimeout(authorizationTimer);
           this.gatt.connected = false;
           root.fakeDisconnectUntil = Date.now() + (root.simDisconnectDelay ?? 0);
           buffer = "";
@@ -193,6 +207,10 @@ export async function installBluetooth(page: Page) {
     }
     const device = new Device();
     root.fakeGattConnected = () => device.gatt.connected;
+    root.fakeDrop = () => {
+      device.gatt.disconnect();
+      device.dispatchEvent(new Event("gattserverdisconnected"));
+    };
     Object.defineProperty(navigator, "bluetooth", {
       configurable: true,
       value: {

@@ -258,8 +258,10 @@ and [Bluetooth SIG Security Manager specification](https://www.bluetooth.com/wp-
 - The six-digit value is entered only in Hallzee after terminal selection.
   It is an application claim code, not an OS Bluetooth passkey. Windows and
   macOS establish encrypted Just Works bonding; no client forwards these digits
-  into an OS pairing ceremony. The client may disconnect its identity probe
-  while displaying the dialog, then use a fresh HELLO nonce to claim.
+  into an OS pairing ceremony. The web client ends its identity probe with
+  CLAIM_ABORT/CLAIM_ABORT_OK, retaining the encrypted link for up to two minutes
+  while displaying the dialog. Code submission uses a fresh HELLO nonce on that
+  link. Cancellation or expiry releases it; an actual drop requires reconnect.
 - The passkey is held in RAM only and regenerated whenever claim mode restarts.
 - Claim mode closes immediately after a successful claim or when the timer
   expires. Expiration clears the key and any pending nonce.

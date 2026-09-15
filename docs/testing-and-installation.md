@@ -182,6 +182,15 @@ installed ILI9341 terminal, then apply the deployed web update. Mac can flash an
 run automated checks; a Windows BLE PC is required to verify Chrome/Edge security
 negotiation, code entry and reconnect. This Windows correction is not yet
 physically verified.
+
+The Chromebook failure **after code entry** has a separate web-client-only
+correction: keep the initial encrypted connection open through the code dialog.
+Apply the deployed web update; already updated firmware needs no additional
+flash. A Chromebook with the terminal is required to verify code entry after a
+15-second pause and saved-owner reconnect. A Mac can run shared checks but cannot
+verify ChromeOS Bluetooth; a Windows PC is not needed for this Chromebook retry.
+The ChromeOS result remains physically unverified.
+
 Bluetooth names no longer include ownership/occupancy suffixes. Browser chooser
 rows and OS indicators are browser-controlled. See the [teacher guide](chromebook-guide.md#pair-and-reconnect)
 and [repair guide](bluetooth-repair-and-keypad.md) for details.

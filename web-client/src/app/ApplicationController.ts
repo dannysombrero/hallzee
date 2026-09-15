@@ -407,9 +407,13 @@ export class ApplicationController {
     this.reconnect?.stop();
     return () => {
       this.discoveryOpen--;
+      if (!this.discoveryOpen) this.cancelInspection();
       if (!this.discoveryOpen && this.autoConnect && this.state.terminal && this.session?.state !== "Authenticated")
         this.reconnect?.start();
     };
+  }
+  cancelInspection() {
+    this.session?.cancelInspection();
   }
   async knownTerminals(): Promise<DiscoveredTerminal[]> {
     if (!this.db || !this.credentials) return [];

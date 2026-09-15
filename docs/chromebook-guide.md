@@ -65,6 +65,13 @@ restore it. Use the previous client to release or physical owner recovery.
 Unpairing does not sanitize records for a different teacher; cross-teacher
 handoff is outside this version.
 
+If Chrome reaches the code dialog but reports `pairing / NotSupportedError`
+after submission, apply the updated **web client**. It keeps the first encrypted
+connection open while you enter the code. Already updated firmware needs no new
+flash for this correction. Follow the [Chromebook retry steps](bluetooth-repair-and-keypad.md#chromebook-encrypted-read-failure-after-entering-the-code).
+Verification requires the Chromebook and terminal; Mac checks are insufficient,
+and no Windows PC is needed for this retry. ChromeOS success is still unverified.
+
 For the reported Windows Chrome/Edge disconnect before code entry, install the
 current firmware and web client, then follow the [Windows retry steps](bluetooth-repair-and-keypad.md#windows-chromeedge-disconnect-before-the-code-prompt).
 The firmware correction defers security until protected access after discovery;

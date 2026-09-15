@@ -29,6 +29,7 @@ export class WebTerminalSession {
   readonly application = new Signal<string>();
   readonly dropped = new Signal<void>();
   private generation = 0;
+  private inspection?: { deviceId: string; cleanup: () => void };
   private pending?: {
     match: (line: string) => boolean;
     resolve: (line: string) => void;
@@ -88,7 +89,7 @@ export class WebTerminalSession {
       if (this.pending === pending) this.pending = undefined;
     }
   }
-  /** Read public ownership metadata only; release the link before asking for a code. */
+  /** Clear the probe challenge, retaining its encrypted link for code entry/AUTH. */
   async inspect(device: DeviceHandle, signal?: AbortSignal): Promise<DiscoveredTerminal> {
     this.disconnect();
     const generation = this.generation;
@@ -104,8 +105,27 @@ export class WebTerminalSession {
       const identity = parseIdentity(await this.exchange(
         `HELLO,2,${client}`, (line) => line.startsWith("IDENTITY,"), signal, 8000,
       ));
+      // HELLO starts the firmware's ten-second authentication deadline. End
+      // that handshake before human input, keeping the encrypted link open.
+      await this.exchange(`CLAIM_ABORT,2,${client}`, (line) => line === "CLAIM_ABORT_OK", signal, 8000);
       const saved = await this.credentials.get(identity.terminalId);
       check();
+      if (identity.claimed ? saved?.clientId === client : !identity.inUse) {
+        const cancel = () => {
+          if (generation === this.generation) this.disconnect();
+        };
+        // Do not occupy an unauthenticated terminal indefinitely if the form
+        // is abandoned. Submission after expiry establishes a fresh connection.
+        const timer = setTimeout(cancel, 120000);
+        signal?.addEventListener("abort", cancel, { once: true });
+        this.inspection = {
+          deviceId: device.id,
+          cleanup: () => {
+            clearTimeout(timer);
+            signal?.removeEventListener("abort", cancel);
+          },
+        };
+      }
       return {
         device,
         terminalId: identity.terminalId,
@@ -115,8 +135,15 @@ export class WebTerminalSession {
         inUse: identity.inUse,
       };
     } finally {
-      if (generation === this.generation) this.disconnect();
+      if (generation === this.generation && !this.inspection) this.disconnect();
     }
+  }
+  cancelInspection() {
+    if (this.inspection) this.disconnect();
+  }
+  private clearInspection() {
+    this.inspection?.cleanup();
+    this.inspection = undefined;
   }
   async open(
     device: DeviceHandle,
@@ -125,7 +152,9 @@ export class WebTerminalSession {
     code?: string,
     signal?: AbortSignal,
   ) {
-    this.disconnect();
+    const reuseLink = this.inspection?.deviceId === device.id;
+    this.clearInspection();
+    if (!reuseLink) this.disconnect();
     const generation = this.generation;
     const local = new AbortController();
     const cancel = () => local.abort();
@@ -141,7 +170,7 @@ export class WebTerminalSession {
       this.setState("Connecting");
       const client = await this.credentials.installationId();
       check();
-      await this.port.connect(device, local.signal);
+      if (!reuseLink) await this.port.connect(device, local.signal);
       check();
       this.setState("AwaitingIdentity");
       timer = setTimeout(() => {
@@ -283,6 +312,7 @@ export class WebTerminalSession {
     return this.exchange(command, match, signal);
   }
   disconnect() {
+    this.clearInspection();
     this.generation++;
     this.pending?.reject(new HallzeeError("DISCONNECTED", "Reconnect to the terminal.", true));
     this.pending = undefined;

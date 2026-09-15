@@ -41,6 +41,17 @@ after explicit selection and labels only real saved/selected devices. Saved web
 rows show **Status unknown** until the live identity check; a saved credential
 or Chrome's chooser badge alone cannot confirm current ownership.
 
+The web identity inspection sends `HELLO`, reads `IDENTITY`, then waits for
+`CLAIM_ABORT_OK` after `CLAIM_ABORT,2,<client_id>`. This clears the temporary
+challenge and ten-second authorization deadline without closing encrypted BLE
+or changing ownership. If this browser can proceed, it retains that link for
+up to two minutes while requesting a code or preparing saved-owner AUTH. Code
+submission starts a fresh `HELLO` on the same link, verifies the full identity,
+and uses only the new nonce. No classroom commands are authorized during input.
+Back, closing the dialog, cancellation, another selection or expiry releases the
+link. An unexpected drop invalidates it; the next attempt connects normally.
+This avoids a second encrypted-read negotiation immediately after discovery.
+
 Web transport deadlines do not cancel native browser promises. GATT operations
 remain serialized until those promises settle, including late-connect cleanup,
 even after cancellation or disconnect. New connects wait up to ten seconds for
@@ -114,7 +125,7 @@ the retry a safe duplicate and ACKs it again.
 | `HELLO,2,<client_id>` | Start the identity handshake |
 | `CLAIM,2,<client_id>,<proof>` | Claim an unowned, available terminal using an HMAC proof derived from the six-digit physical passkey |
 | `CLAIM_COMMIT,2,<client_id>,<proof>` | Persist the pending claim after the desktop stores its credential |
-| `CLAIM_ABORT,2,<client_id>` | Cancel a pending claim |
+| `CLAIM_ABORT,2,<client_id>` | Before authorization, clear temporary handshake/pending claim state and its deadline; preserve the encrypted link and persisted ownership |
 | `AUTH,2,<client_id>,<proof>` | Authenticate the persisted owner |
 | `GET_SETTINGS` | Read all supported persisted kiosk settings |
 | `GET_ACTIVE_PASS` | Query current active in-flight checkout pass status |
@@ -141,6 +152,7 @@ Carriage returns are ignored.
 | Message | Meaning |
 | --- | --- |
 | `IDENTITY,2,<terminal_id>,<suffix>,<UNCLAIMED\|CLAIMED>,<AVAILABLE\|IN_USE>,<nonce>` | Stable terminal identity, availability, and fresh handshake challenge |
+| `CLAIM_ABORT_OK` | Temporary handshake/pending claim state cleared; a fresh HELLO is required before CLAIM or AUTH |
 | `CLAIM_OK,2,<terminal_id>,<commit_nonce>` | Claim proof accepted; desktop may store its derived credential |
 | `AUTH_OK,2,<terminal_id>,<custom_name>` | Ownership committed and application commands are authorized |
 | `OWNER_RELEASED` | Owner release succeeded; the client may remove its saved owner credential and workspace assignments before disconnecting |

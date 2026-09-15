@@ -52,7 +52,7 @@ claims made by passing the smaller automated set above.
 | Mac Edge UI/offline indicator | Selected local regular profile | Observed; shared Chromium implementation |
 | Mac Chrome + ESP32 secure BLE / installed PWA | Local regular profile; user report 2026-09-11; exact versions not recorded | Connection succeeded after disconnecting terminal in macOS Bluetooth settings; full secure BLE/PWA matrix pending |
 | Mac Edge + ESP32 secure BLE / installed PWA | Edge on Mac; testing establishes Edge-on-Mac support | Pending hardware verification |
-| Chromebook + ESP32 | User report 2026-09-12; managed state/versions not recorded | Original flow connects then disconnects before claim; updated pairing flow pending |
+| Chromebook + ESP32 | User reports 2026-09-12 and 2026-09-15; managed state/versions not recorded | Now reaches code entry, then fails at `pairing / NotSupportedError`; retaining the encrypted discovery connection is pending hardware retry |
 | Windows BLE PC + Chrome + ESP32 | User report 2026-09-14; exact Windows/browser versions not recorded | Disconnects before Hallzee code entry; security-initiation correction pending hardware retry |
 | Windows BLE PC + Edge + ESP32 | Same user report 2026-09-14; exact versions not recorded | Same pre-code disconnect; correction pending hardware retry |
 | Firefox local classroom / data features | Local profile; roster, trip history, reports, policies | Supported; terminal Bluetooth deferred |
@@ -290,3 +290,39 @@ must be retested on a Windows BLE PC for service discovery, encrypted read,
 notifications, first-claim code entry, bond reuse and reconnect. Windows success
 remains unverified; the user's Mac success applies to the preceding firmware.
 No terminal was flashed and no web client was deployed in this change.
+
+### Chromebook failure after code entry (2026-09-15)
+
+The user explicitly confirmed Chrome on Chromebook for a new failure after
+reaching the code dialog: `pairing / NotSupportedError`. The preceding encrypted
+read and identity exchange succeeded; submitting the code opened a second GATT
+connection and repeated that read. This identifies an unnecessary reconnect in
+the app, not ChromeOS's exact native failure cause.
+
+The web session now ends the probe challenge with the existing
+CLAIM_ABORT/CLAIM_ABORT_OK exchange and keeps the encrypted link for code input
+or saved-owner authentication. Submission requests a fresh nonce and verifies
+full identity before proofs. The ten-second firmware challenge does not span
+human input. The unauthenticated link is bounded to two minutes, released on
+Back/close/cancel/another selection, and invalidated on link loss. Old input
+cancellation/expiry cannot disconnect an authenticated session. No firmware
+changes, new protocol commands or encryption bypass are involved.
+
+Regression coverage includes a simulated second-read NotSupportedError, a
+15-second pause with the firmware deadline modeled, fresh nonce proofs, saved
+owner reuse, real drops, expired/cancelled probes, other-device selection,
+failed abort acknowledgement, identity mismatch and dialog close/reopen. The
+browser scenarios run production transport, crypto, IndexedDB and UI against
+simulated GATT; they do not establish ChromeOS hardware success.
+
+Local validation passed: **99 web unit tests**, **18 Chromium browser scenarios**,
+type checking, lint and production build. All four repository hygiene tests
+passed, and working-tree/diff review found no new sensitive data or artifacts.
+
+A Mac is sufficient for shared checks; the Chromebook and ESP32 are required
+for physical verification. A Windows PC is not required for the Chromebook
+retry. Windows Chrome/Edge encrypted reads, notifications, first claim and
+saved-owner reconnect require separate Windows BLE hardware and remain
+unverified. Deploy/apply the new web client with the previously updated
+firmware; no additional flash is needed. No web deployment or hardware flashing
+was performed in this change.

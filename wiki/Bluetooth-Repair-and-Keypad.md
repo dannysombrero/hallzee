@@ -77,6 +77,41 @@ flash and run shared software checks but cannot verify ChromeOS behavior. A
 Windows PC is not required for this Chromebook retry. Windows BLE authentication,
 GATT notifications, and reconnect require a Windows BLE PC and remain unverified.
 
+## Chromebook encrypted-read failure after entering the code
+
+On September 15, Chrome on a Chromebook reached Hallzee's code-entry dialog,
+then reported `pairing / NotSupportedError` on submission. That stage is the
+protected Bluetooth read, before the submitted Hallzee code is checked. The
+error alone cannot identify ChromeOS's native cause.
+
+The web client previously closed its successful identity-inspection link and
+opened another connection on submission. It now keeps that encrypted link open,
+clears the temporary challenge using the firmware's existing CLAIM_ABORT
+acknowledgement, and requests a fresh HELLO challenge when the code is submitted.
+Human input can take longer than the ten-second handshake deadline. Application
+data remains unauthorized until the normal code proof and durable owner-key
+commit complete. Back/close/cancel releases the link; abandoned input expires
+after two minutes. A real Bluetooth drop still requires a new connection.
+
+This correction changes the **web client only**. With the previously updated
+firmware already installed, no additional fast or full flash is required.
+
+1. Deploy the updated web client, then use **Check updates → Apply update** in
+   the same Chromebook browser profile and Hallzee URL.
+2. With an unclaimed test terminal already displaying its pairing code, choose
+   **Find nearby terminals**, select it, wait about 15 seconds, then enter the
+   code in Hallzee and choose **Pair & Connect**. It should authenticate and sync.
+3. Close/reopen Hallzee or restart the terminal and verify saved-owner reconnect
+   without another code. Record only the sanitized error category if it fails;
+   preserve Hallzee site data and credentials.
+
+The Chromebook and terminal are required to verify this reported failure; a Mac
+is sufficient for shared automated checks, not ChromeOS Bluetooth verification.
+A Windows PC is **not required for this Chromebook retry**. Separate Windows BLE
+PC testing is required for Chrome/Edge encrypted reads, notifications, first
+claim and saved-owner reconnect. ChromeOS success after this correction and the
+previously reported Windows failures remain physically unverified.
+
 ## Operation already in progress with only one tab
 
 This error does not prove another app or tab is connected. A Hallzee timeout or

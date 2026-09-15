@@ -42,6 +42,8 @@ export function ConnectionDialog({ onClose }: { onClose: () => void }) {
 
   const select = async (row?: DiscoveredTerminal) => {
     if (!controller || working || state.busy) return;
+    attempt.current?.abort();
+    controller.cancelInspection();
     const control = new AbortController();
     attempt.current = control;
     setWorking(true);
@@ -55,6 +57,7 @@ export function ConnectionDialog({ onClose }: { onClose: () => void }) {
       if (!selected) { setNotice(""); return; }
       remember(selected);
       if (row?.terminalId && row.terminalId !== selected.terminalId) {
+        controller.cancelInspection();
         setLocalError("This is not the selected terminal. Choose the matching terminal ID.");
       } else if (selected.pairingStatus === "Paired to other device") {
         setNotice("Paired to other device. Release it from its owner’s Hallzee client before pairing here.");
@@ -124,6 +127,7 @@ export function ConnectionDialog({ onClose }: { onClose: () => void }) {
           <p>This pairs the terminal to this browser profile and syncs its records into this classroom.</p>
           <div className="modal-actions-row">
             <button type="button" className="hallzee-pill-btn-sky" disabled={busy} onClick={() => {
+              attempt.current?.abort(); controller?.cancelInspection();
               setCandidate(undefined); setCode(""); controller?.clearError();
             }}>Back</button>
             <button type="submit" className="hallzee-pill-btn" disabled={busy || code.length !== 6}>

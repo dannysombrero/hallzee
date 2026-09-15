@@ -65,6 +65,13 @@ restore it. Use the previous client to release or physical owner recovery.
 Unpairing does not sanitize records for a different teacher; cross-teacher
 handoff is outside this version.
 
+If `pairing / NotSupportedError` occurs **before** any code prompt, apply the
+new web update with encrypted-write fallback. If that also fails, Hallzee now
+reports `pairing-write` and a GATT category when available. Follow the
+[pre-code Chromebook retry steps](Bluetooth-Repair-and-Keypad.md#chromebook-encrypted-read-failure-before-the-code-prompt).
+This needs Chromebook hardware verification; Mac checks are insufficient and a
+Windows PC is not required. Already updated firmware needs no additional flash.
+
 If Chrome reaches the code dialog but reports `pairing / NotSupportedError`
 after submission, apply the updated **web client**. It keeps the first encrypted
 connection open while you enter the code. Already updated firmware needs no new

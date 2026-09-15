@@ -52,7 +52,7 @@ claims made by passing the smaller automated set above.
 | Mac Edge UI/offline indicator | Selected local regular profile | Observed; shared Chromium implementation |
 | Mac Chrome + ESP32 secure BLE / installed PWA | Local regular profile; user report 2026-09-11; exact versions not recorded | Connection succeeded after disconnecting terminal in macOS Bluetooth settings; full secure BLE/PWA matrix pending |
 | Mac Edge + ESP32 secure BLE / installed PWA | Edge on Mac; testing establishes Edge-on-Mac support | Pending hardware verification |
-| Chromebook + ESP32 | User reports 2026-09-12 and 2026-09-15; managed state/versions not recorded | Now reaches code entry, then fails at `pairing / NotSupportedError`; retaining the encrypted discovery connection is pending hardware retry |
+| Chromebook + ESP32 | Personal Chromebook; reported ChromeOS/Chrome 152.0.7977.113 (64-bit), 2026-09-15 | Latest retry fails at `pairing / NotSupportedError` before code entry; encrypted-write fallback pending hardware verification |
 | Windows BLE PC + Chrome + ESP32 | User report 2026-09-14; exact Windows/browser versions not recorded | Disconnects before Hallzee code entry; security-initiation correction pending hardware retry |
 | Windows BLE PC + Edge + ESP32 | Same user report 2026-09-14; exact versions not recorded | Same pre-code disconnect; correction pending hardware retry |
 | Firefox local classroom / data features | Local profile; roster, trip history, reports, policies | Supported; terminal Bluetooth deferred |
@@ -326,3 +326,47 @@ saved-owner reconnect require separate Windows BLE hardware and remain
 unverified. Deploy/apply the new web client with the previously updated
 firmware; no additional flash is needed. No web deployment or hardware flashing
 was performed in this change.
+
+### Chromebook first encrypted read still fails (2026-09-15)
+
+The user retried after the connection-retention change and now reports a quick
+connect/disconnect with `pairing / NotSupportedError` before any code prompt.
+They confirmed a personal Chromebook running ChromeOS/Chrome **152.0.7977.113
+(64-bit)**. The preceding correction did not establish hardware success and
+cannot fix a failure before identity inspection.
+
+The web transport now attempts a protected, acknowledged single-LF write on RX
+only after a settled TX-read NotSupportedError. Firmware already requires
+`ESP_GATT_PERM_WRITE_ENCRYPTED` on RX and discards blank lines. Successful
+protected access precedes notifications/HELLO; failed fallback disconnects
+without claiming. Cancellation, timeouts, dropped links, SecurityError and
+NetworkError do not enter the fallback. An outstanding native fallback write
+keeps the operation queue occupied until it settles, even after cancellation.
+Read-success connections still follow the original path.
+
+Chromium's error mapping distinguishes five fixed native messages under
+NotSupportedError; the app now reports their allowlisted GATT labels and a
+`pairing-write` fallback stage. Arbitrary native payloads remain excluded.
+Source inspection does not determine this Chromebook's exact native failure.
+The Chromium pairing manager has both characteristic-read and characteristic-
+write pairing paths; see the [pairing-manager implementation](https://chromium.googlesource.com/chromium/src/+/main/content/browser/bluetooth/web_bluetooth_pairing_manager_impl.cc).
+This is an interoperability fallback, not a confirmed ChromeOS platform
+diagnosis or an encryption bypass.
+
+Regression coverage includes first claim and saved-owner reconnect with reads
+rejected but protected writes accepted, rejection of both channels before any
+HELLO/code entry, no fallback on explicit permission/authentication errors,
+pending-write timeout/cancellation/drain, dropped-link stage preservation and
+allowlist-only error reporting. Browser tests use simulated GATT, not hardware.
+
+Local checks passed: **112 unit tests**, **20 Chromium browser scenarios**,
+type checking, lint, production build and all four repository hygiene tests.
+The offline shell build is `3d034c1b33afa834`. Working-tree and diff review found
+no new credentials, personal data or tracked build/scratch artifacts.
+
+The Chromebook/ESP32 must verify the fix. A Mac suffices for shared checks but
+cannot verify ChromeOS Bluetooth. No Windows PC is required for this retry;
+Windows Chrome/Edge protected read/write negotiation, notifications and saved-
+owner reconnect require separate Windows BLE testing and remain unverified.
+This change needs a web deployment/update with the already updated firmware;
+no firmware edits, hardware flashing or web deployment were performed here.

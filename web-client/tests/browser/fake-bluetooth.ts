@@ -7,6 +7,7 @@ export async function installBluetooth(page: Page) {
     root.fakePasses = [];
     root.fakeConnectCalls = 0;
     root.fakeEncryptedReads = 0;
+    root.fakeEncryptionWrites = 0;
     let authorizationTimer: ReturnType<typeof setTimeout> | undefined;
     const encoder = new TextEncoder(),
       terminal = "HZ-A1B2C3D4E5F6",
@@ -34,11 +35,13 @@ export async function installBluetooth(page: Page) {
           root.simBusyReads--;
           throw new DOMException("GATT operation already in progress.", "NetworkError");
         }
-        if (root.simulatedPairingFailure)
+        const failure = root.simulatedReadFailure ?? root.simulatedPairingFailure;
+        if (failure)
           throw new DOMException(
             "synthetic private diagnostic payload",
-            root.simulatedPairingFailure === "unsupported" ? "NotSupportedError" : "NetworkError",
+            failure === "unsupported" ? "NotSupportedError" : "NetworkError",
           );
+        root.fakeLinkEncrypted = true;
         return new DataView(new ArrayBuffer(0));
       }
       value?: DataView;
@@ -47,6 +50,17 @@ export async function installBluetooth(page: Page) {
         return this;
       }
       async writeValueWithResponse(bytes: Uint8Array) {
+        if (!root.fakeLinkEncrypted && root.simulatedPairingFailure)
+          throw new DOMException("synthetic private diagnostic payload",
+            root.simulatedPairingFailure === "unsupported" ? "NotSupportedError" : "NetworkError");
+        // Firmware discards an empty line before processing commands. The
+        // protected acknowledged write itself can negotiate encryption.
+        if (!buffer.length && bytes.length === 1 && bytes[0] === 10) {
+          root.fakeEncryptionWrites++;
+          root.fakeLinkEncrypted = true;
+          return;
+        }
+        if (!root.fakeLinkEncrypted) throw new Error("Application bytes before encryption");
         if (bytes.byteLength > 20) throw Error("Chunk exceeds 20 bytes");
         buffer += new TextDecoder().decode(bytes);
         if (buffer.includes("\n")) {
@@ -191,6 +205,7 @@ export async function installBluetooth(page: Page) {
           if (root.fakeReadPending || Date.now() < root.fakeDisconnectUntil)
             throw new DOMException("Connection already in progress.", "NetworkError");
           this.gatt.connected = true;
+          root.fakeLinkEncrypted = false;
           return this.gatt;
         },
         disconnect: () => {

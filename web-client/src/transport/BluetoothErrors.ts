@@ -5,6 +5,7 @@ export type BluetoothStage =
   | "service"
   | "characteristics"
   | "pairing"
+  | "pairing-write"
   | "notifications"
   | "write";
 const labels: Record<BluetoothStage, string> = {
@@ -13,6 +14,7 @@ const labels: Record<BluetoothStage, string> = {
   service: "finding the Hallzee service",
   characteristics: "finding the Hallzee channels",
   pairing: "establishing encrypted Bluetooth pairing",
+  "pairing-write": "establishing encrypted Bluetooth through the write channel",
   notifications: "subscribing to terminal updates",
   write: "sending a terminal command",
 };
@@ -27,6 +29,16 @@ const nativeReasons = new Map<string, { label: string; help: string; retryable: 
 function reason(messages: string[], label: string, help: string, retryable = false) {
   for (const message of messages) nativeReasons.set(message, { label, help, retryable });
 }
+// Chromium maps all five to NotSupportedError. Preserve their distinction
+// using fixed labels; the native message itself must never be displayed.
+for (const [message, label] of [
+  ["GATT Error Unknown.", "GATT_UNKNOWN_ERROR"],
+  ["GATT operation failed for unknown reason.", "GATT_UNKNOWN_FAILURE"],
+  ["GATT operation not permitted.", "GATT_NOT_PERMITTED"],
+  ["GATT Error: Not supported.", "GATT_NOT_SUPPORTED"],
+  ["GATT Error: Unknown GattErrorCode.", "GATT_UNTRANSLATED_ERROR"],
+]) reason([message], label,
+  "The terminal or operating system rejected the Bluetooth operation. Keep Hallzee site data and ownership. If it repeats, report this stage and GATT category with your OS/browser version.");
 reason(
   [
     "Bluetooth permission has been blocked.",
@@ -117,6 +129,8 @@ export function bluetoothError(error: unknown, stage: BluetoothStage): HallzeeEr
   else if (stage === "pairing")
     help =
       "The encrypted Bluetooth read failed; this does not mean Hallzee ownership was lost. For a saved terminal with updated firmware, hold * alone for five seconds while idle to show BT REPAIR, then choose the saved terminal in Hallzee; updated firmware needs no OS passkey. For an unclaimed terminal, update firmware and enter its physical pairing code in Hallzee after selection. Do not reset ownership or clear Hallzee site data.";
+  else if (stage === "pairing-write")
+    help = "The encrypted read was rejected, and the encrypted write also failed. Hallzee has not checked a pairing code or claimed the terminal. Keep Hallzee site data and ownership; report this stage and your OS/browser version.";
   else if (["service", "characteristics"].includes(stage) && name === "NotFoundError")
     help =
       "The selected device does not expose the expected Hallzee firmware service or channels. Verify the selected terminal and firmware.";
@@ -124,9 +138,9 @@ export function bluetoothError(error: unknown, stage: BluetoothStage): HallzeeEr
     help =
       "The browser or Bluetooth adapter could not perform this operation. Try current Chrome or Edge with the Hallzee terminal nearby.";
   const knownReason = error instanceof Error ? nativeReasons.get(error.message) : undefined;
-  if (knownReason) help = knownReason.help;
+  if (knownReason && stage !== "pairing-write") help = knownReason.help;
   return new HallzeeError(
-    `BLUETOOTH_${stage.toUpperCase()}_${name.toUpperCase()}`,
+    `BLUETOOTH_${stage.replaceAll("-", "_").toUpperCase()}_${name.toUpperCase()}`,
     `Bluetooth failed while ${labels[stage]} (${stage} / ${name}). ${knownReason ? `${knownReason.label}. ` : ""}${help}`,
     knownReason?.retryable ?? ["NetworkError", "TimeoutError", "AbortError"].includes(name),
   );

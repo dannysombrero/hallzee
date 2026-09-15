@@ -153,7 +153,19 @@ export class WebBluetoothTerminalConnection implements BluetoothPort {
       // Firmware protects TX reads with encrypted permissions. Establish the
       // Just Works link before HELLO starts the eight-second application handshake.
       // Read before subscribing: an old TX value is not a new protocol message.
-      await step("pairing", () => tx.readValue(), 60000);
+      try {
+        await step("pairing", () => tx.readValue(), 60000);
+      } catch (error) {
+        valid();
+        if (!(error instanceof HallzeeError) || error.code !== "BLUETOOTH_PAIRING_NOTSUPPORTEDERROR")
+          throw error;
+        // RX also requires encryption in Hallzee firmware. A single blank line
+        // is ignored by its parser, so an acknowledged write can establish the
+        // secure link without starting HELLO, a claim, or the auth deadline.
+        // Only attempt this after a settled NotSupportedError, never after a
+        // cancelled/timed-out read, SecurityError or NetworkError.
+        await step("pairing-write", () => rx.writeValueWithResponse(Uint8Array.of(10)), 60000);
+      }
       this.tx = tx;
       this.rx = rx;
       tx.addEventListener("characteristicvaluechanged", this.receive);

@@ -14,8 +14,16 @@ Returning authentication uses that credential, never the six-digit code.
 Firmware explicitly disables forced authentication at link connection using
 `BLESecurity::setForceAuthentication(false)`. The central first discovers GATT,
 then accessing an encrypted characteristic triggers security. In the web client,
-this is the empty protected TX read before notifications and HELLO. The pinned
-Arduino-ESP32 3.3.11 default otherwise starts security from the connection event,
+this starts with the protected TX read before notifications and HELLO. If that
+read settles with `NotSupportedError`, the web client tries an acknowledged
+single-LF write to the encrypted RX channel on the same connection. Firmware
+ignores blank lines; this sends no HELLO/claim and starts no application deadline.
+Only successful protected access permits notification setup and authentication.
+Timeout, cancellation, link loss, SecurityError and NetworkError do not trigger
+this fallback. Pending native operations remain serialized, and the write has
+a 60-second pairing deadline under the caller's cancellation budget.
+
+The pinned Arduino-ESP32 3.3.11 default otherwise starts security from the connection event,
 which can overlap Windows browser discovery. This changes initiation timing,
 not encryption requirements, bonding, or Hallzee owner authentication. See the
 [upstream initiation contract](https://github.com/espressif/arduino-esp32/blob/3.3.11/libraries/BLE/src/BLESecurity.cpp#L217-L224).
@@ -61,6 +69,11 @@ An unsettled old operation pauses retries with a specific diagnostic. An unexpec
 link loss reports the active GATT stage, for example `pairing / Disconnected`,
 even when the disconnect event arrives before the native promise rejects. These
 categories contain no native error payload, pairing code, or device address.
+If the encrypted-write fallback fails, the stage is `pairing-write`. Fixed
+Chromium messages are mapped to `GATT_UNKNOWN_ERROR`, `GATT_UNKNOWN_FAILURE`,
+`GATT_NOT_PERMITTED`, `GATT_NOT_SUPPORTED` or `GATT_UNTRANSLATED_ERROR`, rather
+than collapsing every NotSupportedError into an implied lost bond. Unrecognized
+messages stay hidden. See [Chromium's error mapping](https://chromium.googlesource.com/chromium/src/+/main/third_party/blink/renderer/modules/bluetooth/bluetooth_error.cc).
 
 | Role | UUID |
 | --- | --- |

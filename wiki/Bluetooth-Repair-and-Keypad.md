@@ -77,6 +77,37 @@ flash and run shared software checks but cannot verify ChromeOS behavior. A
 Windows PC is not required for this Chromebook retry. Windows BLE authentication,
 GATT notifications, and reconnect require a Windows BLE PC and remain unverified.
 
+## Chromebook encrypted-read failure before the code prompt
+
+The latest retry on a personal Chromebook running ChromeOS/Chrome
+**152.0.7977.113 (64-bit)** fails at `pairing / NotSupportedError` before Hallzee
+asks for a code. Retaining the discovery connection cannot address a failure
+that happens before identity inspection succeeds. Chrome's Paired chooser badge
+still does not prove Hallzee ownership or a working encrypted connection.
+
+The web client now tries the existing encrypted RX channel if the protected TX
+read returns NotSupportedError. It sends an acknowledged blank line, which the
+firmware ignores, before enabling notifications or sending HELLO. Successful
+protected access is still required; this does not disable encryption or send
+a pairing code prematurely. If the write also fails, the error identifies
+`pairing-write` and, when recognized, a fixed GATT category. Chromium maps
+several different failures to NotSupportedError; see its [error mapping](https://chromium.googlesource.com/chromium/src/+/main/third_party/blink/renderer/modules/bluetooth/bluetooth_error.cc).
+Neither that error nor the fallback establishes the exact native cause.
+
+Deploy the new **web client**, then use **Check updates → Apply update** in the
+original Chromebook profile and URL. Already updated firmware needs no new
+flash for this change. Retry selection with the unowned terminal displaying its
+code; then verify reconnect after reopening Hallzee without another code. If it
+fails, record the complete sanitized stage and GATT category shown by Hallzee.
+Keep site data, owner credentials and classroom records. No repeated reset is
+required by this correction.
+
+A Mac is sufficient for shared automated checks but cannot verify this failure;
+the Chromebook and ESP32 are required. A Windows PC is not needed for this
+Chromebook retry. Windows Chrome/Edge protected reads/writes, notifications and
+saved-owner reconnect require separate Windows BLE hardware testing and remain
+unverified. Physical success on the Chromebook is also still unverified.
+
 ## Chromebook encrypted-read failure after entering the code
 
 On September 15, Chrome on a Chromebook reached Hallzee's code-entry dialog,

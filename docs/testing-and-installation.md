@@ -189,7 +189,12 @@ Apply the deployed web update; already updated firmware needs no additional
 flash. A Chromebook with the terminal is required to verify code entry after a
 15-second pause and saved-owner reconnect. A Mac can run shared checks but cannot
 verify ChromeOS Bluetooth; a Windows PC is not needed for this Chromebook retry.
-The ChromeOS result remains physically unverified.
+If the encrypted read instead fails **before any code prompt**, the latest
+web update tries an acknowledged blank-line write to the encrypted RX channel.
+Both channels remain protected. If neither works, report the `pairing-write`
+stage and GATT category shown by Hallzee. This also requires no new firmware
+flash and must be verified on the Chromebook. The ChromeOS result remains
+physically unverified.
 
 Bluetooth names no longer include ownership/occupancy suffixes. Browser chooser
 rows and OS indicators are browser-controlled. See the [teacher guide](chromebook-guide.md#pair-and-reconnect)

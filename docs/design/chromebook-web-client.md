@@ -411,7 +411,14 @@ a real link drop requires a new connection. Transfer the link to authentication
 without leaving the old input timer/abort listener attached. Before the first HELLO,
 read TX with `ESP_GATT_PERM_READ_ENCRYPTED`, allowing up to 60 seconds for OS
 pairing permission/encryption; discard its value before attaching notification
-listeners. Firmware uses `setForceAuthentication(false)` so the first protected
+listeners. A settled `NotSupportedError` from this read permits a fallback
+acknowledged single-LF write on encrypted RX, on the same connection, with a
+60-second pairing budget. Firmware discards the blank line without starting
+HELLO or a claim. Require successful protected access before subscribing; never
+use this fallback on cancellation, timeout, disconnect, SecurityError or
+NetworkError. Pending fallback writes obey the same native queue rules. A
+failed fallback reports `pairing-write` and an allowlisted GATT category, never
+a raw native message. Firmware uses `setForceAuthentication(false)` so the first protected
 access triggers security after discovery, rather than requesting authentication
 from the initial connect event. Encrypted permissions and bonding stay enabled.
 Saved owners skip the code dialog and authenticate directly. Link loss preserves

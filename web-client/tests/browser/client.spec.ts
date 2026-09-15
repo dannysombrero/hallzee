@@ -216,8 +216,8 @@ test("saved owner survives a lost OS bond and authenticates after repair without
   await page.getByRole("button", { name: "Connect terminal", exact: true }).click();
   await page.getByRole("button", { name: "Reconnect Test terminal", exact: true }).click();
   const error = page.getByRole("dialog").getByRole("alert");
-  await expect(error).toContainText("pairing / NotSupportedError");
-  await expect(error).toContainText("BT REPAIR");
+  await expect(error).toContainText("pairing-write / NotSupportedError");
+  await expect(error).toContainText("Keep Hallzee site data and ownership");
   await expect(page.getByLabel("Physical pairing code")).toHaveCount(0);
   // Simulate OS bond repair; leave application owner credentials unchanged.
   await page.evaluate(() => {
@@ -330,6 +330,43 @@ test("code entry keeps the encrypted link beyond the firmware handshake timeout"
   expect(await page.evaluate(() => (window as any).fakeEncryptedReads)).toBe(1);
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.getByRole("alert")).toHaveCount(0);
+});
+
+test("unsupported encrypted reads use the protected write channel for first claim and saved-owner reconnect", async ({ page }) => {
+  await installBluetooth(page);
+  await page.goto("/");
+  await page.evaluate(() => { (window as any).simulatedReadFailure = "unsupported"; });
+  await page.getByRole("button", { name: "Connect terminal", exact: true }).click();
+  await page.getByRole("button", { name: "Find nearby terminals", exact: true }).click();
+  await expect(page.getByLabel("Physical pairing code")).toBeVisible();
+  expect(await page.evaluate(() => (window as any).fakeEncryptionWrites)).toBe(1);
+  expect(await page.evaluate(() => (window as any).terminalCommands.map((c: string) => c.split(",")[0]))).toEqual(["HELLO", "CLAIM_ABORT"]);
+  await page.getByLabel("Physical pairing code").fill("807481");
+  await page.getByRole("button", { name: "Pair & Connect", exact: true }).click();
+  await expect(page.getByText("Pass available", { exact: true })).toBeVisible();
+  expect(await page.evaluate(() => (window as any).fakeConnectCalls)).toBe(1);
+  await page.getByRole("button", { name: "Disconnect", exact: true }).click();
+  await page.evaluate(() => { (window as any).terminalCommands = []; });
+  await page.getByRole("button", { name: "Connect terminal", exact: true }).click();
+  await page.getByRole("button", { name: "Reconnect Test terminal", exact: true }).click();
+  await expect(page.getByText("Pass available", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Physical pairing code")).toHaveCount(0);
+  expect(await page.evaluate(() => (window as any).fakeEncryptionWrites)).toBe(2);
+  expect(await page.evaluate(() => (window as any).terminalCommands.some((c: string) => c.startsWith("CLAIM,") || c.startsWith("CLAIM_COMMIT,")))).toBe(false);
+});
+
+test("failure of both encrypted channels stops before identity or code entry", async ({ page }) => {
+  await installBluetooth(page);
+  await page.goto("/");
+  await page.evaluate(() => { (window as any).simulatedPairingFailure = "unsupported"; });
+  await page.getByRole("button", { name: "Connect terminal", exact: true }).click();
+  await page.getByRole("button", { name: "Find nearby terminals", exact: true }).click();
+  const error = page.getByRole("dialog").getByRole("alert");
+  await expect(error).toContainText("pairing-write / NotSupportedError");
+  await expect(error).not.toContainText("synthetic private");
+  await expect(page.getByLabel("Physical pairing code")).toHaveCount(0);
+  expect(await page.evaluate(() => (window as any).terminalCommands.length)).toBe(0);
+  expect(await page.evaluate(() => (window as any).fakeGattConnected())).toBe(false);
 });
 
 test("closing the code dialog releases Bluetooth and reopening pairs normally", async ({ page }) => {

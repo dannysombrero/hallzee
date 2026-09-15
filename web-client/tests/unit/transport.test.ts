@@ -91,7 +91,7 @@ describe("native Bluetooth operations outliving their caller", () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
 
-  for (const stage of ["connect", "read", "write"] as const) {
+  for (const stage of ["connect", "read", "write", "pairing-write"] as const) {
     for (const interrupt of ["abort", "timeout"] as const) {
       it(`waits for a pending ${stage} after ${interrupt} before reconnecting the same device`, async () => {
         const h = hardware(), port = new WebBluetoothTerminalConnection();
@@ -106,15 +106,20 @@ describe("native Bluetooth operations outliving their caller", () => {
           h.rx.writeValueWithResponse.mockImplementationOnce(() =>
             new Promise((resolve) => { finish = () => resolve(); }));
         }
+        if (stage === "pairing-write") {
+          h.tx.readValue.mockRejectedValueOnce(new DOMException("GATT Error Unknown.", "NotSupportedError"));
+          h.rx.writeValueWithResponse.mockImplementationOnce(() =>
+            new Promise((resolve) => { finish = () => resolve(); }));
+        }
         const first = (stage === "write"
           ? port.sendLine("X".repeat(45), control.signal)
           : port.connect(h.device, control.signal)).catch((error) => error);
         await vi.advanceTimersByTimeAsync(0);
         expect(finish).toBeTypeOf("function");
         if (interrupt === "abort") control.abort();
-        else await vi.advanceTimersByTimeAsync(stage === "read" ? 60000 : stage === "connect" ? 15000 : 10000);
+        else await vi.advanceTimersByTimeAsync(stage === "read" || stage === "pairing-write" ? 60000 : stage === "connect" ? 15000 : 10000);
         expect(await first).toMatchObject({ code: interrupt === "abort" ? "CANCELLED"
-          : `BLUETOOTH_${stage === "read" ? "PAIRING" : stage.toUpperCase()}_TIMEOUTERROR` });
+          : `BLUETOOTH_${stage === "read" ? "PAIRING" : stage.replaceAll("-", "_").toUpperCase()}_TIMEOUTERROR` });
 
         const second = port.connect(h.device);
         await vi.advanceTimersByTimeAsync(1000);
@@ -171,7 +176,7 @@ describe("native Bluetooth operations outliving their caller", () => {
     await vi.advanceTimersByTimeAsync(0);
   });
 
-  it.each(["connect", "service", "notifications"] as const)(
+  it.each(["connect", "service", "notifications", "pairing-write"] as const)(
     "preserves the %s stage when native disconnection races a rejected operation", async (stage) => {
       const h = hardware(), port = new WebBluetoothTerminalConnection();
       const fail = async () => {
@@ -180,6 +185,10 @@ describe("native Bluetooth operations outliving their caller", () => {
       };
       if (stage === "connect") h.gatt.connect.mockImplementationOnce(fail);
       else if (stage === "service") h.gatt.getPrimaryService.mockImplementationOnce(fail);
+      else if (stage === "pairing-write") {
+        h.tx.readValue.mockRejectedValueOnce(new DOMException("GATT Error Unknown.", "NotSupportedError"));
+        h.rx.writeValueWithResponse.mockImplementationOnce(fail);
+      }
       else vi.spyOn(h.tx, "startNotifications").mockImplementationOnce(fail);
       const error = await port.connect(h.device).catch((error) => error);
       expect(error).toMatchObject({ code: "DISCONNECTED", retryable: true });
@@ -267,6 +276,45 @@ describe("occupancy and transfer bounds", () => {
 });
 
 describe("encrypted pairing before protocol authentication", () => {
+  it("uses an acknowledged encrypted blank line after a settled unsupported read, before notifications or HELLO", async () => {
+    const h = hardware(), port = new WebBluetoothTerminalConnection();
+    const notify = vi.spyOn(h.tx, "startNotifications");
+    h.tx.readValue.mockRejectedValueOnce(new DOMException("GATT Error Unknown.", "NotSupportedError"));
+    h.rx.writeValueWithResponse.mockImplementationOnce(async (bytes) => {
+      expect([...bytes]).toEqual([10]);
+      expect(notify).not.toHaveBeenCalled();
+    });
+    await port.connect(h.device);
+    expect(h.gatt.connect).toHaveBeenCalledTimes(1);
+    expect(h.tx.readValue).toHaveBeenCalledTimes(1);
+    expect(h.rx.writeValueWithResponse).toHaveBeenCalledTimes(1);
+    expect(notify).toHaveBeenCalledTimes(1);
+    expect(h.chunks).toEqual([]);
+    await port.sendLine("HELLO");
+    expect(new TextDecoder().decode(h.chunks[0])).toBe("HELLO\n");
+    port.disconnect();
+  });
+  it("stops before notifications and protocol commands when both encrypted channels fail", async () => {
+    const h = hardware(), port = new WebBluetoothTerminalConnection();
+    const notify = vi.spyOn(h.tx, "startNotifications");
+    h.tx.readValue.mockRejectedValue(new DOMException("GATT Error Unknown.", "NotSupportedError"));
+    h.rx.writeValueWithResponse.mockRejectedValue(new DOMException("GATT operation not permitted.", "NotSupportedError"));
+    const error = await port.connect(h.device).catch((error) => error);
+    expect(error.code).toBe("BLUETOOTH_PAIRING_WRITE_NOTSUPPORTEDERROR");
+    expect(error.message).toContain("GATT_NOT_PERMITTED");
+    expect(error.message).toContain("encrypted write also failed");
+    expect(h.rx.writeValueWithResponse).toHaveBeenCalledTimes(1);
+    expect(notify).not.toHaveBeenCalled();
+    expect(h.gatt.disconnect).toHaveBeenCalled();
+  });
+  it.each(["NetworkError", "SecurityError", "NotAllowedError"])("does not try the write fallback for %s", async (name) => {
+    const h = hardware(), port = new WebBluetoothTerminalConnection();
+    const notify = vi.spyOn(h.tx, "startNotifications");
+    h.tx.readValue.mockRejectedValue(new DOMException("synthetic private diagnostic", name));
+    await expect(port.connect(h.device)).rejects.toMatchObject({ code: `BLUETOOTH_PAIRING_${name.toUpperCase()}` });
+    expect(h.rx.writeValueWithResponse).not.toHaveBeenCalled();
+    expect(notify).not.toHaveBeenCalled();
+  });
   it("waits for encrypted TX read before subscribing; never delivers its stale value as a message", async () => {
     const h = hardware(),
       port = new WebBluetoothTerminalConnection();
@@ -399,4 +447,19 @@ it("explains that a busy Bluetooth operation can come from this tab", () => {
   const shown = bluetoothError(new DOMException("GATT operation already in progress.", "NetworkError"), "pairing");
   expect(shown.message).toContain("only this Hallzee tab open");
   expect(shown.message).not.toContain("Close other apps or tabs");
+});
+
+it.each([
+  ["GATT Error Unknown.", "GATT_UNKNOWN_ERROR"],
+  ["GATT operation failed for unknown reason.", "GATT_UNKNOWN_FAILURE"],
+  ["GATT operation not permitted.", "GATT_NOT_PERMITTED"],
+  ["GATT Error: Not supported.", "GATT_NOT_SUPPORTED"],
+  ["GATT Error: Unknown GattErrorCode.", "GATT_UNTRANSLATED_ERROR"],
+])("distinguishes the fixed Chromium diagnostic %s without exposing native payloads", (message, label) => {
+  const shown = bluetoothError(new DOMException(message, "NotSupportedError"), "pairing-write");
+  expect(shown.message).toContain(label);
+  expect(shown.message).toContain("Hallzee has not checked a pairing code");
+  const unknown = bluetoothError(new DOMException(message + " private payload", "NotSupportedError"), "pairing-write");
+  expect(unknown.message).not.toContain(label);
+  expect(unknown.message).not.toContain("private payload");
 });

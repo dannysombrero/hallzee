@@ -54,6 +54,10 @@ for offset, file in zip(rest[::2], rest[1::2]):
   # Real writes erase entire 4 KiB sectors, not only the supplied bytes.
   start = offset // 4096 * 4096; end = (offset + len(content) + 4095) // 4096 * 4096
   data[start:end] = b'\\xff' * (end-start)
+  if os.environ.get('HALLZEE_FAIL_WRITE') == str(offset):
+   data[offset:offset+len(content)//2] = content[:len(content)//2]
+   path.write_bytes(data)
+   raise SystemExit('Simulated serial disconnection during write')
   data[offset:offset+len(content)] = content
   path.write_bytes(data)
  elif os.environ.get('HALLZEE_FAIL_VERIFY') == str(offset) or data[offset:offset+len(content)] != content:
@@ -65,10 +69,10 @@ for offset, file in zip(rest[::2], rest[1::2]):
                str(root / 'tools/FirmwareTool/FirmwareTool.csproj'), '--', 'usb-fast',
                '--esptool', str(fake), '--port', 'SIMULATED', '--build', str(build)]
 
-    def run(initial, succeeds=True, **extra):
+    def run(initial, succeeds=True, options=(), **extra):
         flash.write_bytes(initial)
         log.write_text('')
-        result = subprocess.run(command, env=dict(env, **extra), capture_output=True, text=True)
+        result = subprocess.run(command + list(options), env=dict(env, **extra), capture_output=True, text=True)
         assert (result.returncode == 0) == succeeds, result.stdout + result.stderr
         return flash.read_bytes(), [json.loads(line) for line in log.read_text().splitlines()]
 
@@ -81,7 +85,22 @@ for offset, file in zip(rest[::2], rest[1::2]):
     writes = [c[c.index('write-flash') + 1] for c in calls if 'write-flash' in c]
     assert writes == ['0x10000', '0xe000']
     assert calls[-1][-1] == 'run'
+    assert all(c[c.index('--baud') + 1] == '460800' for c in calls if c[-1] != 'run')
     assert next(i for i, c in enumerate(calls) if 'verify-flash' in c and c[-2] == '0x10000') < next(i for i, c in enumerate(calls) if 'write-flash' in c and c[-2] == '0xe000')
+
+    # A partial app write must leave data/boot selection alone and remain
+    # recoverable by rerunning the same workflow at a lower serial speed.
+    partial, calls = run(original, succeeds=False, HALLZEE_FAIL_WRITE=str(0x10000))
+    assert partial[:0x10000] == original[:0x10000]
+    assert partial[app_end:] == original[app_end:]
+    assert partial[0x10000:0x10000 + len(app)] != app
+    assert not any('run' in c or ('write-flash' in c and c[-2] == '0xe000') for c in calls)
+    retried, calls = run(partial, options=['--baud', '115200'])
+    assert retried == updated
+    assert all(c[c.index('--baud') + 1] == '115200' for c in calls if c[-1] != 'run')
+    for options in (['--baud', '0'], ['--baud', '-1'], ['--baud', 'invalid'], ['--baud']):
+        unchanged, calls = run(original, succeeds=False, options=options)
+        assert unchanged == original and not calls
 
     # Repeat when already on app0, and fill the slot to its exact limit without
     # erasing any part of app1 or the filesystem.
@@ -114,4 +133,4 @@ for offset, file in zip(rest[::2], rest[1::2]):
         unchanged, calls = run(original, succeeds=False)
         assert unchanged == original and not calls
         path.write_bytes(saved)
-    print('Fast USB: only app0/otadata written; mismatches and invalid builds rejected; verification failures never reboot.')
+    print('Fast USB: only app0/otadata written; partial writes recover at 115200; invalid inputs rejected; failures never reboot.')

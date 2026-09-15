@@ -52,7 +52,7 @@ claims made by passing the smaller automated set above.
 | Mac Edge UI/offline indicator | Selected local regular profile | Observed; shared Chromium implementation |
 | Mac Chrome + ESP32 secure BLE / installed PWA | Local regular profile; user report 2026-09-11; exact versions not recorded | Connection succeeded after disconnecting terminal in macOS Bluetooth settings; full secure BLE/PWA matrix pending |
 | Mac Edge + ESP32 secure BLE / installed PWA | Edge on Mac; testing establishes Edge-on-Mac support | Pending hardware verification |
-| Chromebook + ESP32 | Personal Chromebook; reported ChromeOS/Chrome 152.0.7977.113 (64-bit), 2026-09-15 | Latest retry fails at `pairing / NotSupportedError` before code entry; encrypted-write fallback pending hardware verification |
+| Chromebook + ESP32 | Personal Chromebook; reported ChromeOS/Chrome 152.0.7977.113 (64-bit), 2026-09-15 | Read and fallback write fail; confirmed `pairing-write / NotSupportedError` + `GATT_UNKNOWN_ERROR`; firmware security-event capture pending, unresolved |
 | Windows BLE PC + Chrome + ESP32 | User report 2026-09-14; exact Windows/browser versions not recorded | Disconnects before Hallzee code entry; security-initiation correction pending hardware retry |
 | Windows BLE PC + Edge + ESP32 | Same user report 2026-09-14; exact versions not recorded | Same pre-code disconnect; correction pending hardware retry |
 | Firefox local classroom / data features | Local profile; roster, trip history, reports, policies | Supported; terminal Bluetooth deferred |
@@ -370,3 +370,33 @@ Windows Chrome/Edge protected read/write negotiation, notifications and saved-
 owner reconnect require separate Windows BLE testing and remain unverified.
 This change needs a web deployment/update with the already updated firmware;
 no firmware edits, hardware flashing or web deployment were performed here.
+
+### Both channels fail; ESP32 diagnostics required (2026-09-15)
+
+The user confirms the new error is `pairing-write / NotSupportedError` with
+`GATT_UNKNOWN_ERROR`. The protected-write fallback has not resolved this
+Chromebook. The exact native failure remains unknown and no further speculative
+security-policy changes are included here.
+
+Firmware now emits fixed USB events for connection, security requests, auth
+completion/failure, disconnection and the first read/write callback. It emits
+only event labels and numeric status codes, never addresses, keys, passkeys,
+identities or command values. `flash-terminal-macos.sh --monitor` chains the
+existing verified USB write into `monitor-terminal-macos.sh`, which filters both
+stdout and stderr, keeps stdin open without forwarding keyboard input, and
+never saves a raw serial log. Missing/multiple USB devices and monitor failure
+have bounded diagnostics. Existing ordinary serial logs can contain classroom
+records and are excluded from the capture.
+
+The ILI9341 rotation-1 compile passed at **1,365,217 bytes** within the
+1,572,864-byte slot. Four diagnostic-script tests passed, covering allowlist
+boundaries, CRLF, extended disconnect reasons, suppressed CLI error payloads,
+stdin isolation and incompatible compile-only/monitor flags. Bash syntax checks
+passed. Actual USB monitoring and the Chromebook security event sequence remain
+unverified; no terminal was flashed and no web update was deployed here.
+
+Use the Mac to flash/capture while connecting from the Chromebook. A Mac alone
+cannot verify ChromeOS Bluetooth. A Windows PC is not required for this capture;
+Windows Chrome/Edge protected GATT reads/writes, notifications and reconnect
+remain unverified and require separate Windows BLE hardware testing. This is
+diagnostic preparation, not a completed pairing fix.

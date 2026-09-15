@@ -8,7 +8,7 @@ internal static class UsbBootstrap {
   // Local development only: preserve the existing data partitions and avoid the
   // full backup/migration. Reset otadata AFTER verifying app0, since an earlier
   // Bluetooth update may have selected app1. This is not an atomic OTA update.
-  public static async Task UpdateApplicationAsync(string esptool,string port,string build) {
+  public static async Task UpdateApplicationAsync(string esptool,string port,string build,string baud="460800") {
     var app=One(build,"*.ino.bin"); var boot=One(build,"*.bootloader.bin"); var partitions=One(build,"*.partitions.bin");
     var bootApp=Path.Combine(build,"boot_app0.bin");
     var expected=File.ReadAllBytes(partitions);
@@ -24,16 +24,16 @@ internal static class UsbBootstrap {
     Console.WriteLine("Fast development USB: no new data backup. Checking installed bootloader and partition table…");
     // A blank/legacy/mismatched device must fail before any write. esptool's
     // explicit chip selection also rejects other ESP32 families.
-    await Run(esptool,"--chip","esp32","--port",port,"--baud","460800","verify-flash",
+    await Run(esptool,"--chip","esp32","--port",port,"--baud",baud,"verify-flash",
       "0x1000",boot,"0x8000",partitions);
-    await Run(esptool,"--chip","esp32","--port",port,"--baud","460800","write-flash","0x10000",app);
-    await Run(esptool,"--chip","esp32","--port",port,"--baud","460800","verify-flash","0x10000",app);
-    await Run(esptool,"--chip","esp32","--port",port,"--baud","460800","write-flash","0xe000",bootApp);
-    await Run(esptool,"--chip","esp32","--port",port,"--baud","460800","verify-flash","0xe000",bootApp);
+    await Run(esptool,"--chip","esp32","--port",port,"--baud",baud,"write-flash","0x10000",app);
+    await Run(esptool,"--chip","esp32","--port",port,"--baud",baud,"verify-flash","0x10000",app);
+    await Run(esptool,"--chip","esp32","--port",port,"--baud",baud,"write-flash","0xe000",bootApp);
+    await Run(esptool,"--chip","esp32","--port",port,"--baud",baud,"verify-flash","0xe000",bootApp);
     await Run(esptool,"--chip","esp32","--port",port,"run");
     Console.WriteLine("Fast USB write verified; terminal restarting. NVS and LittleFS were not written. Confirm the new firmware boots.");
   }
-  public static async Task InstallAsync(string esptool,string mklittlefs,string port,string build,string backupRoot) {
+  public static async Task InstallAsync(string esptool,string mklittlefs,string port,string build,string backupRoot,string baud="460800") {
     var app=One(build,"*.ino.bin"); var boot=One(build,"*.bootloader.bin"); var partitions=One(build,"*.partitions.bin");
     var bootApp=Path.Combine(build,"boot_app0.bin");
     if(!File.Exists(bootApp)) throw new IOException("USB bundle is missing boot_app0.bin.");
@@ -92,7 +92,7 @@ internal static class UsbBootstrap {
     await Run(mklittlefs,"-u",unpack,"-b","4096","-p","256","-s",NewFsSize.ToString(),newImage);
     if(!contents.OrderBy(p=>p.Key).SequenceEqual(Inventory(unpack).OrderBy(p=>p.Key))) throw new IOException("Filesystem migration verification failed; terminal was not changed.");
     Console.WriteLine($"Backup verified at {backup}. Installing OTA bootstrap and restoring {contents.Count} files…");
-    await Run(esptool,"--chip","esp32","--port",port,"--baud","460800","write-flash","--flash-size","4MB",
+    await Run(esptool,"--chip","esp32","--port",port,"--baud",baud,"write-flash","--flash-size","4MB",
       "0x1000",boot,"0x8000",partitions,"0xe000",bootApp,"0x10000",app,$"0x{NewFsOffset:x}",newImage);
     await Run(esptool,"--chip","esp32","--port",port,"verify-flash","0x8000",partitions,$"0x{NewFsOffset:x}",newImage);
     string nvs=Path.Combine(backup,"nvs-readback.bin");

@@ -14,12 +14,17 @@ port=""
 display="st7735"
 rotation="1"
 touch_test=false
+monitor=false
+baud="460800"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --fast) fast=true ;;
     --touch-test) touch_test=true ;;
     --compile-only) compile_only=true ;;
+    --monitor) monitor=true ;;
+    --baud) baud="${2:?--baud requires a rate such as 115200}"; shift ;;
+    --baud=*) baud="${1#*=}" ;;
     --display) display="${2:?--display requires st7735 or ili9341}"; shift ;;
     --display=*) display="${1#*=}" ;;
     --rotation) rotation="${2:?--rotation requires 0, 1, 2, or 3}"; shift ;;
@@ -30,6 +35,16 @@ while [[ $# -gt 0 ]]; do
   esac
   shift
 done
+
+case "$baud" in
+  9600|19200|38400|57600|115200|230400|460800|921600) ;;
+  *) echo "Unsupported --baud. Use 115200 for a slower USB retry (default: 460800)."; exit 1 ;;
+esac
+
+if $monitor && $compile_only; then
+  echo "--monitor requires a USB flash; omit --compile-only or run scripts/monitor-terminal-macos.sh separately."
+  exit 1
+fi
 
 if [[ "$display" != "st7735" && "$display" != "ili9341" ]]; then
   echo "Display must be st7735 or ili9341."
@@ -143,8 +158,12 @@ mklittlefs="$arduino_data/packages/esp32/tools/mklittlefs/4.0.2-db0513a/mklittle
 cp "$arduino_data/packages/esp32/hardware/esp32/$esp32_version/tools/partitions/boot_app0.bin" "$build_dir/boot_app0.bin"
 if $fast; then
   "$dotnet_cli" run --project "$project_root/tools/FirmwareTool/FirmwareTool.csproj" -- usb-fast \
-    --esptool "$esptool" --port "$port" --build "$build_dir"
+    --esptool "$esptool" --port "$port" --build "$build_dir" --baud "$baud"
 else
   "$dotnet_cli" run --project "$project_root/tools/FirmwareTool/FirmwareTool.csproj" -- usb \
-    --esptool "$esptool" --mklittlefs "$mklittlefs" --port "$port" --build "$build_dir" --backup "$tools_dir/terminal-backups"
+    --esptool "$esptool" --mklittlefs "$mklittlefs" --port "$port" --build "$build_dir" --backup "$tools_dir/terminal-backups" --baud "$baud"
+fi
+
+if $monitor; then
+  bash "$project_root/scripts/monitor-terminal-macos.sh" "$port"
 fi

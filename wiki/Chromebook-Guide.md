@@ -65,6 +65,14 @@ restore it. Use the previous client to release or physical owner recovery.
 Unpairing does not sanitize records for a different teacher; cross-teacher
 handoff is outside this version.
 
+If the updated client reports `pairing-write / NotSupportedError` with
+`GATT_UNKNOWN_ERROR`, both encrypted channels failed and the issue is unresolved.
+Use the [filtered ESP32 diagnostic capture](Bluetooth-Repair-and-Keypad.md#both-encrypted-channels-fail-with-gatt_unknown_error)
+on the Mac while retrying Bluetooth on the Chromebook. This needs diagnostic
+firmware but no further web change. Mac-only Bluetooth testing is insufficient;
+no Windows PC is required for this capture. Windows GATT, notifications and
+reconnect remain separately unverified.
+
 If `pairing / NotSupportedError` occurs **before** any code prompt, apply the
 new web update with encrypted-write fallback. If that also fails, Hallzee now
 reports `pairing-write` and a GATT category when available. Follow the

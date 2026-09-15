@@ -118,6 +118,46 @@ The boot-selection behavior follows Espressif's
 [OTA partition documentation](https://docs.espressif.com/projects/esp-idf/en/stable/esp32/api-reference/system/ota.html).
 
 
+### USB write stops partway through
+
+`No more data to read from the serial port` during `Writing at ...` means the
+USB firmware transfer stopped before verification; it does not diagnose the
+Bluetooth pairing failure. The application may be incomplete and must be
+rewritten before resuming Bluetooth tests. For failures partway through a write,
+Espressif recommends a [lower serial baud rate](https://docs.espressif.com/projects/esptool/en/latest/esp32/troubleshooting.html#writing-to-flash-fails-part-way-through).
+The error alone does not distinguish cable, power, driver or serial-speed issues.
+
+Close any serial monitor, reconnect the terminal using a short USB data cable
+(prefer a direct Mac connection over a hub), and retry from the updated checkout:
+
+```sh
+bash scripts/flash-terminal-macos.sh --fast --display ili9341 --baud 115200 --monitor
+```
+
+This command is for an already configured ILI9341 terminal and resumes the
+filtered Bluetooth diagnostic capture after a verified flash. Keep your usual
+rotation option. Omit `--monitor` when a diagnostic capture is not needed. Fast
+mode remains appropriate after an interrupted application write: it rechecks
+the installed bootloader/table, rewrites and verifies the entire application,
+and only then changes boot selection. It does not write NVS or LittleFS; no
+factory reset or full-flash erase is needed for this retry. If the USB write
+fails again, try a different data cable/USB port before another attempt. Do not
+start Bluetooth testing until the flash verifies and the new firmware boots.
+
+The Mac source flasher accepts `--baud RATE` or `--baud=RATE`, defaults to
+460800, and forwards the rate to fast-mode checks/writes or the regular-mode
+upload. Regular-mode backup reads and verification keep their existing default
+speed. The underlying `FirmwareTool usb` and `usb-fast` commands also accept
+`--baud RATE`; supported rates are 9600, 19200, 38400, 57600, 115200, 230400,
+460800 and 921600. The diagnostic monitor always uses 115200 independently.
+This change does not alter the Windows PowerShell wrapper or backup recovery.
+
+A Mac with the terminal is sufficient to verify this USB retry; no Windows PC
+is required. The subsequent ChromeOS pairing test still requires the Chromebook.
+Physical 115200-baud retry has not yet been verified. Windows COM-port flashing,
+USB-driver behavior, encrypted Bluetooth access, notifications and reconnect
+remain separately unverified and require a Windows PC.
+
 ## Package format and compatibility
 
 A `.hallzee-fw` file is a bounded ZIP containing `manifest.txt`, `manifest.sig`,

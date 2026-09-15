@@ -77,6 +77,62 @@ flash and run shared software checks but cannot verify ChromeOS behavior. A
 Windows PC is not required for this Chromebook retry. Windows BLE authentication,
 GATT notifications, and reconnect require a Windows BLE PC and remain unverified.
 
+## Both encrypted channels fail with GATT_UNKNOWN_ERROR
+
+The latest Chromebook report confirms `pairing-write / NotSupportedError` with
+`GATT_UNKNOWN_ERROR`. Both the initial encrypted read and its protected-write
+fallback failed before HELLO or code verification. The browser has no more
+specific native cause to report; the issue is **not resolved**. Collect the
+ESP32's security events from the same connection attempt.
+
+On the Mac, connect the already configured ILI9341 terminal with a USB data
+cable. From the updated checkout run:
+
+```sh
+bash scripts/flash-terminal-macos.sh --fast --display ili9341 --monitor
+```
+
+This builds/flashes the firmware with diagnostic events, verifies the fast USB
+write, then starts a filtered USB monitor at 115200 baud. A full flash is not
+required. If setting up a new Mac, omit `--fast` so the existing bootstrap also
+installs the board tools and libraries. The web client needs no additional
+update for this diagnostic capture.
+
+If flashing stops with `No more data to read from the serial port`, the USB
+write is incomplete. Add `--baud 115200` to the same command and follow the
+[USB retry steps](Firmware-Updates.md#usb-write-stops-partway-through).
+Wait for a verified flash and a normal firmware boot before retrying Bluetooth.
+
+Keep USB attached to the Mac and Hallzee disconnected there. When the monitor
+starts, briefly press the ESP32 **EN/Reset** button once to restart without
+clearing ownership. Wait for `BLE_DIAG READY v1`, reopen pairing mode if the
+terminal is unowned, and retry **Find nearby terminals** on the Chromebook.
+Copy the `BLE_DIAG` lines from that one attempt together with the browser's
+sanitized error. Press Ctrl-C to stop. Subsequent captures need only
+`bash scripts/monitor-terminal-macos.sh`; pass the serial port as its sole
+argument if more than one USB serial device is connected.
+
+The monitor installs Arduino CLI if absent and uses a strict output allowlist.
+It does not forward keyboard input or save raw serial output. Ordinary serial
+logs can contain classroom records: use this filtered monitor for sharing.
+It recognizes only READY, CONNECTED, SECURITY_REQUEST, AUTH_OK, AUTH_FAILED with
+a two-digit hex reason, DISCONNECTED with a two-to-four-digit hex reason, and
+the first READ_REQUEST/WRITE_REQUEST event per connection. No addresses, keys,
+code values, identities or command payloads are emitted by these diagnostics.
+
+`AUTH_FAILED` supplies an ESP32 reason for investigation. `AUTH_OK` indicates
+that the stack reported successful Bluetooth authentication, not Hallzee
+ownership. READ_REQUEST/WRITE_REQUEST mean GATT callbacks reached the firmware;
+they do not identify a particular handle or prove claim authentication. Missing
+events alone are inconclusive, especially if the capture began late. The
+firmware's security configuration and ownership protocol are unchanged.
+
+A Mac is sufficient to flash and capture USB events, but **not** to reproduce
+ChromeOS Bluetooth: retry on the Chromebook while capturing on the Mac. No
+Windows PC is required for this capture. Windows Chrome/Edge encrypted GATT
+reads/writes, notifications and reconnect still need a Windows BLE PC and remain
+unverified. No successful Chromebook pairing is claimed by these diagnostics.
+
 ## Chromebook encrypted-read failure before the code prompt
 
 The latest retry on a personal Chromebook running ChromeOS/Chrome

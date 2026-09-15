@@ -75,6 +75,17 @@ Chromium messages are mapped to `GATT_UNKNOWN_ERROR`, `GATT_UNKNOWN_FAILURE`,
 than collapsing every NotSupportedError into an implied lost bond. Unrecognized
 messages stay hidden. See [Chromium's error mapping](https://chromium.googlesource.com/chromium/src/+/main/third_party/blink/renderer/modules/bluetooth/bluetooth_error.cc).
 
+For unresolved failures of both protected channels, the Bluedroid firmware
+emits fixed `BLE_DIAG` USB events for connection, GAP security requests,
+authentication success/failure, disconnect reason, and the first GATT read/write
+callback per connection. These observe the existing handshake without changing
+its security policy. Authentication failure reasons are two hexadecimal digits;
+disconnect reasons may include extended values such as `0x100`. The
+`scripts/monitor-terminal-macos.sh` allowlist excludes all ordinary serial data,
+addresses, keys, passkeys, identities and command values, and forwards no
+keyboard input. Start a capture before attempting the Chromebook connection;
+missing events after late attachment are not evidence of a security failure.
+
 | Role | UUID |
 | --- | --- |
 | Sync service | `005924a2-c6e5-4340-9bb8-22d9dd37a283` |

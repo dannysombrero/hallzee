@@ -65,9 +65,25 @@ fast and regular flashing preserve stored ownership and OS Bluetooth bonds; a
 regular flash is not a Bluetooth reset. Fast mode makes no new backup. Read
 [firmware updates and recovery](Firmware-Updates.md) before using fast mode.
 
+If a Mac USB write stops partway through, add `--baud 115200` to retry at a
+lower speed; `--fast` remains appropriate for an already configured terminal.
+See [interrupted USB writes](Firmware-Updates.md#usb-write-stops-partway-through)
+for the one-command retry and cable checks. A Mac suffices for this USB check;
+Windows COM/driver behavior remains unverified and needs separate Windows testing.
+
 For lost OS bonds or unexpected physical digits, see
 [Bluetooth repair and keypad troubleshooting](Bluetooth-Repair-and-Keypad.md). Its repair gesture
 and keypad filtering require a firmware update.
+
+For persistent `pairing-write / NotSupportedError` with `GATT_UNKNOWN_ERROR`,
+use `bash scripts/flash-terminal-macos.sh --fast --display ili9341 --monitor`
+for an already configured ILI9341 terminal. It flashes diagnostic firmware and
+opens a filtered USB capture. Omit `--fast` on a new Mac to install dependencies.
+See the [capture steps](Bluetooth-Repair-and-Keypad.md#both-encrypted-channels-fail-with-gatt_unknown_error).
+The Mac handles USB capture; reproduce Bluetooth on the Chromebook. Mac-only
+testing is insufficient and a Windows PC is not needed for this capture.
+Windows encrypted GATT, notifications and reconnect remain unverified and need
+separate Windows BLE hardware testing.
 
 ### Restore the standard UI after touch testing
 

@@ -8,6 +8,11 @@ static string Required(string[] args,string key) {
   int index=Array.IndexOf(args,key);
   return index>=0 && index+1<args.Length ? args[index+1] : throw new ArgumentException($"Missing {key}");
 }
+static string UsbBaud(string[] args) {
+  var baud=args.Contains("--baud") ? Required(args,"--baud") : "460800";
+  return baud is "9600" or "19200" or "38400" or "57600" or "115200" or "230400" or "460800" or "921600"
+    ? baud : throw new ArgumentException("Unsupported --baud. Use 115200 for a slower USB retry (default: 460800).");
+}
 try {
   switch(args.FirstOrDefault()) {
     case "pack": {
@@ -46,11 +51,11 @@ try {
       await UsbBootstrap.RecoverAsync(Required(args,"--esptool"),Required(args,"--port"),Required(args,"--backup")); break;
     }
     case "usb-fast": {
-      await UsbBootstrap.UpdateApplicationAsync(Required(args,"--esptool"),Required(args,"--port"),Required(args,"--build")); break;
+      await UsbBootstrap.UpdateApplicationAsync(Required(args,"--esptool"),Required(args,"--port"),Required(args,"--build"),UsbBaud(args)); break;
     }
     case "usb": {
-      await UsbBootstrap.InstallAsync(Required(args,"--esptool"),Required(args,"--mklittlefs"),Required(args,"--port"),Required(args,"--build"),Required(args,"--backup")); break;
+      await UsbBootstrap.InstallAsync(Required(args,"--esptool"),Required(args,"--mklittlefs"),Required(args,"--port"),Required(args,"--build"),Required(args,"--backup"),UsbBaud(args)); break;
     }
-    default: throw new ArgumentException("Commands: pack --version V --build ID --input DIR --output FILE --key PEM --notes FILE; verify --package FILE; usb --esptool EXE --mklittlefs EXE --port PORT --build DIR --backup DIR; usb-fast --esptool EXE --port PORT --build DIR");
+    default: throw new ArgumentException("Commands: pack --version V --build ID --input DIR --output FILE --key PEM --notes FILE; verify --package FILE; usb --esptool EXE --mklittlefs EXE --port PORT --build DIR --backup DIR [--baud RATE]; usb-fast --esptool EXE --port PORT --build DIR [--baud RATE]");
   }
 } catch(Exception ex) { Console.Error.WriteLine(ex.Message); Environment.ExitCode=1; }

@@ -21,10 +21,36 @@ constexpr char RX_UUID[] = "e80f9559-49eb-47bc-af04-8e92e98ced56";
 // BLEServer keeps its GATT interface private. Capture the one Hallzee server's
 // registration through the supported event hook for addressed notifications.
 std::atomic<esp_gatt_if_t> transportGattInterface{ESP_GATT_IF_NONE};
+std::atomic<bool> diagnosticReadSeen{false};
+std::atomic<bool> diagnosticWriteSeen{false};
+// Fixed events and numeric status codes only. Never log GAP key/passkey
+// events, peer addresses, characteristic values or application commands.
+void onGapEvent(esp_gap_ble_cb_event_t event, esp_ble_gap_cb_param_t *param) {
+  if (!param) return;
+  if (event == ESP_GAP_BLE_SEC_REQ_EVT) {
+    Serial.println("BLE_DIAG SECURITY_REQUEST");
+  } else if (event == ESP_GAP_BLE_AUTH_CMPL_EVT) {
+    if (param->ble_security.auth_cmpl.success) Serial.println("BLE_DIAG AUTH_OK");
+    else Serial.printf("BLE_DIAG AUTH_FAILED 0x%02X\n",
+      static_cast<unsigned>(param->ble_security.auth_cmpl.fail_reason));
+  }
+}
 void onGattEvent(esp_gatts_cb_event_t event, esp_gatt_if_t interface,
                  esp_ble_gatts_cb_param_t *param) {
-  if (event == ESP_GATTS_REG_EVT && param && param->reg.status == ESP_GATT_OK) {
+  if (!param) return;
+  if (event == ESP_GATTS_REG_EVT && param->reg.status == ESP_GATT_OK) {
     transportGattInterface = interface;
+  } else if (event == ESP_GATTS_CONNECT_EVT) {
+    diagnosticReadSeen = false;
+    diagnosticWriteSeen = false;
+    Serial.println("BLE_DIAG CONNECTED");
+  } else if (event == ESP_GATTS_DISCONNECT_EVT) {
+    Serial.printf("BLE_DIAG DISCONNECTED 0x%02X\n",
+      static_cast<unsigned>(param->disconnect.reason));
+  } else if (event == ESP_GATTS_READ_EVT && !diagnosticReadSeen.exchange(true)) {
+    Serial.println("BLE_DIAG READ_REQUEST");
+  } else if (event == ESP_GATTS_WRITE_EVT && !diagnosticWriteSeen.exchange(true)) {
+    Serial.println("BLE_DIAG WRITE_REQUEST");
   }
 }
 #endif
@@ -109,6 +135,7 @@ bool ArduinoBluetoothSerialPort::begin(const char *deviceName) {
   BLESecurity::setRespEncryptionKey(ESP_BLE_ENC_KEY_MASK | ESP_BLE_ID_KEY_MASK);
 #if defined(CONFIG_BLUEDROID_ENABLED)
   BLEDevice::setCustomGattsHandler(onGattEvent);
+  BLEDevice::setCustomGapHandler(onGapEvent);
 #endif
   server = BLEDevice::createServer();
   if (!server) return false;
@@ -144,6 +171,9 @@ bool ArduinoBluetoothSerialPort::begin(const char *deviceName) {
   advertising->setScanResponseData(nameData);
   updateAdvertisement();
   advertising->start();
+#if defined(CONFIG_BLUEDROID_ENABLED)
+  Serial.println("BLE_DIAG READY v1");
+#endif
   return true;
 }
 

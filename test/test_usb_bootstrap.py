@@ -29,6 +29,7 @@ command=next(c for c in commands if c in args); rest=args[args.index(command)+1:
 if command=='flash-id': print('MAC: 01:23:45:67:89:ab'); print('Detected flash size: 4MB')
 elif command=='read-flash': pathlib.Path(rest[2]).write_bytes(data[int(rest[0],0):int(rest[0],0)+int(rest[1],0)])
 elif command in ('write-flash','verify-flash'):
+ if command=='write-flash': assert args[args.index('--baud')+1]==os.environ.get('HALLZEE_TEST_BAUD','460800')
  if rest[:1]==['--flash-size']: rest=rest[2:]
  for offset,file in zip(rest[::2],rest[1::2]):
   offset=int(offset,0); content=pathlib.Path(file).read_bytes()
@@ -36,8 +37,8 @@ elif command in ('write-flash','verify-flash'):
   elif data[offset:offset+len(content)]!=content: raise SystemExit('Verify failed')
  if command=='write-flash': path.write_bytes(data)
 '''); fake.chmod(0o755)
-    env=dict(os.environ,HALLZEE_TEST_FLASH=str(flash))
-    command=[a.dotnet,'run','--no-build','--project',str(root/'tools/FirmwareTool/FirmwareTool.csproj'),'--','usb','--esptool',str(fake),'--mklittlefs',a.mklittlefs,'--port','SIMULATED','--build',str(build),'--backup',str(base/'backups')]
+    env=dict(os.environ,HALLZEE_TEST_FLASH=str(flash),HALLZEE_TEST_BAUD='115200')
+    command=[a.dotnet,'run','--no-build','--project',str(root/'tools/FirmwareTool/FirmwareTool.csproj'),'--','usb','--esptool',str(fake),'--mklittlefs',a.mklittlefs,'--port','SIMULATED','--build',str(build),'--backup',str(base/'backups'),'--baud','115200']
     subprocess.run(command,env=env,check=True)
     updated=flash.read_bytes(); assert updated[0x9000:0xe000]==original[0x9000:0xe000]
     newfs=base/'new.bin'; newfs.write_bytes(updated[0x310000:0x3f0000]); extracted=base/'restored'; extracted.mkdir()
@@ -49,7 +50,7 @@ elif command in ('write-flash','verify-flash'):
     failed=subprocess.run(command,env=env)
     assert failed.returncode!=0 and flash.read_bytes()==invalid
     recovery=[a.dotnet,'run','--no-build','--project',str(root/'tools/FirmwareTool/FirmwareTool.csproj'),'--','recover','--esptool',str(fake),'--port','SIMULATED','--backup',str(backups[0].parent)]
-    subprocess.run(recovery,env=env,check=True); assert flash.read_bytes()==original
+    subprocess.run(recovery,env=dict(env,HALLZEE_TEST_BAUD='460800'),check=True); assert flash.read_bytes()==original
     # Existing records that cannot fit the smaller data partition must never be dropped.
     (files/'large.log').write_bytes(b'x'*1_000_000)
     fullfs=base/'full.bin'

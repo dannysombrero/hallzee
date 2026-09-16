@@ -53,8 +53,8 @@ claims made by passing the smaller automated set above.
 | Mac Chrome + ESP32 secure BLE / installed PWA | Local regular profile; user report 2026-09-11; exact versions not recorded | Connection succeeded after disconnecting terminal in macOS Bluetooth settings; full secure BLE/PWA matrix pending |
 | Mac Edge + ESP32 secure BLE / installed PWA | Edge on Mac; testing establishes Edge-on-Mac support | Pending hardware verification |
 | Chromebook + ESP32 | Personal Chromebook; reported ChromeOS/Chrome 152.0.7977.113 (64-bit), 2026-09-15 | Read and fallback write fail; confirmed `pairing-write / NotSupportedError` + `GATT_UNKNOWN_ERROR`; firmware security-event capture pending, unresolved |
-| Windows BLE PC + Chrome + ESP32 | User report 2026-09-14; exact Windows/browser versions not recorded | Disconnects before Hallzee code entry; security-initiation correction pending hardware retry |
-| Windows BLE PC + Edge + ESP32 | Same user report 2026-09-14; exact versions not recorded | Same pre-code disconnect; correction pending hardware retry |
+| Windows BLE PC + Chrome + ESP32 | User report 2026-09-14; exact Windows/browser versions not recorded | Desktop client previously failed subscribing with `DeviceUnreachable` while Chrome connected; subscription-order correction pending hardware retry |
+| Windows BLE PC + Edge + ESP32 | Same user report 2026-09-14; exact versions not recorded | Desktop client shares Windows subscription path; correction pending hardware retry |
 | Firefox local classroom / data features | Local profile; roster, trip history, reports, policies | Supported; terminal Bluetooth deferred |
 | Actual smartboard/projector, mirrored/extended/tab sharing | Not recorded | Not run |
 | Six-hour / 100-trip soak and 10,000-row startup | Not recorded | Not run |
@@ -370,6 +370,19 @@ Windows Chrome/Edge protected read/write negotiation, notifications and saved-
 owner reconnect require separate Windows BLE testing and remain unverified.
 This change needs a web deployment/update with the already updated firmware;
 no firmware edits, hardware flashing or web deployment were performed here.
+
+### Windows desktop subscription order (2026-09-16)
+
+The user reports that Chrome on the same Windows PC connects to a freshly
+flashed terminal, while the Windows desktop client failed with
+`could not subscribe to Hallzee updates (Unreachable)`. The desktop client now
+enables the TX notification descriptor before requesting characteristic-level
+encryption, matching the browser's working order; encryption is still required
+for the protected data read/write that follows. Windows hardware verification
+and a rebuilt desktop package are pending. Mac testing cannot verify this WinRT
+path. A Windows PC is required for the retest; the exact capability is CCCD
+notification subscription followed by encrypted GATT read/write. Windows
+behavior remains unverified until that test completes.
 
 ### Both channels fail; ESP32 diagnostics required (2026-09-15)
 

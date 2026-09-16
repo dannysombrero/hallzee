@@ -26,10 +26,15 @@ internal static class UsbBootstrap {
     // explicit chip selection also rejects other ESP32 families.
     await Run(esptool,"--chip","esp32","--port",port,"--baud",baud,"verify-flash",
       "0x1000",boot,"0x8000",partitions);
+    Console.WriteLine("Flashing application firmware to ESP32 (app0)…");
     await Run(esptool,"--chip","esp32","--port",port,"--baud",baud,"write-flash","0x10000",app);
+    Console.WriteLine("Verifying flashed application…");
     await Run(esptool,"--chip","esp32","--port",port,"--baud",baud,"verify-flash","0x10000",app);
+    Console.WriteLine("Updating boot configuration (boot_app0)…");
     await Run(esptool,"--chip","esp32","--port",port,"--baud",baud,"write-flash","0xe000",bootApp);
+    Console.WriteLine("Verifying boot configuration…");
     await Run(esptool,"--chip","esp32","--port",port,"--baud",baud,"verify-flash","0xe000",bootApp);
+    Console.WriteLine("Restarting ESP32 terminal…");
     await Run(esptool,"--chip","esp32","--port",port,"run");
     Console.WriteLine("Fast USB write verified; terminal restarting. NVS and LittleFS were not written. Confirm the new firmware boots.");
   }
@@ -59,13 +64,16 @@ internal static class UsbBootstrap {
     if(!OperatingSystem.IsWindows()) File.SetUnixFileMode(backup,UnixFileMode.UserRead|UnixFileMode.UserWrite|UnixFileMode.UserExecute);
     else await Run("icacls",backup,"/inheritance:r","/grant:r",System.Security.Principal.WindowsIdentity.GetCurrent().Name+":(OI)(CI)F");
     string raw=Path.Combine(backup,"original-flash.bin"), verification=Path.Combine(backup,"readback.bin");
+    Console.WriteLine("Checking connected ESP32 hardware…");
     var flashId = await Run(esptool,"--chip","esp32","--port",port,"flash-id");
     if(!System.Text.RegularExpressions.Regex.IsMatch(flashId,@"(?i)flash size:\s*(4|8|16|32|64|128)\s*MB"))
       throw new IOException("Could not verify at least 4 MB of physical flash. Terminal was not changed.");
     File.WriteAllText(Path.Combine(backup,"device-mac.txt"), DeviceMac(flashId));
     Console.WriteLine("Backing up the original ESP32 before changing any flash…");
+    Console.WriteLine("Reading full 4 MB flash backup (pass 1/2)…");
     // --chip esp32 rejects other chip families; reading 4 MB requires at least that capacity.
     await Run(esptool,"--chip","esp32","--port",port,"read-flash","0",FlashSize.ToString(),raw);
+    Console.WriteLine("Verifying 4 MB flash backup (pass 2/2)…");
     await Run(esptool,"--chip","esp32","--port",port,"read-flash","0",FlashSize.ToString(),verification);
     byte[] original=File.ReadAllBytes(raw);
     if(original.Length!=FlashSize || !SHA256.HashData(original).SequenceEqual(SHA256.HashData(File.ReadAllBytes(verification))))
@@ -92,13 +100,17 @@ internal static class UsbBootstrap {
     await Run(mklittlefs,"-u",unpack,"-b","4096","-p","256","-s",NewFsSize.ToString(),newImage);
     if(!contents.OrderBy(p=>p.Key).SequenceEqual(Inventory(unpack).OrderBy(p=>p.Key))) throw new IOException("Filesystem migration verification failed; terminal was not changed.");
     Console.WriteLine($"Backup verified at {backup}. Installing OTA bootstrap and restoring {contents.Count} files…");
+    Console.WriteLine("Flashing partition table, bootloader, application, and filesystem…");
     await Run(esptool,"--chip","esp32","--port",port,"--baud",baud,"write-flash","--flash-size","4MB",
       "0x1000",boot,"0x8000",partitions,"0xe000",bootApp,"0x10000",app,$"0x{NewFsOffset:x}",newImage);
+    Console.WriteLine("Verifying written partitions and filesystem…");
     await Run(esptool,"--chip","esp32","--port",port,"verify-flash","0x8000",partitions,$"0x{NewFsOffset:x}",newImage);
     string nvs=Path.Combine(backup,"nvs-readback.bin");
+    Console.WriteLine("Verifying NVS partition…");
     await Run(esptool,"--chip","esp32","--port",port,"read-flash","0x9000","0x5000",nvs);
     // Boot may update NVS after a reset; use --after no-reset in Run to prevent that until verification ends.
     if(!original.AsSpan(0x9000,0x5000).SequenceEqual(File.ReadAllBytes(nvs))) throw new IOException("NVS verification failed. Keep the backup for USB recovery.");
+    Console.WriteLine("Restarting ESP32 terminal…");
     await Run(esptool,"--chip","esp32","--port",port,"run");
     Console.WriteLine("OTA USB setup complete. Keep the private backup; pairing and files were preserved.");
   }
@@ -110,8 +122,11 @@ internal static class UsbBootstrap {
     string expectedMac=File.ReadAllText(Path.Combine(backup,"device-mac.txt")).Trim();
     string currentMac=DeviceMac(await Run(esptool,"--chip","esp32","--port",port,"flash-id"));
     if(!string.Equals(expectedMac,currentMac,StringComparison.OrdinalIgnoreCase)) throw new IOException("This backup belongs to a different terminal.");
+    Console.WriteLine("Restoring original full flash image…");
     await Run(esptool,"--chip","esp32","--port",port,"--baud","460800","write-flash","0",raw);
+    Console.WriteLine("Verifying restored flash…");
     await Run(esptool,"--chip","esp32","--port",port,"verify-flash","0",raw);
+    Console.WriteLine("Restarting ESP32 terminal…");
     await Run(esptool,"--chip","esp32","--port",port,"run");
     Console.WriteLine("Original firmware and data restored. Retry the OTA USB setup when ready.");
   }
@@ -131,13 +146,27 @@ internal static class UsbBootstrap {
   static bool HasPartition(byte[] b,byte t,byte s,int o,int n) => FindPartition(b,t,s)==(o,n);
   static async Task<string> Run(string executable,params string[] args) {
     var start=new ProcessStartInfo(executable) { UseShellExecute=false, RedirectStandardOutput=true, RedirectStandardError=true };
+    start.Environment["PYTHONUNBUFFERED"]="1";
     // Keep application code stopped while backing up, migrating, and checking NVS.
     bool esp=args.Contains("--chip");
     if(esp && !args.Contains("run")) { start.ArgumentList.Add("--after"); start.ArgumentList.Add("no-reset"); }
     foreach(var arg in args) start.ArgumentList.Add(arg);
     using var process=Process.Start(start) ?? throw new IOException("Could not start "+executable);
-    var outputTask=process.StandardOutput.ReadToEndAsync(); var errorTask=process.StandardError.ReadToEndAsync();
-    await process.WaitForExitAsync(); var output=await outputTask; Console.Write(output); Console.Error.Write(await errorTask); if(process.ExitCode!=0) throw new IOException($"{Path.GetFileName(executable)} failed ({process.ExitCode}); preserve any existing backup. If the fast USB compatibility check failed, run the regular USB setup. After a failed write, retry USB before using the terminal.");
-    return output;
+    var outputBuilder=new StringBuilder(); var errorBuilder=new StringBuilder();
+    var outputTask=Task.Run(async () => {
+      char[] buffer=new char[256]; int read;
+      while((read=await process.StandardOutput.ReadAsync(buffer,0,buffer.Length))>0) {
+        outputBuilder.Append(buffer,0,read); Console.Out.Write(buffer,0,read); Console.Out.Flush();
+      }
+    });
+    var errorTask=Task.Run(async () => {
+      char[] buffer=new char[256]; int read;
+      while((read=await process.StandardError.ReadAsync(buffer,0,buffer.Length))>0) {
+        errorBuilder.Append(buffer,0,read); Console.Error.Write(buffer,0,read); Console.Error.Flush();
+      }
+    });
+    await Task.WhenAll(process.WaitForExitAsync(),outputTask,errorTask);
+    if(process.ExitCode!=0) throw new IOException($"{Path.GetFileName(executable)} failed ({process.ExitCode}); preserve any existing backup. If the fast USB compatibility check failed, run the regular USB setup. After a failed write, retry USB before using the terminal.");
+    return outputBuilder.ToString();
   }
 }

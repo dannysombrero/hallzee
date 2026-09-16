@@ -189,14 +189,19 @@ sealed class BluetoothConnectionManager : ITerminalBinaryConnection, ITerminalCo
 
     txCharacteristic = txResult.Characteristics[0];
     rxCharacteristic = rxResult.Characteristics[0];
-    txCharacteristic.ProtectionLevel = GattProtectionLevel.EncryptionRequired;
-    rxCharacteristic.ProtectionLevel = GattProtectionLevel.EncryptionRequired;
+    // Enable the CCCD before requesting characteristic-level encryption. The
+    // CCCD is a configuration operation; Windows can report DeviceUnreachable
+    // when it is asked to secure the characteristic before this write. Chrome
+    // follows the same order and negotiates encryption on the first protected
+    // read/write that follows the subscription.
     txCharacteristic.ValueChanged += HandleValueChanged;
     var notifyStatus = await txCharacteristic.WriteClientCharacteristicConfigurationDescriptorAsync(
       GattClientCharacteristicConfigurationDescriptorValue.Notify
     ).AsTask(cancellationToken);
     if (notifyStatus != GattCommunicationStatus.Success)
       throw new InvalidOperationException($"Windows could not subscribe to Hallzee updates ({notifyStatus}). Check that the terminal firmware includes the BLE notification descriptor.");
+    txCharacteristic.ProtectionLevel = GattProtectionLevel.EncryptionRequired;
+    rxCharacteristic.ProtectionLevel = GattProtectionLevel.EncryptionRequired;
   }
 
   Task CleanupFailedConnectionAsync() {

@@ -527,7 +527,7 @@ export function TerminalSettingsDialog({
                   <AlertTriangle size={18} color="#d97706" className="shrink-0 mt-0.5" />
                   <div className="flex flex-col gap-1">
                     <span className="text-12 font-semibold text-slate-700">
-                      Disconnecting will unpair this computer from the terminal. You will need pairing mode and a new passkey to connect again.
+                      Disconnect closes the current connection but keeps this terminal paired for reconnect. Pairing mode is not required. Use Disconnect & Unpair only to release ownership.
                     </span>
                     {hasStudentsOut && (
                       <span className="text-12 font-bold text-amber-700">

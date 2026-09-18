@@ -102,8 +102,10 @@ run the regular USB setup in that case. It writes/verifies only app0, then
 writes/verifies the boot-selection metadata so the new build boots even after
 a Bluetooth update selected app1. Bootloader, partitions, NVS, and LittleFS are
 not written. It skips the two full-flash reads, backup, filesystem repacking,
-and filesystem upload. There is no measured hardware speedup yet; compilation
-and serial transfer still take time.
+and filesystem upload. Both fast and regular flashing stream real-time progress
+percentages and step labels in the terminal so transfer progress is visible.
+There is no measured hardware speedup yet; compilation and serial transfer still
+take time.
 
 This is a local testing workflow: it permits same-version builds and does not
 create a new recovery backup or provide the signed OTA installer's rollback

@@ -61,7 +61,8 @@ To install the Arduino tools and compile without changing hardware, add
 `--compile-only` / `-CompileOnly`; no terminal is needed. After a successful
 normal installation, `--fast` / `-Fast` reuses tools and writes only the
 application and boot selection. This includes Bluetooth firmware changes. Both
-fast and regular flashing preserve stored ownership and OS Bluetooth bonds; a
+fast and regular flashing stream live progress percentages and phase descriptions
+in the terminal, and both preserve stored ownership and OS Bluetooth bonds; a
 regular flash is not a Bluetooth reset. Fast mode makes no new backup. Read
 [firmware updates and recovery](Firmware-Updates.md) before using fast mode.
 

@@ -61,7 +61,7 @@ export function ConnectionDialog({ onClose }: { onClose: () => void }) {
         setLocalError("This is not the selected terminal. Choose the matching terminal ID.");
       } else if (selected.pairingStatus === "Paired to other device") {
         setNotice("Paired to other device. Release it from its owner’s Hallzee client before pairing here.");
-      } else if (selected.pairingStatus === "Currently Paired") {
+      } else if (selected.pairingStatus === "Currently Paired" || selected.pairingStatus === "Last Paired") {
         setNotice("Reconnecting…");
         if (await controller.connectDevice(selected.device!, undefined, selected.terminalId, control.signal)) {
           if (mounted.current) onClose();
@@ -154,13 +154,13 @@ export function ConnectionDialog({ onClose }: { onClose: () => void }) {
                   <strong className="terminal-picker-item-name">{device.name}</strong>
                   {device.terminalId && <div>{device.terminalId}</div>}
                 </div>
-                <span className={`terminal-badge ${device.pairingStatus === "Currently Paired" ? "paired" : device.pairingStatus === "Paired to other device" ? "busy" : device.pairingStatus === "Not Paired" ? "ready" : "unknown"}`}>
+                <span className={`terminal-badge ${device.pairingStatus === "Currently Paired" || device.pairingStatus === "Last Paired" ? "paired" : device.pairingStatus === "Paired to other device" ? "busy" : device.pairingStatus === "Not Paired" ? "ready" : "unknown"}`}>
                   {device.pairingStatus}
                 </span>
               </button>
             ))}
           </div>
-          <p>Browsers list only terminals you have allowed. Status unknown means Hallzee has not checked the terminal yet, even if this browser has a saved pairing. Select it to check and reconnect.</p>
+          <p>Last Paired means this browser has a saved Hallzee credential for the terminal; select it to reconnect and confirm its current status. Status unknown means Hallzee has not checked a terminal yet.</p>
           <div className="modal-actions-row">
             <button type="button" className="hallzee-pill-btn" disabled={busy} onClick={() => void select()}>
               {busy ? "Connecting…" : "Find nearby terminals"}

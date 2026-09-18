@@ -74,7 +74,7 @@ jobs:
           echo "artifact=${ARTIFACT}" >> "$GITHUB_OUTPUT"
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.package.outputs.artifact }}
           path: web-client/${{ steps.package.outputs.artifact }}.zip

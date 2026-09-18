@@ -278,7 +278,7 @@ test("saved owner can use the chooser when remembered handles are unavailable wi
     (window as any).fakeConnectCalls = 0;
   });
   await page.getByRole("button", { name: "Connect terminal", exact: true }).click();
-  await expect(page.getByText("Status unknown", { exact: true })).toBeVisible();
+  await expect(page.getByText("Last Paired", { exact: true })).toBeVisible();
   await expect(page.getByText("Currently Paired", { exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Reconnect Test terminal", exact: true }).click();
   await expect(page.getByText("Pass available", { exact: true })).toBeVisible();
@@ -302,7 +302,7 @@ test("a factory-reset terminal overrides the saved pairing status and asks for a
     (window as any).terminalCommands = [];
   });
   await page.getByRole("button", { name: "Connect terminal", exact: true }).click();
-  await expect(page.getByText("Status unknown", { exact: true })).toBeVisible();
+  await expect(page.getByText("Last Paired", { exact: true })).toBeVisible();
   await expect(page.getByText("Currently Paired", { exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Reconnect Test terminal", exact: true }).click();
   await expect(page.getByLabel("Physical pairing code")).toBeVisible();

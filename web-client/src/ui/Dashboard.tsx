@@ -79,7 +79,10 @@ export function Dashboard() {
   });
 
   const allActivePasses = useMemo<ActivePassItem[]>(() => {
-    const list: ActivePassItem[] = state.active.passes.map((p) => {
+    // A pass snapshot is authoritative only while the terminal connection is
+    // fresh. Once the link drops, hide the last occupied rows instead of
+    // implying that those students are still out; reconnect to obtain status.
+    const list: ActivePassItem[] = (state.active.fresh ? state.active.passes : []).map((p) => {
       const student = state.students.find((s) => s.studentId === p.studentId);
       return {
         studentId: p.studentId,
@@ -154,10 +157,11 @@ export function Dashboard() {
   }, [updater]);
 
   const connected = state.session === "Authenticated";
+  const terminalDisconnected = Boolean(state.terminal && !connected && !state.active.fresh);
   const period = resolvePeriod(now, state.periods, state.exceptions);
   const windowDecision = evaluateWindow(now, period, state.policy);
   const projection: ProjectionProps = {
-    fresh: state.active.fresh || allActivePasses.length > 0,
+    fresh: state.active.fresh,
     occupiedCount: allActivePasses.length,
     capacity: state.policy.capacity,
     elapsedSeconds: allActivePasses.map((p) => elapsed(p.epoch, now)),
@@ -643,10 +647,14 @@ export function Dashboard() {
                     <UserCheck size={28} />
                   </div>
                   <div className="hero-pass-details">
-                    <StatusPill variant="neutral">STATUS UNKNOWN</StatusPill>
-                    <h3>Pass Status Unknown</h3>
+                    <StatusPill variant={terminalDisconnected ? "danger" : "neutral"}>
+                      {terminalDisconnected ? "DISCONNECTED" : "STATUS UNKNOWN"}
+                    </StatusPill>
+                    <h3>{terminalDisconnected ? "Terminal disconnected" : "Pass Status Unknown"}</h3>
                     <p className="hero-pass-subtitle">
-                      Connect to the Hallzee terminal to confirm whether a student is out.
+                      {terminalDisconnected
+                        ? "Reconnect to the Hallzee terminal to find the current pass status."
+                        : "Connect to the Hallzee terminal to confirm whether a student is out."}
                     </p>
                   </div>
                 </div>
@@ -654,10 +662,10 @@ export function Dashboard() {
                   <div className="hero-floating-info">
                     <span className="hero-floating-label muted">TERMINAL STATUS</span>
                     <span className="hero-floating-val">
-                      {connected ? "AUTHENTICATED" : "OFFLINE"}
+                      {connected ? "AUTHENTICATED" : terminalDisconnected ? "DISCONNECTED" : "OFFLINE"}
                     </span>
                     <span className="hero-floating-sub">
-                      {connected ? "Receiving live activity" : "Sync to check pass status"}
+                      {connected ? "Receiving live activity" : "Reconnect to check pass status"}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">

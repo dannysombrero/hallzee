@@ -384,6 +384,24 @@ path. A Windows PC is required for the retest; the exact capability is CCCD
 notification subscription followed by encrypted GATT read/write. Windows
 behavior remains unverified until that test completes.
 
+### Disconnect while a pass is active (2026-09-16)
+
+When the web terminal link drops, the dashboard marks the terminal
+**DISCONNECTED**, hides the last terminal pass snapshot, and requires reconnect
+before presenting current occupied/pass-available status. This prevents a stale
+student-out row from being treated as live state. Manual passes remain local
+records and are unaffected. Automated type/lint/unit verification is pending
+for this UI change.
+
+### Last Paired label and manual disconnect (2026-09-16)
+
+Saved terminals that this browser has previously paired now display
+**Last Paired** until a live inspection confirms **Currently Paired**. A normal
+Disconnect keeps the saved terminal handle and Hallzee owner credential; it
+closes only the active link, so the terminal can be selected again and
+reconnected without pairing mode or a new code. **Disconnect & Unpair** remains
+the separate ownership-release action. Browser hardware verification is pending.
+
 ### Both channels fail; ESP32 diagnostics required (2026-09-15)
 
 The user confirms the new error is `pairing-write / NotSupportedError` with

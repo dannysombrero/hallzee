@@ -90,6 +90,31 @@ resolve them. See [SQLite WASM persistence](https://sqlite.org/wasm/doc/tip/pers
   CSV export, policy/schedule editing, and optional offline terminal enforcement.
 - Local data backup/restore, storage health, optional PWA installation and
   offline launch, a privacy-safe mini window, and an in-page projection fallback.
+- Zero-hardware **Virtual Web Terminal & Room Station** for classrooms without physical
+  ESP32 kiosks (e.g. K–1st grade, tablet door stations, or 1:1 student devices).
+  The teacher dashboard acts as the authoritative Teacher Hub with a 12-hour session
+  window, while the public room station (`/pass/:roomCode`) enables 1-touch destination
+  selection (Restroom, Office, Library, Nurse, Counselor, Other) with complete privacy masking,
+  automatic waitlist queuing, and teacher dashboard visibility into destination and purpose.
+
+### Virtual Web Terminal & Room Station architecture
+
+For classrooms without dedicated microcontroller kiosks or for early elementary students:
+1. **Teacher Hub (Web Client Dashboard)**:
+   - Initiates an ephemeral room (e.g. `RODRIG235`) with an optional 4-digit PIN hash and configurable capacity.
+   - The session TTL is active for $\ge 12$ hours (full school day), allowing persistent classroom operation without mid-day abandonment.
+   - All student PII, roster verification, and completed trip records remain strictly in the local browser IndexedDB database (`hallzee-web`).
+   - The teacher dashboard displays real-time active passes, elapsed timers, policy compliance, student flag alerts, and private student destinations/purpose notes.
+2. **Ephemeral Relay Coordinator (`relay/`)**:
+   - Lightweight Cloudflare Worker + in-memory Durable Object (with local Node mock relay on port 4192 for offline/testing).
+   - Zero persistent cloud storage: routes WebSocket messages in memory between the teacher hub and room stations.
+   - Strict IP rate limiting (maximum 3 room creations/day per host IP) prevents spam.
+3. **Public Room Station (`/pass/:roomCode`)**:
+   - Public touch interface loaded on a door tablet, old iPad, or student Chromebook.
+   - 1-click destination chips ("Restroom" default, "Main Office", "Library", "Nurse", "Counselor", "Other") and optional purpose note.
+   - **Privacy Masking**: The public room station and wall projection NEVER display destinations, purposes, or flag alerts. The room station displays only student name and elapsed time (`👤 Maya L. · 03m`).
+   - Screen Wake Lock API prevents the door station tablet from sleeping during the school day.
+   - **Waitlist Queue**: When pass capacity is reached, the station offers a 1-tap "Join Waitlist" action, and the teacher dashboard can prioritize or dismiss queued students.
 
 ### Explicitly deferred / future features
 
@@ -100,8 +125,9 @@ resolve them. See [SQLite WASM persistence](https://sqlite.org/wasm/doc/tip/pers
   features with a clear Bluetooth limitation.
 - Direct desktop `.db` import/export; portable owner-key backup; cloud accounts,
   cloud synchronization, analytics, remote logging; browser firmware flashing or
-  OTA; teacher-started browser-only passes; audible/background alerts; simultaneous
+  OTA; audible/background alerts; simultaneous
   desktop/browser ownership; multiple connected terminals; multi-teacher handoff;
+  substitute teacher offline autonomous mode; Google Drive auto-sync; webcam QR scanning;
   mobile/iPad/Safari support. Do not show working-looking controls for these.
   Direct users to existing supported firmware-update tools in documentation.
 

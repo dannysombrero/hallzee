@@ -19,6 +19,7 @@ import {
   Check,
   Calendar,
   ChevronDown,
+  Globe,
 } from "lucide-react";
 import { useHallzee } from "../app/HallzeeProvider";
 import { elapsed, durationLabel, localDate } from "../sync/TerminalClock";
@@ -69,41 +70,47 @@ export function Dashboard() {
   const [thresholdMinutes, setThresholdMinutes] = useState(defaultWarningMins);
   const [searchExceeded, setSearchExceeded] = useState("");
 
-  const [manualPass, setManualPass] = useState<StoredManualPass | null>(() => {
+  const [manualPasses, setManualPasses] = useState<StoredManualPass[]>(() => {
     try {
-      const saved = localStorage.getItem("hallzee_manual_pass");
-      return saved ? JSON.parse(saved) : null;
+      const saved = localStorage.getItem("hallzee_manual_passes");
+      if (saved) return JSON.parse(saved);
+      const single = localStorage.getItem("hallzee_manual_pass");
+      return single ? [JSON.parse(single)] : [];
     } catch {
-      return null;
+      return [];
     }
   });
 
   const allActivePasses = useMemo<ActivePassItem[]>(() => {
-    // A pass snapshot is authoritative only while the terminal connection is
-    // fresh. Once the link drops, hide the last occupied rows instead of
-    // implying that those students are still out; reconnect to obtain status.
-    const list: ActivePassItem[] = (state.active.fresh ? state.active.passes : []).map((p) => {
+    const isLive = state.active.fresh || Boolean(state.virtualTerminal?.active);
+    const list: ActivePassItem[] = (isLive ? state.active.passes : []).map((p) => {
       const student = state.students.find((s) => s.studentId === p.studentId);
+      const meta = state.virtualPassDetails?.[p.studentId];
       return {
         studentId: p.studentId,
         epoch: p.epoch,
         isManual: false,
         studentName: fullName(student),
+        destination: meta?.destination,
+        purpose: meta?.purpose,
+        period: meta?.period,
       };
     });
-    if (manualPass) {
-      list.push({
-        studentId: manualPass.studentId,
-        epoch: manualPass.checkoutEpoch,
-        isManual: true,
-        studentName: manualPass.studentName,
-        period: manualPass.period,
-        destination: manualPass.destination,
-        purpose: manualPass.purpose,
-      });
-    }
+    manualPasses.forEach((m) => {
+      if (!list.some((item) => item.studentId === m.studentId)) {
+        list.push({
+          studentId: m.studentId,
+          epoch: m.checkoutEpoch,
+          isManual: true,
+          studentName: m.studentName,
+          period: m.period,
+          destination: m.destination,
+          purpose: m.purpose,
+        });
+      }
+    });
     return list;
-  }, [state.active.passes, state.students, manualPass]);
+  }, [state.active.fresh, state.active.passes, state.virtualTerminal?.active, state.virtualPassDetails, state.students, manualPasses]);
 
   const handleCheckInPass = async (passItem: ActivePassItem) => {
     if (window.confirm("Check in this selected terminal pass now?")) {
@@ -127,17 +134,40 @@ export function Dashboard() {
             timeIn,
             durationSeconds,
             status: "MANUAL",
+            destination: passItem.destination ?? null,
+            purpose: passItem.purpose ?? null,
           },
           passItem.period,
         );
-        setManualPass(null);
-        try {
-          localStorage.removeItem("hallzee_manual_pass");
-        } catch {
-          // Ignore storage errors
-        }
+        setManualPasses((prev) => {
+          const next = prev.filter((p) => p.studentId !== passItem.studentId);
+          try {
+            localStorage.setItem("hallzee_manual_passes", JSON.stringify(next));
+          } catch {
+            // Ignore storage errors
+          }
+          return next;
+        });
       } else {
         await controller?.checkIn(passItem.studentId);
+      }
+    }
+  };
+
+  const handleVoidPass = async (passItem: ActivePassItem) => {
+    if (window.confirm("Void this pass without recording a trip? (Use for false checkouts)")) {
+      if (passItem.isManual) {
+        setManualPasses((prev) => {
+          const next = prev.filter((p) => p.studentId !== passItem.studentId);
+          try {
+            localStorage.setItem("hallzee_manual_passes", JSON.stringify(next));
+          } catch {
+            // Ignore storage errors
+          }
+          return next;
+        });
+      } else {
+        await controller?.voidPass(passItem.studentId);
       }
     }
   };
@@ -417,26 +447,38 @@ export function Dashboard() {
           <div className="terminal-node-box">
             <div className="terminal-node-header">
               <span className="terminal-node-eyebrow">TERMINAL NODE</span>
-              <StatusPill variant={connected ? "ready" : "neutral"}>
-                {connected ? "ONLINE" : "OFFLINE"}
+              <StatusPill variant={state.virtualTerminal?.active || connected ? "ready" : "neutral"}>
+                {state.virtualTerminal?.active || connected ? "ONLINE" : "OFFLINE"}
               </StatusPill>
             </div>
-            <span className="terminal-node-caption">Terminal clock is set when you sync</span>
+            <span className="terminal-node-caption">
+              {state.virtualTerminal?.active
+                ? "Virtual terminal 12h session active"
+                : "Terminal clock is set when you sync"}
+            </span>
             <div className="terminal-node-device-card">
               <div className="terminal-node-device-title">
-                <Radio size={13} color="#0284c7" />
+                {state.virtualTerminal?.active ? (
+                  <Globe size={13} color="#10b981" />
+                ) : (
+                  <Radio size={13} color="#0284c7" />
+                )}
                 <span>
-                  {state.terminal?.customName
-                    ? `Last paired: ${state.terminal.customName}`
-                    : "No terminal paired"}
+                  {state.virtualTerminal?.active
+                    ? `Virtual: ${state.virtualTerminal.roomCode}`
+                    : state.terminal?.customName
+                      ? `Last paired: ${state.terminal.customName}`
+                      : "No terminal paired"}
                 </span>
               </div>
               <span className="terminal-node-device-sub">
-                {connected
-                  ? "Standby • Connected live"
-                  : state.terminal
-                    ? "Standby • Ready to reconnect"
-                    : "Pair once to sync"}
+                {state.virtualTerminal?.active
+                  ? "Live Web Station • Ready for passes"
+                  : connected
+                    ? "Standby • Connected live"
+                    : state.terminal
+                      ? "Standby • Ready to reconnect"
+                      : "Pair once to sync"}
               </span>
             </div>
             <div className="terminal-node-actions">
@@ -547,7 +589,8 @@ export function Dashboard() {
                             <strong>{pass.studentName || pass.studentId}</strong>
                             {pass.studentName ? ` (ID: #${pass.studentId})` : ""}
                             {pass.period ? ` · ${pass.period}` : ""}
-                            {pass.destination ? ` · ${pass.destination}` : ""} ·{" "}
+                            {pass.destination ? ` · ${pass.destination}` : ""}
+                            {pass.purpose ? ` ("${pass.purpose}")` : ""} ·{" "}
                             {durationLabel(passElapsed)} elapsed
                           </p>
                         </div>
@@ -560,13 +603,24 @@ export function Dashboard() {
                           </span>
                           <span className="hero-floating-sub">Student ID: #{pass.studentId}</span>
                         </div>
-                        <button
-                          className="dark-action"
-                          disabled={state.busy}
-                          onClick={() => void handleCheckInPass(pass)}
-                        >
-                          Check in
-                        </button>
+                        <div style={{ display: "flex", gap: "6px" }}>
+                          <button
+                            className="hallzee-outline-btn"
+                            style={{ color: "#dc2626", borderColor: "#fca5a5" }}
+                            title="Void pass without recording trip"
+                            disabled={state.busy}
+                            onClick={() => void handleVoidPass(pass)}
+                          >
+                            Void
+                          </button>
+                          <button
+                            className="dark-action"
+                            disabled={state.busy}
+                            onClick={() => void handleCheckInPass(pass)}
+                          >
+                            Check in
+                          </button>
+                        </div>
                       </div>
                     </section>
                   );
@@ -625,21 +679,136 @@ export function Dashboard() {
                             <span className={`hero-floating-val mono ${isOverdue ? "danger" : ""}`}>
                               {durationLabel(passElapsed)}
                             </span>
-                            <button
-                              className="dark-action"
-                              disabled={state.busy}
-                              onClick={() => void handleCheckInPass(pass)}
-                            >
-                              Check in
-                            </button>
+                            <div style={{ display: "flex", gap: "6px" }}>
+                              <button
+                                className="hallzee-outline-btn"
+                                style={{ color: "#dc2626", borderColor: "#fca5a5" }}
+                                title="Void pass without recording trip"
+                                disabled={state.busy}
+                                onClick={() => void handleVoidPass(pass)}
+                              >
+                                Void
+                              </button>
+                              <button
+                                className="dark-action"
+                                disabled={state.busy}
+                                onClick={() => void handleCheckInPass(pass)}
+                              >
+                                Check in
+                              </button>
+                            </div>
                           </div>
                         </div>
                       );
                     })}
+                    {state.virtualTerminal?.waitlist && state.virtualTerminal.waitlist.length > 0 && (
+                      <div
+                        className="dashboard-card"
+                        style={{
+                          marginTop: "16px",
+                          border: "1px solid #fed7aa",
+                          background: "#fffaf5",
+                          borderRadius: "16px",
+                          padding: "16px",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            marginBottom: "12px",
+                          }}
+                        >
+                          <div>
+                            <strong style={{ fontSize: "14px", color: "#9a3412" }}>
+                              WAITLIST QUEUE ({state.virtualTerminal.waitlist.length} waiting)
+                            </strong>
+                            <p style={{ margin: "2px 0 0 0", fontSize: "12px", color: "#78716c" }}>
+                              Students waiting for the next available pass
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            className="hallzee-outline-btn"
+                            style={{ fontSize: "12px", padding: "4px 8px" }}
+                            onClick={() => controller?.performWaitlistAction("", "pause")}
+                          >
+                            Pause Queue
+                          </button>
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                          {state.virtualTerminal.waitlist.map((item) => {
+                            const student = state.students.find((s) => s.studentId === item.studentId);
+                            const name = student
+                              ? `${student.firstName} ${student.lastName}`.trim()
+                              : item.name;
+                            return (
+                              <div
+                                key={item.studentId}
+                                style={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  alignItems: "center",
+                                  background: "#ffffff",
+                                  padding: "8px 12px",
+                                  borderRadius: "10px",
+                                  border: "1px solid #fdba74",
+                                }}
+                              >
+                                <div>
+                                  <span
+                                    style={{
+                                      fontWeight: 800,
+                                      marginRight: "8px",
+                                      color: "#ea580c",
+                                    }}
+                                  >
+                                    #{item.position}
+                                  </span>
+                                  <strong>{name}</strong>
+                                  <span
+                                    style={{ fontSize: "12px", color: "#78716c", marginLeft: "6px" }}
+                                  >
+                                    (ID: {item.studentId})
+                                  </span>
+                                </div>
+                                <div style={{ display: "flex", gap: "6px" }}>
+                                  <button
+                                    type="button"
+                                    className="hallzee-outline-btn"
+                                    style={{ fontSize: "11px", padding: "2px 6px" }}
+                                    onClick={() =>
+                                      controller?.performWaitlistAction(item.studentId, "bump")
+                                    }
+                                  >
+                                    Bump
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="hallzee-outline-btn"
+                                    style={{
+                                      fontSize: "11px",
+                                      padding: "2px 6px",
+                                      color: "#dc2626",
+                                    }}
+                                    onClick={() =>
+                                      controller?.performWaitlistAction(item.studentId, "dismiss")
+                                    }
+                                  >
+                                    Dismiss
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </>
               )
-            ) : !state.active.fresh ? (
+            ) : (!state.active.fresh && !state.virtualTerminal?.active) ? (
               /* State C: Status Unknown / Waiting for Terminal */
               <section className="hero-pass-card unknown">
                 <div className="hero-pass-left">
@@ -662,7 +831,13 @@ export function Dashboard() {
                   <div className="hero-floating-info">
                     <span className="hero-floating-label muted">TERMINAL STATUS</span>
                     <span className="hero-floating-val">
-                      {connected ? "AUTHENTICATED" : terminalDisconnected ? "DISCONNECTED" : "OFFLINE"}
+                      {state.virtualTerminal?.active
+                        ? `VIRTUAL: ${state.virtualTerminal.roomCode}`
+                        : connected
+                          ? "AUTHENTICATED"
+                          : terminalDisconnected
+                            ? "DISCONNECTED"
+                            : "OFFLINE"}
                     </span>
                     <span className="hero-floating-sub">
                       {connected ? "Receiving live activity" : "Reconnect to check pass status"}
@@ -995,11 +1170,23 @@ export function Dashboard() {
               ...pass,
               checkoutEpoch: Math.floor(Date.now() / 1000),
             };
-            setManualPass(stored);
-            try {
-              localStorage.setItem("hallzee_manual_pass", JSON.stringify(stored));
-            } catch {
-              // Ignore storage errors
+            if (state.virtualTerminal?.active) {
+              void controller?.startPass({
+                studentId: pass.studentId,
+                destination: pass.destination,
+                purpose: pass.purpose,
+                period: pass.period,
+              });
+            } else {
+              setManualPasses((prev) => {
+                const next = [...prev.filter((p) => p.studentId !== pass.studentId), stored];
+                try {
+                  localStorage.setItem("hallzee_manual_passes", JSON.stringify(next));
+                } catch {
+                  // Ignore storage errors
+                }
+                return next;
+              });
             }
           }}
         />

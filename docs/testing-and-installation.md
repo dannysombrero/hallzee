@@ -237,6 +237,12 @@ The firmware compile-only command above installs the Arduino dependencies.
 Website checks after `npm ci` are `npm --prefix preview-site test` and
 `npm --prefix preview-site run lint`.
 
+Web client automated verification (typecheck, linting, unit tests with mock relay, production bundle build, and Playwright browser tests) requires Node.js 22+:
+
+```sh
+npm --prefix web-client run check
+```
+
 Repository hygiene and secret sanitization checks require only Python 3:
 
 ```sh
@@ -246,6 +252,7 @@ python3 -m unittest discover -s test -p test_repo_hygiene.py
 | Change | Mac sufficient? | Windows-specific verification |
 | --- | --- | --- |
 | Repository hygiene, secret checks, and documentation | Yes | No Windows PC required for hygiene or doc updates |
+| Web client & Virtual Terminal (mock relay, station, privacy masking) | Yes | No Windows PC required for web-client/relay tests |
 | Website, simulated prototype, shared UI/storage/protocol | Yes | No Windows PC required for shared tests |
 | ESP32 display/keypad, firmware build, Mac BLE/USB | Yes, with a physical terminal for hardware behavior | Does not verify Windows BLE/USB |
 | Windows package and database | No | Launch extracted app; load native SQLite; open/upgrade existing classroom data |

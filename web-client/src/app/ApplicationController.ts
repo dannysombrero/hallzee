@@ -32,6 +32,9 @@ import { resolvePeriod } from "../domain/PolicyScheduleService";
 import { buildPolicyTransfer } from "../domain/BellPolicyProtocol";
 import { RosterService } from "../domain/RosterService";
 import { AutoReconnectCoordinator } from "../lifecycle/AutoReconnectCoordinator";
+import { VirtualTerminalTransport } from "../transport/VirtualTerminalTransport";
+import type { CheckoutRequestPayload } from "../protocol/VirtualTerminalProtocol";
+import type { VirtualTerminalConfig } from "../storage/schema";
 export interface AppSnapshot {
   ready: boolean;
   locked: boolean;
@@ -54,6 +57,13 @@ export interface AppSnapshot {
   quota: number;
   retryUntil: number | null;
   clockNotice: boolean;
+  virtualTerminal?: {
+    roomCode: string;
+    active: boolean;
+    expiresAtEpoch: number;
+    waitlist: Array<{ studentId: string; name: string; position: number; joinedEpoch: number }>;
+  };
+  virtualPassDetails?: Record<string, { destination?: string; purpose?: string; period?: string }>;
 }
 export const initialSnapshot: AppSnapshot = {
   ready: false,
@@ -75,6 +85,8 @@ export const initialSnapshot: AppSnapshot = {
   quota: 0,
   retryUntil: null,
   clockNotice: false,
+  virtualTerminal: undefined,
+  virtualPassDetails: {},
 };
 export class ApplicationController {
   private changes = new Signal<void>();
@@ -107,12 +119,15 @@ export class ApplicationController {
   private lastTick = Date.now();
   private lastOffset = new Date().getTimezoneOffset();
   private lastReconcile = 0;
+  private virtualTransport?: VirtualTerminalTransport;
+  private virtualPassDetails = new Map<string, { destination?: string; purpose?: string; period?: string }>();
   constructor(private port: BluetoothPort = new WebBluetoothTerminalConnection()) {}
   private publish(patch: Partial<AppSnapshot> = {}) {
     if (this.stopped) return;
     this.state = {
       ...this.state,
       ...patch,
+      virtualPassDetails: Object.fromEntries(this.virtualPassDetails),
       active: {
         passes: [...this.active.passes],
         fresh: this.active.fresh,
@@ -197,6 +212,10 @@ export class ApplicationController {
       );
       await this.refresh();
       this.autoConnect = await this.db.meta("autoConnect", false);
+      const vtConfig = await this.db.meta<VirtualTerminalConfig | null>("virtual_terminal_config", null);
+      if (vtConfig?.enabled && vtConfig.roomCode) {
+        void this.startVirtualTerminal(vtConfig.roomCode);
+      }
       abortCheck(this.lifetime.signal);
       this.publish({ ready: true });
       for (const name of ["focus", "pageshow"])
@@ -671,6 +690,9 @@ export class ApplicationController {
     });
   }
   checkIn(studentId: string) {
+    if (this.state.virtualTerminal?.active || this.virtualPassDetails.has(studentId)) {
+      return this.handleVirtualCheckinRequest(studentId);
+    }
     return this.action("check-in", async () => {
       if (!this.active.fresh || !this.active.passes.some((p) => p.studentId === studentId))
         throw new HallzeeError("STALE_PASS", "Refresh pass status before checking in.");
@@ -755,8 +777,215 @@ export class ApplicationController {
     await this.db.setMeta("persistenceRequested", true);
     await navigator.storage.persist?.().catch(() => false);
   }
+  async startVirtualTerminal(roomCode: string, pin?: string, relayUrl?: string) {
+    this.stopVirtualTerminal();
+    const code = roomCode.toUpperCase().trim();
+    let hostSecret = (await this.db?.meta<string>("virtual_host_secret", "")) ?? "";
+    if (!hostSecret) {
+      hostSecret = `sec_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+      await this.db?.setMeta("virtual_host_secret", hostSecret);
+    }
+    let pinHash: string | undefined;
+    if (pin && pin.trim()) {
+      const enc = new TextEncoder().encode(pin.trim());
+      const hashBuf = await crypto.subtle.digest("SHA-256", enc);
+      pinHash = Array.from(new Uint8Array(hashBuf))
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+    }
+    await this.db?.setMeta("virtual_terminal_config", {
+      roomCode: code,
+      hostSecret,
+      pinHash,
+      enabled: true,
+    });
+
+    this.virtualTransport = new VirtualTerminalTransport({
+      relayUrl,
+      roomCode: code,
+      role: "host",
+      hostSecret,
+      pinHash,
+      capacity: this.state.policy.capacity,
+      onStatusChange: (status) => {
+        if (this.state.virtualTerminal) {
+          this.publish({
+            virtualTerminal: {
+              ...this.state.virtualTerminal,
+              active: status === "connected",
+            },
+          });
+        }
+      },
+      onRoomState: (roomState) => {
+        this.publish({
+          virtualTerminal: {
+            roomCode: roomState.roomCode,
+            active: true,
+            expiresAtEpoch: roomState.sessionExpiresAtEpoch,
+            waitlist: roomState.waitlist,
+          },
+        });
+      },
+      onCheckoutRequest: (req) => {
+        void this.handleVirtualCheckoutRequest(req);
+      },
+      onCheckinRequest: (studentId) => {
+        void this.handleVirtualCheckinRequest(studentId);
+      },
+    });
+
+    this.active.fresh = true;
+    this.virtualTransport.connect();
+    this.publish({
+      virtualTerminal: {
+        roomCode: code,
+        active: false,
+        expiresAtEpoch: Math.floor(Date.now() / 1000) + 12 * 3600,
+        waitlist: [],
+      },
+    });
+  }
+
+  stopVirtualTerminal() {
+    if (this.virtualTransport) {
+      this.virtualTransport.disconnect();
+      this.virtualTransport = undefined;
+    }
+    void this.db?.setMeta("virtual_terminal_config", null);
+    this.publish({ virtualTerminal: undefined });
+  }
+
+  async startPass(details: {
+    studentId: string;
+    destination?: string;
+    purpose?: string;
+    period?: string;
+  }) {
+    const student = this.state.students.find((s) => s.studentId === details.studentId);
+    const studentName = student
+      ? `${student.firstName} ${student.lastName}`.trim()
+      : `Student ${details.studentId}`;
+    const epoch = Math.floor(Date.now() / 1000);
+    this.active.fresh = true;
+    this.active.event(`EVENT,CHECKOUT,${details.studentId},${epoch}`);
+
+    this.virtualPassDetails.set(details.studentId, {
+      destination: details.destination,
+      purpose: details.purpose,
+      period: details.period,
+    });
+
+    if (this.virtualTransport && this.state.virtualTerminal?.active) {
+      this.virtualTransport.confirmCheckout({
+        requestId: `manual_${Date.now()}`,
+        studentId: details.studentId,
+        name: studentName,
+        destination: details.destination || "Restroom",
+        purpose: details.purpose,
+        outEpoch: epoch,
+      });
+    }
+
+    this.publish();
+  }
+
+  async voidPass(studentId: string) {
+    const inEpoch = Math.floor(Date.now() / 1000);
+    this.virtualPassDetails.delete(studentId);
+    this.active.event(`EVENT,CHECKIN,${studentId},${inEpoch}`);
+    if (this.virtualTransport && this.state.virtualTerminal?.active) {
+      this.virtualTransport.confirmCheckin(studentId, inEpoch);
+    }
+    this.publish();
+  }
+
+  performWaitlistAction(studentId: string, action: "bump" | "dismiss" | "pause" | "resume") {
+    this.virtualTransport?.performWaitlistAction(studentId, action);
+  }
+
+  async handleVirtualCheckoutRequest(req: CheckoutRequestPayload) {
+    if (!this.state.virtualTerminal?.active) return;
+    const student = this.state.students.find((s) => s.studentId === req.studentId);
+    const studentName = student
+      ? `${student.firstName} ${student.lastName}`.trim()
+      : `Student ${req.studentId}`;
+
+    if (this.active.passes.length >= this.state.policy.capacity) {
+      this.virtualTransport?.rejectCheckout({
+        requestId: req.requestId,
+        reason: "CAPACITY_REACHED",
+        message: "All passes are currently in use",
+      });
+      return;
+    }
+
+    const epoch = Math.floor(Date.now() / 1000);
+    this.active.fresh = true;
+    this.active.event(`EVENT,CHECKOUT,${req.studentId},${epoch}`);
+
+    const resolved = resolvePeriod(new Date(), this.state.periods, this.state.exceptions);
+
+    this.virtualPassDetails.set(req.studentId, {
+      destination: req.destination,
+      purpose: req.purpose,
+      period: resolved?.classSection,
+    });
+
+    this.virtualTransport?.confirmCheckout({
+      requestId: req.requestId,
+      studentId: req.studentId,
+      name: studentName,
+      destination: req.destination,
+      purpose: req.purpose,
+      outEpoch: epoch,
+    });
+
+    this.publish();
+  }
+
+  async handleVirtualCheckinRequest(studentId: string) {
+    const existing = this.active.passes.find((p) => p.studentId === studentId);
+    if (!existing) return;
+
+    const inEpoch = Math.floor(Date.now() / 1000);
+    const durationSeconds = Math.max(0, inEpoch - existing.epoch);
+    const checkoutDate = new Date(existing.epoch * 1000);
+    const now = new Date(inEpoch * 1000);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const timeOut = `${pad(checkoutDate.getHours())}:${pad(checkoutDate.getMinutes())}:${pad(checkoutDate.getSeconds())}`;
+    const timeIn = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    const tripDate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+
+    const meta = this.virtualPassDetails.get(studentId);
+    this.virtualPassDetails.delete(studentId);
+
+    this.active.event(`EVENT,CHECKIN,${studentId},${inEpoch}`);
+
+    await this.recordManualTrip(
+      {
+        tripId: Date.now(),
+        studentId,
+        tripDate,
+        timeOut,
+        timeIn,
+        durationSeconds,
+        status: "MANUAL",
+        destination: meta?.destination ?? null,
+        purpose: meta?.purpose ?? null,
+      },
+      meta?.period,
+    );
+
+    if (this.virtualTransport && this.state.virtualTerminal?.active) {
+      this.virtualTransport.confirmCheckin(studentId, inEpoch);
+    }
+    this.publish();
+  }
+
   stop() {
     this.stopped = true;
+    this.virtualTransport?.disconnect();
     this.lifetime.abort();
     this.reconnect?.stop();
     this.connection.abort();

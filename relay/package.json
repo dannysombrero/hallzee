@@ -1,0 +1,10 @@
+{
+  "name": "hallzee-relay",
+  "version": "1.2.0-dev.1",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-or-later",
+  "scripts": {
+    "test": "node --test test/*.test.ts"
+  }
+}

@@ -32,6 +32,8 @@ export interface WireTrip {
   timeIn: string | null;
   durationSeconds: number | null;
   status: "COMPLETE" | "MANUAL" | "MANUAL_RESET";
+  destination?: string | null;
+  purpose?: string | null;
 }
 export interface Trip extends WireTrip {
   terminalId: string;
@@ -40,6 +42,13 @@ export interface Trip extends WireTrip {
   scheduleName: string | null;
   classSection: string | null;
   contextSource: "resolved-on-receipt" | "unknown";
+}
+export interface VirtualTerminalConfig {
+  roomCode: string;
+  hostSecret: string;
+  pinHash?: string;
+  enabled: boolean;
+  sessionExpiresAtUtc?: string;
 }
 export interface SyncState {
   terminalId: string;

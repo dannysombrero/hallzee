@@ -86,6 +86,15 @@ Back, closing the dialog, cancellation, another selection or expiry releases the
 link. An unexpected drop invalidates it; the next attempt connects normally.
 This avoids a second encrypted-read negotiation immediately after discovery.
 
+A `connect / TimeoutError` followed by `BLUETOOTH_OPERATION_PENDING` can come
+from one tab's same unfinished native connection attempt. Setup has a 15-second
+deadline; a subsequent attempt waits up to ten seconds for the raw queue before
+stopping. Timeout cleanup calls `disconnect()`, but does not assume the native
+promise has settled. These errors precede service discovery and encryption;
+they are not evidence of lost Hallzee ownership. Recovery guidance closes and
+reopens the page in the same profile, then restarts the computer if needed,
+while retaining site data. The reported ChromeOS native hang remains unresolved.
+
 Web transport deadlines do not cancel native browser promises. GATT operations
 remain serialized until those promises settle, including late-connect cleanup,
 even after cancellation or disconnect. New connects wait up to ten seconds for

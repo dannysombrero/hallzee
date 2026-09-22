@@ -165,6 +165,37 @@ describe("native Bluetooth operations outliving their caller", () => {
     port.disconnect();
   });
 
+  it("explains a timed-out connect followed by a pending retry in the same tab", async () => {
+    const h = hardware(), port = new WebBluetoothTerminalConnection();
+    let finish!: () => void;
+    h.gatt.connect.mockImplementationOnce(() => new Promise((resolve) => {
+      finish = () => resolve(h.gatt);
+    }));
+    const first = port.connect(h.device).catch((error) => error);
+    await vi.advanceTimersByTimeAsync(15000);
+    const timeout = await first;
+    expect(timeout.code).toBe("BLUETOOTH_CONNECT_TIMEOUTERROR");
+    expect(timeout.message).toContain("before service discovery, encryption or Hallzee authentication");
+    expect(timeout.message).toContain("only one tab open");
+    expect(h.gatt.disconnect).toHaveBeenCalled();
+    const retry = port.connect(h.device).catch((error) => error);
+    await vi.advanceTimersByTimeAsync(10000);
+    const pending = await retry;
+    expect(pending).toMatchObject({ code: "BLUETOOTH_OPERATION_PENDING", retryable: false });
+    expect(pending.message).toContain("does not mean another tab is open");
+    expect(pending.message).toContain("reopen the same URL in the same browser profile");
+    expect(h.gatt.connect).toHaveBeenCalledTimes(1);
+    expect(h.gatt.getPrimaryService).not.toHaveBeenCalled();
+    expect(h.tx.readValue).not.toHaveBeenCalled();
+    expect(h.rx.writeValueWithResponse).not.toHaveBeenCalled();
+    // The queue must still close a late connection before permitting a retry.
+    finish();
+    await vi.advanceTimersByTimeAsync(800);
+    await port.connect(h.device);
+    expect(h.gatt.connect).toHaveBeenCalledTimes(2);
+    port.disconnect();
+  });
+
   it("reports a dropped link during a pending read as a disconnect, not user cancellation", async () => {
     const h = hardware(), port = new WebBluetoothTerminalConnection();
     let finish!: () => void;

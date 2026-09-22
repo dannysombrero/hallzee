@@ -130,6 +130,9 @@ export function bluetoothError(error: unknown, stage: BluetoothStage): HallzeeEr
   else if (["NotAllowedError", "SecurityError"].includes(name))
     help =
       "Check browser site Bluetooth permission and macOS/Windows permission for Chrome or Edge. A district policy may also block access.";
+  else if (stage === "connect" && name === "TimeoutError")
+    help =
+      "The Bluetooth connection attempt did not finish before Hallzee's deadline. This happened before service discovery, encryption or Hallzee authentication. Chrome may still be finishing this same attempt, even with only one tab open. If retry reports a pending operation, close this Hallzee tab/app completely and reopen the same URL in the same browser profile. If it stays stuck, restart the Chromebook/computer and power-cycle the terminal. Keep Hallzee site data and ownership; no pairing code or pairing mode is needed for a saved owner.";
   else if (stage === "pairing")
     help =
       "The encrypted Bluetooth read failed; this does not mean Hallzee ownership was lost. For a saved terminal with updated firmware, hold * alone for five seconds while idle to show BT REPAIR, then choose the saved terminal in Hallzee; updated firmware needs no OS passkey. For an unclaimed terminal, update firmware and enter its physical pairing code in Hallzee after selection. Do not reset ownership or clear Hallzee site data.";

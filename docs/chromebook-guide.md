@@ -65,6 +65,17 @@ restore it. Use the previous client to release or physical owner recovery.
 Unpairing does not sanitize records for a different teacher; cross-teacher
 handoff is outside this version.
 
+If **connect / TimeoutError** is followed by **previous Bluetooth operation in
+this tab**, Chrome still has the original operation pending; another tab is not
+required. Close Hallzee completely and reopen the same URL/profile. If needed,
+restart the Chromebook and power-cycle the terminal. Keep site data and
+ownership. This happens before encryption and does not call for another flash
+or pairing code. See the [single-tab recovery steps](bluetooth-repair-and-keypad.md#connect-timeout-followed-by-a-pending-operation-in-one-tab).
+The native cause and hardware recovery remain unverified. A Chromebook is
+required to retest; Mac-only checks are insufficient and no Windows PC is needed.
+Windows native connection cancellation, encrypted GATT and reconnect remain
+separately unverified.
+
 A Chromebook retry after flashing and applying the web update reported
 `pairing-write / Disconnected` through **Find nearby terminals**, then succeeded
 through **Last Paired** and Chrome's chooser. Both use the same connection flow;

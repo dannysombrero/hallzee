@@ -1,5 +1,41 @@
 # Bluetooth repair and unexpected keypad input
 
+## Connect timeout followed by a pending operation in one tab
+
+The Chromebook report now reaches `connect / TimeoutError` from a saved row,
+then `Chrome has not finished the previous Bluetooth operation in this tab`
+on retry. These describe the same unfinished native operation. They do not
+establish that another tab is open, that pairing was lost, or that the terminal
+needs a code. This attempt has not reached service discovery or encryption,
+so the previous encrypted-channel corrections have not run.
+
+Hallzee waits up to 15 seconds for connection setup and calls `disconnect()`
+when it times out. If Chrome's native promise remains pending, a retry waits
+up to ten seconds for it before stopping with the pending-operation message.
+Hallzee cannot force that promise to settle. Chromium's pending-connect
+cancellation is implementation-dependent; see its
+[connect/disconnect implementation](https://github.com/chromium/chromium/blob/main/third_party/blink/renderer/modules/bluetooth/bluetooth_remote_gatt_server.cc).
+Dropping the queue and starting another connection could overlap the old request
+or let its late cleanup disconnect the replacement. The queue remains intact.
+
+1. Close the Hallzee tab or installed app completely. Reopen the same Hallzee
+   URL in the same browser profile, with the terminal powered and nearby.
+2. If still stuck, restart the Chromebook and power-cycle the terminal, then
+   reconnect in Hallzee. Keep site data, saved ownership and OS bonds. No new
+   pairing code, pairing mode, BT REPAIR or firmware flash is required for this
+   recovery attempt.
+3. If it repeats, report the sanitized stage/category and whether closing the
+   page or restarting changed the result. Use the existing filtered USB monitor
+   to capture `BLE_DIAG` events during the attempt if available; do not share
+   raw serial logs or pairing credentials. Missing events alone are inconclusive.
+
+The message update explains recovery; it does **not** fix or diagnose the
+underlying ChromeOS connection hang. Hardware recovery remains unverified.
+A Mac can run the automated regression but is insufficient to reproduce this
+ChromeOS failure; the Chromebook and terminal are needed. No Windows PC is
+required for this retest. Windows Chrome/Edge native connection cancellation,
+encrypted GATT and reconnect remain unverified and require a Windows BLE PC.
+
 ## Chooser disconnect during the encrypted write
 
 After flashing and using **Check updates → Apply update**, the Chromebook user

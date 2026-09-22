@@ -213,6 +213,13 @@ stage and GATT category shown by Hallzee. This also requires no new firmware
 flash and must be verified on the Chromebook. The ChromeOS result remains
 physically unverified.
 
+For **connect / TimeoutError** followed by a pending-operation error in one tab,
+follow the [page/browser recovery steps](Bluetooth-Repair-and-Keypad.md#connect-timeout-followed-by-a-pending-operation-in-one-tab).
+No new flash or pairing mode is indicated. This precedes encryption; the latest
+web messages explain recovery but do not fix the native hang. A Chromebook and
+terminal are required to retest; Mac-only checks are insufficient and no Windows
+PC is needed. Windows connection cancellation and reconnect remain unverified.
+
 For **pairing-write / Disconnected** after flashing the Security Request
 firmware, the new ordering correction is **web-only**: request encryption before
 the protected-write fallback. After deployment, use **Check updates → Apply

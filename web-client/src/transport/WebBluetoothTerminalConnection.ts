@@ -116,7 +116,7 @@ export class WebBluetoothTerminalConnection implements BluetoothPort {
       } catch (error) {
         if (error instanceof HallzeeError && error.code === "TIMEOUT")
           throw new HallzeeError("BLUETOOTH_OPERATION_PENDING",
-            "Chrome has not finished the previous Bluetooth operation in this tab. Hallzee has paused connection attempts to avoid overlapping them. Wait briefly and retry; if it stays stuck, close and reopen Hallzee. Keep Hallzee site data and saved ownership.");
+            "Chrome has not finished the previous Bluetooth operation in this tab. This is the same attempt that timed out or was cancelled; it does not mean another tab is open. Hallzee has requested disconnection, but Chrome has not settled that operation. Close this Hallzee tab/app completely, then reopen the same URL in the same browser profile. If it stays stuck, restart the Chromebook/computer and power-cycle the terminal. Keep Hallzee site data and saved ownership; a saved owner needs no pairing code or pairing mode.");
         throw error;
       }
       valid();

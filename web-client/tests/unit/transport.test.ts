@@ -260,15 +260,23 @@ describe("terminal-initiated encryption recovery", () => {
     }));
     const unknown = new DOMException("GATT Error Unknown.", "NotSupportedError");
     h.tx.readValue.mockRejectedValueOnce(unknown);
-    h.rx.writeValueWithResponse.mockRejectedValueOnce(unknown);
     return { ...h, security, unknown, notify: vi.spyOn(h.tx, "startNotifications") };
   }
-  it("restores encryption on the same link before allowing protocol traffic", async () => {
+  it("requests encryption before a protected write that would drop the link", async () => {
     const h = recoveryHardware(), port = new WebBluetoothTerminalConnection();
+    const write = h.rx.writeValueWithResponse.getMockImplementation()!;
+    h.rx.writeValueWithResponse.mockImplementation(async (bytes) => {
+      if (bytes.length === 1 && bytes[0] === 10) {
+        h.device.dispatchEvent(new Event("gattserverdisconnected"));
+        throw new DOMException("GATT Error Unknown.", "NotSupportedError");
+      }
+      return write(bytes);
+    });
     h.tx.readValue.mockRejectedValueOnce(h.unknown);
     const connecting = port.connect(h.device);
     await vi.advanceTimersByTimeAsync(0);
     expect(h.security.readValue).toHaveBeenCalledTimes(1);
+    expect(h.rx.writeValueWithResponse).not.toHaveBeenCalled();
     expect(h.notify).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(1600);
     await connecting;

@@ -287,30 +287,38 @@ test("another owner is shown in Hallzee and never requests a pairing code", asyn
   expect(await page.evaluate(() => (window as any).fakeGattConnected())).toBe(false);
 });
 
-test("saved owner can use the chooser when remembered handles are unavailable without code or mode", async ({ page }) => {
-  await installBluetooth(page);
-  await page.goto("/");
-  await page.getByRole("button", { name: "Connect terminal", exact: true }).click();
-  await page.getByRole("button", { name: "Find nearby terminals", exact: true }).click();
-  await page.getByLabel("Physical pairing code").fill("807481");
-  await page.getByRole("button", { name: "Pair & Connect", exact: true }).click();
-  await expect(page.getByText("Pass available", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Disconnect", exact: true }).click();
-  await page.evaluate(() => {
-    (window as any).simNoRememberedDevices = true;
-    (window as any).terminalCommands = [];
-    (window as any).fakeConnectCalls = 0;
+for (const selection of ["Reconnect Test terminal", "Find nearby terminals"]) {
+  test(`saved owner restores encryption through ${selection} without a code or protected-write disconnect`, async ({ page }) => {
+    await installBluetooth(page);
+    await page.goto("/");
+    await page.getByRole("button", { name: "Connect terminal", exact: true }).click();
+    await page.getByRole("button", { name: "Find nearby terminals", exact: true }).click();
+    await page.getByLabel("Physical pairing code").fill("807481");
+    await page.getByRole("button", { name: "Pair & Connect", exact: true }).click();
+    await expect(page.getByText("Pass available", { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "Disconnect", exact: true }).click();
+    await page.evaluate(() => {
+      (window as any).simNoRememberedDevices = true;
+      (window as any).simulatedPairingFailure = "unsupported";
+      (window as any).simSecurityRequestSupported = true;
+      (window as any).simDisconnectDuringPairingWrite = true;
+      (window as any).terminalCommands = [];
+      (window as any).fakeConnectCalls = 0;
+    });
+    await page.getByRole("button", { name: "Connect terminal", exact: true }).click();
+    await expect(page.getByText("Last Paired", { exact: true })).toBeVisible();
+    await expect(page.getByText("Currently Paired", { exact: true })).toHaveCount(0);
+    await page.getByRole("button", { name: selection, exact: true }).click();
+    await expect(page.getByText("Pass available", { exact: true })).toBeVisible();
+    const commands = await page.evaluate(() => (window as any).terminalCommands as string[]);
+    expect(commands.some((c) => c.startsWith("AUTH,"))).toBe(true);
+    expect(commands.some((c) => c.startsWith("CLAIM,") || c.startsWith("CLAIM_COMMIT,"))).toBe(false);
+    expect(await page.evaluate(() => (window as any).fakeConnectCalls)).toBe(1);
+    expect(await page.evaluate(() => (window as any).fakeSecurityRequests)).toBe(1);
+    expect(await page.evaluate(() => (window as any).fakePairingWriteDrops ?? 0)).toBe(0);
+    await expect(page.getByLabel("Physical pairing code")).toHaveCount(0);
   });
-  await page.getByRole("button", { name: "Connect terminal", exact: true }).click();
-  await expect(page.getByText("Last Paired", { exact: true })).toBeVisible();
-  await expect(page.getByText("Currently Paired", { exact: true })).toHaveCount(0);
-  await page.getByRole("button", { name: "Reconnect Test terminal", exact: true }).click();
-  await expect(page.getByText("Pass available", { exact: true })).toBeVisible();
-  const commands = await page.evaluate(() => (window as any).terminalCommands as string[]);
-  expect(commands.some((c) => c.startsWith("AUTH,"))).toBe(true);
-  expect(commands.some((c) => c.startsWith("CLAIM,") || c.startsWith("CLAIM_COMMIT,"))).toBe(false);
-  expect(await page.evaluate(() => (window as any).fakeConnectCalls)).toBe(1);
-});
+}
 
 test("a factory-reset terminal overrides the saved pairing status and asks for a fresh code", async ({ page }) => {
   await installBluetooth(page);

@@ -50,6 +50,12 @@ export async function installBluetooth(page: Page) {
         return this;
       }
       async writeValueWithResponse(bytes: Uint8Array) {
+        if (!root.fakeLinkEncrypted && root.simDisconnectDuringPairingWrite) {
+          root.fakePairingWriteDrops = (root.fakePairingWriteDrops ?? 0) + 1;
+          device.gatt.disconnect();
+          device.dispatchEvent(new Event("gattserverdisconnected"));
+          throw new DOMException("GATT Error Unknown.", "NotSupportedError");
+        }
         if (!root.fakeLinkEncrypted && root.simulatedPairingFailure)
           throw new DOMException("synthetic private diagnostic payload",
             root.simulatedPairingFailure === "unsupported" ? "NotSupportedError" : "NetworkError");

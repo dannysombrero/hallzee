@@ -65,6 +65,16 @@ restore it. Use the previous client to release or physical owner recovery.
 Unpairing does not sanitize records for a different teacher; cross-teacher
 handoff is outside this version.
 
+A Chromebook retry after flashing and applying the web update reported
+`pairing-write / Disconnected` through **Find nearby terminals**, then succeeded
+through **Last Paired** and Chrome's chooser. Both use the same connection flow;
+Chrome can require selection again even with a saved Hallzee credential. The
+latest web correction asks the updated terminal to restore encryption **before**
+the protected-write fallback. With the previously flashed Security Request
+firmware, this needs only a web update. See the
+[chooser-disconnect retest](bluetooth-repair-and-keypad.md#chooser-disconnect-during-the-encrypted-write).
+One successful connection does not verify repeated reconnects or the new order.
+
 For a saved terminal that fails with `pairing-write / NotSupportedError` and
 `GATT_UNKNOWN_ERROR` after losing power, install the latest **terminal firmware
 and web client**. The new fallback asks the terminal to restore encryption with

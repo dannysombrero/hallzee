@@ -1,5 +1,34 @@
 # Bluetooth repair and unexpected keypad input
 
+## Chooser disconnect during the encrypted write
+
+After flashing and using **Check updates → Apply update**, the Chromebook user
+reported `pairing-write / Disconnected` via **Find nearby terminals**, followed
+by a successful connection from the **Last Paired** row through Chrome's chooser.
+This is one successful retry, not evidence that either selection path always
+works. Both use the same transport; a saved row reopens the chooser when Chrome
+has not provided a remembered device handle. That selection is not a new claim.
+
+The previous web build requested terminal-initiated encryption only after both
+protected operations failed. A disconnect during the write prevented that
+request. The new web build requests encryption immediately after the unsupported
+read, before trying a protected write. Only older firmware without the optional
+endpoint uses the write fallback. Protected access and saved-owner AUTH are
+still required. The native reason for the reported drop remains unknown.
+
+This correction needs a **web update only** if the Security Request firmware
+from the previous change is already flashed. After deployment, use **Check
+updates → Apply update** in the same profile. Retest both the saved row and
+Find nearby terminals after power cycling the owned terminal; keep pairing mode
+closed and verify connection/sync without another code. Repeat after reopening
+Hallzee. Keep site data and ownership; do not use BT REPAIR for this retest.
+
+A Mac can run software checks but is insufficient for this ChromeOS test; the
+Chromebook and terminal are required. No Windows PC is required for this retest.
+Windows Chrome/Edge discovery, encrypted GATT, notifications and reconnect need
+separate Windows BLE hardware testing and remain unverified. The updated order
+also remains unverified on physical Chromebook hardware.
+
 ## Saved-owner reconnect after a terminal power cycle
 
 A terminal power cycle must preserve both Hallzee ownership and its stored BLE
@@ -9,11 +38,11 @@ mode or another code. The reported `pairing-write / NotSupportedError` with
 that either saved credential was erased.
 
 The new firmware/web fallback lets Hallzee explicitly ask the terminal to
-restore encryption after both protected channels fail. The request carries no
-application data; a successful encrypted read is still mandatory before AUTH.
+restore encryption after the protected read fails, before the write fallback.
+The request carries no application data; a successful encrypted read is still mandatory before AUTH.
 Existing bond keys are reused by the Bluetooth stack. This addresses reliance
-on central-initiated encryption, but the reported hardware cause and recovery
-remain unconfirmed until the Chromebook retest.
+on central-initiated encryption. A saved-row connection has since succeeded,
+but the native cause and repeatable power-cycle recovery remain unconfirmed.
 
 1. Install the current firmware using the installation guide below. On an
    already configured Mac with an ILI9341 terminal, run

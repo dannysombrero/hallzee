@@ -159,27 +159,18 @@ export class WebBluetoothTerminalConnection implements BluetoothPort {
         valid();
         if (!(error instanceof HallzeeError) || error.code !== "BLUETOOTH_PAIRING_NOTSUPPORTEDERROR")
           throw error;
-        // RX also requires encryption in Hallzee firmware. A single blank line
-        // is ignored by its parser, so an acknowledged write can establish the
-        // secure link without starting HELLO, a claim, or the auth deadline.
-        // Only attempt this after a settled NotSupportedError, never after a
-        // cancelled/timed-out read, SecurityError or NetworkError.
+        // Ask updated firmware to initiate encryption before trying another
+        // protected operation: ChromeOS may drop the link during that write.
+        let securityRequest: BluetoothRemoteGATTCharacteristic | undefined;
         try {
-          await step("pairing-write", () => rx.writeValueWithResponse(Uint8Array.of(10)), 60000);
-        } catch (writeError) {
-          valid();
-          if (!(writeError instanceof HallzeeError) ||
-              writeError.code !== "BLUETOOTH_PAIRING_WRITE_NOTSUPPORTEDERROR") throw writeError;
-          let securityRequest: BluetoothRemoteGATTCharacteristic;
-          try {
-            securityRequest = await step("security-request", () => service.getCharacteristic(SECURITY_REQUEST_UUID));
-          } catch (lookupError) {
-            // Older firmware has no explicit encryption request. Preserve the
-            // original protected-operation error, rather than blaming discovery.
-            if (lookupError instanceof HallzeeError &&
-                lookupError.code === "BLUETOOTH_SECURITY_REQUEST_NOTFOUNDERROR") throw writeError;
-            throw lookupError;
-          }
+          securityRequest = await step("security-request", () => service.getCharacteristic(SECURITY_REQUEST_UUID));
+        } catch (lookupError) {
+          // Only an absent optional endpoint selects the legacy write path.
+          // Permission failures, cancellation and link loss must still stop.
+          if (!(lookupError instanceof HallzeeError) ||
+              lookupError.code !== "BLUETOOTH_SECURITY_REQUEST_NOTFOUNDERROR") throw lookupError;
+        }
+        if (securityRequest) {
           await step("security-request", () => securityRequest.readValue());
           // The empty public read only requests GAP encryption; it proves
           // nothing. Require a successful protected read before HELLO/AUTH.
@@ -198,6 +189,10 @@ export class WebBluetoothTerminalConnection implements BluetoothPort {
               }
             }
           }, 60000);
+        } else {
+          // Older firmware: RX also requires encryption. Its parser ignores a
+          // single blank line, so this starts no HELLO, claim or auth deadline.
+          await step("pairing-write", () => rx.writeValueWithResponse(Uint8Array.of(10)), 60000);
         }
       }
       this.tx = tx;

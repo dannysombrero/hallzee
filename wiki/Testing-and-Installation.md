@@ -213,6 +213,15 @@ stage and GATT category shown by Hallzee. This also requires no new firmware
 flash and must be verified on the Chromebook. The ChromeOS result remains
 physically unverified.
 
+For **pairing-write / Disconnected** after flashing the Security Request
+firmware, the new ordering correction is **web-only**: request encryption before
+the protected-write fallback. After deployment, use **Check updates → Apply
+update**. Follow the [two-selection retest](Bluetooth-Repair-and-Keypad.md#chooser-disconnect-during-the-encrypted-write).
+A saved-row success has been reported, but repeatable ChromeOS recovery remains
+unverified. A Chromebook and terminal are required; Mac-only checks are
+insufficient. No Windows PC is needed for this retest. Windows discovery,
+encrypted GATT, notifications and reconnect remain separately unverified.
+
 For the reported **saved-owner reconnect after terminal power loss**, the new
 explicit encryption-request fallback needs **both firmware and web updates**.
 Follow the [power-cycle retest](Bluetooth-Repair-and-Keypad.md#saved-owner-reconnect-after-a-terminal-power-cycle).

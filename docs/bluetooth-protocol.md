@@ -15,17 +15,21 @@ Firmware explicitly disables forced authentication at link connection using
 `BLESecurity::setForceAuthentication(false)`. The central first discovers GATT,
 then accessing an encrypted characteristic triggers security. In the web client,
 this starts with the protected TX read before notifications and HELLO. If that
-read settles with `NotSupportedError`, the web client tries an acknowledged
-single-LF write to the encrypted RX channel on the same connection. Firmware
-ignores blank lines; this sends no HELLO/claim and starts no application deadline.
-Only successful protected access permits notification setup and authentication.
-Timeout, cancellation, link loss, SecurityError and NetworkError do not trigger
-this fallback. Pending native operations remain serialized, and the write has
-a 60-second pairing deadline under the caller's cancellation budget.
+read settles with `NotSupportedError`, the web client first looks for the
+optional Security Request characteristic (UUID below). Only if that endpoint
+is absent does it try an acknowledged single-LF write to the encrypted RX
+channel on the same connection. Firmware ignores blank lines; this sends no
+HELLO/claim and starts no application deadline. Only successful protected access
+permits notification setup and authentication. Timeout, cancellation, link loss,
+SecurityError and NetworkError do not trigger this fallback. Pending native
+operations remain serialized, and the legacy write has a 60-second pairing
+deadline under the caller's cancellation budget.
 
-If both protected operations settle with `NotSupportedError`, the web client
-looks for the optional Security Request characteristic (UUID below). Reading
-this public, empty value asks the admitted connection's terminal to initiate
+The explicit security request precedes the write because ChromeOS was reported
+to disconnect at `pairing-write / Disconnected`, making the previous recovery
+request unreachable. Both Find nearby terminals and saved-row selection use
+this same transport flow. Reading this public, empty value asks the admitted
+connection's terminal to initiate
 GAP encryption once per connection, after discovery, using
 `esp_ble_set_encryption(..., ESP_BLE_SEC_ENCRYPT)`. The stack reuses a saved LTK
 or uses the configured Secure Connections bonding policy when no bond exists;
@@ -39,8 +43,11 @@ link loss, and authentication/permission failures stop recovery. No application
 command is replayed. Older firmware without the endpoint retains the original
 `pairing-write` error; new request/recovery failures report `security-request`
 or `pairing-resume`. This fallback needs **both firmware and web updates**.
-Physical Chromebook power-cycle recovery remains unverified; the generic GATT
-error alone cannot confirm that missing encryption initiation caused the report.
+The ordering correction is web-only for terminals already flashed with the
+Security Request endpoint. One successful saved-row connection was reported on
+Chromebook after another selection failed; repeatable power-cycle recovery and
+the new ordering remain unverified on hardware. Neither error identifies the
+native cause of the disconnect.
 
 The pinned Arduino-ESP32 3.3.11 default otherwise starts security from the connection event,
 which can overlap Windows browser discovery. This changes initiation timing,

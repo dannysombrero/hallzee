@@ -34,6 +34,7 @@ public:
 private:
   class ServerCallbacks;
   class RxCallbacks;
+  class SecurityRequestCallbacks;
   friend class ServerCallbacks;
   friend class RxCallbacks;
 
@@ -49,6 +50,7 @@ private:
   BLECharacteristic *rxCharacteristic = nullptr;
   QueueHandle_t receiveQueue = nullptr;
   std::atomic<bool> connected{false};
+  bool securityRequested = false;
   std::atomic<uint32_t> generation{0};
   std::atomic<uint32_t> observedGeneration{0};
   std::atomic<bool> claimed{false};

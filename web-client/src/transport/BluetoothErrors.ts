@@ -6,6 +6,8 @@ export type BluetoothStage =
   | "characteristics"
   | "pairing"
   | "pairing-write"
+  | "security-request"
+  | "pairing-resume"
   | "notifications"
   | "write";
 const labels: Record<BluetoothStage, string> = {
@@ -15,6 +17,8 @@ const labels: Record<BluetoothStage, string> = {
   characteristics: "finding the Hallzee channels",
   pairing: "establishing encrypted Bluetooth pairing",
   "pairing-write": "establishing encrypted Bluetooth through the write channel",
+  "security-request": "asking the terminal to restore Bluetooth encryption",
+  "pairing-resume": "waiting for the terminal to restore Bluetooth encryption",
   notifications: "subscribing to terminal updates",
   write: "sending a terminal command",
 };
@@ -130,7 +134,9 @@ export function bluetoothError(error: unknown, stage: BluetoothStage): HallzeeEr
     help =
       "The encrypted Bluetooth read failed; this does not mean Hallzee ownership was lost. For a saved terminal with updated firmware, hold * alone for five seconds while idle to show BT REPAIR, then choose the saved terminal in Hallzee; updated firmware needs no OS passkey. For an unclaimed terminal, update firmware and enter its physical pairing code in Hallzee after selection. Do not reset ownership or clear Hallzee site data.";
   else if (stage === "pairing-write")
-    help = "The encrypted read was rejected, and the encrypted write also failed. Hallzee has not checked a pairing code or claimed the terminal. Keep Hallzee site data and ownership; report this stage and your OS/browser version.";
+    help = "The encrypted read was rejected, and the encrypted write also failed. A saved owner needs no pairing code or pairing mode, including after a terminal power cycle. Update terminal firmware and Hallzee for encryption recovery, then reconnect in the original browser profile. Keep Hallzee site data and ownership; report this stage and your OS/browser version if it repeats.";
+  else if (stage === "security-request" || stage === "pairing-resume")
+    help = "Bluetooth encryption could not be restored. A saved owner needs no pairing code or pairing mode. Reconnect in the original Hallzee browser profile and keep its site data and ownership. If it repeats, capture the filtered BLE diagnostics; this error alone does not prove the bond was lost.";
   else if (["service", "characteristics"].includes(stage) && name === "NotFoundError")
     help =
       "The selected device does not expose the expected Hallzee firmware service or channels. Verify the selected terminal and firmware.";
@@ -138,7 +144,7 @@ export function bluetoothError(error: unknown, stage: BluetoothStage): HallzeeEr
     help =
       "The browser or Bluetooth adapter could not perform this operation. Try current Chrome or Edge with the Hallzee terminal nearby.";
   const knownReason = error instanceof Error ? nativeReasons.get(error.message) : undefined;
-  if (knownReason && stage !== "pairing-write") help = knownReason.help;
+  if (knownReason && !["pairing-write", "security-request", "pairing-resume"].includes(stage)) help = knownReason.help;
   return new HallzeeError(
     `BLUETOOTH_${stage.replaceAll("-", "_").toUpperCase()}_${name.toUpperCase()}`,
     `Bluetooth failed while ${labels[stage]} (${stage} / ${name}). ${knownReason ? `${knownReason.label}. ` : ""}${help}`,

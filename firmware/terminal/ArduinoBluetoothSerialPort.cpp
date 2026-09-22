@@ -18,6 +18,7 @@ constexpr char SERVICE_UUID[] = "005924a2-c6e5-4340-9bb8-22d9dd37a283";
 constexpr char TX_UUID[] = "44a359f3-9215-4189-a3cb-e7ce18ad40d6";
 constexpr char RX_UUID[] = "e80f9559-49eb-47bc-af04-8e92e98ced56";
 #if defined(CONFIG_BLUEDROID_ENABLED)
+constexpr char SECURITY_REQUEST_UUID[] = "51c3a742-7d2c-4f5d-b930-17c692e80a64";
 // BLEServer keeps its GATT interface private. Capture the one Hallzee server's
 // registration through the supported event hook for addressed notifications.
 std::atomic<esp_gatt_if_t> transportGattInterface{ESP_GATT_IF_NONE};
@@ -114,6 +115,24 @@ private:
   ArduinoBluetoothSerialPort &owner;
 };
 
+#if defined(CONFIG_BLUEDROID_ENABLED)
+class ArduinoBluetoothSerialPort::SecurityRequestCallbacks : public BLECharacteristicCallbacks {
+public:
+  explicit SecurityRequestCallbacks(ArduinoBluetoothSerialPort &owner) : owner(owner) {}
+  void onRead(BLECharacteristic *, esp_ble_gatts_cb_param_t *param) override {
+    if (!param || !owner.connected || param->read.conn_id != owner.activeConnectionId ||
+        owner.securityRequested) return;
+    owner.securityRequested = true;
+    // Asynchronous: never wait for GAP inside the GATT callback. SEC_ENCRYPT
+    // reuses a stored LTK, or applies our configured SC bonding policy if absent.
+    // This endpoint carries no application data and cannot authorize a session.
+    esp_ble_set_encryption(param->read.bda, ESP_BLE_SEC_ENCRYPT);
+  }
+private:
+  ArduinoBluetoothSerialPort &owner;
+};
+#endif
+
 bool ArduinoBluetoothSerialPort::begin(const char *deviceName) {
   receiveQueue = xQueueCreate(4096, sizeof(uint8_t));
   if (!receiveQueue) return false;
@@ -159,6 +178,16 @@ bool ArduinoBluetoothSerialPort::begin(const char *deviceName) {
   // Configuration Descriptor (CCCD). The ESP32 library does not add it for us.
   txCharacteristic->addDescriptor(new BLE2902());
   rxCharacteristic->setCallbacks(new RxCallbacks(*this));
+#if defined(CONFIG_BLUEDROID_ENABLED)
+  // Explicit post-discovery recovery for centrals that fail both protected
+  // operations without restoring encryption. Existing clients still use TX/RX.
+  auto *securityRequest = service->createCharacteristic(
+    SECURITY_REQUEST_UUID, BLECharacteristic::PROPERTY_READ);
+  if (!securityRequest) return false;
+  securityRequest->setAccessPermissions(ESP_GATT_PERM_READ);
+  securityRequest->setValue("");
+  securityRequest->setCallbacks(new SecurityRequestCallbacks(*this));
+#endif
 
   service->start();
   BLEAdvertising *advertising = BLEDevice::getAdvertising();
@@ -283,6 +312,7 @@ void ArduinoBluetoothSerialPort::handleConnect(uint16_t connectionId) {
   if (receiveQueue) xQueueReset(receiveQueue);
   generation++;
   activeConnectionId = connectionId;
+  securityRequested = false;
   connected = true;
 }
 

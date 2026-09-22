@@ -213,6 +213,15 @@ stage and GATT category shown by Hallzee. This also requires no new firmware
 flash and must be verified on the Chromebook. The ChromeOS result remains
 physically unverified.
 
+For the reported **saved-owner reconnect after terminal power loss**, the new
+explicit encryption-request fallback needs **both firmware and web updates**.
+Follow the [power-cycle retest](bluetooth-repair-and-keypad.md#saved-owner-reconnect-after-a-terminal-power-cycle).
+A saved owner must reconnect without a code, pairing mode, or bond reset.
+A Mac can flash and run software checks but cannot verify ChromeOS Bluetooth;
+the Chromebook and terminal are required. No Windows PC is needed for this
+retest. Windows discovery, encrypted GATT, notifications and saved-bond reconnect
+remain unverified and require separate Windows BLE hardware acceptance.
+
 Bluetooth names no longer include ownership/occupancy suffixes. Browser chooser
 rows and OS indicators are browser-controlled. See the [teacher guide](chromebook-guide.md#pair-and-reconnect)
 and [repair guide](bluetooth-repair-and-keypad.md) for details.

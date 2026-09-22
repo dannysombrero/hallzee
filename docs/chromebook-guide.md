@@ -65,13 +65,16 @@ restore it. Use the previous client to release or physical owner recovery.
 Unpairing does not sanitize records for a different teacher; cross-teacher
 handoff is outside this version.
 
-If the updated client reports `pairing-write / NotSupportedError` with
-`GATT_UNKNOWN_ERROR`, both encrypted channels failed and the issue is unresolved.
-Use the [filtered ESP32 diagnostic capture](bluetooth-repair-and-keypad.md#both-encrypted-channels-fail-with-gatt_unknown_error)
-on the Mac while retrying Bluetooth on the Chromebook. This needs diagnostic
-firmware but no further web change. Mac-only Bluetooth testing is insufficient;
-no Windows PC is required for this capture. Windows GATT, notifications and
-reconnect remain separately unverified.
+For a saved terminal that fails with `pairing-write / NotSupportedError` and
+`GATT_UNKNOWN_ERROR` after losing power, install the latest **terminal firmware
+and web client**. The new fallback asks the terminal to restore encryption with
+the existing bond, then requires protected access before authenticating with the
+saved owner key. Reconnect in the original profile without opening pairing mode,
+entering a code, forgetting Bluetooth, or clearing site data. See the
+[power-cycle retest](bluetooth-repair-and-keypad.md#saved-owner-reconnect-after-a-terminal-power-cycle).
+ChromeOS recovery still needs verification on the Chromebook and terminal;
+Mac-only testing is insufficient. No Windows PC is required for this retest;
+Windows encrypted GATT, notifications and reconnect remain unverified.
 
 If `pairing / NotSupportedError` occurs **before** any code prompt, apply the
 new web update with encrypted-write fallback. If that also fails, Hallzee now
@@ -166,8 +169,9 @@ updates → Apply update**. Refresh alone intentionally keeps the installed buil
 
 If connection fails, report the displayed step/category, such as
 `pairing / NetworkError` or `service / NotFoundError`; do not send the pairing
-code. Check Bluetooth is on and close other terminal clients. Pairing failures
-may require reopening physical pairing mode and completing the OS prompt. A
+code. Check Bluetooth is on and close other terminal clients. Open physical
+pairing mode only for a new claim; saved-owner reconnect needs neither that mode
+nor its code. Complete any OS permission prompt if shown. A
 missing service points to device selection or firmware. Browser-native error
 payloads, device identifiers and pairing secrets are not included in diagnostics.
 

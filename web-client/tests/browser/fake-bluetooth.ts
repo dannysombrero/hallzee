@@ -216,7 +216,17 @@ export async function installBluetooth(page: Page) {
           root.notificationsStarted = false;
         },
         getPrimaryService: async () => ({
-          getCharacteristic: async (uuid: string) => (uuid.startsWith("44a359f3") ? tx : rx),
+          getCharacteristic: async (uuid: string) => {
+            if (uuid.startsWith("44a359f3")) return tx;
+            if (uuid.startsWith("e80f9559")) return rx;
+            if (uuid === "51c3a742-7d2c-4f5d-b930-17c692e80a64" && root.simSecurityRequestSupported)
+              return { readValue: async () => {
+                root.fakeSecurityRequests = (root.fakeSecurityRequests ?? 0) + 1;
+                root.simulatedPairingFailure = false;
+                return new DataView(new ArrayBuffer(0));
+              } };
+            throw new DOMException("Characteristic not found.", "NotFoundError");
+          },
         }),
       };
     }

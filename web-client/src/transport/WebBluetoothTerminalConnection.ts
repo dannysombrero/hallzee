@@ -1,6 +1,6 @@
 import type { BluetoothPort, DeviceHandle } from "./BluetoothPort";
 import { LineFramer, commandBytes } from "./LineFramer";
-import { SERVICE_UUID, TX_UUID, RX_UUID } from "../protocol/constants";
+import { SERVICE_UUID, TX_UUID, RX_UUID, SECURITY_REQUEST_UUID } from "../protocol/constants";
 import { Signal } from "../app/events";
 import { abortCheck, deadline, HallzeeError } from "../app/errors";
 import { bluetoothDisconnected, bluetoothError, isBluetoothBusy, type BluetoothStage } from "./BluetoothErrors";
@@ -164,7 +164,41 @@ export class WebBluetoothTerminalConnection implements BluetoothPort {
         // secure link without starting HELLO, a claim, or the auth deadline.
         // Only attempt this after a settled NotSupportedError, never after a
         // cancelled/timed-out read, SecurityError or NetworkError.
-        await step("pairing-write", () => rx.writeValueWithResponse(Uint8Array.of(10)), 60000);
+        try {
+          await step("pairing-write", () => rx.writeValueWithResponse(Uint8Array.of(10)), 60000);
+        } catch (writeError) {
+          valid();
+          if (!(writeError instanceof HallzeeError) ||
+              writeError.code !== "BLUETOOTH_PAIRING_WRITE_NOTSUPPORTEDERROR") throw writeError;
+          let securityRequest: BluetoothRemoteGATTCharacteristic;
+          try {
+            securityRequest = await step("security-request", () => service.getCharacteristic(SECURITY_REQUEST_UUID));
+          } catch (lookupError) {
+            // Older firmware has no explicit encryption request. Preserve the
+            // original protected-operation error, rather than blaming discovery.
+            if (lookupError instanceof HallzeeError &&
+                lookupError.code === "BLUETOOTH_SECURITY_REQUEST_NOTFOUNDERROR") throw writeError;
+            throw lookupError;
+          }
+          await step("security-request", () => securityRequest.readValue());
+          // The empty public read only requests GAP encryption; it proves
+          // nothing. Require a successful protected read before HELLO/AUTH.
+          await step("pairing-resume", async () => {
+            for (let attempt = 0; ; attempt++) {
+              await deadline(new Promise((resolve) => setTimeout(resolve, 800)), cancelled);
+              valid();
+              try {
+                return await tx.readValue();
+              } catch (resumeError) {
+                valid();
+                // Retry only the known transient category from this report,
+                // never permission/authentication failures or application writes.
+                if (!(resumeError instanceof Error) || resumeError.name !== "NotSupportedError" ||
+                    resumeError.message !== "GATT Error Unknown." || attempt >= 9) throw resumeError;
+              }
+            }
+          }, 60000);
+        }
       }
       this.tx = tx;
       this.rx = rx;

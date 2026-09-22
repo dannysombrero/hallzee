@@ -230,6 +230,30 @@ test("saved owner survives a lost OS bond and authenticates after repair without
   expect(commands.some((c) => c.startsWith("CLAIM,") || c.startsWith("CLAIM_COMMIT,"))).toBe(false);
 });
 
+test("saved owner restores encryption after link loss without another code or claim", async ({ page }) => {
+  await installBluetooth(page);
+  await page.goto("/");
+  await expect(page.getByText("Ready offline", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Connect terminal", exact: true }).click();
+  await page.getByRole("button", { name: "Find nearby terminals", exact: true }).click();
+  await page.getByLabel("Physical pairing code").fill("807481");
+  await page.getByRole("button", { name: "Pair & Connect", exact: true }).click();
+  await expect(page.getByText("Pass available", { exact: true })).toBeVisible();
+  await page.evaluate(() => {
+    const root = window as any;
+    root.simulatedPairingFailure = "unsupported";
+    root.simSecurityRequestSupported = true;
+    root.terminalCommands = [];
+    root.fakeDrop();
+  });
+  await expect.poll(() => page.evaluate(() => (window as any).fakeSecurityRequests)).toBe(1);
+  await expect(page.getByText("Pass available", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Physical pairing code")).toHaveCount(0);
+  const commands = await page.evaluate(() => (window as any).terminalCommands as string[]);
+  expect(commands.some((c) => c.startsWith("AUTH,2,"))).toBe(true);
+  expect(commands.some((c) => c.startsWith("CLAIM,") || c.startsWith("CLAIM_COMMIT,"))).toBe(false);
+});
+
 test("discovery has no fictional rows or signal values and prompts only after selection", async ({ page }) => {
   await installBluetooth(page);
   await page.goto("/");

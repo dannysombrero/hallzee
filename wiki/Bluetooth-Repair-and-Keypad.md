@@ -1,5 +1,44 @@
 # Bluetooth repair and unexpected keypad input
 
+## Saved-owner reconnect after a terminal power cycle
+
+A terminal power cycle must preserve both Hallzee ownership and its stored BLE
+bonds. Reconnect from the original Hallzee URL/browser profile without pairing
+mode or another code. The reported `pairing-write / NotSupportedError` with
+`GATT_UNKNOWN_ERROR` occurs before saved-owner authentication and does not prove
+that either saved credential was erased.
+
+The new firmware/web fallback lets Hallzee explicitly ask the terminal to
+restore encryption after both protected channels fail. The request carries no
+application data; a successful encrypted read is still mandatory before AUTH.
+Existing bond keys are reused by the Bluetooth stack. This addresses reliance
+on central-initiated encryption, but the reported hardware cause and recovery
+remain unconfirmed until the Chromebook retest.
+
+1. Install the current firmware using the installation guide below. On an
+   already configured Mac with an ILI9341 terminal, run
+   `bash scripts/flash-terminal-macos.sh --fast --display ili9341 --monitor`.
+   Use your existing display/rotation options. For a new Mac, omit `--fast`
+   so the script installs its prerequisites. Wait for a verified flash.
+2. Apply the deployed web update with **Check updates → Apply update** in the
+   original Chromebook profile. Both updates are required for this fallback.
+3. With the terminal still owned by this profile, connect, power the terminal
+   off/on, and use **Reconnect** (select its saved chooser entry if requested).
+   Keep pairing mode closed. Verify authenticated sync without a code; repeat
+   after closing/reopening Hallzee. Do not reset ownership or clear site data.
+4. If it fails, record the sanitized stage/category and filtered `BLE_DIAG`
+   events from the monitor. `security-request` identifies the new request;
+   `pairing-resume` means protected access still failed after it. A continued
+   `pairing-write` can mean the new characteristic was not discovered; check
+   firmware and close/reopen Chrome before retesting. Use BT REPAIR only for a
+   separately diagnosed stale bond, not as a normal power-cycle step.
+
+A Mac is sufficient to flash and run software checks, **not** to verify this
+ChromeOS reconnect. The Chromebook and terminal are required. A Windows PC is
+not required for this retest. Windows Chrome/Edge service discovery, encrypted
+GATT, notifications, and saved-bond reconnect require a separate Windows BLE PC;
+Windows behavior remains unverified.
+
 ## Reconnect a saved terminal after the OS forgets pairing
 
 Hallzee ownership and the operating system's Bluetooth bond are separate. A
@@ -82,8 +121,9 @@ GATT notifications, and reconnect require a Windows BLE PC and remain unverified
 The latest Chromebook report confirms `pairing-write / NotSupportedError` with
 `GATT_UNKNOWN_ERROR`. Both the initial encrypted read and its protected-write
 fallback failed before HELLO or code verification. The browser has no more
-specific native cause to report; the issue is **not resolved**. Collect the
-ESP32's security events from the same connection attempt.
+specific native cause to report. Apply the firmware/web recovery update and
+power-cycle retest above; hardware success is still unverified. If it fails,
+collect the ESP32 security events from the same connection attempt.
 
 On the Mac, connect the already configured ILI9341 terminal with a USB data
 cable. From the updated checkout run:
@@ -95,8 +135,9 @@ bash scripts/flash-terminal-macos.sh --fast --display ili9341 --monitor
 This builds/flashes the firmware with diagnostic events, verifies the fast USB
 write, then starts a filtered USB monitor at 115200 baud. A full flash is not
 required. If setting up a new Mac, omit `--fast` so the existing bootstrap also
-installs the board tools and libraries. The web client needs no additional
-update for this diagnostic capture.
+installs the board tools and libraries. The monitor itself needs no web update;
+the encryption recovery fallback above requires the updated web client as well
+as this firmware.
 
 If flashing stops with `No more data to read from the serial port`, the USB
 write is incomplete. Add `--baud 115200` to the same command and follow the
@@ -125,7 +166,7 @@ that the stack reported successful Bluetooth authentication, not Hallzee
 ownership. READ_REQUEST/WRITE_REQUEST mean GATT callbacks reached the firmware;
 they do not identify a particular handle or prove claim authentication. Missing
 events alone are inconclusive, especially if the capture began late. The
-firmware's security configuration and ownership protocol are unchanged.
+firmware still requires encrypted application channels and saved-owner AUTH.
 
 A Mac is sufficient to flash and capture USB events, but **not** to reproduce
 ChromeOS Bluetooth: retry on the Chromebook while capturing on the Mac. No

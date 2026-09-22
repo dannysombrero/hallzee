@@ -23,6 +23,25 @@ Timeout, cancellation, link loss, SecurityError and NetworkError do not trigger
 this fallback. Pending native operations remain serialized, and the write has
 a 60-second pairing deadline under the caller's cancellation budget.
 
+If both protected operations settle with `NotSupportedError`, the web client
+looks for the optional Security Request characteristic (UUID below). Reading
+this public, empty value asks the admitted connection's terminal to initiate
+GAP encryption once per connection, after discovery, using
+`esp_ble_set_encryption(..., ESP_BLE_SEC_ENCRYPT)`. The stack reuses a saved LTK
+or uses the configured Secure Connections bonding policy when no bond exists;
+see the [Espressif GAP contract](https://docs.espressif.com/projects/esp-idf/en/v5.5.5/esp32/api-reference/bluetooth/esp_gap_ble.html#_CPPv417esp_ble_sec_act_t).
+No keys, code, commands, or classroom data pass through this public endpoint.
+The client still requires a successful encrypted TX read before notifications
+or HELLO/AUTH. It waits 800 ms between at most ten recovery reads, retrying only
+the exact Chromium `GATT Error Unknown.` / `NotSupportedError` category, within
+a 60-second operation deadline and the caller's cancellation budget. Cancellation,
+link loss, and authentication/permission failures stop recovery. No application
+command is replayed. Older firmware without the endpoint retains the original
+`pairing-write` error; new request/recovery failures report `security-request`
+or `pairing-resume`. This fallback needs **both firmware and web updates**.
+Physical Chromebook power-cycle recovery remains unverified; the generic GATT
+error alone cannot confirm that missing encryption initiation caused the report.
+
 The pinned Arduino-ESP32 3.3.11 default otherwise starts security from the connection event,
 which can overlap Windows browser discovery. This changes initiation timing,
 not encryption requirements, bonding, or Hallzee owner authentication. See the
@@ -91,6 +110,7 @@ missing events after late attachment are not evidence of a security failure.
 | Sync service | `005924a2-c6e5-4340-9bb8-22d9dd37a283` |
 | Terminal → client notifications | `44a359f3-9215-4189-a3cb-e7ce18ad40d6` |
 | Client → terminal writes | `e80f9559-49eb-47bc-af04-8e92e98ced56` |
+| Optional public Security Request read (empty; initiates encryption only) | `51c3a742-7d2c-4f5d-b930-17c692e80a64` |
 
 The client enables notifications before sending commands. Commands and messages
 remain UTF-8, newline-delimited text. Both physical clients divide writes into

@@ -23,7 +23,7 @@ jobs:
         id: inputs
         env:
           RELEASE_VERSION: ${{ inputs.version }}
-          RELEASE_REPOSITORY: ${{ vars.HALLZEE_RELEASE_REPOSITORY || github.repository }}
+          RELEASE_REPOSITORY: ${{ github.repository }}
         run: python3 scripts/validate-release-inputs.py
   test:
     needs: prepare

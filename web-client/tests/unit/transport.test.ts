@@ -2,7 +2,7 @@ import { errorText } from "../../src/app/errors";
 import { bluetoothError } from "../../src/transport/BluetoothErrors";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { WebBluetoothTerminalConnection } from "../../src/transport/WebBluetoothTerminalConnection";
-import { TX_UUID, SERVICE_UUID } from "../../src/protocol/constants";
+import { TX_UUID, RX_UUID, SERVICE_UUID, SECURITY_REQUEST_UUID } from "../../src/protocol/constants";
 import { ActivePassStore } from "../../src/sync/ActivePassStore";
 import { buildPolicyTransfer } from "../../src/domain/BellPolicyProtocol";
 import { defaultPolicy } from "../../src/storage/schema";
@@ -28,7 +28,11 @@ function hardware() {
   const gatt = {
     connect: vi.fn(async () => gatt),
     getPrimaryService: vi.fn(async () => ({
-      getCharacteristic: async (id: string) => (id === TX_UUID ? tx : rx),
+      getCharacteristic: async (id: string) => {
+        if (id === TX_UUID) return tx;
+        if (id === RX_UUID) return rx;
+        throw new DOMException("Characteristic not found.", "NotFoundError");
+      },
     })),
     disconnect: vi.fn(),
   };
@@ -237,6 +241,89 @@ describe("native Bluetooth operations outliving their caller", () => {
     expect(h.rx.writeValueWithResponse).toHaveBeenCalledTimes(1);
   });
 });
+describe("terminal-initiated encryption recovery", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+  function recoveryHardware() {
+    const h = hardware();
+    const security = Object.assign(new EventTarget(), {
+      properties: { read: true },
+      readValue: vi.fn(async () => new DataView(new ArrayBuffer(0))),
+      startNotifications: h.tx.startNotifications,
+      value: new DataView(new ArrayBuffer(0)),
+    });
+    h.gatt.getPrimaryService.mockImplementation(async () => ({
+      getCharacteristic: async (id: string) => {
+        if (id === SECURITY_REQUEST_UUID) return security;
+        return id === TX_UUID ? h.tx : h.rx;
+      },
+    }));
+    const unknown = new DOMException("GATT Error Unknown.", "NotSupportedError");
+    h.tx.readValue.mockRejectedValueOnce(unknown);
+    h.rx.writeValueWithResponse.mockRejectedValueOnce(unknown);
+    return { ...h, security, unknown, notify: vi.spyOn(h.tx, "startNotifications") };
+  }
+  it("restores encryption on the same link before allowing protocol traffic", async () => {
+    const h = recoveryHardware(), port = new WebBluetoothTerminalConnection();
+    h.tx.readValue.mockRejectedValueOnce(h.unknown);
+    const connecting = port.connect(h.device);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(h.security.readValue).toHaveBeenCalledTimes(1);
+    expect(h.notify).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1600);
+    await connecting;
+    expect(h.tx.readValue).toHaveBeenCalledTimes(3);
+    expect(h.gatt.connect).toHaveBeenCalledTimes(1);
+    expect(h.notify).toHaveBeenCalledTimes(1);
+    expect(h.chunks).toEqual([]);
+    await port.sendLine("HELLO");
+    expect(new TextDecoder().decode(h.chunks[0])).toBe("HELLO\n");
+    port.disconnect();
+  });
+  it("bounds recovery and never treats the public request as encrypted access", async () => {
+    const h = recoveryHardware(), port = new WebBluetoothTerminalConnection();
+    h.tx.readValue.mockRejectedValue(h.unknown);
+    const connecting = port.connect(h.device).catch((error) => error);
+    await vi.advanceTimersByTimeAsync(8000);
+    expect(await connecting).toMatchObject({ code: "BLUETOOTH_PAIRING_RESUME_NOTSUPPORTEDERROR" });
+    expect(h.security.readValue).toHaveBeenCalledTimes(1);
+    expect(h.tx.readValue).toHaveBeenCalledTimes(11);
+    expect(h.notify).not.toHaveBeenCalled();
+    expect(h.chunks).toEqual([]);
+    expect(h.gatt.disconnect).toHaveBeenCalledTimes(1);
+  });
+  it.each(["NetworkError", "SecurityError", "NotAllowedError"])("does not retry a recovery %s", async (name) => {
+    const h = recoveryHardware(), port = new WebBluetoothTerminalConnection();
+    h.tx.readValue.mockRejectedValueOnce(new DOMException("synthetic private diagnostic", name));
+    const connecting = port.connect(h.device).catch((error) => error);
+    await vi.advanceTimersByTimeAsync(800);
+    const error = await connecting;
+    expect(error.code).toBe(`BLUETOOTH_PAIRING_RESUME_${name.toUpperCase()}`);
+    expect(error.message).not.toContain("synthetic private");
+    expect(h.tx.readValue).toHaveBeenCalledTimes(2);
+    expect(h.notify).not.toHaveBeenCalled();
+  });
+  it.each([false, true])("stops recovery on cancellation or link loss (drop=%s)", async (drop) => {
+    const h = recoveryHardware(), port = new WebBluetoothTerminalConnection();
+    const control = new AbortController();
+    const connecting = port.connect(h.device, control.signal).catch((error) => error);
+    await vi.advanceTimersByTimeAsync(0);
+    if (drop) h.device.dispatchEvent(new Event("gattserverdisconnected"));
+    else control.abort();
+    expect(await connecting).toMatchObject({ code: drop ? "DISCONNECTED" : "CANCELLED" });
+    await vi.advanceTimersByTimeAsync(8000);
+    expect(h.tx.readValue).toHaveBeenCalledTimes(1);
+    expect(h.notify).not.toHaveBeenCalled();
+  });
+  it("does not continue when the security request itself fails", async () => {
+    const h = recoveryHardware(), port = new WebBluetoothTerminalConnection();
+    h.security.readValue.mockRejectedValueOnce(new DOMException("denied", "SecurityError"));
+    await expect(port.connect(h.device)).rejects.toMatchObject({ code: "BLUETOOTH_SECURITY_REQUEST_SECURITYERROR" });
+    expect(h.tx.readValue).toHaveBeenCalledTimes(1);
+    expect(h.notify).not.toHaveBeenCalled();
+  });
+});
+
 describe("occupancy and transfer bounds", () => {
   it("keeps other passes on targeted check-in/reset and shows unknown after missing clock or disconnect", () => {
     const store = new ActivePassStore();
@@ -458,7 +545,7 @@ it.each([
 ])("distinguishes the fixed Chromium diagnostic %s without exposing native payloads", (message, label) => {
   const shown = bluetoothError(new DOMException(message, "NotSupportedError"), "pairing-write");
   expect(shown.message).toContain(label);
-  expect(shown.message).toContain("Hallzee has not checked a pairing code");
+  expect(shown.message).toContain("A saved owner needs no pairing code or pairing mode");
   const unknown = bluetoothError(new DOMException(message + " private payload", "NotSupportedError"), "pairing-write");
   expect(unknown.message).not.toContain(label);
   expect(unknown.message).not.toContain("private payload");

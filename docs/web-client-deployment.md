@@ -233,7 +233,10 @@ The domain helper defaults to a read-only plan (`python3 scripts/cloudflare-bind
 up to ten minutes for activation. `--relay` plans the Worker hostname instead;
 `--relay --apply` attaches it after verifying the room binding and stops if another
 service or DNS record occupies the hostname. `node scripts/verify-relay.mjs` exercises the public relay
-with synthetic data and closes its test room. Set `HALLZEE_RELAY_ORIGIN` only when
+with synthetic data and closes its test room. It allows five minutes for a newly
+bound relay hostname to activate and reports only HTTP status or known connection
+error categories while waiting. Build and screenshot artifacts are replaced on
+workflow retries. Set `HALLZEE_RELAY_ORIGIN` only when
 testing another relay, such as the local Workers runtime. Public browser checks
 use `npx playwright test --config playwright.deployment.config.ts` from `web-client/`
 after its normal bootstrap; they require no Cloudflare credentials.

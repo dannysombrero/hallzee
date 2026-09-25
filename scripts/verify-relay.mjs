@@ -50,15 +50,31 @@ const state = (status, count) => message => message.type === "ROOM_STATE"
 let teacher;
 try {
   let healthy = false;
-  for (let attempt = 0; attempt < 30; attempt++) {
+  let lastHealthStatus = "not checked";
+  const healthDeadline = Date.now() + 300000;
+  let nextHealthLog = Date.now() + 15000;
+  while (Date.now() < healthDeadline) {
     try {
       const health = await fetch(new URL("/health", origin), { signal: AbortSignal.timeout(5000) });
-      healthy = health.status === 200 && (await health.json()).service === "hallzee-relay";
+      lastHealthStatus = `HTTP ${health.status}`;
+      const body = await health.json().catch(() => null);
+      healthy = health.status === 200 && body?.service === "hallzee-relay";
       if (healthy) break;
-    } catch { /* Allow DNS and the new custom-domain certificate to propagate. */ }
+      if (health.status === 200) lastHealthStatus = "unexpected health response";
+    } catch (error) {
+      // Log only known public connection categories, never raw request/error data.
+      const code = error.cause?.code || error.name;
+      lastHealthStatus = ["ENOTFOUND", "EAI_AGAIN", "ECONNRESET", "ECONNREFUSED",
+        "ERR_TLS_CERT_ALTNAME_INVALID", "CERT_HAS_EXPIRED", "UND_ERR_CONNECT_TIMEOUT",
+        "TimeoutError"].includes(code) ? code : "connection unavailable";
+    }
+    if (Date.now() >= nextHealthLog) {
+      console.log(`Waiting for relay hostname activation: ${lastHealthStatus}.`);
+      nextHealthLog = Date.now() + 15000;
+    }
     await new Promise(resolve => setTimeout(resolve, 2000));
   }
-  assert.ok(healthy, "Relay health did not become available.");
+  assert.ok(healthy, `Relay health did not become available (${lastHealthStatus}).`);
   teacher = await connect();
   teacher.send({ type: "CLAIM_ROOM", roomCode, hostSecret, capacity: 1 });
   await teacher.wait(type("CLAIM_OK"));

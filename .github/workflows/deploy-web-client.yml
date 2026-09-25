@@ -148,6 +148,7 @@ jobs:
           name: ${{ steps.package.outputs.artifact }}
           path: web-client/${{ steps.package.outputs.artifact }}.zip
           if-no-files-found: error
+          overwrite: true
 
       - name: Verify Cloudflare deployment secrets
         if: ${{ !inputs.dry_run }}
@@ -233,6 +234,7 @@ jobs:
           name: public-terminal-verification
           path: web-client/test-results/deployment-*.png
           if-no-files-found: error
+          overwrite: true
 
       - name: Record deployment summary
         run: |

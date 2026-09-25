@@ -104,5 +104,9 @@ Period/Name/Count sorting. Recent Activity and its export use today's trips.
 A Mac is sufficient for the virtual workflow and automated software checks. A
 Windows PC is required only to verify Windows-specific physical BLE discovery,
 OS pairing, encrypted GATT, reconnect/sleep and PWA behavior. Those Windows
-hardware behaviors have not been verified by this change. Cloudflare runtime,
-DNS and real student-device acceptance also need a deployed environment.
+hardware behaviors have not been verified by this change. The native Cloudflare
+runtime check passed, and the relay and student hostnames were bound on
+2026-09-25. Public relay verification currently receives a Cloudflare browser
+challenge; live student-device acceptance remains pending until that security
+configuration is resolved. See the web client deployment guide for the verified
+infrastructure state and release checks.

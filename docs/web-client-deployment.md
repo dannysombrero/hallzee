@@ -33,6 +33,27 @@ Cloudflare Pages natively handles branch deployments within the same project wit
 
 ---
 
+## Deployment verification (2026-09-25)
+
+- The refined web client is deployed at `web.hallzee.com` from the merged UI change
+  ([successful Pages release](https://github.com/dannysombrero/hallzee/actions/runs/36164293850)).
+- `hallzee-relay` is deployed with the `ROOM_DO` binding and `v1` SQLite class
+  migration. `relay.hallzee.com` is associated with that Worker and has public DNS.
+- `pass.hallzee.com` is active on the existing Pages project with its matching
+  CNAME ([successful domain setup](https://github.com/dannysombrero/hallzee/actions/runs/36169677896)).
+- Type checking, lint, 136 unit tests, 27 browser tests, the native local Workers
+  protocol check, 11 deployment safeguard tests and repository hygiene passed.
+- Public relay verification is blocked: the GitHub runner receives HTTP 403 with
+  `cf-mitigated: challenge`. The deployment token also receives API HTTP 403 when
+  reading Bot Management, Zone Settings and Zone WAF configuration. The source of
+  the challenge has not yet been identified. Public browser acceptance remains
+  pending; the workflow retains the live relay and browser checks as release gates.
+
+Security diagnostics do not change zone protection. Correct the responsible
+feature after inspecting its configuration and Cloudflare Security Events. Do not
+replace this diagnosis with a blanket security exception. The deployment token
+and account secret remain in GitHub Actions secrets.
+
 ## One-Time Setup Instructions
 
 ### Step 1: Create Cloudflare Pages Project
@@ -192,10 +213,8 @@ whether Cloudflare serves a browser challenge. It reports no response bodies or
 IP addresses. Read access alone does not prove permission to deploy or edit DNS.
 
 The diagnostic can be run manually from GitHub Actions once its workflow is on
-the default branch. During initial setup, changes to the checker or its workflow
-on `codex/cloudflare-terminal-deploy` also run it. The initial authorized rollout
-also enables the main deployment workflow on that branch temporarily; remove that
-one-time branch trigger after rollout. A 401/403 result identifies an authentication or
+the default branch. Temporary branch triggers used during the initial setup have
+been removed. A 401/403 from the Cloudflare API identifies an authentication or
 permission blocker; review the API token in Cloudflare rather than putting its
 value in chat, logs or source files. macOS is sufficient to run the same diagnostic
 locally with environment-provided credentials; no Windows-specific capability is
@@ -237,7 +256,8 @@ up to ten minutes for activation. `--relay` plans the Worker hostname instead;
 service or DNS record occupies the hostname. `node scripts/verify-relay.mjs` exercises the public relay
 with synthetic data and closes its test room. It allows five minutes for a newly
 bound relay hostname to activate and reports only HTTP status or known connection
-error categories while waiting. Build and screenshot artifacts are replaced on
+error categories while waiting. A detected browser challenge stops verification
+immediately instead of being retried as propagation. Build and screenshot artifacts are replaced on
 workflow retries. Set `HALLZEE_RELAY_ORIGIN` only when
 testing another relay, such as the local Workers runtime. Public browser checks
 use `npx playwright test --config playwright.deployment.config.ts` from `web-client/`
@@ -250,9 +270,9 @@ The **Configure terminal domains** action plans both hostname bindings by defaul
 Enable its `apply` input to associate the existing relay Worker and student Pages
 hostname without publishing code. This allows initial DNS setup to finish even
 when a separate relay health check is blocked. It uses the same conflict checks
-as the release pipeline and shares its production concurrency group. During the
-initial authorized rollout only, changes to this workflow on the deployment
-branch also apply the bindings; remove that trigger after setup.
+as the release pipeline and shares its production concurrency group. It requires
+an explicit manual `apply` selection; no branch push applies domain bindings
+through this setup workflow.
 
 Its final diagnostic only reads Bot Management, security level and custom WAF
 rule settings. Missing optional security permissions are reported separately;

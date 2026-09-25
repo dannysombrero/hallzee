@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - main
-      # One-time authorized rollout; remove this branch after deployment.
-      - codex/cloudflare-terminal-deploy
     paths:
       - 'web-client/**'
       - 'relay/**'

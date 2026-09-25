@@ -54,9 +54,11 @@ try {
   const healthDeadline = Date.now() + 300000;
   let nextHealthLog = Date.now() + 15000;
   while (Date.now() < healthDeadline) {
+    let challenged = false;
     try {
       const health = await fetch(new URL("/health", origin), { signal: AbortSignal.timeout(5000) });
       lastHealthStatus = `HTTP ${health.status}`;
+      challenged = health.headers.get("cf-mitigated") === "challenge";
       const body = await health.json().catch(() => null);
       healthy = health.status === 200 && body?.service === "hallzee-relay";
       if (healthy) break;
@@ -68,6 +70,7 @@ try {
         "ERR_TLS_CERT_ALTNAME_INVALID", "CERT_HAS_EXPIRED", "UND_ERR_CONNECT_TIMEOUT",
         "TimeoutError"].includes(code) ? code : "connection unavailable";
     }
+    assert.ok(!challenged, "Cloudflare is challenging the relay. Review zone security settings before retrying.");
     if (Date.now() >= nextHealthLog) {
       console.log(`Waiting for relay hostname activation: ${lastHealthStatus}.`);
       nextHealthLog = Date.now() + 15000;

@@ -2,12 +2,6 @@ name: Check Cloudflare deployment access
 
 on:
   workflow_dispatch:
-  # Temporary deployment branch: read-only checks, never production writes.
-  push:
-    branches: [codex/cloudflare-terminal-deploy]
-    paths:
-      - '.github/workflows/cloudflare-preflight.yml'
-      - 'scripts/cloudflare-preflight.py'
 
 permissions:
   contents: read

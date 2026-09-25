@@ -142,6 +142,8 @@ for Windows and test commands. Physical Chromebook, Mac and Windows browser
 acceptance is pending; no classroom site is deployed. The
 [implementation contract](docs/design/chromebook-web-client.md) and
 [acceptance evidence](docs/testing/web-client-acceptance.md) track release gates.
+[Virtual terminals and student joining](docs/virtual-terminal.md) covers public
+code entry, teacher sharing controls and the separate room relay setup.
 
 ## Future releases and roadmap
 

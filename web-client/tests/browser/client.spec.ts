@@ -1,3 +1,4 @@
+import { expectOfflineReady } from "./offline-ready";
 import { test, expect } from "@playwright/test";
 import { installBluetooth } from "./fake-bluetooth";
 test("offline shell, local roster, backup restore, projection privacy and second-window lock", async ({
@@ -16,7 +17,7 @@ test("offline shell, local roster, backup restore, projection privacy and second
     }),
   );
   await page.goto("/");
-  await expect(page.getByText("Ready offline", { exact: true })).toBeVisible();
+  await expectOfflineReady(page);
   await page.getByRole("navigation").getByRole("button", { name: "Student roster" }).click();
   await page.getByRole("button", { name: "Add student", exact: true }).click();
   await page.getByLabel("Student ID", { exact: true }).fill("00123");
@@ -48,7 +49,7 @@ test("offline shell, local roster, backup restore, projection privacy and second
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await context.setOffline(true);
   await page.reload();
-  await expect(page.getByText("Ready offline", { exact: true })).toBeVisible();
+  await expectOfflineReady(page);
   await page.getByRole("navigation").getByRole("button", { name: "Student roster" }).click();
   await expect(page.getByRole("cell", { name: "Alexa Rivera", exact: true })).toBeVisible();
   await page.keyboard.press("Escape");
@@ -75,7 +76,7 @@ test("real transport claims, stores CryptoKey, ACKs committed trips and authenti
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto("/");
-  await expect(page.getByText("Ready offline", { exact: true })).toBeVisible();
+  await expectOfflineReady(page);
   await page.getByRole("button", { name: "Connect terminal", exact: true }).click();
   await page.getByRole("button", { name: "Find nearby terminals", exact: true }).click();
   await page.getByLabel("Physical pairing code").fill("807481");
@@ -128,7 +129,7 @@ test("targeted check-in retains other active passes; confirmed release removes k
 }) => {
   await installBluetooth(page);
   await page.goto("/");
-  await expect(page.getByText("Ready offline", { exact: true })).toBeVisible();
+  await expectOfflineReady(page);
   await page.evaluate(() => {
     (window as any).fakePasses = [
       { studentId: "00123", epoch: 1789117200 },
@@ -184,7 +185,7 @@ test("native pairing rejection reports its stage and remains visible after focus
 }) => {
   await installBluetooth(page);
   await page.goto("/");
-  await expect(page.getByText("Ready offline", { exact: true })).toBeVisible();
+  await expectOfflineReady(page);
   await page.evaluate(() => {
     (window as any).simulatedPairingFailure = true;
   });
@@ -202,7 +203,7 @@ test("saved owner survives a lost OS bond and authenticates after repair without
 }) => {
   await installBluetooth(page);
   await page.goto("/");
-  await expect(page.getByText("Ready offline", { exact: true })).toBeVisible();
+  await expectOfflineReady(page);
   await page.getByRole("button", { name: "Connect terminal", exact: true }).click();
   await page.getByRole("button", { name: "Find nearby terminals", exact: true }).click();
   await page.getByLabel("Physical pairing code").fill("807481");
@@ -233,12 +234,15 @@ test("saved owner survives a lost OS bond and authenticates after repair without
 test("saved owner restores encryption after link loss without another code or claim", async ({ page }) => {
   await installBluetooth(page);
   await page.goto("/");
-  await expect(page.getByText("Ready offline", { exact: true })).toBeVisible();
+  await expectOfflineReady(page);
   await page.getByRole("button", { name: "Connect terminal", exact: true }).click();
   await page.getByRole("button", { name: "Find nearby terminals", exact: true }).click();
   await page.getByLabel("Physical pairing code").fill("807481");
   await page.getByRole("button", { name: "Pair & Connect", exact: true }).click();
   await expect(page.getByText("Pass available", { exact: true })).toBeVisible();
+  // Pairing includes initialization after the first occupancy snapshot. Drop the
+  // established link only once the connection action has closed its dialog.
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.evaluate(() => {
     const root = window as any;
     root.simulatedPairingFailure = "unsupported";
@@ -259,7 +263,7 @@ test("discovery has no fictional rows or signal values and prompts only after se
   await page.goto("/");
   await page.getByRole("button", { name: "Connect terminal", exact: true }).click();
   const dialog = page.getByRole("dialog");
-  await expect(dialog.getByText("Discover nearby Hallzee Bluetooth LE kiosks.")).toBeVisible();
+  await expect(dialog.getByText("Choose your Hallzee terminal.")).toBeVisible();
   await expect(dialog.getByText("No saved terminals.", { exact: false })).toBeVisible();
   await expect(dialog).not.toContainText("dBm");
   await expect(page.getByLabel("Physical pairing code")).toHaveCount(0);

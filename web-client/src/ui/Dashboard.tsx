@@ -25,6 +25,10 @@ import { useHallzee } from "../app/HallzeeProvider";
 import { elapsed, durationLabel, localDate } from "../sync/TerminalClock";
 import { fullName, filterTrips, exportTrips, download } from "../domain/TripReports";
 import { resolvePeriod, evaluateWindow } from "../domain/PolicyScheduleService";
+import { Dialog } from "./Dialog";
+import { VirtualTerminalDialog } from "./VirtualTerminalDialog";
+import { errorText } from "../app/errors";
+import { exceededStudents as buildExceededStudents, type ExceededSort } from "../domain/ExceededTrips";
 import { ConnectionDialog } from "./ConnectionDialog";
 import { TripsDialog } from "./TripsDialog";
 import { RosterDialog } from "./RosterDialog";
@@ -37,7 +41,7 @@ import { DocumentPictureInPictureButton } from "./DocumentPictureInPictureButton
 import { UpdateCoordinator, type OfflineStatus } from "../pwa/updateCoordinator";
 import { StatusPill } from "./StatusPill";
 
-type Modal = "connect" | "trips" | "roster" | "policies" | "terminal" | "data" | "manual-pass" | null;
+type Modal = "virtual" | "switch-bluetooth" | "connect" | "trips" | "roster" | "policies" | "terminal" | "data" | "manual-pass" | null;
 
 interface StoredManualPass extends ManualPassDetails {
   checkoutEpoch: number;
@@ -69,6 +73,12 @@ export function Dashboard() {
   const defaultWarningMins = Math.round(state.policy.warningSeconds / 60) || 7;
   const [thresholdMinutes, setThresholdMinutes] = useState(defaultWarningMins);
   const [searchExceeded, setSearchExceeded] = useState("");
+  const [exceededDays, setExceededDays] = useState(14);
+  const [exceededSort, setExceededSort] = useState<ExceededSort>("period");
+  const [modeError, setModeError] = useState("");
+  const [passError, setPassError] = useState("");
+  const [switching, setSwitching] = useState(false);
+  useEffect(() => setThresholdMinutes(Math.round(state.policy.warningSeconds / 60) || 7), [state.policy.warningSeconds]);
 
   const [manualPasses, setManualPasses] = useState<StoredManualPass[]>(() => {
     try {
@@ -82,7 +92,7 @@ export function Dashboard() {
   });
 
   const allActivePasses = useMemo<ActivePassItem[]>(() => {
-    const isLive = state.active.fresh || Boolean(state.virtualTerminal?.active);
+    const isLive = state.active.fresh || state.terminalMode === "virtual";
     const list: ActivePassItem[] = (isLive ? state.active.passes : []).map((p) => {
       const student = state.students.find((s) => s.studentId === p.studentId);
       const meta = state.virtualPassDetails?.[p.studentId];
@@ -110,7 +120,7 @@ export function Dashboard() {
       }
     });
     return list;
-  }, [state.active.fresh, state.active.passes, state.virtualTerminal?.active, state.virtualPassDetails, state.students, manualPasses]);
+  }, [state.active.fresh, state.active.passes, state.terminalMode, state.virtualPassDetails, state.students, manualPasses]);
 
   const handleCheckInPass = async (passItem: ActivePassItem) => {
     if (window.confirm("Check in this selected terminal pass now?")) {
@@ -187,7 +197,10 @@ export function Dashboard() {
   }, [updater]);
 
   const connected = state.session === "Authenticated";
-  const terminalDisconnected = Boolean(state.terminal && !connected && !state.active.fresh);
+  const terminalDisconnected = state.terminalMode === "bluetooth" && Boolean(state.terminal && !connected && !state.active.fresh);
+  const virtualRoom = state.virtualTerminal;
+  const virtualOpen = Boolean(virtualRoom?.active && virtualRoom.expiresAtEpoch > now.getTime() / 1000);
+  const virtualLabel = !virtualRoom ? "Start Virtual Terminal" : virtualOpen ? "Virtual Terminal Open" : virtualRoom.status === "expired" || virtualRoom.status === "closed" ? "Session Ended" : virtualRoom.status === "error" ? "Terminal Unavailable" : virtualRoom.status === "starting" ? "Starting Terminal…" : "Reconnecting…";
   const period = resolvePeriod(now, state.periods, state.exceptions);
   const windowDecision = evaluateWindow(now, period, state.policy);
   const projection: ProjectionProps = {
@@ -207,8 +220,8 @@ export function Dashboard() {
         to: "",
         status: "",
         section: "",
-      }).slice(0, 6),
-    [state.trips, state.students],
+      }).filter(t => t.tripDate === localDate(now) && t.status !== "MANUAL_RESET").slice(0, 6),
+    [state.trips, state.students, now],
   );
 
   const todayTrips = useMemo(
@@ -233,60 +246,28 @@ export function Dashboard() {
     [dailyCounts, state.policy.dailyGuideline],
   );
 
-  // Exceeded time filtering and grouping
-  const thresholdSeconds = thresholdMinutes * 60;
-  const exceededTrips = useMemo(
-    () =>
-      todayTrips.filter(
-        (t) => t.durationSeconds !== null && t.durationSeconds > thresholdSeconds,
-      ),
-    [todayTrips, thresholdSeconds],
-  );
-
-  interface ExceededGroup {
-    studentId: string;
-    displayName: string;
-    trips: typeof exceededTrips;
-    maxDuration: number;
-  }
-
-  const exceededStudents = useMemo(() => {
-    const map = new Map<string, ExceededGroup>();
-    for (const trip of exceededTrips) {
-      let entry = map.get(trip.studentId);
-      if (!entry) {
-        const student = state.students.find((s) => s.studentId === trip.studentId);
-        entry = {
-          studentId: trip.studentId,
-          displayName: fullName(student) || trip.studentId,
-          trips: [],
-          maxDuration: 0,
-        };
-        map.set(trip.studentId, entry);
-      }
-      entry.trips.push(trip);
-      if ((trip.durationSeconds ?? 0) > entry.maxDuration) {
-        entry.maxDuration = trip.durationSeconds ?? 0;
-      }
-    }
-    let list = Array.from(map.values());
-    if (searchExceeded.trim()) {
-      const q = searchExceeded.toLowerCase();
-      list = list.filter(
-        (item) =>
-          item.displayName.toLowerCase().includes(q) ||
-          item.studentId.toLowerCase().includes(q),
-      );
-    }
-    return list.sort((a, b) => b.trips.length - a.trips.length);
-  }, [exceededTrips, state.students, searchExceeded]);
+  const exceededStudents = useMemo(() => buildExceededStudents(state.trips, state.students, {
+    now, days: exceededDays, thresholdMinutes, search: searchExceeded, sort: exceededSort,
+  }), [state.trips, state.students, now, exceededDays, thresholdMinutes, searchExceeded, exceededSort]);
+  const timeframeLabel = exceededDays === 1 ? "Today" : `Last ${exceededDays} Days`;
 
   const onExportRecent = () => {
-    const exportData = exportTrips(todayTrips.length ? todayTrips : state.trips, state.students);
+    const exportData = exportTrips(todayTrips, state.students);
     download(exportData, `hallzee-trips-${localDate(now)}.csv`, "text/csv;charset=utf-8");
   };
 
-  const close = () => setModal(null);
+  const close = () => { setModal(null); setModeError(""); };
+  const openBluetooth = () => {
+    setModeError("");
+    setModal(state.terminalMode === "virtual" ? "switch-bluetooth" : connected ? "terminal" : "connect");
+  };
+  const switchBluetooth = async () => {
+    if (!controller) return;
+    setSwitching(true); setModeError("");
+    try { await controller.stopVirtualTerminal(); setModal("connect"); }
+    catch (error) { setModeError(errorText(error)); }
+    finally { setSwitching(false); }
+  };
 
   if (projecting) {
     return (
@@ -318,38 +299,20 @@ export function Dashboard() {
       <header className="top-window-bar">
         <div className="top-window-left">
           <a className="top-window-brand" href="/" aria-label="Hallzee home">
-            <img src="/icons/hallzee-logo.png" alt="" />
-            <span>Hallzee Desktop Client</span>
+            <img src="/icons/hallzee-logo.png" alt="" /><span>Hallzee</span>
           </a>
-          <span className="top-window-divider">|</span>
-          <span className="top-window-location">
-            {state.workspace?.room
-              ? `Room ${state.workspace.room}${state.workspace.teacher ? ` – ${state.workspace.teacher}` : ""}${state.workspace.name ? ` – ${state.workspace.name}` : ""}`
-              : state.workspace?.name || "Your classroom"}
-          </span>
         </div>
-
         <div className="top-window-right">
-          <DocumentPictureInPictureButton
-            projection={projection}
-            fallback={() => setProjecting(true)}
-          />
-          <span className="top-window-workspace-label">Teacher workspace</span>
-          <div className="top-window-workspace-pill">
-            <span>{state.workspace?.name || "Test"}</span>
-            <ChevronDown size={11} />
-          </div>
-          <span className="top-window-version">v1.0.0</span>
-          <span className="offline-label">
-            {offline.ready
-              ? "Ready offline"
-              : import.meta.env.DEV
-                ? "Development build"
-                : "Preparing offline use"}
-          </span>
-          <span className="top-window-avatar" title={state.workspace?.teacher || "Teacher"}>
-            {state.workspace?.teacher.slice(0, 1).toUpperCase() || "H"}
-          </span>
+          <button type="button" className={`header-terminal-button ${virtualOpen ? "room-open" : ""}`}
+            disabled={!state.ready || state.busy} onClick={() => setModal("virtual")} aria-haspopup="dialog">
+            {virtualRoom ? <span className="room-status-dot" /> : <Globe size={16} />}
+            <span>{virtualLabel}{virtualRoom && <small>{virtualRoom.roomCode}</small>}</span>
+            {virtualRoom && <ChevronDown size={14} />}
+          </button>
+          <button type="button" className="header-terminal-button" disabled={!state.ready || state.busy}
+            onClick={openBluetooth} aria-haspopup="dialog">
+            <Bluetooth size={16} /><span>{connected ? "Bluetooth Terminal Connected" : "Connect Bluetooth Terminal"}</span>
+          </button>
         </div>
       </header>
 
@@ -447,33 +410,33 @@ export function Dashboard() {
           <div className="terminal-node-box">
             <div className="terminal-node-header">
               <span className="terminal-node-eyebrow">TERMINAL NODE</span>
-              <StatusPill variant={state.virtualTerminal?.active || connected ? "ready" : "neutral"}>
-                {state.virtualTerminal?.active || connected ? "ONLINE" : "OFFLINE"}
+              <StatusPill variant={virtualOpen || connected ? "ready" : "neutral"}>
+                {virtualOpen || connected ? "ONLINE" : state.terminalMode === "virtual" ? "UNAVAILABLE" : "OFFLINE"}
               </StatusPill>
             </div>
             <span className="terminal-node-caption">
-              {state.virtualTerminal?.active
-                ? "Virtual terminal 12h session active"
+              {state.terminalMode === "virtual"
+                ? virtualLabel
                 : "Terminal clock is set when you sync"}
             </span>
             <div className="terminal-node-device-card">
               <div className="terminal-node-device-title">
-                {state.virtualTerminal?.active ? (
+                {state.terminalMode === "virtual" ? (
                   <Globe size={13} color="#10b981" />
                 ) : (
                   <Radio size={13} color="#0284c7" />
                 )}
                 <span>
-                  {state.virtualTerminal?.active
-                    ? `Virtual: ${state.virtualTerminal.roomCode}`
+                  {state.terminalMode === "virtual"
+                    ? `Virtual: ${virtualRoom?.roomCode || "Starting"}`
                     : state.terminal?.customName
                       ? `Last paired: ${state.terminal.customName}`
                       : "No terminal paired"}
                 </span>
               </div>
               <span className="terminal-node-device-sub">
-                {state.virtualTerminal?.active
-                  ? "Live Web Station • Ready for passes"
+                {state.terminalMode === "virtual"
+                  ? virtualOpen ? "Join details available above" : "Open terminal details for status"
                   : connected
                     ? "Standby • Connected live"
                     : state.terminal
@@ -482,7 +445,9 @@ export function Dashboard() {
               </span>
             </div>
             <div className="terminal-node-actions">
-              {connected ? (
+              {state.terminalMode === "virtual" ? (
+                <button className="secondary compact" onClick={() => setModal("virtual")}><Globe size={13} /> Share join details</button>
+              ) : connected ? (
                 <>
                   <button
                     className="secondary compact"
@@ -565,6 +530,7 @@ export function Dashboard() {
               </div>
             )}
             {offline.error && <p className="error">{offline.error}</p>}
+            {passError && <p className="error" role="alert">{passError}</p>}
 
             {/* HERO ACTIVE PASS CARD */}
             {allActivePasses.length > 0 ? (
@@ -607,16 +573,16 @@ export function Dashboard() {
                           <button
                             className="hallzee-outline-btn"
                             style={{ color: "#dc2626", borderColor: "#fca5a5" }}
-                            title="Void pass without recording trip"
-                            disabled={state.busy}
-                            onClick={() => void handleVoidPass(pass)}
+                            title="Void a virtual or teacher-started pass without recording a trip"
+                            disabled={state.busy || (!pass.isManual && !virtualOpen)}
+                            onClick={() => void handleVoidPass(pass).catch(error => setPassError(errorText(error)))}
                           >
                             Void
                           </button>
                           <button
                             className="dark-action"
-                            disabled={state.busy}
-                            onClick={() => void handleCheckInPass(pass)}
+                            disabled={state.busy || (!pass.isManual && !state.active.fresh)}
+                            onClick={() => void handleCheckInPass(pass).catch(error => setPassError(errorText(error)))}
                           >
                             Check in
                           </button>
@@ -683,16 +649,16 @@ export function Dashboard() {
                               <button
                                 className="hallzee-outline-btn"
                                 style={{ color: "#dc2626", borderColor: "#fca5a5" }}
-                                title="Void pass without recording trip"
-                                disabled={state.busy}
-                                onClick={() => void handleVoidPass(pass)}
+                                title="Void a virtual or teacher-started pass without recording a trip"
+                                disabled={state.busy || (!pass.isManual && !virtualOpen)}
+                                onClick={() => void handleVoidPass(pass).catch(error => setPassError(errorText(error)))}
                               >
                                 Void
                               </button>
                               <button
                                 className="dark-action"
-                                disabled={state.busy}
-                                onClick={() => void handleCheckInPass(pass)}
+                                disabled={state.busy || (!pass.isManual && !state.active.fresh)}
+                                onClick={() => void handleCheckInPass(pass).catch(error => setPassError(errorText(error)))}
                               >
                                 Check in
                               </button>
@@ -819,9 +785,9 @@ export function Dashboard() {
                     <StatusPill variant={terminalDisconnected ? "danger" : "neutral"}>
                       {terminalDisconnected ? "DISCONNECTED" : "STATUS UNKNOWN"}
                     </StatusPill>
-                    <h3>{terminalDisconnected ? "Terminal disconnected" : "Pass Status Unknown"}</h3>
+                    <h3>{state.terminalMode === "virtual" ? virtualLabel : terminalDisconnected ? "Terminal disconnected" : "Pass Status Unknown"}</h3>
                     <p className="hero-pass-subtitle">
-                      {terminalDisconnected
+                      {state.terminalMode === "virtual" ? "Open the terminal details to check this session and share its join code." : terminalDisconnected
                         ? "Reconnect to the Hallzee terminal to find the current pass status."
                         : "Connect to the Hallzee terminal to confirm whether a student is out."}
                     </p>
@@ -860,12 +826,12 @@ export function Dashboard() {
                     ) : (
                       <button
                         className="hallzee-pill-btn"
-                        aria-label="Connect terminal"
+                        aria-label={state.terminalMode === "virtual" ? "Virtual terminal details" : "Connect terminal"}
                         disabled={!state.ready || state.busy}
-                        onClick={() => setModal("connect")}
+                        onClick={() => state.terminalMode === "virtual" ? setModal("virtual") : openBluetooth()}
                       >
                         <Search size={14} />
-                        Connect
+                        {state.terminalMode === "virtual" ? "View terminal" : "Connect"}
                       </button>
                     )}
                   </div>
@@ -1049,21 +1015,13 @@ export function Dashboard() {
                         <h2>Exceeded Time</h2>
                       </div>
                     </div>
-                    <button
-                      className="status-pill warning exceeded-threshold-pill"
-                      onClick={() => {
-                        const presets = [5, 7, 10, 15];
-                        const nextIdx = (presets.indexOf(thresholdMinutes) + 1) % presets.length;
-                        setThresholdMinutes(presets[nextIdx]);
-                      }}
-                      title="Toggle warning threshold preset"
-                    >
-                      &gt; {thresholdMinutes}m
-                      <ChevronDown size={11} />
-                    </button>
+                    <select className="status-pill warning exceeded-threshold-pill" aria-label="Exceeded time threshold"
+                      value={thresholdMinutes} onChange={event => setThresholdMinutes(Number(event.target.value))}>
+                      {[...new Set([5, 7, 10, 15, thresholdMinutes])].sort((a, b) => a - b).map(minutes => <option key={minutes} value={minutes}>&gt; {minutes}m</option>)}
+                    </select>
                   </div>
                   <p className="exceeded-card-subtitle">
-                    Students whose hall pass trips exceeded {thresholdMinutes}m within the last 2 weeks.
+                    Students whose trips exceeded {thresholdMinutes}m · {timeframeLabel.toLowerCase()}.
                   </p>
 
                   {/* Filter controls toolbar */}
@@ -1081,18 +1039,18 @@ export function Dashboard() {
                     <div className="exceeded-filter-row">
                       <div className="exceeded-timeframe-group">
                         <span className="exceeded-filter-label">Timeframe:</span>
-                        <div className="exceeded-timeframe-pill">
-                          <span>Last 2 Weeks</span>
-                          <ChevronDown size={11} />
-                        </div>
+                        <select className="exceeded-timeframe-pill" aria-label="Exceeded time timeframe" value={exceededDays}
+                          onChange={event => setExceededDays(Number(event.target.value))}>
+                          <option value={1}>Today</option><option value={7}>Last 7 Days</option><option value={14}>Last 2 Weeks</option><option value={30}>Last 30 Days</option>
+                        </select>
                       </div>
                     </div>
                     <div className="exceeded-sort-row">
                       <span className="exceeded-filter-label">Sort:</span>
                       <div className="exceeded-sort-pills">
-                        <button className="pill-filter active" type="button">Period</button>
-                        <button className="pill-filter" type="button">Name</button>
-                        <button className="pill-filter" type="button">Count</button>
+                        {(["period", "name", "count"] as const).map(sort => <button key={sort}
+                          className={`pill-filter ${exceededSort === sort ? "active" : ""}`} type="button"
+                          aria-pressed={exceededSort === sort} onClick={() => setExceededSort(sort)}>{sort[0].toUpperCase() + sort.slice(1)}</button>)}
                       </div>
                     </div>
                   </div>
@@ -1102,8 +1060,8 @@ export function Dashboard() {
                     {exceededStudents.map((item) => (
                       <div className="exceeded-item-row" key={item.studentId}>
                         <div className="exceeded-item-details">
-                          <span className="exceeded-item-name">#{item.studentId}</span>
-                          <span className="exceeded-item-sub">ID: #{item.studentId} • {item.displayName}</span>
+                          <span className="exceeded-item-name">{item.displayName}</span>
+                          <span className="exceeded-item-sub">ID: #{item.studentId} • {item.periods.join(", ") || "No period recorded"}</span>
                         </div>
                         <div className="exceeded-item-stats">
                           <span className="exceeded-badge">{item.trips.length} {item.trips.length === 1 ? "time" : "times"}</span>
@@ -1134,9 +1092,10 @@ export function Dashboard() {
             <footer className="workspace-footer">
               <span>
                 <ShieldCheck size={14} />
-                Classroom data stays in this browser and the terminal.
+                Your roster and completed history stay in this browser.
               </span>
               <div className="button-row">
+                <DocumentPictureInPictureButton projection={projection} fallback={() => setProjecting(true)} />
                 <button className="text-button" onClick={() => void updater.check()}>
                   Check updates
                 </button>
@@ -1156,22 +1115,30 @@ export function Dashboard() {
       </div>
 
       {/* MODALS */}
+      {modal === "virtual" && <VirtualTerminalDialog onClose={close} />}
+      {modal === "switch-bluetooth" && <Dialog title="Switch to Bluetooth Terminal" size="compact" onClose={close}>
+        <p>This ends the virtual session. Students using its join link will see that the terminal is closed.</p>
+        {state.active.passes.length > 0 && <p className="banner">Check in or void all {state.active.passes.length} active passes before switching.</p>}
+        {modeError && <p role="alert" className="error">{modeError}</p>}
+        <div className="modal-actions-row"><button className="hallzee-pill-btn-sky" onClick={close}>Cancel</button>
+          <button className="hallzee-pill-btn" disabled={switching || state.busy || state.active.passes.length > 0} onClick={() => void switchBluetooth()}>{switching ? "Ending session…" : "End Session & Connect Bluetooth"}</button></div>
+      </Dialog>}
       {modal === "connect" && <ConnectionDialog onClose={close} />}
       {modal === "trips" && <TripsDialog onClose={close} />}
       {modal === "roster" && <RosterDialog onClose={close} />}
       {modal === "policies" && <PoliciesDialog onClose={close} />}
-      {modal === "terminal" && <TerminalSettingsDialog onClose={close} />}
-      {modal === "data" && state.workspace && <DataSettingsDialog onClose={close} />}
+      {modal === "terminal" && <TerminalSettingsDialog onClose={close} offlineReady={offline.ready} />}
+      {modal === "data" && state.workspace && <DataSettingsDialog onClose={close} offlineReady={offline.ready} />}
       {modal === "manual-pass" && (
         <ManualCheckInDialog
           onClose={close}
-          onStartPass={(pass) => {
+          onStartPass={async (pass) => {
             const stored: StoredManualPass = {
               ...pass,
               checkoutEpoch: Math.floor(Date.now() / 1000),
             };
-            if (state.virtualTerminal?.active) {
-              void controller?.startPass({
+            if (state.terminalMode === "virtual") {
+              await controller?.startPass({
                 studentId: pass.studentId,
                 destination: pass.destination,
                 purpose: pass.purpose,

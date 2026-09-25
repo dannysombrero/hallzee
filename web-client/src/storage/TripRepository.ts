@@ -16,6 +16,17 @@ export class TripRepository {
       return "saved";
     });
   }
+  async storeLocal(wire: WireTrip, context: TripContext) {
+    await this.db.transaction(["trips"], "readwrite", async tx => {
+      const store = tx.objectStore("trips");
+      const last = await request<IDBCursor | null>(store.openKeyCursor(
+        IDBKeyRange.bound([context.terminalId, 0], [context.terminalId, 4294967295]), "prev",
+      ));
+      const tripId = Math.max(0, Number((last?.key as [string, number] | undefined)?.[1] ?? 0)) + 1;
+      if (tripId > 4294967295) throw new Error("This local history has reached its record limit.");
+      await request(store.add({ ...wire, tripId, ...context, receivedAtUtc: new Date().toISOString() }));
+    });
+  }
   async cursor(id: string) {
     return (await this.db.get("sync_state", id)) ?? defaultSync(id);
   }

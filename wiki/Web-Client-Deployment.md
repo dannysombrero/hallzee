@@ -11,7 +11,7 @@ The Hallzee Web Client (`web-client/`) is a client-side Progressive Web App (PWA
 - **Hosting Platform**: Cloudflare Pages
 - **Production Origin**: `https://web.hallzee.com`
 - **Security & Headers**: Static security headers (`web-client/public/_headers`) are natively served by Cloudflare Pages to enforce Content Security Policy (CSP) and `Permissions-Policy: bluetooth=(self)`.
-- **CI/CD Pipeline**: [`.github/workflows/deploy-web-client.yml`](../.github/workflows/deploy-web-client.yml) automatically checks, builds, packages, and deploys the static artifact.
+- **CI/CD Pipeline**: [`.github/workflows/deploy-web-client.yml`](https://github.com/dannysombrero/hallzee/blob/main/.github/workflows/deploy-web-client.yml) automatically checks, builds, packages, and deploys the static artifact.
 
 ---
 
@@ -113,7 +113,7 @@ Whenever verifying or testing web client deployments:
 
 ## Repository Sanitization & Security Rules
 
-In accordance with [AGENTS.md](../AGENTS.md):
+In accordance with [AGENTS.md](https://github.com/dannysombrero/hallzee/blob/main/AGENTS.md):
 - Never commit Cloudflare API tokens, Account IDs, or private signing keys into Git.
 - All credentials must reside strictly in GitHub Repository Secrets.
 - Automated repository hygiene checks must pass before merging any deployment configuration:
@@ -169,4 +169,4 @@ Once deployed, verify code entry at the pass root, a direct lowercase room link,
 the QR target, open/closed status and two-device checkout/check-in before classroom
 use. A Mac suffices for this virtual-flow check; Windows is not required. Windows
 physical BLE/PWA behavior remains unverified and needs its own hardware acceptance.
-See [Virtual terminals and student joining](virtual-terminal.md).
+See [Virtual terminals and student joining](Virtual-Terminal.md).

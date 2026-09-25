@@ -2,6 +2,9 @@ export interface PublicActivePass {
   studentId?: string;
   name: string;
   outEpoch: number;
+  destination?: string;
+  purpose?: string;
+  period?: string;
 }
 
 export interface WaitlistItem {
@@ -13,6 +16,7 @@ export interface WaitlistItem {
 
 export interface RoomStatePayload {
   roomCode: string;
+  status: "open" | "paused" | "closed" | "expired";
   activeCount: number;
   capacity: number;
   isFull: boolean;
@@ -36,21 +40,24 @@ export interface CheckoutConfirmPayload {
   destination: string;
   purpose?: string;
   outEpoch: number;
+  period?: string;
 }
 
 export interface CheckoutRejectPayload {
   requestId: string;
-  reason: "CAPACITY_REACHED" | "FLAGGED_RESTRICTION" | "POLICY_BLOCKED" | "UNKNOWN_STUDENT" | "ALREADY_OUT";
+  reason: "CAPACITY_REACHED" | "FLAGGED_RESTRICTION" | "POLICY_BLOCKED" | "UNKNOWN_STUDENT" | "ALREADY_OUT" | "ROOM_INACTIVE";
   message: string;
 }
 
 export interface CheckinRequestPayload {
   studentId: string;
+  requestId?: string;
 }
 
 export interface CheckinConfirmPayload {
   studentId: string;
   inEpoch: number;
+  requestId?: string;
 }
 
 // Union of all messages that flow across the WebSocket
@@ -61,12 +68,16 @@ export type VirtualTerminalMessage =
       hostSecret: string;
       pinHash?: string;
       capacity: number;
+      resumeOnly?: boolean;
     }
   | {
       type: "CLAIM_OK";
       roomCode: string;
       sessionExpiresAtEpoch: number;
     }
+  | { type: "CLOSE_ROOM" }
+  | { type: "ROOM_CLOSED" }
+  | { type: "SET_CAPACITY"; capacity: number }
   | {
       type: "JOIN_ROOM";
       roomCode: string;
@@ -97,8 +108,9 @@ export type VirtualTerminalMessage =
     }
   | {
       type: "WAITLIST_JOIN";
-      payload: { studentId: string };
+      payload: { studentId: string; requestId?: string };
     }
+  | { type: "WAITLIST_CONFIRM"; payload: { requestId: string; position: number } }
   | {
       type: "WAITLIST_ACTION";
       payload: { studentId: string; action: "bump" | "dismiss" | "pause" | "resume" };
@@ -111,4 +123,5 @@ export type VirtualTerminalMessage =
       type: "ERROR";
       code: string;
       message: string;
+      requestId?: string;
     };

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Radio, HelpCircle, Globe, Copy, ExternalLink } from "lucide-react";
+import { Radio, HelpCircle } from "lucide-react";
 import { useHallzee } from "../app/HallzeeProvider";
 import { Dialog } from "./Dialog";
 import { capabilities } from "../app/capabilities";
@@ -8,14 +8,6 @@ import type { DiscoveredTerminal } from "../transport/TerminalDiscovery";
 
 export function ConnectionDialog({ onClose }: { onClose: () => void }) {
   const { controller, state } = useHallzee();
-  const [tab, setTab] = useState<"bluetooth" | "virtual">(() =>
-    state.virtualTerminal?.active ? "virtual" : "bluetooth",
-  );
-  const [virtualCode, setVirtualCode] = useState(
-    () => state.virtualTerminal?.roomCode || `ROOM-${Math.floor(100 + Math.random() * 900)}`,
-  );
-  const [virtualPin, setVirtualPin] = useState("");
-  const [copied, setCopied] = useState(false);
   const [code, setCode] = useState("");
   const [devices, setDevices] = useState<DiscoveredTerminal[]>([]);
   const [candidate, setCandidate] = useState<DiscoveredTerminal>();
@@ -132,35 +124,6 @@ export function ConnectionDialog({ onClose }: { onClose: () => void }) {
     }
   };
 
-  const startVirtual = async () => {
-    if (!controller || working || state.busy) return;
-    setWorking(true);
-    setLocalError("");
-    try {
-      await controller.startVirtualTerminal(virtualCode, virtualPin);
-      if (mounted.current) onClose();
-    } catch (err) {
-      if (mounted.current) setLocalError(errorText(err));
-    } finally {
-      if (mounted.current) setWorking(false);
-    }
-  };
-
-  const stopVirtual = () => {
-    controller?.stopVirtualTerminal();
-  };
-
-  const stationUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/pass/${(state.virtualTerminal?.roomCode || virtualCode).toUpperCase()}`
-      : `/pass/${virtualCode}`;
-
-  const copyUrl = () => {
-    void navigator.clipboard.writeText(stationUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   const busy = working || state.busy;
   const close = () => {
     attempt.current?.abort();
@@ -170,185 +133,12 @@ export function ConnectionDialog({ onClose }: { onClose: () => void }) {
 
   return (
     <Dialog
-      title={candidate ? "Enter terminal pairing code" : "Connect Classroom Terminal"}
-      subtitle={
-        candidate
-          ? candidate.name
-          : tab === "bluetooth"
-            ? "Discover nearby Hallzee Bluetooth LE kiosks."
-            : "Launch a zero-hardware Virtual Web Terminal for tablets or Chromebooks."
-      }
+      title={candidate ? "Enter terminal pairing code" : "Connect Bluetooth Terminal"}
+      subtitle={candidate ? candidate.name : "Choose your Hallzee terminal."}
       size="compact"
       onClose={close}
     >
-      <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
-        <button
-          type="button"
-          className={tab === "bluetooth" ? "hallzee-pill-btn" : "hallzee-pill-btn-sky"}
-          onClick={() => setTab("bluetooth")}
-        >
-          <Radio size={14} style={{ marginRight: "4px", verticalAlign: "middle" }} />
-          Bluetooth Terminal
-        </button>
-        <button
-          type="button"
-          className={tab === "virtual" ? "hallzee-pill-btn" : "hallzee-pill-btn-sky"}
-          onClick={() => setTab("virtual")}
-        >
-          <Globe size={14} style={{ marginRight: "4px", verticalAlign: "middle" }} />
-          Virtual Web Terminal
-        </button>
-      </div>
-
-      {tab === "virtual" ? (
-        <div>
-          {state.virtualTerminal?.active ? (
-            <div>
-              <div
-                style={{
-                  background: "rgba(16, 185, 129, 0.1)",
-                  border: "1px solid rgba(16, 185, 129, 0.3)",
-                  borderRadius: "12px",
-                  padding: "16px",
-                  marginBottom: "16px",
-                  textAlign: "center",
-                }}
-              >
-                <span style={{ color: "#059669", fontWeight: 700, fontSize: "13px" }}>
-                  ● VIRTUAL TERMINAL ONLINE
-                </span>
-                <h2
-                  style={{
-                    fontSize: "26px",
-                    fontWeight: 800,
-                    margin: "8px 0",
-                    letterSpacing: "2px",
-                  }}
-                >
-                  {state.virtualTerminal.roomCode}
-                </h2>
-                <p style={{ fontSize: "13px", color: "#64748b", margin: 0 }}>
-                  Door station and students can connect at this room URL:
-                </p>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    background: "#f8fafc",
-                    padding: "8px 12px",
-                    borderRadius: "8px",
-                    marginTop: "8px",
-                    border: "1px solid #e2e8f0",
-                  }}
-                >
-                  <code style={{ fontSize: "12px", flex: 1, wordBreak: "break-all" }}>
-                    {stationUrl}
-                  </code>
-                  <button
-                    type="button"
-                    className="hallzee-pill-btn-sky"
-                    style={{ padding: "4px 8px", fontSize: "12px" }}
-                    onClick={copyUrl}
-                  >
-                    <Copy size={12} style={{ marginRight: "4px" }} />
-                    {copied ? "Copied!" : "Copy"}
-                  </button>
-                  <a
-                    href={stationUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="hallzee-pill-btn-sky"
-                    style={{ padding: "4px 8px", fontSize: "12px", textDecoration: "none" }}
-                  >
-                    <ExternalLink size={12} />
-                  </a>
-                </div>
-              </div>
-
-              <div className="modal-actions-row">
-                <button
-                  type="button"
-                  className="hallzee-pill-btn-sky"
-                  style={{ color: "#dc2626" }}
-                  onClick={stopVirtual}
-                >
-                  Stop Virtual Terminal
-                </button>
-                <button type="button" className="hallzee-pill-btn" onClick={onClose}>
-                  Done
-                </button>
-              </div>
-            </div>
-          ) : (
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                void startVirtual();
-              }}
-            >
-              <p className="dialog-status-text">
-                Run a web-based pass station for tablets or 1:1 Chromebooks with zero physical hardware.
-              </p>
-
-              <label style={{ display: "block", marginBottom: "12px" }}>
-                Classroom Room Code
-                <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
-                  <input
-                    aria-label="Room code"
-                    className="kiosk-pill-input"
-                    placeholder="e.g. RODRIG235"
-                    autoCapitalize="characters"
-                    autoComplete="off"
-                    maxLength={16}
-                    value={virtualCode}
-                    disabled={busy}
-                    onChange={(e) =>
-                      setVirtualCode(e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, ""))
-                    }
-                  />
-                  <button
-                    type="button"
-                    className="hallzee-pill-btn-sky"
-                    style={{ whiteSpace: "nowrap" }}
-                    onClick={() => setVirtualCode(`ROOM-${Math.floor(100 + Math.random() * 900)}`)}
-                  >
-                    Random
-                  </button>
-                </div>
-              </label>
-
-              <label style={{ display: "block", marginBottom: "16px" }}>
-                Recovery PIN (Optional, 4-6 digits)
-                <input
-                  aria-label="Recovery PIN"
-                  className="kiosk-pill-input"
-                  placeholder="Optional PIN to claim room on another computer"
-                  type="password"
-                  inputMode="numeric"
-                  maxLength={6}
-                  value={virtualPin}
-                  disabled={busy}
-                  onChange={(e) => setVirtualPin(e.target.value.replace(/\D/g, ""))}
-                />
-              </label>
-
-              <div className="modal-actions-row">
-                <button type="button" className="hallzee-pill-btn-sky" onClick={onClose}>
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="hallzee-pill-btn"
-                  disabled={busy || virtualCode.trim().length < 3}
-                >
-                  {busy ? "Starting…" : "Start Virtual Terminal"}
-                </button>
-              </div>
-            </form>
-          )}
-        </div>
-      ) : candidate ? (
+      {candidate ? (
         <form
           onSubmit={(event) => {
             event.preventDefault();
@@ -406,8 +196,7 @@ export function ConnectionDialog({ onClose }: { onClose: () => void }) {
       ) : (
         <>
           <p className="dialog-status-text">
-            Choose a terminal to pair or reconnect. Enter its code in Hallzee only when pairing for
-            the first time.
+            Choose a saved terminal to reconnect, or find one nearby.
           </p>
           {!capabilities().bluetooth && (
             <p className="banner warning">
@@ -445,9 +234,7 @@ export function ConnectionDialog({ onClose }: { onClose: () => void }) {
             )}
           </div>
           <p>
-            Last Paired means this browser has a saved Hallzee credential for the terminal; select it
-            to reconnect and confirm its current status. Status unknown means Hallzee has not checked
-            a terminal yet.
+            Previously paired terminals are saved in this browser. Select one to reconnect.
           </p>
           <div className="modal-actions-row">
             <button

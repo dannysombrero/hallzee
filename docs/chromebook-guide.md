@@ -172,15 +172,22 @@ identical rows. Conflicting trip IDs stop sync. Export/review records before
 **Start a new terminal history**, which deliberately deletes this terminal's
 local rows and is only for a known factory reset/flash rollback.
 
+## Virtual terminals
+
+Use **Start Virtual Terminal** in the header. The open status and code remain
+there; select it to copy a join link, show the QR or display the code to the class.
+See [Virtual terminals and student joining](virtual-terminal.md) for student entry at
+`pass.hallzee.com`, explicit Bluetooth switching and session limits.
+
 ## Offline use, updates and projection
 
-Wait for **Ready offline** before disconnecting internet. Initial setup and
+Wait for **Ready offline** under **Classroom & data → Storage & Backup** before disconnecting internet. Initial setup and
 application updates download static files; roster, trips and keys remain local.
 Browser/profile clearing can remove both the offline app and classroom data.
 Storage persistence requests are best effort; keep a backup even when granted.
 
 For this local development build, bookmark `http://localhost:4190/` in the same
-browser profile. After **Ready offline**, you can stop the local server and reopen
+browser profile. After **Ready offline** appears under **Classroom & data → Storage & Backup**, you can stop the local server and reopen
 that exact URL; no hosted site is needed. Do not switch to `127.0.0.1`, another
 port or another profile, because that has different storage and permissions.
 The development server on port 5173 does not install an offline worker. To get

@@ -2,34 +2,18 @@ import { createRoot } from "react-dom/client";
 import { HallzeeProvider } from "./app/HallzeeProvider";
 import { Dashboard } from "./ui/Dashboard";
 import { RoomStation } from "./ui/station/RoomStation";
+import { JoinPage } from "./ui/station/JoinPage";
+import { appRoute } from "./domain/RoomLinks";
 import "./styles.css";
 
-function getRoute(): { type: "station"; roomCode: string } | { type: "dashboard" } {
-  if (typeof window === "undefined") return { type: "dashboard" };
-  const pathname = window.location.pathname;
-  const search = new URLSearchParams(window.location.search);
-
-  const match = pathname.match(/^\/pass\/([A-Za-z0-9_-]+)/);
-  if (match && match[1]) {
-    return { type: "station", roomCode: match[1].toUpperCase() };
-  }
-  const queryRoom = search.get("room") || search.get("pass");
-  if (queryRoom) {
-    return { type: "station", roomCode: queryRoom.toUpperCase() };
-  }
-
-  return { type: "dashboard" };
-}
-
-const route = getRoute();
+const route = appRoute(new URL(window.location.href));
 
 createRoot(document.getElementById("root")!).render(
   route.type === "station" ? (
     <RoomStation roomCode={route.roomCode} />
-  ) : (
+  ) : route.type === "join" ? <JoinPage invalidCode={route.invalidCode} /> : (
     <HallzeeProvider>
       <Dashboard />
     </HallzeeProvider>
   ),
 );
-

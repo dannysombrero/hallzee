@@ -1,3 +1,4 @@
+import { validRoomCode } from "../domain/RoomLinks";
 import { LocalDatabase, request } from "./LocalDatabase";
 import {
   defaultSync,
@@ -65,6 +66,8 @@ const fields: Record<string, string[]> = {
     "scheduleName",
     "classSection",
     "contextSource",
+    "destination",
+    "purpose",
   ],
   rosterStudents: [
     "workspaceId",
@@ -149,7 +152,7 @@ export function validateBackup(text: string): Backup {
         !row ||
         typeof row !== "object" ||
         Object.keys(row).some((k) => !fields[key].includes(k)) ||
-        fields[key].some((k) => !(k in row))
+        fields[key].some((k) => !(k in row) && !(key === "trips" && ["destination", "purpose"].includes(k)))
       )
         return invalid();
   }
@@ -207,7 +210,8 @@ export function validateBackup(text: string): Backup {
   }
   for (const t of b.trips) {
     if (
-      !b.terminals.some((d) => d.terminalId === t.terminalId) ||
+      !(t.terminalId === "LOCAL" || (typeof t.terminalId === "string" && t.terminalId.startsWith("VIRTUAL:") && validRoomCode(t.terminalId.slice(8))) || b.terminals.some((d) => d.terminalId === t.terminalId)) ||
+      ![t.destination, t.purpose].every(value => value === undefined || value === null || (typeof value === "string" && value.length <= 500)) ||
       t.receivedWorkspaceId !== workspace.workspaceId ||
       !validUtc(t.receivedAtUtc) ||
       !["resolved-on-receipt", "unknown"].includes(t.contextSource) ||
@@ -353,6 +357,7 @@ export class BackupService {
             .put({ key: "activeWorkspaceId", value: b.workspaces[0].workspaceId }),
         );
         await request(tx.objectStore("app_meta").put({ key: "autoConnect", value: false }));
+        await request(tx.objectStore("app_meta").delete("virtual_terminal_config"));
       },
     );
   }

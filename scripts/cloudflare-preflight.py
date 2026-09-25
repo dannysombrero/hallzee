@@ -64,16 +64,25 @@ def preflight(token, account, opener=None):
             "initial_migration_applied": current.get("migration_tag") == "v1",
             "has_migration": bool(current.get("migration_tag")),
         }})
-        get("Relay settings", prefix + "/workers/scripts/" + WORKER + "/settings",
+        if current.get("migration_tag") != "v1":
+            checks.append({"check": "Relay migration compatibility", "ok": False,
+                           "status": "Review existing migration history before deploying this configuration."})
+        settings = get("Relay settings", prefix + "/workers/scripts/" + WORKER + "/settings",
             lambda r: {"expected_room_binding": any(
                 b.get("name") == "ROOM_DO" and b.get("type") == "durable_object_namespace"
                 and b.get("class_name") == "RoomDurableObject"
                 for b in r.get("bindings", []))})
-    get("Worker custom domain", prefix + "/workers/domains?hostname=relay.hallzee.com",
+        if settings is not None and not checks[-1]["details"]["expected_room_binding"]:
+            checks.append({"check": "Relay binding compatibility", "ok": False,
+                           "status": "Review the existing room binding before deploying."})
+    worker_domains = get("Worker custom domain", prefix + "/workers/domains?hostname=relay.hallzee.com",
         lambda r: {"relay_domain_bound": any(
             d.get("hostname") == HOSTS[2] and d.get("service") == WORKER for d in r),
             "conflicting_service": any(d.get("hostname") == HOSTS[2]
                                        and d.get("service") != WORKER for d in r)})
+    if worker_domains is not None and checks[-1]["details"]["conflicting_service"]:
+        checks.append({"check": "Relay domain conflict", "ok": False,
+                       "status": "The relay hostname belongs to another Worker."})
     zones = get("Hallzee zone", "/zones?" + urllib.parse.urlencode(
         {"name": "hallzee.com", "account.id": account}),
         lambda r: {"matching_zone_count": sum(z.get("name") == "hallzee.com"

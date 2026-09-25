@@ -187,7 +187,9 @@ The **Check Cloudflare deployment access** GitHub Action runs
 secrets. It sends only GET requests to Cloudflare and reports whether the Hallzee
 Pages project, relay settings, custom domains and DNS are readable. It prints no
 tokens, account/zone identifiers, raw API responses or secret binding values.
-Read access alone does not prove permission to deploy or edit DNS.
+A separate credential-free step checks public DNS and relay HTTP health, including
+whether Cloudflare serves a browser challenge. It reports no response bodies or
+IP addresses. Read access alone does not prove permission to deploy or edit DNS.
 
 The diagnostic can be run manually from GitHub Actions once its workflow is on
 the default branch. During initial setup, changes to the checker or its workflow

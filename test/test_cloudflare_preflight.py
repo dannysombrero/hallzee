@@ -57,6 +57,14 @@ class CloudflarePreflightTests(unittest.TestCase):
         handler = MODULE.NoRedirect()
         self.assertIsNone(handler.redirect_request(None, None, 302, "", {}, "https://example.com"))
 
+    def test_successful_empty_zone_list_is_not_treated_as_access(self):
+        class EmptyOpener:
+            def open(self, request, timeout):
+                result = {} if request.full_url.endswith("/projects/hallzee-web-client") else []
+                return io.BytesIO(json.dumps({"success": True, "result": result}).encode())
+        checks = MODULE.preflight("synthetic-secret", "a" * 32, EmptyOpener())
+        self.assertTrue(any(c["check"] == "Hallzee zone access" and not c["ok"] for c in checks))
+
     def test_missing_credentials_fail_before_network(self):
         checks = MODULE.preflight("", "")
         self.assertEqual(len(checks), 1)

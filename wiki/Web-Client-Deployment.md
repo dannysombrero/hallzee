@@ -188,3 +188,27 @@ permission blocker; review the API token in Cloudflare rather than putting its
 value in chat, logs or source files. macOS is sufficient to run the same diagnostic
 locally with environment-provided credentials; no Windows-specific capability is
 involved, and this does not verify Windows Bluetooth behavior.
+
+For the relay and domain setup, the Pages-only token described earlier is not
+enough. In Cloudflare's API Tokens settings, give the deployment token these
+permissions, limiting Account Resources to the Hallzee account and Zone Resources
+to `hallzee.com`:
+
+| Scope | Permission | Access |
+| --- | --- | --- |
+| Account | Cloudflare Pages | Edit |
+| Account | Workers Scripts | Edit |
+| Zone | DNS | Edit |
+| Zone | Zone | Read |
+
+Workers Scripts covers the relay upload and Worker custom domain. DNS covers the
+Pages CNAME, and Zone Read lets deployment locate the intended zone. The current
+relay uses a custom domain rather than a separate Workers Route. These permission
+names and API requirements are documented in Cloudflare's
+[token permissions](https://developers.cloudflare.com/fundamentals/api/reference/permissions/)
+and [Worker domain API](https://developers.cloudflare.com/api/resources/workers/subresources/domains/methods/update/).
+
+If a replacement token is created, save it directly as `CLOUDFLARE_API_TOKEN` in
+GitHub repository Actions secrets. Keep `CLOUDFLARE_ACCOUNT_ID` set to the account
+that owns the Pages project and the zone. Then rerun the access-check job. Do not
+publish the client or relay until the account and target domains are confirmed.

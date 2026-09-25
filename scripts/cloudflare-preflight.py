@@ -82,6 +82,9 @@ def preflight(token, account, opener=None):
     matching = [z for z in zones or [] if z.get("name") == "hallzee.com"
                 and z.get("account", {}).get("id") == account
                 and re.fullmatch(r"[a-fA-F0-9]{32}", z.get("id", ""))]
+    if zones is not None and len(matching) != 1:
+        checks.append({"check": "Hallzee zone access", "ok": False,
+                       "status": "Exactly one hallzee.com zone must be accessible in the deployment account."})
     if len(matching) == 1:
         for host in HOSTS:
             get("DNS " + host, "/zones/" + matching[0]["id"] + "/dns_records?"

@@ -242,3 +242,21 @@ workflow retries. Set `HALLZEE_RELAY_ORIGIN` only when
 testing another relay, such as the local Workers runtime. Public browser checks
 use `npx playwright test --config playwright.deployment.config.ts` from `web-client/`
 after its normal bootstrap; they require no Cloudflare credentials.
+
+
+### Configure domains independently
+
+The **Configure terminal domains** action plans both hostname bindings by default.
+Enable its `apply` input to associate the existing relay Worker and student Pages
+hostname without publishing code. This allows initial DNS setup to finish even
+when a separate relay health check is blocked. It uses the same conflict checks
+as the release pipeline and shares its production concurrency group. During the
+initial authorized rollout only, changes to this workflow on the deployment
+branch also apply the bindings; remove that trigger after setup.
+
+Its final diagnostic only reads Bot Management, security level and custom WAF
+rule settings. Missing optional security permissions are reported separately;
+it never changes security settings or emits raw rules, identifiers or responses.
+A relay response with `cf-mitigated: challenge` is a Cloudflare browser challenge,
+not a DNS propagation failure. Investigate the matching security feature before
+changing it; keep public relay and browser verification as release gates.

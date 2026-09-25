@@ -1,0 +1,75 @@
+name: Configure terminal domains
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: 'Apply the reviewed terminal hostname bindings'
+        type: boolean
+        default: false
+  # Initial authorized setup, independent of the relay's public health gate.
+  push:
+    branches: [codex/cloudflare-terminal-deploy]
+    paths: ['.github/workflows/configure-terminal-domains.yml']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-web-client-production
+  cancel-in-progress: false
+
+jobs:
+  configure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Verify hostname safeguards and repository hygiene
+        run: |
+          python3 -m unittest discover -s test -p 'test_cloudflare*.py'
+          python3 -m unittest discover -s test -p test_repo_hygiene.py
+      - name: Check production account and hostname plans
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          python3 scripts/cloudflare-preflight.py
+          python3 scripts/cloudflare-bind-join.py
+          python3 scripts/cloudflare-bind-join.py --relay
+      - name: Associate the existing relay and student Pages hostnames
+        if: github.event_name == 'push' || inputs.apply
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          python3 scripts/cloudflare-bind-join.py --relay --apply
+          python3 scripts/cloudflare-bind-join.py --apply --wait
+      - name: Inspect security settings without changing them
+        if: always()
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          python3 - <<'PY'
+          import json, os, runpy
+          helper = runpy.run_path('scripts/cloudflare-bind-join.py')
+          api = helper['Cloudflare'](os.environ['CLOUDFLARE_API_TOKEN'], os.environ['CLOUDFLARE_ACCOUNT_ID'])
+          _, dns_path, _, _ = helper['plan'](api)
+          zone_path = dns_path.rsplit('/', 1)[0]
+          checks = [
+              ('Bot Management', '/bot_management', lambda r: {
+                  'bot_fight_mode': r.get('fight_mode') is True,
+                  'super_bot_challenge': any(r.get(k) == 'managed_challenge' for k in ('sbfm_definitely_automated', 'sbfm_likely_automated'))}),
+              ('Zone Settings', '/settings/security_level', lambda r: {'under_attack': r.get('value') == 'under_attack'}),
+              ('Zone WAF', '/rulesets/phases/http_request_firewall_custom/entrypoint', lambda r: {
+                  'enabled_challenge_rules': sum(rule.get('enabled', True) and rule.get('action') in ('managed_challenge', 'js_challenge', 'challenge') for rule in r.get('rules', []))}),
+          ]
+          for label, path, summarize in checks:
+              try:
+                  print(json.dumps({'check': label, 'details': summarize(api.request('GET', zone_path + path))}))
+              except helper['DeploymentError'] as error:
+                  print(json.dumps({'check': label, 'status': str(error)}))
+          PY

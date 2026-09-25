@@ -1,0 +1,32 @@
+name: Check Cloudflare deployment access
+
+on:
+  workflow_dispatch:
+  # Temporary deployment branch: read-only checks, never production writes.
+  push:
+    branches: [codex/cloudflare-terminal-deploy]
+    paths:
+      - '.github/workflows/cloudflare-preflight.yml'
+      - 'scripts/cloudflare-preflight.py'
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    if: github.repository == 'dannysombrero/hallzee'
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Verify diagnostics and repository hygiene
+        run: |
+          python3 -m unittest discover -s test -p test_cloudflare_preflight.py
+          python3 -m unittest discover -s test -p test_repo_hygiene.py
+      - name: Check Pages, Workers and DNS without changing them
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: python3 scripts/cloudflare-preflight.py

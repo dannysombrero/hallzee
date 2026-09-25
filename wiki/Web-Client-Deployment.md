@@ -170,3 +170,21 @@ the QR target, open/closed status and two-device checkout/check-in before classr
 use. A Mac suffices for this virtual-flow check; Windows is not required. Windows
 physical BLE/PWA behavior remains unverified and needs its own hardware acceptance.
 See [Virtual terminals and student joining](Virtual-Terminal.md).
+
+### Check deployment access without browser sign-in
+
+The **Check Cloudflare deployment access** GitHub Action runs
+`python3 scripts/cloudflare-preflight.py` with the existing repository deployment
+secrets. It sends only GET requests to Cloudflare and reports whether the Hallzee
+Pages project, relay settings, custom domains and DNS are readable. It prints no
+tokens, account/zone identifiers, raw API responses or secret binding values.
+Read access alone does not prove permission to deploy or edit DNS.
+
+The diagnostic can be run manually from GitHub Actions once its workflow is on
+the default branch. During initial setup, changes to the checker or its workflow
+on `codex/cloudflare-terminal-deploy` also run it. There is no automatic production
+deployment from that branch. A 401/403 result identifies an authentication or
+permission blocker; review the API token in Cloudflare rather than putting its
+value in chat, logs or source files. macOS is sufficient to run the same diagnostic
+locally with environment-provided credentials; no Windows-specific capability is
+involved, and this does not verify Windows Bluetooth behavior.

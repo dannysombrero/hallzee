@@ -61,8 +61,11 @@ Cloudflare Pages natively handles branch deployments within the same project wit
    - **Token name**: `hallzee-pages-deploy`
    - **Permissions**:
      - `Account` | `Cloudflare Pages` | `Edit`
-   - **Account Resources**:
-     - `Include` | `All accounts` (or select your specific account)
+     - `Account` | `Workers Scripts` | `Edit`
+     - `Zone` | `DNS` | `Edit`
+     - `Zone` | `Zone` | `Read`
+   - **Account Resources**: include only the Hallzee account.
+   - **Zone Resources**: include only `hallzee.com`.
 5. Click **Continue to summary** -> **Create Token**.
 6. Securely copy the generated token string.
 
@@ -141,8 +144,9 @@ when no top-level `404.html` is present). The app chooses the student landing pa
 from the hostname. Do not redirect that root to the teacher dashboard.
 
 Deploy `relay/wrangler.jsonc` separately from Pages. It declares the `ROOM_DO`
-Durable Object binding, the initial SQLite class migration and the relay custom
-domain; the room engine itself never writes persistent storage. Review the name
+Durable Object binding and initial SQLite class migration; the room engine itself
+never writes persistent storage. The release workflow associates the relay custom
+domain through the Workers Domains API. Review the name
 and existing migration history before using this initial configuration for an
 already deployed Worker. With the web bootstrap's Node available (or Node 22.23.2+
 installed), the pinned command from the repository root validates without deploying:
@@ -155,7 +159,7 @@ For the separately authorized deployment, authenticate to the intended Cloudflar
 account with Wrangler and run the same command without `--dry-run`. Prefer the
 GitHub Action for a coordinated release: it validates the target account and
 existing migration/binding, tests the client and local Workers runtime, deploys
-the relay when selected, checks its live protocol, publishes Pages, and then
+the relay when selected, binds its hostname, checks its live protocol, publishes Pages, and then
 associates the student domain and creates its missing CNAME. Conflicting DNS
 records stop setup without replacement; correct existing records are reused.
 Finally, a public browser check verifies sharing, code entry, a direct link,
@@ -195,7 +199,7 @@ value in chat, logs or source files. macOS is sufficient to run the same diagnos
 locally with environment-provided credentials; no Windows-specific capability is
 involved, and this does not verify Windows Bluetooth behavior.
 
-For the relay and domain setup, the Pages-only token described earlier is not
+For the relay and domain setup, an older Pages-only deployment token is not
 enough. In Cloudflare's API Tokens settings, give the deployment token these
 permissions, limiting Account Resources to the Hallzee account and Zone Resources
 to `hallzee.com`:
@@ -209,8 +213,13 @@ to `hallzee.com`:
 
 Workers Scripts covers the relay upload and Worker custom domain. DNS covers the
 Pages CNAME, and Zone Read lets deployment locate the intended zone. The current
-relay uses a custom domain rather than a separate Workers Route. These permission
-names and API requirements are documented in Cloudflare's
+relay uses a custom domain rather than a separate Workers Route. Wrangler
+4.140.0 queries zone routes when `routes` contains a custom domain with
+`workers_dev: false`; that requires additional route access. The workflow instead
+uses the documented Workers Domains API with Workers Scripts permission, after
+checking for conflicting Worker bindings and DNS. The Wrangler configuration does
+not manage routes or custom domains. These permission names and API requirements
+are documented in Cloudflare's
 [token permissions](https://developers.cloudflare.com/fundamentals/api/reference/permissions/)
 and [Worker domain API](https://developers.cloudflare.com/api/resources/workers/subresources/domains/methods/update/).
 
@@ -220,8 +229,10 @@ that owns the Pages project and the zone. Then rerun the access-check job. Do no
 publish the client or relay until the account and target domains are confirmed.
 
 The domain helper defaults to a read-only plan (`python3 scripts/cloudflare-bind-join.py`).
-`--apply --wait` associates the domain, creates a missing CNAME and waits up to ten
-minutes for activation. `node scripts/verify-relay.mjs` exercises the public relay
+`--apply --wait` associates the student domain, creates a missing CNAME and waits
+up to ten minutes for activation. `--relay` plans the Worker hostname instead;
+`--relay --apply` attaches it after verifying the room binding and stops if another
+service or DNS record occupies the hostname. `node scripts/verify-relay.mjs` exercises the public relay
 with synthetic data and closes its test room. Set `HALLZEE_RELAY_ORIGIN` only when
 testing another relay, such as the local Workers runtime. Public browser checks
 use `npx playwright test --config playwright.deployment.config.ts` from `web-client/`

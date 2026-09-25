@@ -7,6 +7,6 @@
   "durable_objects": {
     "bindings": [{ "name": "ROOM_DO", "class_name": "RoomDurableObject" }]
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["RoomDurableObject"] }],
-  "routes": [{ "pattern": "relay.hallzee.com", "custom_domain": true }]
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["RoomDurableObject"] }]
+  // The release workflow binds relay.hallzee.com through the Workers Domains API.
 }

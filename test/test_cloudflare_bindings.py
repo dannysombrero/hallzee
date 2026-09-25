@@ -18,6 +18,10 @@ class FakeCloudflare:
         self.calls = []
         self.domains = [{"name": "web.hallzee.com", "status": "active"}]
         self.records = []
+        self.relay_domains = []
+        self.relay_records = []
+        self.relay_bindings = [{"name": "ROOM_DO", "type": "durable_object_namespace",
+                                "class_name": "RoomDurableObject"}]
         self.wrong_account = wrong_account
         if existing:
             self.domains.append({"name": MODULE.HOST, "status": "active"})
@@ -27,6 +31,15 @@ class FakeCloudflare:
 
     def request(self, method, path, body=None):
         self.calls.append((method, path, body))
+        if path.endswith("/workers/domains") and method == "PUT":
+            self.relay_domains.append(body)
+            return body
+        if "/workers/domains?" in path:
+            return list(self.relay_domains)
+        if path.endswith("/settings"):
+            return {"bindings": self.relay_bindings}
+        if path.endswith("/dns_records?name=" + MODULE.RELAY_HOST):
+            return list(self.relay_records)
         if method == "POST":
             if path.endswith("/domains"):
                 self.domains.append({"name": body["name"], "status": "pending"})
@@ -84,6 +97,35 @@ class CloudflareBindingTests(unittest.TestCase):
         with self.assertRaises(MODULE.DeploymentError) as raised:
             api.request("POST", "/synthetic-path", {})
         self.assertEqual(str(raised.exception), "Cloudflare POST failed with HTTP 403.")
+
+    def test_relay_plan_is_read_only_and_apply_is_idempotent(self):
+        api = FakeCloudflare()
+        MODULE.bind_relay(api)
+        self.assertTrue(all(method == "GET" for method, _, _ in api.calls))
+        MODULE.bind_relay(api, True)
+        writes = [call for call in api.calls if call[0] != "GET"]
+        self.assertEqual(len(writes), 1)
+        self.assertEqual(writes[0][0], "PUT")
+        self.assertEqual(writes[0][2], {"hostname": MODULE.RELAY_HOST,
+                                      "service": MODULE.RELAY_WORKER, "zone_name": "hallzee.com"})
+        api.calls.clear()
+        MODULE.bind_relay(api, True)
+        self.assertTrue(all(method == "GET" for method, _, _ in api.calls))
+
+    def test_relay_conflicts_or_missing_room_binding_prevent_writes(self):
+        for scenario in ("worker", "dns", "binding", "account"):
+            with self.subTest(scenario=scenario):
+                api = FakeCloudflare(wrong_account=scenario == "account")
+                if scenario == "worker":
+                    api.relay_domains = [{"hostname": MODULE.RELAY_HOST, "service": "another-worker",
+                                          "zone_name": "hallzee.com"}]
+                if scenario == "dns":
+                    api.relay_records = [{"name": MODULE.RELAY_HOST, "type": "A", "content": "192.0.2.1"}]
+                if scenario == "binding":
+                    api.relay_bindings = []
+                with self.assertRaises(MODULE.DeploymentError):
+                    MODULE.bind_relay(api, True)
+                self.assertTrue(all(method == "GET" for method, _, _ in api.calls))
 
 
 if __name__ == "__main__":

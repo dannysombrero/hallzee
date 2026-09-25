@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Plan or create Hallzee's student Pages domain and CNAME without replacing DNS."""
+"""Plan or bind Hallzee's student and relay hosts without replacing other services."""
 
 import argparse
 import json
@@ -15,6 +15,8 @@ API = "https://api.cloudflare.com/client/v4"
 PROJECT = "hallzee-web-client"
 HOST = "pass.hallzee.com"
 TARGET = PROJECT + ".pages.dev"
+RELAY_HOST = "relay.hallzee.com"
+RELAY_WORKER = "hallzee-relay"
 
 
 class DeploymentError(Exception):
@@ -118,15 +120,44 @@ def wait_active(api, attempts=60):
     raise DeploymentError("Student hostname is associated; certificate validation is still pending.")
 
 
+def bind_relay(api, apply=False):
+    # Reuse the project/account/zone checks before touching the relay hostname.
+    _, dns_path, _, _ = plan(api)
+    domains_path = f"/accounts/{api.account}/workers/domains"
+    domains = api.request("GET", domains_path + "?hostname=" + RELAY_HOST)
+    matching = [d for d in domains if d.get("hostname") == RELAY_HOST]
+    if matching and (len(matching) != 1 or matching[0].get("service") != RELAY_WORKER
+                     or matching[0].get("zone_name") != "hallzee.com"):
+        raise DeploymentError("The relay hostname belongs to another Worker or zone; no binding was replaced.")
+    if not matching and api.request("GET", dns_path + "?name=" + RELAY_HOST):
+        raise DeploymentError("Conflicting relay.hallzee.com DNS record; no record was replaced.")
+    print(json.dumps({"host": RELAY_HOST, "worker": RELAY_WORKER, "apply": apply,
+                      "add_worker_domain": not matching}))
+    if not apply or matching:
+        return
+    settings = api.request("GET", f"/accounts/{api.account}/workers/scripts/{RELAY_WORKER}/settings")
+    if not any(b.get("name") == "ROOM_DO" and b.get("type") == "durable_object_namespace"
+               and b.get("class_name") == "RoomDurableObject" for b in settings.get("bindings", [])):
+        raise DeploymentError("Deploy the expected relay and room binding before attaching its hostname.")
+    result = api.request("PUT", domains_path, {"hostname": RELAY_HOST,
+                         "service": RELAY_WORKER, "zone_name": "hallzee.com"})
+    if result.get("hostname") != RELAY_HOST or result.get("service") != RELAY_WORKER:
+        raise DeploymentError("Cloudflare returned an unexpected relay domain binding.")
+    print("relay.hallzee.com is associated with hallzee-relay.")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--apply", action="store_true", help="Create the reviewed domain and missing CNAME")
     parser.add_argument("--wait", action="store_true", help="Wait up to ten minutes for domain activation")
+    parser.add_argument("--relay", action="store_true", help="Bind the relay Worker hostname instead of the student Pages hostname")
     args = parser.parse_args()
+    if args.relay and args.wait:
+        parser.error("Use verify-relay.mjs to verify relay availability; --wait is for Pages.")
     try:
         api = Cloudflare(os.environ.get("CLOUDFLARE_API_TOKEN", ""),
                          os.environ.get("CLOUDFLARE_ACCOUNT_ID", ""))
-        bind(api, args.apply)
+        (bind_relay if args.relay else bind)(api, args.apply)
         if args.wait:
             wait_active(api)
     except DeploymentError as error:

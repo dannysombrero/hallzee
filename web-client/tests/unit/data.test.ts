@@ -6,6 +6,7 @@ import { deriveOwnerKey } from "../../src/protocol/WebTerminalCrypto";
 import { parseCsv, mapRoster, suggestMapping, RosterService } from "../../src/domain/RosterService";
 import { csvCell, exportTrips, CSV_HEADER } from "../../src/domain/TripReports";
 import { defaultPolicy } from "../../src/storage/schema";
+import { TripRepository } from "../../src/storage/TripRepository";
 import {
   evaluateWindow,
   resolvePeriod,
@@ -15,6 +16,28 @@ import { buildPolicyTransfer } from "../../src/domain/BellPolicyProtocol";
 import policies from "../../../contracts/web-client/v1/policies.json";
 const terminalId = "HZ-A1B2C3D4E5F6";
 describe("local data and backup safety", () => {
+  it("round-trips virtual history with collision-free IDs and excludes room credentials", async () => {
+    const f = await setup();
+    const repo = new TripRepository(f.db);
+    const context = { terminalId: "VIRTUAL:ROOM-2107", receivedWorkspaceId: f.workspace.workspaceId,
+      scheduleName: null, classSection: "Period 2", contextSource: "resolved-on-receipt" as const };
+    const wire = { tripId: Date.now(), studentId: "00101", tripDate: "2026-09-25", timeOut: "09:00:00",
+      timeIn: "09:05:00", durationSeconds: 300, status: "MANUAL" as const, destination: "Office", purpose: "Synthetic note" };
+    await Promise.all([repo.storeLocal(wire, context), repo.storeLocal(wire, context)]);
+    await f.db.setMeta("virtual_terminal_config", { roomCode: "ROOM-2107", hostSecret: "synthetic-test-credential" });
+    const service = new BackupService(f.db);
+    const text = await service.export();
+    expect(text).not.toContain("synthetic-test-credential");
+    const backup = validateBackup(text);
+    expect(backup.trips.map(trip => trip.tripId)).toEqual([1, 2]);
+    await service.restore(backup);
+    expect((await repo.all())[0]).toMatchObject({ ...context, destination: "Office", purpose: "Synthetic note" });
+    expect(await f.db.meta("virtual_terminal_config", null)).toBeNull();
+    const oldFields = structuredClone(backup);
+    for (const trip of oldFields.trips) { delete trip.destination; delete trip.purpose; }
+    expect(() => validateBackup(JSON.stringify(oldFields))).not.toThrow();
+    f.db.close();
+  });
   it("rolls back all stores if a later request aborts", async () => {
     const f = await setup();
     await expect(

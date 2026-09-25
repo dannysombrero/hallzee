@@ -41,8 +41,10 @@ the same security headers over localhost. CI produces a ZIP without deploying.
 
 Tests use fictional records. Browser tests simulate only GATT while exercising
 real browser storage, crypto, worker updates, downloads and locks. Their ports
-4187/4188 must be free. They never connect to real Bluetooth devices.
+4187/4188/4192 must be free. Virtual tests use the production room engine through
+a local WebSocket adapter. They never connect to real Bluetooth devices.
 
+[Virtual terminal guide](../docs/virtual-terminal.md) ·
 [Teacher guide](../docs/chromebook-guide.md) ·
 [IT guide](../docs/web-client-it-guide.md) ·
 [Acceptance evidence](../docs/testing/web-client-acceptance.md) ·

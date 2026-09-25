@@ -23,9 +23,11 @@ type SettingsTab = "profile" | "device" | "data";
 export function TerminalSettingsDialog({
   onClose,
   initialTab = "device",
+  offlineReady,
 }: {
   onClose: () => void;
   initialTab?: SettingsTab;
+  offlineReady?: boolean;
 }) {
   const { controller, state } = useHallzee();
   const [activeTab, setActiveTab] = useState<SettingsTab>(initialTab);
@@ -140,7 +142,7 @@ export function TerminalSettingsDialog({
           <div className="settings-card">
             <div className="settings-card-title">Classroom & Teacher Information</div>
             <p className="text-12 text-slate-500 -mt-1">
-              Set your classroom details to display in the application header.
+              Set the classroom details shown in the sidebar.
             </p>
 
             <div className="flex flex-col gap-3 pt-1">
@@ -215,9 +217,9 @@ export function TerminalSettingsDialog({
           <div className="settings-preview-card">
             <ShieldCheck size={20} color="#0284c7" />
             <div className="flex flex-col gap-0.5">
-              <span className="text-11 font-bold text-sky-700">Header Bar Display:</span>
+              <span className="text-11 font-bold text-sky-700">Classroom Profile:</span>
               <span className="text-13 font-semibold text-slate-800">
-                Hallzee Web Client | {workspace.room || "Room 204"} – {workspace.teacher || "Rodriguez"} – {workspace.school || "GPMS"}
+                {workspace.name || "Your classroom"} · {workspace.room || "Room not set"}
               </span>
             </div>
           </div>
@@ -578,6 +580,7 @@ export function TerminalSettingsDialog({
       {/* 4. TAB 3: STORAGE & BACKUP */}
       {activeTab === "data" && (
         <div className="flex flex-col gap-4">
+          {offlineReady !== undefined && <p className="text-12 text-slate-500" role="status">{offlineReady ? "Ready offline — this app can reopen without internet. Virtual terminals require internet." : "Offline setup is still pending. Keep this window open with internet access."}</p>}
           {/* Local Storage Card */}
           <div className="settings-card">
             <div className="settings-card-title">Stored On This Computer</div>

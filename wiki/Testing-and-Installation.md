@@ -164,7 +164,7 @@ on Windows x64. This installs checksum-pinned Node and locked dependencies,
 builds the offline app and serves `http://localhost:4190`. No Git, .NET or
 Arduino installation is needed. Replace `preview` with `check` to install the
 test browser and run all web checks, or `dev` for hot reload on port 5173.
-After **Ready offline**, bookmark and reopen the same `http://localhost:4190/`
+After **Ready offline** appears under **Classroom & data → Storage & Backup**, bookmark and reopen the same `http://localhost:4190/`
 URL/profile without starting the server. Start `preview` again to download a
 new build, then **Check updates → Apply update**. Port 5173 has no offline worker.
 
@@ -176,6 +176,13 @@ is pending. A Chromebook is required to verify ChromeOS permission, pairing,
 and sleep/wake behavior. Windows BLE/PWA requires a Windows BLE PC to verify
 Just Works pairing, encrypted GATT, bond reuse and reconnect/sleep;
 **Windows behavior is unverified**. The online testing origin is `https://web.hallzee.com` via Cloudflare Pages.
+
+### Virtual terminals and student joins
+
+See [Virtual terminals and student joining](Virtual-Terminal.md) for the two-command local
+preview, persistent sharing panel, public code-entry page and relay requirements.
+A Mac suffices for this internet-based flow; no Windows-specific capability is
+required. Windows physical BLE remains unverified as described above.
 
 ### Pair once, then reconnect
 

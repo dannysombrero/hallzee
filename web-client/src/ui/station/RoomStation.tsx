@@ -5,6 +5,7 @@ import {
   type TransportStatus,
 } from "../../transport/VirtualTerminalTransport";
 import type { RoomStatePayload, CheckoutRejectPayload } from "../../protocol/VirtualTerminalProtocol";
+import { roomLinks } from "../../domain/RoomLinks";
 import { durationLabel } from "../../sync/TerminalClock";
 
 export interface RoomStationProps {
@@ -26,6 +27,11 @@ export function RoomStation({ roomCode, relayUrl }: RoomStationProps) {
   const [status, setStatus] = useState<TransportStatus>("connecting");
   const [roomState, setRoomState] = useState<RoomStatePayload | null>(null);
   const [studentId, setStudentId] = useState("");
+  const [checkinMode, setCheckinMode] = useState(false);
+  const [waiting, setWaiting] = useState(false);
+  const pending = useRef<string | null>(null);
+  const pendingTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const successTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [destination, setDestination] = useState("Restroom");
   const [otherDestination, setOtherDestination] = useState("");
   const [purpose, setPurpose] = useState("");
@@ -64,12 +70,31 @@ export function RoomStation({ roomCode, relayUrl }: RoomStationProps) {
       relayUrl: relayUrl || defaultRelayUrl(),
       roomCode: code,
       role: "station",
-      onStatusChange: (s) => setStatus(s),
+      onStatusChange: (s) => {
+        setStatus(s);
+        if (s !== "connected" && pending.current) {
+          pending.current = null; setWaiting(false); clearTimeout(pendingTimer.current);
+          setNotice({ text: "Connection interrupted. Wait for the terminal to reconnect and try again.", type: "error" });
+        }
+      },
       onRoomState: (s) => setRoomState(s),
+      onCheckoutConfirm: confirmation => {
+        if (confirmation.requestId === pending.current) showSuccessFeedback("Have a good trip! Your pass is active.");
+      },
+      onCheckinConfirm: confirmation => {
+        if (confirmation.requestId === pending.current) showSuccessFeedback("Welcome back! You are checked in.");
+      },
+      onWaitlistConfirm: (requestId, position) => {
+        if (requestId === pending.current) showSuccessFeedback(`You are number ${position} on the waitlist.`);
+      },
       onCheckoutReject: (rej: CheckoutRejectPayload) => {
+        if (rej.requestId !== pending.current) return;
+        pending.current = null; setWaiting(false); clearTimeout(pendingTimer.current);
         setNotice({ text: rej.message, type: "error" });
       },
-      onError: (_c, msg) => {
+      onError: (_c, msg, requestId) => {
+        if (requestId && requestId !== pending.current) return;
+        pending.current = null; setWaiting(false); clearTimeout(pendingTimer.current);
         setNotice({ text: msg, type: "error" });
       },
     });
@@ -78,6 +103,7 @@ export function RoomStation({ roomCode, relayUrl }: RoomStationProps) {
     transport.connect();
 
     return () => {
+      clearTimeout(pendingTimer.current); clearTimeout(successTimer.current);
       transport.disconnect();
       transportRef.current = null;
     };
@@ -86,37 +112,32 @@ export function RoomStation({ roomCode, relayUrl }: RoomStationProps) {
   const activePasses = roomState?.activePasses || [];
   const capacity = roomState?.capacity || 1;
   const isFull = (roomState?.activeCount || 0) >= capacity;
-  const isCheckedOut = activePasses.some((p) => p.studentId === studentId.trim());
+  const isCheckedOut = checkinMode;
+  const roomOpen = status === "connected" && roomState?.status === "open" && roomState.sessionExpiresAtEpoch * 1000 > now;
+  const roomStatus = roomState?.status === "expired" ? "SESSION ENDED" : roomState?.status === "closed" ? "TERMINAL CLOSED" : roomState?.status === "paused" ? "TEACHER RECONNECTING" : roomOpen ? "LIVE" : "CONNECTING";
 
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const id = studentId.trim();
-    if (!id) {
-      setNotice({ text: "Please enter your student ID to continue.", type: "error" });
-      return;
+    if (!/^\d{1,16}$/.test(id)) {
+      setNotice({ text: "Enter your numeric student ID (up to 16 digits).", type: "error" }); return;
     }
-
-    if (isCheckedOut) {
-      // Check in
-      transportRef.current?.requestCheckin(id);
-      showSuccessFeedback(`Welcome back! You are checked in.`);
-      return;
+    if (!roomOpen || waiting || !transportRef.current) return;
+    setNotice(null); setWaiting(true);
+    if (isCheckedOut) pending.current = transportRef.current.requestCheckin(id);
+    else if (isFull) pending.current = transportRef.current.joinWaitlist(id);
+    else {
+      const dest = destination === "Other" ? otherDestination.trim() || "Other" : destination;
+      pending.current = transportRef.current.requestCheckout(id, dest, purpose.trim() || undefined);
     }
-
-    if (isFull) {
-      // Join waitlist
-      transportRef.current?.joinWaitlist(id);
-      showSuccessFeedback(`You have joined the waitlist queue!`);
-      return;
-    }
-
-    // Check out
-    const dest = destination === "Other" ? otherDestination.trim() || "Other" : destination;
-    transportRef.current?.requestCheckout(id, dest, purpose.trim() || undefined);
-    showSuccessFeedback(`Have a good trip! Your pass is active.`);
+    pendingTimer.current = setTimeout(() => {
+      pending.current = null; setWaiting(false);
+      setNotice({ text: "No confirmation arrived. Check with your teacher before trying again.", type: "error" });
+    }, 15000);
   };
 
   const showSuccessFeedback = (msg: string) => {
+    pending.current = null; setWaiting(false); clearTimeout(pendingTimer.current);
     setSuccessAnimation(msg);
     setNotice(null);
     setStudentId("");
@@ -124,7 +145,7 @@ export function RoomStation({ roomCode, relayUrl }: RoomStationProps) {
     setOtherDestination("");
     setDestination("Restroom");
 
-    setTimeout(() => {
+    successTimer.current = setTimeout(() => {
       setSuccessAnimation(null);
     }, 3500);
   };
@@ -187,7 +208,7 @@ export function RoomStation({ roomCode, relayUrl }: RoomStationProps) {
                 borderRadius: "12px",
               }}
             >
-              {status === "connected" ? "● LIVE" : "○ CONNECTING"}
+              {roomStatus}
             </span>
           </div>
 
@@ -199,7 +220,7 @@ export function RoomStation({ roomCode, relayUrl }: RoomStationProps) {
               letterSpacing: "1px",
             }}
           >
-            ROOM {code}
+            {code}
           </h1>
 
           <div
@@ -215,7 +236,7 @@ export function RoomStation({ roomCode, relayUrl }: RoomStationProps) {
               fontWeight: 600,
             }}
           >
-            {isFull ? (
+            {!roomOpen ? <span>{roomStatus}</span> : isFull ? (
               <span>🔴 PASSES FULL ({activePasses.length} / {capacity} in use)</span>
             ) : (
               <span>🟢 PASS AVAILABLE ({activePasses.length} / {capacity} in use)</span>
@@ -246,7 +267,7 @@ export function RoomStation({ roomCode, relayUrl }: RoomStationProps) {
             </div>
           ) : (
             <>
-              {/* CURRENTLY OUT TRAY (Privacy safe: names + timers only) */}
+              {/* CURRENTLY OUT TRAY (Privacy safe: anonymous pass timers only) */}
               {activePasses.length > 0 && (
                 <div
                   style={{
@@ -294,15 +315,22 @@ export function RoomStation({ roomCode, relayUrl }: RoomStationProps) {
 
               {/* ACTION FORM */}
               <form onSubmit={handleSubmit}>
+                <div className="station-mode-tabs" role="group" aria-label="Pass action">
+                  <button type="button" className={!checkinMode ? "hallzee-pill-btn" : "hallzee-pill-btn-sky"} aria-pressed={!checkinMode} disabled={waiting} onClick={() => { setCheckinMode(false); setNotice(null); }}>Check out</button>
+                  <button type="button" className={checkinMode ? "hallzee-pill-btn" : "hallzee-pill-btn-sky"} aria-pressed={checkinMode} disabled={waiting} onClick={() => { setCheckinMode(true); setNotice(null); }}>Check in</button>
+                </div>
+                {!roomOpen && <p className="banner" role="status">{roomState?.status === "closed" || roomState?.status === "expired" ? "This terminal is closed. Ask your teacher to open a session." : "Waiting for your teacher's terminal. Check-in and checkout will be available when it reconnects."}</p>}
                 <label style={{ display: "block", marginBottom: "16px" }}>
                   <span style={{ fontSize: "14px", fontWeight: 700, color: "#334155" }}>
-                    Enter Student ID or Name:
+                    Enter Student ID:
                   </span>
                   <input
                     aria-label="Student ID"
                     type="text"
                     inputMode="numeric"
                     autoFocus
+                    maxLength={16}
+                    disabled={waiting}
                     value={studentId}
                     onChange={(e) => {
                       setStudentId(e.target.value);
@@ -429,7 +457,7 @@ export function RoomStation({ roomCode, relayUrl }: RoomStationProps) {
                 {/* SUBMIT BUTTON */}
                 <button
                   type="submit"
-                  disabled={status !== "connected" || !studentId.trim()}
+                  disabled={!roomOpen || !studentId.trim() || waiting}
                   style={{
                     width: "100%",
                     padding: "16px",
@@ -446,10 +474,10 @@ export function RoomStation({ roomCode, relayUrl }: RoomStationProps) {
                         : "#0284c7",
                     boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
                     transition: "all 0.15s ease",
-                    opacity: status !== "connected" || !studentId.trim() ? 0.6 : 1,
+                    opacity: !roomOpen || !studentId.trim() || waiting ? 0.6 : 1,
                   }}
                 >
-                  {isCheckedOut
+                  {waiting ? "Waiting for confirmation…" : isCheckedOut
                     ? "✓ I'M BACK (CHECK IN)"
                     : isFull
                       ? "⏳ JOIN WAITLIST"
@@ -458,7 +486,7 @@ export function RoomStation({ roomCode, relayUrl }: RoomStationProps) {
               </form>
 
               {/* WAITLIST FOOTER */}
-              {roomState?.waitlist && roomState.waitlist.length > 0 && (
+              {!!roomState?.waitlistCount && (
                 <div
                   style={{
                     marginTop: "20px",
@@ -469,14 +497,14 @@ export function RoomStation({ roomCode, relayUrl }: RoomStationProps) {
                     textAlign: "center",
                   }}
                 >
-                  <strong>Waitlist Queue ({roomState.waitlist.length}):</strong>{" "}
-                  {roomState.waitlist.map((w) => `#${w.position} ${w.name}`).join(" · ")}
+                  <strong>Waiting students: {roomState.waitlistCount}</strong>
                 </div>
               )}
             </>
           )}
         </div>
       </div>
+      <a className="station-change-room" href={roomLinks(code).join}>Join a different terminal</a>
     </div>
   );
 }

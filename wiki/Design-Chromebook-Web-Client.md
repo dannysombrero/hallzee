@@ -94,27 +94,33 @@ resolve them. See [SQLite WASM persistence](https://sqlite.org/wasm/doc/tip/pers
   ESP32 kiosks (e.g. K–1st grade, tablet door stations, or 1:1 student devices).
   The teacher dashboard acts as the authoritative Teacher Hub with a 12-hour session
   window, while the public room station (`/pass/:roomCode`) enables 1-touch destination
-  selection (Restroom, Office, Library, Nurse, Counselor, Other) with complete privacy masking,
-  automatic waitlist queuing, and teacher dashboard visibility into destination and purpose.
+  selection (Restroom, Office, Library, Nurse, Counselor, Other) with anonymous public pass timers,
+  an explicit waitlist action, and teacher dashboard visibility into destination and purpose.
 
 ### Virtual Web Terminal & Room Station architecture
 
-For classrooms without dedicated microcontroller kiosks or for early elementary students:
-1. **Teacher Hub (Web Client Dashboard)**:
-   - Initiates an ephemeral room (e.g. `RODRIG235`) with an optional 4-digit PIN hash and configurable capacity.
-   - The session TTL is active for $\ge 12$ hours (full school day), allowing persistent classroom operation without mid-day abandonment.
-   - All student PII, roster verification, and completed trip records remain strictly in the local browser IndexedDB database (`hallzee-web`).
-   - The teacher dashboard displays real-time active passes, elapsed timers, policy compliance, student flag alerts, and private student destinations/purpose notes.
-2. **Ephemeral Relay Coordinator (`relay/`)**:
-   - Lightweight Cloudflare Worker + in-memory Durable Object (with local Node mock relay on port 4192 for offline/testing).
-   - Zero persistent cloud storage: routes WebSocket messages in memory between the teacher hub and room stations.
-   - Strict IP rate limiting (maximum 3 room creations/day per host IP) prevents spam.
-3. **Public Room Station (`/pass/:roomCode`)**:
-   - Public touch interface loaded on a door tablet, old iPad, or student Chromebook.
-   - 1-click destination chips ("Restroom" default, "Main Office", "Library", "Nurse", "Counselor", "Other") and optional purpose note.
-   - **Privacy Masking**: The public room station and wall projection NEVER display destinations, purposes, or flag alerts. The room station displays only student name and elapsed time (`👤 Maya L. · 03m`).
-   - Screen Wake Lock API prevents the door station tablet from sleeping during the school day.
-   - **Waitlist Queue**: When pass capacity is reached, the station offers a 1-tap "Join Waitlist" action, and the teacher dashboard can prioritize or dismiss queued students.
+The header separates **Start Virtual Terminal** and **Connect Bluetooth Terminal**.
+A confirmed virtual room keeps its open state and code visible, with a persistent
+sharing dialog containing the join address, direct link and locally generated QR.
+The intended student entry point is `pass.hallzee.com`; `/<code>` opens a room,
+and legacy `/pass/<code>` links remain supported.
+
+The teacher is authoritative. The shared `RoomCoordinator` engine runs in the
+Cloudflare Durable Object and the local Node test relay (port 4192). A room lasts
+12 hours from first claim, pauses without its host and requires an explicit start
+after expiry or loss. End Session closes it for students; live passes block mode
+switching. The relay uses memory only, with a best-effort per-isolate abuse budget
+of 200 distinct codes/day/IP; reconnects do not consume that budget. This is not a
+durable global quota.
+
+Roster names and completed trips stay in the teacher browser. Live student IDs,
+destinations, notes and credentials transit/remain in relay memory until the room
+ends; public snapshots contain only anonymous pass timers and counts. Check-in
+success follows the teacher's durable save. The station offers explicit Check out
+and Check in actions, numeric ID entry, destination chips and a waitlist.
+
+See [Virtual terminals and student joining](Virtual-Terminal.md) for precise routes, privacy
+boundaries, recovery, local setup and deployment requirements.
 
 ### Explicitly deferred / future features
 

@@ -1,4 +1,4 @@
-param([ValidateSet('dev','check','build','preview')][string]$Action = 'dev')
+param([ValidateSet('dev','check','build','preview','relay')][string]$Action = 'dev')
 $ErrorActionPreference = 'Stop'
 $RepoRoot = Split-Path -Parent $PSScriptRoot
 $Manifest = Get-Content -Raw (Join-Path $RepoRoot 'web-client/toolchain.json') | ConvertFrom-Json

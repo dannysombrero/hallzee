@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "license": "AGPL-3.0-or-later",
-  "engines": { "node": ">=22.23.2" },
+  "engines": {
+    "node": ">=22.23.2"
+  },
   "scripts": {
     "dev": "vite --host localhost --port 5173 --strictPort",
     "build": "vite build && node scripts/build-shell.mjs",
@@ -13,14 +15,31 @@
     "lint": "oxlint src tests",
     "test:unit": "vitest run",
     "test:browser": "playwright test",
-    "check": "npm run typecheck && npm run lint && npm run test:unit && npm run build && npm run test:browser"
+    "check": "npm run typecheck && npm run lint && npm run test:unit && npm run build && npm run test:browser",
+    "relay": "node --experimental-transform-types tests/browser/relay-server.ts"
   },
-  "dependencies": { "react": "19.2.8", "react-dom": "19.2.8", "lucide-react": "1.43.0" },
+  "dependencies": {
+    "lucide-react": "1.43.0",
+    "qrcode": "1.5.4",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
   "devDependencies": {
-    "@types/react": "19.2.18", "@types/react-dom": "19.2.7", "@types/node": "26.5.0",
-    "@types/web-bluetooth": "0.0.21", "@vitejs/plugin-react": "6.1.1",
-    "@tailwindcss/vite": "4.3.3", "tailwindcss": "4.3.3", "typescript": "7.0.2",
-    "vite": "8.2.2", "vitest": "5.0.0", "@playwright/test": "1.63.0",
-    "fake-indexeddb": "6.2.5", "oxlint": "1.82.0"
+    "@playwright/test": "1.63.0",
+    "@tailwindcss/vite": "4.3.3",
+    "@types/node": "26.5.0",
+    "@types/qrcode": "1.5.5",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.7",
+    "@types/web-bluetooth": "0.0.21",
+    "@types/ws": "8.18.1",
+    "@vitejs/plugin-react": "6.1.1",
+    "fake-indexeddb": "6.2.5",
+    "oxlint": "1.82.0",
+    "tailwindcss": "4.3.3",
+    "typescript": "7.0.2",
+    "vite": "8.2.2",
+    "vitest": "5.0.0",
+    "ws": "8.18.3"
   }
 }

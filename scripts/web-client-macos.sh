@@ -2,7 +2,7 @@
 set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 action="${1:-dev}"
-case "$action" in dev|check|build|preview) ;; *) echo 'Usage: web-client-macos.sh [dev|check|build|preview]' >&2; exit 2;; esac
+case "$action" in dev|check|build|preview|relay) ;; *) echo 'Usage: web-client-macos.sh [dev|check|build|preview|relay]' >&2; exit 2;; esac
 [[ "$(uname -s)" == Darwin ]] || { echo 'This bootstrap is for macOS.' >&2; exit 1; }
 case "$(uname -m)" in arm64) arch=arm64;; x86_64) arch=x64;; *) echo 'Supported architectures: arm64, x64.' >&2; exit 1;; esac
 manifest="$repo_root/web-client/toolchain.json"

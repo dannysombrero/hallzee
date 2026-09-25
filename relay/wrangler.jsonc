@@ -1,0 +1,10 @@
+{
+  "name": "hallzee-relay",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "durable_objects": {
+    "bindings": [{ "name": "ROOM_DO", "class_name": "RoomDurableObject" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["RoomDurableObject"] }],
+  "routes": [{ "pattern": "relay.hallzee.com", "custom_domain": true }]
+}

@@ -4,6 +4,7 @@ import { Dialog } from "./Dialog";
 import { UserCheck } from "lucide-react";
 import { resolvePeriod } from "../domain/PolicyScheduleService";
 import type { Student } from "../storage/schema";
+import { errorText } from "../app/errors";
 
 export interface ManualPassDetails {
   studentId: string;
@@ -18,7 +19,7 @@ export function ManualCheckInDialog({
   onStartPass,
 }: {
   onClose: () => void;
-  onStartPass: (pass: ManualPassDetails) => void;
+  onStartPass: (pass: ManualPassDetails) => void | Promise<void>;
 }) {
   const { state } = useHallzee();
 
@@ -33,6 +34,7 @@ export function ManualCheckInDialog({
   const [destination, setDestination] = useState("");
   const [purpose, setPurpose] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   // Student suggestions based on name query
@@ -83,7 +85,7 @@ export function ManualCheckInDialog({
 
   const canSubmit = studentName.trim().length > 0 || studentId.trim().length > 0;
 
-  const handleSubmit = (e?: FormEvent) => {
+  const handleSubmit = async (e?: FormEvent) => {
     if (e) e.preventDefault();
     if (!canSubmit) {
       setStatusMessage("Enter a student name or student ID to continue.");
@@ -107,20 +109,25 @@ export function ManualCheckInDialog({
       resolvedId = match ? match.studentId : `M-${Date.now().toString().slice(-4)}`;
     }
 
-    onStartPass({
-      studentId: resolvedId,
-      studentName: resolvedName,
-      period: period.trim() || undefined,
-      destination: destination.trim() || undefined,
-      purpose: purpose.trim() || undefined,
-    });
-    onClose();
+    setSubmitting(true);
+    try {
+      await onStartPass({
+        studentId: resolvedId,
+        studentName: resolvedName,
+        period: period.trim() || undefined,
+        destination: destination.trim() || undefined,
+        purpose: purpose.trim() || undefined,
+      });
+      onClose();
+    } catch (error) {
+      setStatusMessage(errorText(error));
+    } finally { setSubmitting(false); }
   };
 
   return (
     <Dialog
       title="Teacher-Started Pass"
-      subtitle="This pass is saved on this computer and resumes after a restart. It does not reserve a terminal slot."
+      subtitle={state.terminalMode === "virtual" ? "Start a pass on your virtual terminal using a numeric student ID." : "This pass is saved on this computer and resumes after a restart. It does not reserve a terminal slot."}
       size="default"
       onClose={onClose}
     >
@@ -214,7 +221,7 @@ export function ManualCheckInDialog({
           <button
             type="submit"
             className="hallzee-pill-btn"
-            disabled={!canSubmit || state.busy}
+            disabled={!canSubmit || state.busy || submitting}
           >
             <UserCheck size={14} className="inline mr-1.5" />
             Start Pass

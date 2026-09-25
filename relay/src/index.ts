@@ -6,20 +6,22 @@ interface Env {
   ROOM_DO: DurableObjectNamespace;
 }
 
-// In-memory IP rate limiter: max 3 creations per 24h per IP
-const ipCreations = new Map<string, { count: number; resetEpoch: number }>();
-
-function checkRateLimit(ip: string): boolean {
+// Best-effort abuse budget for distinct room codes, allowing a shared school IP.
+// Resume connections do not carry create=1 and repeated attempts for the same code
+// do not spend another slot. This in-memory budget is not a durable global quota.
+const ipCreations = new Map<string, { codes: Set<string>; resetEpoch: number }>();
+function checkRateLimit(ip: string, code: string): boolean {
   const now = Math.floor(Date.now() / 1000);
-  const entry = ipCreations.get(ip);
-  if (!entry || now > entry.resetEpoch) {
-    ipCreations.set(ip, { count: 1, resetEpoch: now + 86400 });
-    return true;
+  for (const [key, entry] of ipCreations) if (now >= entry.resetEpoch) ipCreations.delete(key);
+  let entry = ipCreations.get(ip);
+  if (!entry) {
+    if (ipCreations.size >= 10000) return false;
+    entry = { codes: new Set(), resetEpoch: now + 86400 };
+    ipCreations.set(ip, entry);
   }
-  if (entry.count >= 3) {
-    return false;
-  }
-  entry.count++;
+  if (entry.codes.has(code)) return true;
+  if (entry.codes.size >= 200) return false;
+  entry.codes.add(code);
   return true;
 }
 
@@ -35,15 +37,15 @@ export default {
 
     if (url.pathname === "/ws") {
       const roomCode = (url.searchParams.get("room") || "").trim().toUpperCase();
-      if (!roomCode || !/^[A-Z0-9-]{3,16}$/.test(roomCode)) {
+      if (!roomCode || !/^[A-Z0-9][A-Z0-9-]{2,15}$/.test(roomCode) || ["JOIN", "PASS", "ASSETS", "ICONS"].includes(roomCode)) {
         return new Response("Invalid room code", { status: 400 });
       }
 
       // Check rate limit if this is a room creation attempt
       const clientIp = request.headers.get("CF-Connecting-IP") || "127.0.0.1";
       const isCreate = url.searchParams.get("create") === "1";
-      if (isCreate && !checkRateLimit(clientIp)) {
-        return new Response("Rate limit exceeded for room creation (max 3/day)", { status: 429 });
+      if (isCreate && !checkRateLimit(clientIp, roomCode)) {
+        return new Response("Too many new terminal codes today. Try again later.", { status: 429 });
       }
 
       const id = env.ROOM_DO.idFromName(roomCode);

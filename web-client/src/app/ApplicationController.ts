@@ -33,9 +33,12 @@ import { buildPolicyTransfer } from "../domain/BellPolicyProtocol";
 import { RosterService } from "../domain/RosterService";
 import { AutoReconnectCoordinator } from "../lifecycle/AutoReconnectCoordinator";
 import { VirtualTerminalTransport } from "../transport/VirtualTerminalTransport";
+import { normalizeRoomCode, validRoomCode } from "../domain/RoomLinks";
 import type { CheckoutRequestPayload } from "../protocol/VirtualTerminalProtocol";
 import type { VirtualTerminalConfig } from "../storage/schema";
+export type VirtualRoomStatus = "starting" | "open" | "reconnecting" | "error" | "expired" | "closed";
 export interface AppSnapshot {
+  terminalMode: "bluetooth" | "virtual";
   ready: boolean;
   locked: boolean;
   error: string | null;
@@ -60,12 +63,15 @@ export interface AppSnapshot {
   virtualTerminal?: {
     roomCode: string;
     active: boolean;
+    status: VirtualRoomStatus;
+    error?: string;
     expiresAtEpoch: number;
     waitlist: Array<{ studentId: string; name: string; position: number; joinedEpoch: number }>;
   };
   virtualPassDetails?: Record<string, { destination?: string; purpose?: string; period?: string }>;
 }
 export const initialSnapshot: AppSnapshot = {
+  terminalMode: "bluetooth",
   ready: false,
   locked: false,
   error: null,
@@ -120,6 +126,8 @@ export class ApplicationController {
   private lastOffset = new Date().getTimezoneOffset();
   private lastReconcile = 0;
   private virtualTransport?: VirtualTerminalTransport;
+  private virtualStarting = false;
+  private virtualActions: Promise<void> = Promise.resolve();
   private virtualPassDetails = new Map<string, { destination?: string; purpose?: string; period?: string }>();
   constructor(private port: BluetoothPort = new WebBluetoothTerminalConnection()) {}
   private publish(patch: Partial<AppSnapshot> = {}) {
@@ -175,6 +183,7 @@ export class ApplicationController {
       this.session.changed.subscribe((session) => this.publish({ session }));
       this.session.application.subscribe((line) => this.onApplication(line));
       this.session.dropped.subscribe(() => {
+        if (this.state.terminalMode === "virtual") return;
         this.connection.abort();
         this.sync?.dispose();
         this.active.unknown();
@@ -214,7 +223,7 @@ export class ApplicationController {
       this.autoConnect = await this.db.meta("autoConnect", false);
       const vtConfig = await this.db.meta<VirtualTerminalConfig | null>("virtual_terminal_config", null);
       if (vtConfig?.enabled && vtConfig.roomCode) {
-        void this.startVirtualTerminal(vtConfig.roomCode);
+        await this.startVirtualTerminal(vtConfig.roomCode, undefined, undefined, true);
       }
       abortCheck(this.lifetime.signal);
       this.publish({ ready: true });
@@ -234,7 +243,7 @@ export class ApplicationController {
         const now = Date.now();
         const offset = new Date().getTimezoneOffset();
         if (now - this.lastTick > 10000 || now < this.lastTick || offset !== this.lastOffset) {
-          this.active.unknown();
+          if (this.state.terminalMode === "bluetooth") this.active.unknown();
           this.publish({ clockNotice: offset !== this.lastOffset || now < this.lastTick });
           this.wake();
         }
@@ -243,7 +252,7 @@ export class ApplicationController {
         if (this.session?.state === "Authenticated" && now - this.lastReconcile >= 300000)
           void this.syncNow();
       }, 1000);
-      if (this.autoConnect && this.state.terminal) this.reconnect.start();
+      if (this.state.terminalMode === "bluetooth" && this.autoConnect && this.state.terminal) this.reconnect.start();
     } catch (error) {
       this.publish({ error: errorText(error) });
     }
@@ -251,6 +260,7 @@ export class ApplicationController {
   private suspended = false;
   private suspend = () => {
     this.suspended = true;
+    this.virtualTransport?.disconnect();
     this.reconnect?.stop();
     this.connection.abort();
     this.sync?.dispose();
@@ -275,6 +285,7 @@ export class ApplicationController {
       return;
     }
     if (!this.state.ready || this.state.busy || this.discoveryOpen) return;
+    if (this.state.terminalMode === "virtual") return;
     this.active.unknown();
     this.publish();
     if (this.session?.state === "Authenticated") void this.syncNow();
@@ -427,7 +438,7 @@ export class ApplicationController {
     return () => {
       this.discoveryOpen--;
       if (!this.discoveryOpen) this.cancelInspection();
-      if (!this.discoveryOpen && this.autoConnect && this.state.terminal && this.session?.state !== "Authenticated")
+      if (this.state.terminalMode === "bluetooth" && !this.discoveryOpen && this.autoConnect && this.state.terminal && this.session?.state !== "Authenticated")
         this.reconnect?.start();
     };
   }
@@ -458,6 +469,10 @@ export class ApplicationController {
     return rows;
   }
   async inspectTerminal(device?: DeviceHandle, signal?: AbortSignal): Promise<DiscoveredTerminal | undefined> {
+    if (this.state.terminalMode === "virtual") {
+      this.publish({ error: "End the virtual session before connecting a Bluetooth terminal." });
+      return undefined;
+    }
     if (!capabilities().bluetooth) {
       this.publish({ error: "Web Bluetooth is unavailable in this browser. Use Chrome or Edge and check your school’s Bluetooth policy." });
       return undefined;
@@ -477,6 +492,10 @@ export class ApplicationController {
     return result;
   }
   async connectDevice(device: DeviceHandle, code?: string, expectedId?: string, signal?: AbortSignal) {
+    if (this.state.terminalMode === "virtual") {
+      this.publish({ error: "End the virtual session before connecting a Bluetooth terminal." });
+      return false;
+    }
     this.reconnect?.stop();
     return this.action("connect", async () => {
       this.autoConnect = true;
@@ -487,6 +506,7 @@ export class ApplicationController {
     });
   }
   retry() {
+    if (this.state.terminalMode === "virtual") return;
     this.clearError();
     this.autoConnect = true;
     void this.db
@@ -579,6 +599,7 @@ export class ApplicationController {
     }
   }
   private onApplication(line: string) {
+    if (this.state.terminalMode === "virtual") return;
     try {
       if (line.startsWith("EVENT,")) {
         this.active.event(line);
@@ -644,7 +665,8 @@ export class ApplicationController {
       buildPolicyTransfer(new Date(), policy, periods, exceptions);
       await this.workspaceRepo!.savePolicy(policy, periods, exceptions);
       await this.refresh();
-      if (this.session?.state === "Authenticated") await this.applyPolicy();
+      if (this.state.terminalMode === "virtual") this.virtualTransport?.setCapacity(policy.capacity);
+      else if (this.session?.state === "Authenticated") await this.applyPolicy();
     });
   }
   saveRoster(students: Student[], enrollments: Enrollment[], replace = false) {
@@ -690,8 +712,8 @@ export class ApplicationController {
     });
   }
   checkIn(studentId: string) {
-    if (this.state.virtualTerminal?.active || this.virtualPassDetails.has(studentId)) {
-      return this.handleVirtualCheckinRequest(studentId);
+    if (this.state.terminalMode === "virtual") {
+      return this.enqueueVirtual(() => this.handleVirtualCheckinRequest(studentId));
     }
     return this.action("check-in", async () => {
       if (!this.active.fresh || !this.active.passes.some((p) => p.studentId === studentId))
@@ -708,7 +730,9 @@ export class ApplicationController {
   }
   async recordManualTrip(wire: WireTrip, period?: string) {
     if (!this.tripRepo || !this.state.workspace) return;
-    const terminalId = this.state.terminal?.terminalId ?? "LOCAL";
+    const terminalId = this.state.terminalMode === "virtual"
+      ? `VIRTUAL:${this.state.virtualTerminal?.roomCode || "LOCAL"}`
+      : "LOCAL";
     const context: TripContext = {
       terminalId,
       receivedWorkspaceId: this.state.workspace.workspaceId,
@@ -716,7 +740,7 @@ export class ApplicationController {
       classSection: period ?? null,
       contextSource: "resolved-on-receipt",
     };
-    await this.tripRepo.store(wire, context);
+    await this.tripRepo.storeLocal(wire, context);
     await this.refresh();
   }
   unpair() {
@@ -750,15 +774,17 @@ export class ApplicationController {
   }
   async prepareUpdate() {
     // Preserve reconnect preference; wait for durable writes before activation.
+    await this.virtualActions;
     this.disconnect(false);
     return this.action("update", async () => {
       await this.sync?.drain();
     });
   }
   async backup() {
-    this.disconnect();
+    if (this.state.terminalMode === "bluetooth") this.disconnect();
     let text = "";
     const ok = await this.action("backup", async () => {
+      await this.virtualActions;
       await this.sync?.drain();
       text = await new BackupService(this.db!).export();
       await this.db!.setMeta("lastBackupUtc", new Date().toISOString());
@@ -766,8 +792,9 @@ export class ApplicationController {
     return ok ? text : null;
   }
   restore(backup: Backup) {
-    this.disconnect();
     return this.action("restore", async () => {
+      if (this.state.virtualTerminal) await this.stopVirtualTerminal();
+      this.disconnect();
       await this.sync?.drain();
       await new BackupService(this.db!).restore(backup);
     });
@@ -777,83 +804,94 @@ export class ApplicationController {
     await this.db.setMeta("persistenceRequested", true);
     await navigator.storage.persist?.().catch(() => false);
   }
-  async startVirtualTerminal(roomCode: string, pin?: string, relayUrl?: string) {
-    this.stopVirtualTerminal();
-    const code = roomCode.toUpperCase().trim();
-    let hostSecret = (await this.db?.meta<string>("virtual_host_secret", "")) ?? "";
-    if (!hostSecret) {
-      hostSecret = `sec_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
-      await this.db?.setMeta("virtual_host_secret", hostSecret);
-    }
-    let pinHash: string | undefined;
-    if (pin && pin.trim()) {
-      const enc = new TextEncoder().encode(pin.trim());
-      const hashBuf = await crypto.subtle.digest("SHA-256", enc);
-      pinHash = Array.from(new Uint8Array(hashBuf))
-        .map((b) => b.toString(16).padStart(2, "0"))
-        .join("");
-    }
-    await this.db?.setMeta("virtual_terminal_config", {
-      roomCode: code,
-      hostSecret,
-      pinHash,
-      enabled: true,
-    });
-
-    this.virtualTransport = new VirtualTerminalTransport({
-      relayUrl,
-      roomCode: code,
-      role: "host",
-      hostSecret,
-      pinHash,
-      capacity: this.state.policy.capacity,
-      onStatusChange: (status) => {
-        if (this.state.virtualTerminal) {
-          this.publish({
-            virtualTerminal: {
-              ...this.state.virtualTerminal,
-              active: status === "connected",
-            },
-          });
-        }
-      },
-      onRoomState: (roomState) => {
-        this.publish({
-          virtualTerminal: {
-            roomCode: roomState.roomCode,
-            active: true,
-            expiresAtEpoch: roomState.sessionExpiresAtEpoch,
-            waitlist: roomState.waitlist,
-          },
-        });
-      },
-      onCheckoutRequest: (req) => {
-        void this.handleVirtualCheckoutRequest(req);
-      },
-      onCheckinRequest: (studentId) => {
-        void this.handleVirtualCheckinRequest(studentId);
-      },
-    });
-
-    this.active.fresh = true;
-    this.virtualTransport.connect();
-    this.publish({
-      virtualTerminal: {
-        roomCode: code,
-        active: false,
-        expiresAtEpoch: Math.floor(Date.now() / 1000) + 12 * 3600,
-        waitlist: [],
-      },
-    });
+  async startVirtualTerminal(roomCode: string, pin?: string, relayUrl?: string, resumeOnly = false) {
+    if (this.virtualStarting || this.state.busy) throw new Error("Wait for the current terminal operation to finish.");
+    const code = normalizeRoomCode(roomCode);
+    if (!validRoomCode(code)) throw new Error("Use a terminal code with 3–16 letters, numbers, or hyphens.");
+    if (pin && !/^\d{4,6}$/.test(pin)) throw new Error("The recovery PIN must contain 4–6 digits.");
+    if (this.active.passes.length || (this.state.session === "Authenticated" && !this.active.fresh))
+      throw new Error("Check in all active passes and refresh terminal status before switching terminals.");
+    this.virtualStarting = true;
+    try {
+      if (this.state.virtualTerminal) await this.stopVirtualTerminal();
+      this.disconnect();
+      this.active.passes = [];
+      this.active.unknown();
+      const saved = await this.db!.meta<VirtualTerminalConfig | null>("virtual_terminal_config", null);
+      let hostSecret = await this.db!.meta<string>("virtual_host_secret", "");
+      if (!hostSecret) { hostSecret = crypto.randomUUID(); await this.db!.setMeta("virtual_host_secret", hostSecret); }
+      let pinHash = saved?.roomCode === code ? saved.pinHash : undefined;
+      if (pin) {
+        const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(pin));
+        pinHash = Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, "0")).join("");
+      }
+      await this.db!.setMeta("virtual_terminal_config", { roomCode: code, enabled: true, hostSecret, pinHash });
+      this.publish({ terminalMode: "virtual", error: null, virtualTerminal: {
+        roomCode: code, active: false, status: "starting", expiresAtEpoch: 0, waitlist: [],
+      } });
+      let confirmed = false;
+      let fatalError = false;
+      const transport = new VirtualTerminalTransport({
+        relayUrl, roomCode: code, role: "host", hostSecret, pinHash,
+        capacity: this.state.policy.capacity, resumeOnly,
+        onClaim: () => { confirmed = true; fatalError = false; },
+        onStatusChange: status => {
+          if (this.virtualTransport !== transport || !this.state.virtualTerminal) return;
+          if (fatalError || ["closed", "expired"].includes(this.state.virtualTerminal.status)) return;
+          if (status !== "connected") {
+            this.active.unknown();
+            this.publish({ virtualTerminal: { ...this.state.virtualTerminal, active: false,
+              status: confirmed ? "reconnecting" : status === "error" ? "error" : "starting",
+              error: status === "error" ? "Cannot reach the terminal service. Check your internet connection." : undefined,
+            } });
+          }
+        },
+        onRoomState: room => {
+          if (this.virtualTransport !== transport || !confirmed) return;
+          const active = room.status === "open" && room.sessionExpiresAtEpoch > Date.now() / 1000;
+          this.active.passes = room.activePasses.filter(p => p.studentId).map(p => ({ studentId: p.studentId!, epoch: p.outEpoch }));
+          this.active.fresh = active;
+          this.virtualPassDetails = new Map(room.activePasses.filter(p => p.studentId).map(p => [p.studentId!, {
+            destination: p.destination, purpose: p.purpose, period: p.period,
+          }]));
+          this.publish({ virtualTerminal: {
+            roomCode: code, active, status: active ? "open" : room.status === "paused" ? "reconnecting" : room.status === "expired" ? "expired" : "closed",
+            expiresAtEpoch: room.sessionExpiresAtEpoch, waitlist: room.waitlist,
+          } });
+          if (room.status === "expired" || room.status === "closed")
+            void this.db?.setMeta("virtual_terminal_config", null).catch(error => this.publish({ error: errorText(error) }));
+        },
+        onError: (errorCode, message) => {
+          fatalError = ["ALREADY_CLAIMED", "SESSION_EXPIRED", "ROOM_INACTIVE", "HOST_REPLACED"].includes(errorCode);
+          if (this.virtualTransport !== transport || !this.state.virtualTerminal) return;
+          this.active.unknown();
+          this.publish({ virtualTerminal: { ...this.state.virtualTerminal, active: false,
+            status: errorCode === "SESSION_EXPIRED" ? "expired" : "error", error: message,
+          } });
+        },
+        onCheckoutRequest: req => this.enqueueVirtual(() => this.handleVirtualCheckoutRequest(req)),
+        onCheckinRequest: req => this.enqueueVirtual(() => this.handleVirtualCheckinRequest(req.studentId, req.requestId)),
+      });
+      this.virtualTransport = transport;
+      transport.connect();
+    } finally { this.virtualStarting = false; }
   }
-
-  stopVirtualTerminal() {
-    if (this.virtualTransport) {
-      this.virtualTransport.disconnect();
-      this.virtualTransport = undefined;
-    }
-    void this.db?.setMeta("virtual_terminal_config", null);
-    this.publish({ virtualTerminal: undefined });
+  private enqueueVirtual(action: () => Promise<void>) {
+    this.virtualActions = this.virtualActions.then(action).catch(error => this.publish({ error: errorText(error) }));
+    return this.virtualActions;
+  }
+  async stopVirtualTerminal() {
+    await this.virtualActions;
+    if (this.active.passes.length) throw new Error("Check in or void all active passes before ending or switching this session.");
+    const room = this.state.virtualTerminal;
+    if (room && room.expiresAtEpoch > Date.now() / 1000 && !["closed", "expired"].includes(room.status))
+      await this.virtualTransport?.closeRoom();
+    const transport = this.virtualTransport;
+    this.virtualTransport = undefined;
+    transport?.disconnect();
+    await this.db?.setMeta("virtual_terminal_config", null);
+    this.active.passes = []; this.active.unknown(); this.virtualPassDetails.clear();
+    this.publish({ terminalMode: "bluetooth", virtualTerminal: undefined });
   }
 
   async startPass(details: {
@@ -862,10 +900,9 @@ export class ApplicationController {
     purpose?: string;
     period?: string;
   }) {
-    const student = this.state.students.find((s) => s.studentId === details.studentId);
-    const studentName = student
-      ? `${student.firstName} ${student.lastName}`.trim()
-      : `Student ${details.studentId}`;
+    if (!this.state.virtualTerminal?.active) throw new Error("Wait for the virtual terminal to reconnect.");
+    if (!/^\d{1,16}$/.test(details.studentId) || this.active.passes.some(p => p.studentId === details.studentId)) throw new Error("Use a valid student ID without an active pass.");
+    if (this.active.passes.length >= this.state.policy.capacity) throw new Error("All passes are in use.");
     const epoch = Math.floor(Date.now() / 1000);
     this.active.fresh = true;
     this.active.event(`EVENT,CHECKOUT,${details.studentId},${epoch}`);
@@ -880,9 +917,10 @@ export class ApplicationController {
       this.virtualTransport.confirmCheckout({
         requestId: `manual_${Date.now()}`,
         studentId: details.studentId,
-        name: studentName,
+        name: "Student",
         destination: details.destination || "Restroom",
         purpose: details.purpose,
+        period: details.period,
         outEpoch: epoch,
       });
     }
@@ -891,6 +929,7 @@ export class ApplicationController {
   }
 
   async voidPass(studentId: string) {
+    if (!this.state.virtualTerminal?.active) throw new Error("Wait for the virtual terminal to reconnect.");
     const inEpoch = Math.floor(Date.now() / 1000);
     this.virtualPassDetails.delete(studentId);
     this.active.event(`EVENT,CHECKIN,${studentId},${inEpoch}`);
@@ -906,10 +945,12 @@ export class ApplicationController {
 
   async handleVirtualCheckoutRequest(req: CheckoutRequestPayload) {
     if (!this.state.virtualTerminal?.active) return;
-    const student = this.state.students.find((s) => s.studentId === req.studentId);
-    const studentName = student
-      ? `${student.firstName} ${student.lastName}`.trim()
-      : `Student ${req.studentId}`;
+
+    if (this.active.passes.some(pass => pass.studentId === req.studentId)) {
+      this.virtualTransport?.rejectCheckout({ requestId: req.requestId, reason: "ALREADY_OUT",
+        message: "You already have a pass. Choose Check in when you return." });
+      return;
+    }
 
     if (this.active.passes.length >= this.state.policy.capacity) {
       this.virtualTransport?.rejectCheckout({
@@ -935,16 +976,18 @@ export class ApplicationController {
     this.virtualTransport?.confirmCheckout({
       requestId: req.requestId,
       studentId: req.studentId,
-      name: studentName,
+      name: "Student",
       destination: req.destination,
       purpose: req.purpose,
+      period: resolved?.classSection,
       outEpoch: epoch,
     });
 
     this.publish();
   }
 
-  async handleVirtualCheckinRequest(studentId: string) {
+  async handleVirtualCheckinRequest(studentId: string, requestId?: string) {
+    if (!this.state.virtualTerminal?.active) throw new Error("Wait for the virtual terminal to reconnect.");
     const existing = this.active.passes.find((p) => p.studentId === studentId);
     if (!existing) return;
 
@@ -958,10 +1001,6 @@ export class ApplicationController {
     const tripDate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 
     const meta = this.virtualPassDetails.get(studentId);
-    this.virtualPassDetails.delete(studentId);
-
-    this.active.event(`EVENT,CHECKIN,${studentId},${inEpoch}`);
-
     await this.recordManualTrip(
       {
         tripId: Date.now(),
@@ -977,8 +1016,10 @@ export class ApplicationController {
       meta?.period,
     );
 
+    this.virtualPassDetails.delete(studentId);
+    this.active.event(`EVENT,CHECKIN,${studentId},${inEpoch}`);
     if (this.virtualTransport && this.state.virtualTerminal?.active) {
-      this.virtualTransport.confirmCheckin(studentId, inEpoch);
+      this.virtualTransport.confirmCheckin(studentId, inEpoch, requestId);
     }
     this.publish();
   }

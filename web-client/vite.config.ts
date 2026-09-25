@@ -13,7 +13,9 @@ const headers = Object.fromEntries(
     }),
 );
 export default defineConfig({
-  preview: { headers },
+  preview: { headers: { ...headers, "Content-Security-Policy": headers["Content-Security-Policy"].replace(
+    "connect-src 'self'", "connect-src 'self' ws://127.0.0.1:4192",
+  ) } },
   plugins: [react(), tailwindcss()],
   build: { target: ["chrome116", "edge116"], sourcemap: false },
 });

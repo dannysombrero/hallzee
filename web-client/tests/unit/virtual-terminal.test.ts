@@ -73,14 +73,14 @@ describe("Virtual Terminal Protocol & Relay Coordination", () => {
     expect(stationState!.roomCode).toBe("TEST01");
 
     // 3. Station requests checkout for Nurse with private purpose
-    station.requestCheckout("S101", "Nurse", "Headache medication");
+    station.requestCheckout("101", "Nurse", "Headache medication");
 
     // Wait for host to receive and confirm
     await new Promise((resolve) => setTimeout(resolve, 200));
 
     // Verify host received full private details
     expect(checkoutReqReceived).toBeDefined();
-    expect(checkoutReqReceived!.studentId).toBe("S101");
+    expect(checkoutReqReceived!.studentId).toBe("101");
     expect(checkoutReqReceived!.destination).toBe("Nurse");
     expect(checkoutReqReceived!.purpose).toBe("Headache medication");
 
@@ -90,7 +90,7 @@ describe("Virtual Terminal Protocol & Relay Coordination", () => {
     expect(stationState!.activePasses.length).toBe(1);
 
     const publicPass = stationState!.activePasses[0];
-    expect(publicPass.name).toBe("Ada Lovelace");
+    expect(publicPass.name).toBe("Student");
     // CRITICAL PRIVACY MASKING: Public station must NEVER receive studentId, destination, or purpose!
     expect(publicPass.studentId).toBeUndefined();
     expect((publicPass as any).destination).toBeUndefined();
@@ -98,7 +98,7 @@ describe("Virtual Terminal Protocol & Relay Coordination", () => {
 
     // Host sees the studentId
     const hostPass = hostState!.activePasses[0];
-    expect(hostPass.studentId).toBe("S101");
+    expect(hostPass.studentId).toBe("101");
 
     // 4. Clean up transports
     station.disconnect();
@@ -122,7 +122,7 @@ describe("Virtual Terminal Protocol & Relay Coordination", () => {
     // First checkout
     host.confirmCheckout({
       requestId: "init",
-      studentId: "S201",
+      studentId: "201",
       name: "Grace Hopper",
       destination: "Restroom",
       outEpoch: 1700000000,
@@ -141,7 +141,7 @@ describe("Virtual Terminal Protocol & Relay Coordination", () => {
     await new Promise((resolve) => setTimeout(resolve, 150));
 
     // Second checkout attempt when room is full (capacity=1)
-    station.requestCheckout("S202", "Restroom");
+    station.requestCheckout("202", "Restroom");
     await new Promise((resolve) => setTimeout(resolve, 200));
 
     expect(rejectionReceived).not.toBeNull();
@@ -168,7 +168,7 @@ describe("Virtual Terminal Protocol & Relay Coordination", () => {
     // Occupy room
     host.confirmCheckout({
       requestId: "r1",
-      studentId: "S301",
+      studentId: "301",
       name: "Alan Turing",
       destination: "Restroom",
       outEpoch: 1700000000,
@@ -187,14 +187,14 @@ describe("Virtual Terminal Protocol & Relay Coordination", () => {
     await new Promise((resolve) => setTimeout(resolve, 150));
 
     // Join waitlist
-    station.joinWaitlist("S302");
+    station.joinWaitlist("302");
     await new Promise((resolve) => setTimeout(resolve, 150));
 
     expect(latestStationState!.waitlistCount).toBe(1);
-    expect(latestStationState!.waitlist[0].studentId).toBe("S302");
+    expect(latestStationState!.waitlist).toEqual([]);
 
     // Host dismisses student from waitlist
-    host.performWaitlistAction("S302", "dismiss");
+    host.performWaitlistAction("302", "dismiss");
     await new Promise((resolve) => setTimeout(resolve, 150));
 
     expect(latestStationState!.waitlistCount).toBe(0);
@@ -214,9 +214,9 @@ describe("Virtual Terminal Protocol & Relay Coordination", () => {
       role: "host",
       hostSecret: "secret-checkin",
       capacity: 1,
-      onCheckinRequest: (sid) => {
-        checkinStudentReceived = sid;
-        host.confirmCheckin(sid);
+      onCheckinRequest: (request) => {
+        checkinStudentReceived = request.studentId;
+        host.confirmCheckin(request.studentId, undefined, request.requestId);
       },
     });
     host.connect();
@@ -225,7 +225,7 @@ describe("Virtual Terminal Protocol & Relay Coordination", () => {
     // Occupy pass
     host.confirmCheckout({
       requestId: "req-c",
-      studentId: "S401",
+      studentId: "401",
       name: "Katherine Johnson",
       destination: "Restroom",
       outEpoch: 1700000000,
@@ -246,10 +246,10 @@ describe("Virtual Terminal Protocol & Relay Coordination", () => {
     expect(stationState!.activeCount).toBe(1);
 
     // Request check-in from station
-    station.requestCheckin("S401");
+    station.requestCheckin("401");
     await new Promise((resolve) => setTimeout(resolve, 200));
 
-    expect(checkinStudentReceived).toBe("S401");
+    expect(checkinStudentReceived).toBe("401");
     expect(stationState!.activeCount).toBe(0);
     expect(stationState!.isFull).toBe(false);
 

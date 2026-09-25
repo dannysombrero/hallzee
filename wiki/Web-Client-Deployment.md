@@ -20,7 +20,7 @@ The Hallzee Web Client (`web-client/`) is a client-side Progressive Web App (PWA
 ### 1. Current Phase: Dev Straight to Live
 
 To facilitate rapid development and hardware testing on your Windows PC with physical ESP32 kiosks:
-- Any push to `main` (affecting `web-client/`) or manual trigger via `workflow_dispatch` executes the full verification suite (`npm run check`) and deploys directly to production at `https://web.hallzee.com`.
+- Relevant pushes to `main` or a manual `workflow_dispatch` run execute the verification suite (`npm run check`) and publish the client. Relay or deployment configuration changes also publish the matching relay. Ordinary client-only changes leave the running relay version in place.
 
 ### 2. Future Phase: Staging → Dev → Live Pipeline
 
@@ -32,6 +32,27 @@ When the software matures toward multi-teacher rollout:
 Cloudflare Pages natively handles branch deployments within the same project without duplicate infrastructure.
 
 ---
+
+## Deployment verification (2026-09-25)
+
+- The refined web client is deployed at `web.hallzee.com` from the merged UI change
+  ([successful Pages release](https://github.com/dannysombrero/hallzee/actions/runs/36164293850)).
+- `hallzee-relay` is deployed with the `ROOM_DO` binding and `v1` SQLite class
+  migration. `relay.hallzee.com` is associated with that Worker and has public DNS.
+- `pass.hallzee.com` is active on the existing Pages project with its matching
+  CNAME ([successful domain setup](https://github.com/dannysombrero/hallzee/actions/runs/36169677896)).
+- Type checking, lint, 136 unit tests, 27 browser tests, the native local Workers
+  protocol check, 11 deployment safeguard tests and repository hygiene passed.
+- Public relay verification is blocked: the GitHub runner receives HTTP 403 with
+  `cf-mitigated: challenge`. The deployment token also receives API HTTP 403 when
+  reading Bot Management, Zone Settings and Zone WAF configuration. The source of
+  the challenge has not yet been identified. Public browser acceptance remains
+  pending; the workflow retains the live relay and browser checks as release gates.
+
+Security diagnostics do not change zone protection. Correct the responsible
+feature after inspecting its configuration and Cloudflare Security Events. Do not
+replace this diagnosis with a blanket security exception. The deployment token
+and account secret remain in GitHub Actions secrets.
 
 ## One-Time Setup Instructions
 
@@ -61,8 +82,11 @@ Cloudflare Pages natively handles branch deployments within the same project wit
    - **Token name**: `hallzee-pages-deploy`
    - **Permissions**:
      - `Account` | `Cloudflare Pages` | `Edit`
-   - **Account Resources**:
-     - `Include` | `All accounts` (or select your specific account)
+     - `Account` | `Workers Scripts` | `Edit`
+     - `Zone` | `DNS` | `Edit`
+     - `Zone` | `Zone` | `Read`
+   - **Account Resources**: include only the Hallzee account.
+   - **Zone Resources**: include only `hallzee.com`.
 5. Click **Continue to summary** -> **Create Token**.
 6. Securely copy the generated token string.
 
@@ -86,7 +110,7 @@ Cloudflare Pages natively handles branch deployments within the same project wit
 ## Triggering Deployments
 
 ### Automatic Deployment
-Pushing commits to `main` that include changes under `web-client/` or `.github/workflows/deploy-web-client.yml` automatically triggers the deployment action.
+Pushing commits to `main` that change `web-client/`, `relay/`, deployment scripts or `.github/workflows/deploy-web-client.yml` triggers the deployment action. Production deployments are serialized across branches. Relay deployments end active ephemeral rooms, so schedule relay changes outside classroom use.
 
 ### Manual Deployment via GitHub Actions
 1. In the GitHub repository, click the **Actions** tab.
@@ -95,6 +119,7 @@ Pushing commits to `main` that include changes under `web-client/` or `.github/w
    - Choose branch (e.g. `main`).
    - Select environment (`production` or `preview`).
    - Optionally toggle `Dry run` to validate without pushing to Cloudflare.
+   - Enable `Also publish the relay` when manually releasing relay changes. Preview deployments never change production DNS or the relay.
 4. Click **Run workflow**.
 
 ---
@@ -140,8 +165,9 @@ when no top-level `404.html` is present). The app chooses the student landing pa
 from the hostname. Do not redirect that root to the teacher dashboard.
 
 Deploy `relay/wrangler.jsonc` separately from Pages. It declares the `ROOM_DO`
-Durable Object binding, the initial SQLite class migration and the relay custom
-domain; the room engine itself never writes persistent storage. Review the name
+Durable Object binding and initial SQLite class migration; the room engine itself
+never writes persistent storage. The release workflow associates the relay custom
+domain through the Workers Domains API. Review the name
 and existing migration history before using this initial configuration for an
 already deployed Worker. With the web bootstrap's Node available (or Node 22.23.2+
 installed), the pinned command from the repository root validates without deploying:
@@ -151,11 +177,15 @@ npx --yes wrangler@4.140.0 deploy --dry-run --config relay/wrangler.jsonc
 ```
 
 For the separately authorized deployment, authenticate to the intended Cloudflare
-account with Wrangler and run the same command without `--dry-run`. The current
-Pages GitHub Action does **not** deploy the relay or configure the pass subdomain.
-Publishing the client and relay must be coordinated: both now use explicit room
-status and claim/check-in acknowledgments. No live DNS or Worker changes were
-performed as part of the UI implementation.
+account with Wrangler and run the same command without `--dry-run`. Prefer the
+GitHub Action for a coordinated release: it validates the target account and
+existing migration/binding, tests the client and local Workers runtime, deploys
+the relay when selected, binds its hostname, checks its live protocol, publishes Pages, and then
+associates the student domain and creates its missing CNAME. Conflicting DNS
+records stop setup without replacement; correct existing records are reused.
+Finally, a public browser check verifies sharing, code entry, a direct link,
+checkout, teacher refresh, check-in and closure using a synthetic room. Both
+client and relay use explicit room status and claim/check-in acknowledgments.
 
 The production CSP permits `wss://relay.hallzee.com`. Local preview additionally
 permits `ws://127.0.0.1:4192` for the test relay; that allowance is not in the
@@ -170,3 +200,83 @@ the QR target, open/closed status and two-device checkout/check-in before classr
 use. A Mac suffices for this virtual-flow check; Windows is not required. Windows
 physical BLE/PWA behavior remains unverified and needs its own hardware acceptance.
 See [Virtual terminals and student joining](Virtual-Terminal.md).
+
+### Check deployment access without browser sign-in
+
+The **Check Cloudflare deployment access** GitHub Action runs
+`python3 scripts/cloudflare-preflight.py` with the existing repository deployment
+secrets. It sends only GET requests to Cloudflare and reports whether the Hallzee
+Pages project, relay settings, custom domains and DNS are readable. It prints no
+tokens, account/zone identifiers, raw API responses or secret binding values.
+A separate credential-free step checks public DNS and relay HTTP health, including
+whether Cloudflare serves a browser challenge. It reports no response bodies or
+IP addresses. Read access alone does not prove permission to deploy or edit DNS.
+
+The diagnostic can be run manually from GitHub Actions once its workflow is on
+the default branch. Temporary branch triggers used during the initial setup have
+been removed. A 401/403 from the Cloudflare API identifies an authentication or
+permission blocker; review the API token in Cloudflare rather than putting its
+value in chat, logs or source files. macOS is sufficient to run the same diagnostic
+locally with environment-provided credentials; no Windows-specific capability is
+involved, and this does not verify Windows Bluetooth behavior.
+
+For the relay and domain setup, an older Pages-only deployment token is not
+enough. In Cloudflare's API Tokens settings, give the deployment token these
+permissions, limiting Account Resources to the Hallzee account and Zone Resources
+to `hallzee.com`:
+
+| Scope | Permission | Access |
+| --- | --- | --- |
+| Account | Cloudflare Pages | Edit |
+| Account | Workers Scripts | Edit |
+| Zone | DNS | Edit |
+| Zone | Zone | Read |
+
+Workers Scripts covers the relay upload and Worker custom domain. DNS covers the
+Pages CNAME, and Zone Read lets deployment locate the intended zone. The current
+relay uses a custom domain rather than a separate Workers Route. Wrangler
+4.140.0 queries zone routes when `routes` contains a custom domain with
+`workers_dev: false`; that requires additional route access. The workflow instead
+uses the documented Workers Domains API with Workers Scripts permission, after
+checking for conflicting Worker bindings and DNS. The Wrangler configuration does
+not manage routes or custom domains. These permission names and API requirements
+are documented in Cloudflare's
+[token permissions](https://developers.cloudflare.com/fundamentals/api/reference/permissions/)
+and [Worker domain API](https://developers.cloudflare.com/api/resources/workers/subresources/domains/methods/update/).
+
+If a replacement token is created, save it directly as `CLOUDFLARE_API_TOKEN` in
+GitHub repository Actions secrets. Keep `CLOUDFLARE_ACCOUNT_ID` set to the account
+that owns the Pages project and the zone. Then rerun the access-check job. Do not
+publish the client or relay until the account and target domains are confirmed.
+
+The domain helper defaults to a read-only plan (`python3 scripts/cloudflare-bind-join.py`).
+`--apply --wait` associates the student domain, creates a missing CNAME and waits
+up to ten minutes for activation. `--relay` plans the Worker hostname instead;
+`--relay --apply` attaches it after verifying the room binding and stops if another
+service or DNS record occupies the hostname. `node scripts/verify-relay.mjs` exercises the public relay
+with synthetic data and closes its test room. It allows five minutes for a newly
+bound relay hostname to activate and reports only HTTP status or known connection
+error categories while waiting. A detected browser challenge stops verification
+immediately instead of being retried as propagation. Build and screenshot artifacts are replaced on
+workflow retries. Set `HALLZEE_RELAY_ORIGIN` only when
+testing another relay, such as the local Workers runtime. Public browser checks
+use `npx playwright test --config playwright.deployment.config.ts` from `web-client/`
+after its normal bootstrap; they require no Cloudflare credentials.
+
+
+### Configure domains independently
+
+The **Configure terminal domains** action plans both hostname bindings by default.
+Enable its `apply` input to associate the existing relay Worker and student Pages
+hostname without publishing code. This allows initial DNS setup to finish even
+when a separate relay health check is blocked. It uses the same conflict checks
+as the release pipeline and shares its production concurrency group. It requires
+an explicit manual `apply` selection; no branch push applies domain bindings
+through this setup workflow.
+
+Its final diagnostic only reads Bot Management, security level and custom WAF
+rule settings. Missing optional security permissions are reported separately;
+it never changes security settings or emits raw rules, identifiers or responses.
+A relay response with `cf-mitigated: challenge` is a Cloudflare browser challenge,
+not a DNS propagation failure. Investigate the matching security feature before
+changing it; keep public relay and browser verification as release gates.
